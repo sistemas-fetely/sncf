@@ -89410,6 +89410,50 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_cobranca: {
+        Row: {
+          canal_contato: string
+          cobrado_em: string
+          cobrado_por: string | null
+          expedicao_codigo: string
+          id: string
+          mensagem: string | null
+          pendencia_tipo: string
+          respondido_em: string | null
+          resposta: string | null
+        }
+        Insert: {
+          canal_contato?: string
+          cobrado_em?: string
+          cobrado_por?: string | null
+          expedicao_codigo: string
+          id?: string
+          mensagem?: string | null
+          pendencia_tipo: string
+          respondido_em?: string | null
+          resposta?: string | null
+        }
+        Update: {
+          canal_contato?: string
+          cobrado_em?: string
+          cobrado_por?: string | null
+          expedicao_codigo?: string
+          id?: string
+          mensagem?: string | null
+          pendencia_tipo?: string
+          respondido_em?: string | null
+          resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_cobranca_pendencia_tipo_fkey"
+            columns: ["pendencia_tipo"]
+            isOneToOne: false
+            referencedRelation: "xpm_pendencia_tipo"
+            referencedColumns: ["chave"]
+          },
+        ]
+      }
       xpm_conciliacao_diaria: {
         Row: {
           calculado_em: string
@@ -89436,6 +89480,63 @@ export type Database = {
           xpm_total?: number
         }
         Relationships: []
+      }
+      xpm_custo_rateio: {
+        Row: {
+          base_qtde: number | null
+          base_rateio: string
+          canal: string | null
+          created_at: string
+          fatura_id: string
+          id: number
+          pedido_id: string | null
+          pedido_ref: string | null
+          servico_chave: string
+          sku: string | null
+          valor: number
+        }
+        Insert: {
+          base_qtde?: number | null
+          base_rateio: string
+          canal?: string | null
+          created_at?: string
+          fatura_id: string
+          id?: never
+          pedido_id?: string | null
+          pedido_ref?: string | null
+          servico_chave: string
+          sku?: string | null
+          valor: number
+        }
+        Update: {
+          base_qtde?: number | null
+          base_rateio?: string
+          canal?: string | null
+          created_at?: string
+          fatura_id?: string
+          id?: never
+          pedido_id?: string | null
+          pedido_ref?: string | null
+          servico_chave?: string
+          sku?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_custo_rateio_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "xpm_fatura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_custo_rateio_servico_chave_fkey"
+            columns: ["servico_chave"]
+            isOneToOne: false
+            referencedRelation: "xpm_servico_dim"
+            referencedColumns: ["chave"]
+          },
+        ]
       }
       xpm_envios_log: {
         Row: {
@@ -90115,6 +90216,7 @@ export type Database = {
           obs_nf: string | null
           origem_dado: string | null
           peso_bruto: number | null
+          pre_ponte: boolean
           quantidade_volumes: number | null
           sincronizado_em: string
           situacao: string | null
@@ -90143,6 +90245,7 @@ export type Database = {
           obs_nf?: string | null
           origem_dado?: string | null
           peso_bruto?: number | null
+          pre_ponte?: boolean
           quantidade_volumes?: number | null
           sincronizado_em?: string
           situacao?: string | null
@@ -90171,6 +90274,7 @@ export type Database = {
           obs_nf?: string | null
           origem_dado?: string | null
           peso_bruto?: number | null
+          pre_ponte?: boolean
           quantidade_volumes?: number | null
           sincronizado_em?: string
           situacao?: string | null
@@ -90515,6 +90619,295 @@ export type Database = {
           resultado?: Json | null
         }
         Relationships: []
+      }
+      xpm_fatura: {
+        Row: {
+          arquivo_nome: string | null
+          competencia: string
+          conta_pagar_id: string | null
+          created_at: string
+          erro: string | null
+          id: string
+          lida_em: string | null
+          minimo_fixo: number | null
+          nfs_numero: string | null
+          observacao: string | null
+          origem: string
+          recebida_em: string
+          resend_email_id: string | null
+          simulado: boolean
+          status: string
+          storage_path: string | null
+          updated_at: string
+          valor_desconto: number
+          valor_faturar: number | null
+          valor_minimo: number | null
+          valor_total: number | null
+          versao: number
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          competencia: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          erro?: string | null
+          id?: string
+          lida_em?: string | null
+          minimo_fixo?: number | null
+          nfs_numero?: string | null
+          observacao?: string | null
+          origem?: string
+          recebida_em?: string
+          resend_email_id?: string | null
+          simulado?: boolean
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          valor_desconto?: number
+          valor_faturar?: number | null
+          valor_minimo?: number | null
+          valor_total?: number | null
+          versao?: number
+        }
+        Update: {
+          arquivo_nome?: string | null
+          competencia?: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          erro?: string | null
+          id?: string
+          lida_em?: string | null
+          minimo_fixo?: number | null
+          nfs_numero?: string | null
+          observacao?: string | null
+          origem?: string
+          recebida_em?: string
+          resend_email_id?: string | null
+          simulado?: boolean
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          valor_desconto?: number
+          valor_faturar?: number | null
+          valor_minimo?: number | null
+          valor_total?: number | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_baixa_extrato_inequivoca"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_indevida_alvo"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_baixa_extrato"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_pagar_acoes"
+            referencedColumns: ["cpr_id"]
+          },
+        ]
+      }
+      xpm_fatura_detalhe: {
+        Row: {
+          aba: string
+          dados: Json
+          data: string | null
+          fatura_id: string
+          id: number
+          linha_n: number
+          nf: string | null
+          pedido_ref: string | null
+          qtde: number | null
+          sku_xpm: string | null
+          valor: number | null
+        }
+        Insert: {
+          aba: string
+          dados?: Json
+          data?: string | null
+          fatura_id: string
+          id?: never
+          linha_n: number
+          nf?: string | null
+          pedido_ref?: string | null
+          qtde?: number | null
+          sku_xpm?: string | null
+          valor?: number | null
+        }
+        Update: {
+          aba?: string
+          dados?: Json
+          data?: string | null
+          fatura_id?: string
+          id?: never
+          linha_n?: number
+          nf?: string | null
+          pedido_ref?: string | null
+          qtde?: number | null
+          sku_xpm?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_fatura_detalhe_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "xpm_fatura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xpm_fatura_linha: {
+        Row: {
+          created_at: string
+          descricao_original: string | null
+          divergencia_qtde: number | null
+          divergencia_valor: number | null
+          fatura_id: string
+          fonte_medida: string | null
+          id: string
+          nota: string | null
+          ordem: number | null
+          preco_cobrado: number | null
+          qtde_cobrada: number | null
+          qtde_medida: number | null
+          servico_chave: string
+          status: string
+          uom_original: string | null
+          valor_cobrado: number
+        }
+        Insert: {
+          created_at?: string
+          descricao_original?: string | null
+          divergencia_qtde?: number | null
+          divergencia_valor?: number | null
+          fatura_id: string
+          fonte_medida?: string | null
+          id?: string
+          nota?: string | null
+          ordem?: number | null
+          preco_cobrado?: number | null
+          qtde_cobrada?: number | null
+          qtde_medida?: number | null
+          servico_chave: string
+          status?: string
+          uom_original?: string | null
+          valor_cobrado?: number
+        }
+        Update: {
+          created_at?: string
+          descricao_original?: string | null
+          divergencia_qtde?: number | null
+          divergencia_valor?: number | null
+          fatura_id?: string
+          fonte_medida?: string | null
+          id?: string
+          nota?: string | null
+          ordem?: number | null
+          preco_cobrado?: number | null
+          qtde_cobrada?: number | null
+          qtde_medida?: number | null
+          servico_chave?: string
+          status?: string
+          uom_original?: string | null
+          valor_cobrado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_fatura_linha_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "xpm_fatura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_fatura_linha_servico_chave_fkey"
+            columns: ["servico_chave"]
+            isOneToOne: false
+            referencedRelation: "xpm_servico_dim"
+            referencedColumns: ["chave"]
+          },
+        ]
       }
       xpm_medida_referencia: {
         Row: {
@@ -92515,6 +92908,92 @@ export type Database = {
           },
         ]
       }
+      xpm_pendencia_fechada: {
+        Row: {
+          fechado_em: string
+          fechado_por: string | null
+          id: string
+          motivo: string
+          pendencia_tipo: string
+          referencia: string
+        }
+        Insert: {
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          motivo: string
+          pendencia_tipo: string
+          referencia: string
+        }
+        Update: {
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          motivo?: string
+          pendencia_tipo?: string
+          referencia?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_pendencia_fechada_pendencia_tipo_fkey"
+            columns: ["pendencia_tipo"]
+            isOneToOne: false
+            referencedRelation: "xpm_pendencia_tipo"
+            referencedColumns: ["chave"]
+          },
+        ]
+      }
+      xpm_pendencia_limite: {
+        Row: {
+          canal: string
+          fase_codigo: string
+          horas_limite: number
+          id: string
+        }
+        Insert: {
+          canal: string
+          fase_codigo?: string
+          horas_limite: number
+          id?: string
+        }
+        Update: {
+          canal?: string
+          fase_codigo?: string
+          horas_limite?: number
+          id?: string
+        }
+        Relationships: []
+      }
+      xpm_pendencia_tipo: {
+        Row: {
+          ativo: boolean
+          chave: string
+          descricao_humana: string
+          dono_sugerido: string | null
+          ordem: number
+          rotulo: string
+          saidas: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          descricao_humana: string
+          dono_sugerido?: string | null
+          ordem?: number
+          rotulo: string
+          saidas?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          descricao_humana?: string
+          dono_sugerido?: string | null
+          ordem?: number
+          rotulo?: string
+          saidas?: string[]
+        }
+        Relationships: []
+      }
       xpm_produtos_cache: {
         Row: {
           altura_m: number | null
@@ -92595,6 +93074,80 @@ export type Database = {
           xpm_produto_id?: number
         }
         Relationships: []
+      }
+      xpm_servico_dim: {
+        Row: {
+          ativo: boolean
+          chave: string
+          created_at: string
+          descricao: string
+          ordem: number
+          processo: string
+          regra_conferencia: string | null
+          uom: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          created_at?: string
+          descricao: string
+          ordem?: number
+          processo: string
+          regra_conferencia?: string | null
+          uom?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          created_at?: string
+          descricao?: string
+          ordem?: number
+          processo?: string
+          regra_conferencia?: string | null
+          uom?: string | null
+        }
+        Relationships: []
+      }
+      xpm_servico_preco: {
+        Row: {
+          created_at: string
+          fonte: string | null
+          id: string
+          preco: number
+          servico_chave: string
+          uom: string | null
+          vigencia_fim: string | null
+          vigencia_ini: string
+        }
+        Insert: {
+          created_at?: string
+          fonte?: string | null
+          id?: string
+          preco: number
+          servico_chave: string
+          uom?: string | null
+          vigencia_fim?: string | null
+          vigencia_ini: string
+        }
+        Update: {
+          created_at?: string
+          fonte?: string | null
+          id?: string
+          preco?: number
+          servico_chave?: string
+          uom?: string | null
+          vigencia_fim?: string | null
+          vigencia_ini?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_servico_preco_servico_chave_fkey"
+            columns: ["servico_chave"]
+            isOneToOne: false
+            referencedRelation: "xpm_servico_dim"
+            referencedColumns: ["chave"]
+          },
+        ]
       }
       xpm_sla_canal: {
         Row: {
@@ -96448,6 +97001,7 @@ export type Database = {
           bling_ativo: boolean | null
           bling_categoria: string | null
           bling_cest: string | null
+          bling_codigo_card: string | null
           bling_gtin: string | null
           bling_gtin_embalagem: string | null
           bling_id: string | null
@@ -96464,6 +97018,7 @@ export type Database = {
           campos_divergentes: string[] | null
           campos_marketplace_vazios: string[] | null
           cest: string | null
+          codigo_externo: string | null
           ean: string | null
           fase: string | null
           grupo: string | null
@@ -123844,14 +124399,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -127511,14 +128066,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -146716,6 +147271,30 @@ export type Database = {
           },
         ]
       }
+      vw_xpm_pendencia: {
+        Row: {
+          canal: string | null
+          cliente: string | null
+          cobrancas: number | null
+          codigo: string | null
+          descricao_humana: string | null
+          dias: number | null
+          dono_sugerido: string | null
+          estagio_codigo: string | null
+          fase_rotulo: string | null
+          horas: number | null
+          nf_numero: string | null
+          pausada: boolean | null
+          pedido_id: string | null
+          pedido_sncf: string | null
+          referencia: string | null
+          rotulo: string | null
+          saidas: string[] | null
+          tipo: string | null
+          ultima_cobranca_em: string | null
+        }
+        Relationships: []
+      }
       vw_xpm_reemissao_diaria: {
         Row: {
           dia: string | null
@@ -147741,6 +148320,7 @@ export type Database = {
           p_itens: Json
           p_observacao?: string
           p_pagamento: string
+          p_usar_haver?: boolean
           p_vendedor_id?: string
         }
         Returns: Json
@@ -147993,6 +148573,15 @@ export type Database = {
         }[]
       }
       detectar_tipo_pagamento: { Args: { descricao: string }; Returns: string }
+      devolucao_editar_declaracao: {
+        Args: {
+          p_devolucao_id: string
+          p_itens?: Json
+          p_motivo: string
+          p_pedido_inteiro?: boolean
+        }
+        Returns: Json
+      }
       devolver_pedido_para_cobranca: {
         Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
@@ -149247,6 +149836,10 @@ export type Database = {
         Args: { p_motivo: string; p_vinculo_id: string }
         Returns: Json
       }
+      fn_devolucao_divergencia_loja: {
+        Args: { p_devolucao_id: string }
+        Returns: Json
+      }
       fn_devolucao_gerar_haver: {
         Args: { p_devolucao_id: string }
         Returns: Json
@@ -149258,6 +149851,15 @@ export type Database = {
       fn_devolucao_haver_disponivel_b2b: {
         Args: { p_pedido_id: string }
         Returns: Json
+      }
+      fn_devolucao_itens_origem: {
+        Args: { p_devolucao_id: string }
+        Returns: {
+          descricao: string
+          quantidade: number
+          sku: string
+          valor_unitario: number
+        }[]
       }
       fn_devolucao_nf_registrar: {
         Args: {
@@ -151106,6 +151708,26 @@ export type Database = {
         Args: { p_cliente: Json; p_entrega: Json; p_itens: Json }
         Returns: Json
       }
+      fn_vd_cliente_buscar: {
+        Args: { p_termo: string }
+        Returns: {
+          bairro: string
+          cep: string
+          cidade: string
+          complemento: string
+          cpf: string
+          email: string
+          funcionario: boolean
+          id: string
+          inativo: boolean
+          logradouro: string
+          nome: string
+          numero: string
+          pessoa_id: string
+          telefone: string
+          uf: string
+        }[]
+      }
       fn_vd_meio_atual: { Args: { p_pedido_id: string }; Returns: string }
       fn_vd_vendedores_opcoes: {
         Args: never
@@ -151187,6 +151809,17 @@ export type Database = {
       fn_xpm_payload_cadastro: { Args: { p_sku: string }; Returns: Json }
       fn_xpm_payload_expedicao: {
         Args: { p_forcar?: string[]; p_pedido_id: string }
+        Returns: Json
+      }
+      fn_xpm_pendencia_acao: {
+        Args: {
+          p_acao: string
+          p_motivo?: string
+          p_motivo_pausa_id?: string
+          p_observacao?: string
+          p_referencia: string
+          p_tipo: string
+        }
         Returns: Json
       }
       fn_xpm_previa_estoque: { Args: { p_pedido_id: string }; Returns: Json }
@@ -153084,6 +153717,15 @@ export type Database = {
         Returns: Json
       }
       vd_cliente_ficha: { Args: { p_parceiro_id: string }; Returns: Json }
+      vd_complementar_pedido: {
+        Args: {
+          p_bling_cancelado?: boolean
+          p_itens: Json
+          p_motivo: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       vd_concluir_devolucao: {
         Args: {
           p_devolucao_id: string
