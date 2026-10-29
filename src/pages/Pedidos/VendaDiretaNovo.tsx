@@ -68,6 +68,12 @@ interface ClienteBusca {
   cep: string | null; logradouro: string | null; numero: string | null; endereco_complemento: string | null;
   bairro: string | null; cidade: string | null; uf: string | null;
 }
+/** Linha de fn_vd_cliente_buscar: cliente (id) ou funcionário ainda não cliente (id NULL). */
+interface ResultadoBusca {
+  id: string | null; pessoa_id: string | null; funcionario: boolean; nome: string | null; cpf: string | null;
+  telefone: string | null; email: string | null; cep: string | null; logradouro: string | null; numero: string | null;
+  complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null;
+}
 interface NovoCliente extends Endereco { nome: string; cpf: string; telefone: string; email: string }
 interface Item { sku: string; nome: string | null; preco: number; quantidade: number }
 interface Resultado {
@@ -264,20 +270,10 @@ export default function VendaDiretaNovo() {
   const buscaQ = useQuery({
     queryKey: ["venda-direta-busca-cliente", debounced],
     enabled: debounced.length >= 2 && !cliente && !novo,
-    queryFn: async (): Promise<ClienteBusca[]> => {
-      const t = debounced.replace(/[,()%*]/g, " ").trim();
-      const dig = soDigitos(t);
-      const filtros = [`razao_social.ilike.%${t}%`];
-      if (dig.length >= 3) filtros.push(`cpf.ilike.%${dig}%`, `telefone.ilike.%${dig}%`);
-      const { data, error } = await supabase
-        .from("parceiros_comerciais")
-        .select("id, razao_social, cpf, telefone, email, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf")
-        .eq("tipo_pessoa", "PF")
-        .or(filtros.join(","))
-        .order("razao_social")
-        .limit(10);
+    queryFn: async (): Promise<ResultadoBusca[]> => {
+      const { data, error } = await (supabase as any).rpc("fn_vd_cliente_buscar", { p_termo: debounced });
       if (error) throw error;
-      return (data ?? []) as ClienteBusca[];
+      return (data ?? []) as ResultadoBusca[];
     },
   });
 
@@ -346,6 +342,23 @@ export default function VendaDiretaNovo() {
   const abrirNovo = () => {
     setCliente(null);
     setNovo({ nome: "", cpf: "", telefone: "", email: "", ...ENDERECO_VAZIO });
+  };
+  const selecionarResultado = (r: ResultadoBusca) => {
+    if (r.id) {
+      selecionarCliente({
+        id: r.id, razao_social: r.nome ?? "", cpf: r.cpf, telefone: r.telefone, email: r.email, cep: r.cep,
+        logradouro: r.logradouro, numero: r.numero, endereco_complemento: r.complemento, bairro: r.bairro, cidade: r.cidade, uf: r.uf,
+      });
+      return;
+    }
+    // Funcionário que ainda não é cliente: abre o formulário de novo cliente pré-preenchido.
+    setCliente(null);
+    setTermo("");
+    setNovo({
+      nome: r.nome ?? "", cpf: mascaraCpf(r.cpf ?? ""), telefone: r.telefone ?? "", email: r.email ?? "",
+      cep: soDigitos(r.cep), logradouro: r.logradouro ?? "", numero: r.numero ?? "", complemento: r.complemento ?? "",
+      bairro: r.bairro ?? "", cidade: r.cidade ?? "", uf: r.uf ?? "",
+    });
   };
   const setNovoCampo = (k: keyof NovoCliente, v: string) => setNovo((n) => (n ? { ...n, [k]: v } : n));
 
@@ -770,11 +783,12 @@ export default function VendaDiretaNovo() {
                   <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
                 ) : (
                   <ul className="divide-y rounded-md border">
-                    {buscaQ.data.map((c) => (
-                      <li key={c.id}>
-                        <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-muted/50" onClick={() => selecionarCliente(c)}>
-                          <span className="font-medium">{c.razao_social}</span>
+                    {buscaQ.data.map((c, i) => (
+                      <li key={c.id ?? `p-${c.pessoa_id ?? i}`}>
+                        <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-muted/50" onClick={() => selecionarResultado(c)}>
+                          <span className="font-medium">{c.nome}</span>
                           <span className="text-muted-foreground"> · {cpfOculto(c.cpf)} · {c.telefone ?? "sem telefone"}</span>
+                          {c.funcionario && <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-[10px] font-normal">Funcionário</Badge>}
                         </button>
                       </li>
                     ))}
