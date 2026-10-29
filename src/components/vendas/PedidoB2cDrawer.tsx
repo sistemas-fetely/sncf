@@ -11,6 +11,22 @@ import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
 import { fmtDataHora } from "@/lib/data";
 import { useItensB2c, usePedidoAlertaDim, type PedidoB2cRow, type AlertaDim } from "@/hooks/vendas/useB2c";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { EnderecoEntregaBloco } from "@/components/pedidos/EnderecoEntregaBloco";
+
+function useEnderecoEntrega(pedidoId: string | null | undefined, ativo: boolean) {
+  return useQuery({
+    queryKey: ["pedido-endereco-entrega", pedidoId],
+    enabled: ativo && !!pedidoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pedidos").select("endereco_entrega").eq("id", pedidoId!).maybeSingle();
+      if (error) throw error;
+      return (data?.endereco_entrega ?? null) as Record<string, unknown> | null;
+    },
+  });
+}
 
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
@@ -165,11 +181,7 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
               </Linha>
             </div>
             <div className="space-y-1 pt-1">
-              <Linha rotulo="Endereço">
-                {txt(pedido?.shipping_city)}
-                {pedido?.shipping_province ? `/${pedido.shipping_province}` : ""}
-                {pedido?.shipping_zip ? ` · ${pedido.shipping_zip}` : ""}
-              </Linha>
+              <EnderecoB2c pedido={pedido} open={open} />
               <Linha rotulo="Modal de envio">{txt(pedido?.shipping_method)}</Linha>
             </div>
           </Bloco>
@@ -270,4 +282,13 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
       </SheetContent>
     </Sheet>
   );
+}
+
+function EnderecoB2c({ pedido, open }: { pedido: PedidoB2cRow | null; open: boolean }) {
+  const { data, isLoading } = useEnderecoEntrega(pedido?.pedido_id, open);
+  if (isLoading) return <Skeleton className="h-12 w-full" />;
+  const fallback = {
+    cidade: pedido?.shipping_city, uf: pedido?.shipping_province, cep: pedido?.shipping_zip,
+  } as Record<string, unknown>;
+  return <EnderecoEntregaBloco endereco={data ?? fallback} />;
 }

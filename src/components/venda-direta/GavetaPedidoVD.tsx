@@ -13,6 +13,7 @@ import { SecaoCancelamentoNf, type CancelamentoNfSP } from "./CancelamentoComNfV
 import { QK_VD_GAVETA } from "./queryKeys";
 import { naoMapeada, type ClassificacaoVD, type Marcos } from "./FunilVD";
 import { cn } from "@/lib/utils";
+import { EnderecoEntregaBloco } from "@/components/pedidos/EnderecoEntregaBloco";
 
 export interface LinhaGaveta {
   id: string;
@@ -226,7 +227,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
 
             <Secao titulo="Entrega">
               <Par k="Modal" v={modalLabel(l.modal)} />
-              {l.modal !== "retirada" && <Par k="Endereço" v={endereco(l.endereco_entrega)} />}
+              {l.modal !== "retirada" && <EnderecoEntregaBloco endereco={l.endereco_entrega} />}
               <Par k="Frete cobrado" v={<span className="tabular-nums">{l.frete ? (l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "Grátis" : formatBRL(l.frete.cobrado)) : "—"}</span>} />
               <Par k="Custo do frete" v={<span className="tabular-nums">{l.frete?.custo != null ? formatBRL(l.frete.custo) : "—"}</span>} />
               {(() => {
