@@ -95,6 +95,16 @@ async function criar(pedidoId: string, uid: string) {
   const chave = dig(nf?.chave_acesso);
   if (!nf || chave.length !== 44) throw new Falha(400, `${ped.id_externo}: NF-e autorizada com chave de acesso é obrigatória para a pré-postagem.`);
 
+  // PPN-347 (29/10/2026): Correios exige Declaração de Conteúdo mesmo com chave NF-e.
+  const { data: itens, error: eIt } = await admin.from("pedido_itens").select("descricao, sku, quantidade, valor_unitario, subtotal").eq("pedido_id", pedidoId).order("ordem");
+  if (eIt) throw new Falha(500, `ler itens do pedido: ${eIt.message}`);
+  if (!itens?.length) throw new Falha(400, `${ped.id_externo}: pedido sem itens para a declaração de conteúdo.`);
+  const itensDeclaracaoConteudo = itens.map((i: any) => {
+    const qtd = Math.max(1, Math.round(Number(i.quantidade ?? 1)));
+    const total = Number(i.subtotal ?? Number(i.valor_unitario ?? 0) * qtd);
+    return { conteudo: String(i.descricao ?? i.sku ?? "Artigo para festa").slice(0, 60), quantidade: String(qtd), valor: (total / qtd).toFixed(2) };
+  });
+
   const rem = d.remetente ?? {}, dest = d.destinatario ?? {};
   const endereco = (e: any) => ({
     cep: dig(e.cep), logradouro: e.logradouro ?? "", numero: e.numero ?? "S/N",
@@ -112,6 +122,7 @@ async function criar(pedidoId: string, uid: string) {
     larguraInformada: String(Math.ceil(Number(cx.largura_cm))),
     comprimentoInformado: String(Math.ceil(Number(cx.comprimento_cm))),
     cienteObjetoNaoProibido: 1,
+    itensDeclaracaoConteudo,
     numeroCartaoPostagem: cartao.cartao,
     observacao: `${ped.id_externo}`,
   };
