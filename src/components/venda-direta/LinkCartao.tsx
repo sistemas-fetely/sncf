@@ -230,6 +230,8 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const [parcelas, setParcelas] = useState<number | null>(null);
   const cfgQ = useCfgParcelas();
   const meioDlg: MeioLink = linha?.pagamento === "pix" ? "pix" : "cartao";
+  const creditoLink = Number(linha?.credito_aplicado ?? 0);
+  const aPagarLink = creditoLink > 0 ? Number(linha?.valor_a_pagar ?? 0) : linha?.valor_liquido ?? null;
 
   const [emailNovo, setEmailNovo] = useState("");
   useEffect(() => { setResultado(null); setParcelas(null); setEmailNovo(""); }, [linha?.id]);
