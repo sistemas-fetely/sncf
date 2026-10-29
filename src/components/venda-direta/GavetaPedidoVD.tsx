@@ -13,6 +13,7 @@ import { SecaoCancelamentoNf, type CancelamentoNfSP } from "./CancelamentoComNfV
 import { QK_VD_GAVETA } from "./queryKeys";
 import { naoMapeada, type ClassificacaoVD, type Marcos } from "./FunilVD";
 import { cn } from "@/lib/utils";
+import { EnderecoEntregaBloco } from "@/components/pedidos/EnderecoEntregaBloco";
 
 export interface LinhaGaveta {
   id: string;
@@ -54,14 +55,6 @@ function Erro({ e }: { e: unknown }) {
   return <p className="text-sm text-destructive">{rawMessage(e)}</p>;
 }
 
-function endereco(e: Record<string, unknown> | null | undefined) {
-  if (!e) return "—";
-  const g = (k: string) => (e[k] == null ? "" : String(e[k]));
-  const l1 = [g("logradouro") || g("endereco") || g("rua"), g("numero")].filter(Boolean).join(", ");
-  const l2 = [g("complemento"), g("bairro")].filter(Boolean).join(" · ");
-  const l3 = [g("cidade") || g("municipio"), g("uf")].filter(Boolean).join("/");
-  return [l1, l2, l3, g("cep")].filter(Boolean).join(" — ") || "—";
-}
 
 /** Sincroniza cod_cadastro + nome dos SKUs (doutrina COD-CADASTRO-É-O-NOME-DO-PRODUTO). */
 export function useProdutosPorSku(skus: string[]) {
@@ -226,7 +219,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
 
             <Secao titulo="Entrega">
               <Par k="Modal" v={modalLabel(l.modal)} />
-              {l.modal !== "retirada" && <Par k="Endereço" v={endereco(l.endereco_entrega)} />}
+              {l.modal !== "retirada" && <EnderecoEntregaBloco endereco={l.endereco_entrega} />}
               <Par k="Frete cobrado" v={<span className="tabular-nums">{l.frete ? (l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "Grátis" : formatBRL(l.frete.cobrado)) : "—"}</span>} />
               <Par k="Custo do frete" v={<span className="tabular-nums">{l.frete?.custo != null ? formatBRL(l.frete.custo) : "—"}</span>} />
               {(() => {
