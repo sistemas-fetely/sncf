@@ -18,11 +18,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, Plus, ScanBarcode, Split, Trash2 } from "lucide-react";
+import { ListPlus, Loader2, Plus, ScanBarcode, Split, Trash2 } from "lucide-react";
 import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { hojeISO } from "@/lib/data";
+import { buscarDeclaracaoAtual, invalidarDeclaracao, salvarDeclaracao } from "@/components/devolucao/EditarDeclaracaoDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * CONFERÊNCIA CEGA POR BIPAGEM (30/09/2026): inverso da conferência da Mesa
@@ -158,6 +160,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const [separandoChave, setSeparandoChave] = useState<string | null>(null);
   const [separarQtd, setSepararQtd] = useState("1");
   const [separarCondicao, setSepararCondicao] = useState("");
+  const [incluirAlvo, setIncluirAlvo] = useState<{ sku: string; qtd: number }[] | null>(null);
+  const [incluirMotivo, setIncluirMotivo] = useState("");
+  const [incluindo, setIncluindo] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
@@ -519,6 +524,40 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     }
   }
 
+  // SKUs bipados fora da declaração, com a qtd contada.
+  const foraDaDevolucao = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of contados) if (!itensPorSku.has(c.sku)) m.set(c.sku, (m.get(c.sku) ?? 0) + c.qtd);
+    return [...m].filter(([, q]) => q > 0).map(([sku, qtd]) => ({ sku, qtd }));
+  }, [contados, itensPorSku]);
+
+  function abrirIncluir(alvo: { sku: string; qtd: number }[]) {
+    setIncluirMotivo("Incluído na conferência: item retornou fisicamente");
+    setIncluirAlvo(alvo);
+  }
+
+  async function confirmarIncluir() {
+    if (!devolucao || !incluirAlvo?.length) return;
+    setIncluindo(true);
+    try {
+      const atual = await buscarDeclaracaoAtual(devolucao.devolucao_id);
+      const m = new Map(atual.map((a) => [a.sku, a]));
+      for (const a of incluirAlvo) {
+        const ex = m.get(a.sku);
+        m.set(a.sku, { sku: a.sku, descricao: ex?.descricao ?? contados.find((c) => c.sku === a.sku)?.nome ?? null, quantidade: (ex?.quantidade ?? 0) + a.qtd });
+      }
+      await salvarDeclaracao({ devolucaoId: devolucao.devolucao_id, motivo: incluirMotivo.trim(), itens: [...m.values()] });
+      // Só refetch da declaração: os bips (estado local) ficam intactos.
+      await invalidarDeclaracao(qc);
+      toast.success(`${incluirAlvo.length} SKU(s) incluído(s) na devolução.`);
+      setIncluirAlvo(null);
+    } catch (e) {
+      toast.error(formatError(e), { duration: 10000 });
+    } finally {
+      setIncluindo(false);
+    }
+  }
+
   const centroTexto = funilQ.isLoading ? "carregando…" : funilQ.data?.destino_codigo ?? "—";
   const condQuarentena = condicoes.find((c) => c.codigo === COND_QUARENTENA);
 
@@ -648,6 +687,13 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               <ResumoCard label="Fora da devolução" value={totalFora} tone="destructive" active={totalFora > 0} />
             </div>
 
+            {foraDaDevolucao.length > 0 && (
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => abrirIncluir(foraDaDevolucao)}>
+                  <ListPlus className="h-4 w-4" />Incluir todos os fora da devolução ({foraDaDevolucao.length})
+                </Button>
+              </div>
+            )}
             <div className="rounded-md border max-h-[40vh] overflow-y-auto overflow-x-auto">
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
@@ -717,6 +763,19 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                         </TableCell>
                         <TableCell className="px-1">
                           <div className="flex items-center gap-0.5">
+                            {fora && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8"
+                                      onClick={() => abrirIncluir([{ sku: c.sku, qtd: foraDaDevolucao.find((f) => f.sku === c.sku)?.qtd ?? c.qtd }])}>
+                                      <ListPlus className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Incluir na devolução</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                             <Popover
                               open={separandoChave === k}
                               onOpenChange={(v) => {
@@ -888,6 +947,26 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
           </>
         )}
       </DialogContent>
+      <Dialog open={!!incluirAlvo} onOpenChange={(v) => { if (!v && !incluindo) setIncluirAlvo(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Incluir na devolução</DialogTitle>
+            <DialogDescription>
+              {(incluirAlvo ?? []).map((a) => `${a.sku} (${a.qtd} un)`).join(", ")} entra(m) na declaração com a quantidade contada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Motivo *</Label>
+            <Textarea rows={2} value={incluirMotivo} onChange={(e) => setIncluirMotivo(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIncluirAlvo(null)} disabled={incluindo}>Cancelar</Button>
+            <Button onClick={() => void confirmarIncluir()} disabled={incluindo || incluirMotivo.trim().length < 5}>
+              {incluindo && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}Incluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
