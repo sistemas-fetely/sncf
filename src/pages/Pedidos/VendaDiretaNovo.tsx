@@ -1024,11 +1024,25 @@ export default function VendaDiretaNovo() {
               <Separator />
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-muted-foreground">Total</span>
-                <span className="text-3xl font-semibold tabular-nums">{formatBRL(total)}</span>
+                <span className="tabular-nums">{formatBRL(total)}</span>
               </div>
+              {haverAtivo && !bonif && haverAplicado > 0 && (
+                <>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm text-muted-foreground">Crédito do cliente</span>
+                    <span className="tabular-nums text-success">−{formatBRL(haverAplicado)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm text-muted-foreground">A pagar</span>
+                    <span className="text-3xl font-semibold tabular-nums">{formatBRL(aPagarComHaver)}</span>
+                  </div>
+                </>
+              )}
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 {bonif ? <Gift className="h-4 w-4" /> : pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
+                {haverAtivo && !bonif && haverCobreTudo
+                  ? "Coberto pelo crédito · sem cobrança"
+                  : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">
