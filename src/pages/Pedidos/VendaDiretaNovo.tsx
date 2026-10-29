@@ -79,7 +79,7 @@ interface Item { sku: string; nome: string | null; preco: number; quantidade: nu
 interface Resultado {
   pedido_id: string; id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
-  valor_haver?: number | null; valor_a_pagar?: number | null;
+  valor_haver?: number | null; valor_a_pagar?: number | null; credito_aplicado?: number | null;
   pagamento_refeito?: boolean | null; meio_trocado?: boolean | null; valor_anterior?: number | null;
   frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
 }
@@ -414,6 +414,21 @@ export default function VendaDiretaNovo() {
   const haverAplicado = haverAtivo ? Math.min(haverSaldoTotal, total) : 0;
   const aPagarComHaver = Math.max(total - haverAplicado, 0);
   const haverCobreTudo = haverAtivo && aPagarComHaver <= 0.009;
+  // Edição: crédito já aplicado no pedido (fn_vd_credito_aplicado) — só leitura.
+  const creditoEdQ = useQuery({
+    queryKey: ["vd-credito-aplicado", editId],
+    enabled: edicao && !!editId,
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_vd_credito_aplicado", { p_pedido_id: editId });
+      if (error) throw new Error(rawMessage(error));
+      return Number(data ?? 0);
+    },
+  });
+  useEffect(() => { if (creditoEdQ.error) toast.error("Não foi possível ler o crédito aplicado no pedido", { description: (creditoEdQ.error as Error).message }); }, [creditoEdQ.error]);
+  const creditoEd = edicao ? creditoEdQ.data ?? 0 : 0;
+  const creditoResumo = edicao ? creditoEd : haverAtivo && !bonif ? haverAplicado : 0;
+  const aPagarResumo = Math.max(total - creditoResumo, 0);
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
   const rotPag = rotulosOpcaoPagamento(cfgPixNoLink, parcelasLink);
 
@@ -503,7 +518,7 @@ export default function VendaDiretaNovo() {
           navigate("/pedidos/venda-direta");
           return;
         }
-        setResultado(r);
+        setResultado({ ...r, valor_haver: r.valor_haver ?? r.credito_aplicado ?? null });
         toast.success(`${r.id_externo} atualizado — novo pagamento gerado.`);
         return;
       }
@@ -523,7 +538,8 @@ export default function VendaDiretaNovo() {
   const primeiroNome = (cliente?.razao_social ?? novo?.nome ?? "").trim().split(/\s+/)[0] ?? "";
   const pagamentoOriginal = meioVD(edQ.data?.linha.pagamento);
   const pagamentoMudou = edicao && pagamento !== pagamentoOriginal;
-  const totalMudou = edicao && Math.abs(total - Number(edQ.data?.linha.valor_liquido ?? 0)) > 0.009;
+  const totalMudou = edicao && Math.round(total * 100) !== Math.round(Number(edQ.data?.linha.valor_liquido ?? 0) * 100);
+  const aPagarAntigo = Math.max(Number(edQ.data?.linha.valor_liquido ?? 0) - creditoEd, 0);
 
   const tentarSalvar = () => {
     if (criar.isPending) return;
@@ -571,7 +587,7 @@ export default function VendaDiretaNovo() {
 
   if (resultado) {
     const r = resultado;
-    const msg = `Olá ${primeiroNome}! Seu pedido ${r.id_externo} na Fetely ficou em ${formatBRL(r.valor_total)}. Pague pelo PIX neste link: ${r.link_pagamento ?? ""}`;
+    const msg = `Olá ${primeiroNome}! Seu pedido ${r.id_externo} na Fetely ficou em ${formatBRL(Number(r.valor_haver ?? 0) > 0 ? Number(r.valor_a_pagar ?? 0) : r.valor_total)}. Pague pelo PIX neste link: ${r.link_pagamento ?? ""}`;
     const tel = telefoneCliente.length <= 11 ? `55${telefoneCliente}` : telefoneCliente;
     return (
       <PageShell>
@@ -882,6 +898,11 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader><CardTitle className="text-base">Pagamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
+          {edicao && creditoEd > 0 && (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <span className="font-medium">Crédito do cliente aplicado neste pedido · <span className="tabular-nums">{formatBRL(creditoEd)}</span></span>
+            </div>
+          )}
           {temHaver && (
             <div className="space-y-2 rounded-md border bg-muted/40 p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
@@ -1026,15 +1047,15 @@ export default function VendaDiretaNovo() {
                 <span className="text-sm text-muted-foreground">Total</span>
                 <span className="tabular-nums">{formatBRL(total)}</span>
               </div>
-              {haverAtivo && !bonif && haverAplicado > 0 && (
+              {creditoResumo > 0 && (
                 <>
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-muted-foreground">Crédito do cliente</span>
-                    <span className="tabular-nums text-success">−{formatBRL(haverAplicado)}</span>
+                    <span className="tabular-nums text-success">−{formatBRL(creditoResumo)}</span>
                   </div>
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-muted-foreground">A pagar</span>
-                    <span className="text-3xl font-semibold tabular-nums">{formatBRL(aPagarComHaver)}</span>
+                    <span className="text-3xl font-semibold tabular-nums">{formatBRL(aPagarResumo)}</span>
                   </div>
                 </>
               )}
@@ -1046,7 +1067,7 @@ export default function VendaDiretaNovo() {
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">
-                  Pagamento será refeito: {formatBRL(edQ.data?.linha.valor_liquido ?? 0)} → {formatBRL(total)} · {rotuloPagamentoVD(pagamento)}
+                  Pagamento será refeito: {creditoEd > 0 ? "A pagar " : ""}{formatBRL(aPagarAntigo)} → {formatBRL(aPagarResumo)} · {rotuloPagamentoVD(pagamento)}
                 </p>
               )}
               {edicao && (
@@ -1077,10 +1098,10 @@ export default function VendaDiretaNovo() {
       {/* Mobile: barra enxuta no pé com total e botão */}
       <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur lg:hidden">
         <div>
-          {haverAtivo && !bonif && haverAplicado > 0 ? (
+          {creditoResumo > 0 ? (
             <>
               <p className="text-xs text-muted-foreground">A pagar</p>
-              <p className="text-2xl font-semibold tabular-nums">{formatBRL(aPagarComHaver)}</p>
+              <p className="text-2xl font-semibold tabular-nums">{formatBRL(aPagarResumo)}</p>
             </>
           ) : (
             <>
