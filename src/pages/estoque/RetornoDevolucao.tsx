@@ -44,6 +44,7 @@ import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
 import { CorrecoesNfLista, contarCorrecoesAbertas, useCorrecoesNf } from "@/components/devolucao/CorrecoesNfLista";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
+import { BannerDivergenciaLoja, EditarDeclaracaoDialog, IconeDivergenciaLoja, podeEditarDeclaracao, type ItemDeclaracao } from "@/components/devolucao/EditarDeclaracaoDialog";
 
 type Funil = {
   id: string; numero: string | null; canal: string | null; status: string | null; status_efetivo: string | null;
@@ -222,6 +223,17 @@ export default function RetornoDevolucao() {
   const [estornar, setEstornar] = useState<Funil | null>(null);
   const [decidir, setDecidir] = useState<{ d: Funil; desfecho: string } | null>(null);
   const [vincular, setVincular] = useState<Funil | null>(null);
+  const [editarDecl, setEditarDecl] = useState<{ d: Funil; preenchido: ItemDeclaracao[] | null } | null>(null);
+  // nf_dev_status não está no funil: lê só as devoluções que já têm NF de devolução.
+  const nfDevQ = useQuery({
+    queryKey: [...QK_FUNIL, "nf_dev_status"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("devolucao").select("id,nf_dev_status").not("nf_dev_status", "is", null);
+      if (error) throw error;
+      return new Map(((data ?? []) as { id: string; nf_dev_status: string }[]).map((r) => [r.id, r.nf_dev_status]));
+    },
+  });
+  const editavel = (d: Funil) => nfDevQ.isSuccess && podeEditarDeclaracao({ ...d, nf_dev_status: nfDevQ.data.get(d.id) ?? null });
   const [acaoId, setAcaoId] = useState<string | null>(null);
   const acaoLinha = async (id: string, nome: string, args: Record<string, unknown>, msg: string) => {
     setAcaoId(id);
@@ -442,6 +454,7 @@ export default function RetornoDevolucao() {
                           <span className="font-medium">{d.numero ?? "—"}</span>
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
+                          {d.canal === "b2c" && <IconeDivergenciaLoja devolucaoId={d.id} />}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
@@ -507,6 +520,9 @@ export default function RetornoDevolucao() {
                                   <div className="text-muted-foreground">Desfecho: {d.e6_ressarcida ? "ressarcida" : "pendente"} · {rotuloStatus(d)}</div>
                                 </>
                               )}
+                              {d.canal !== "b2b" && (
+                                <BannerDivergenciaLoja devolucaoId={d.id} podeAjustar={editavel(d)} onAjustar={(itens) => setEditarDecl({ d, preenchido: itens })} />
+                              )}
                               {d.desfecho && d.desfecho !== "nenhum" && <div className="text-xs text-muted-foreground">Desfecho: {DESFECHO_ROTULO[d.desfecho] ?? d.desfecho}</div>}
                               {d.desfecho === "nenhum" && !["encerrada", "cancelada"].includes(d.status_efetivo ?? d.status ?? "") && (
                                 <div className="space-y-1 pt-1">
@@ -554,7 +570,12 @@ export default function RetornoDevolucao() {
                               ) : <div className="text-muted-foreground">Ainda não recebida</div>}
                             </div>
                             <div className="space-y-1">
-                              <div className="text-xs font-medium text-muted-foreground">Itens</div>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-xs font-medium text-muted-foreground">Itens</div>
+                                {editavel(d) && (
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditarDecl({ d, preenchido: null })}>Editar declaração</Button>
+                                )}
+                              </div>
                               <div>Declarado {formatNum(d.qtd_declarada)} × retornado {formatNum(d.qtd_retornada)} · {formatNum(d.skus)} SKU(s)</div>
                               {p && (
                                 <ul className="text-xs text-muted-foreground space-y-0.5">
@@ -635,6 +656,8 @@ export default function RetornoDevolucao() {
       </TooltipProvider>
 
       <ConferirRetornoDialog open={!!conferir} onOpenChange={(v) => { if (!v) { setConferirId(null); void invalidar(); } }} devolucao={conferir} />
+      <EditarDeclaracaoDialog devolucao={editarDecl ? { id: editarDecl.d.id, numero: editarDecl.d.numero } : null}
+        preenchido={editarDecl?.preenchido ?? null} onFechar={() => setEditarDecl(null)} />
       <ReceberDialog d={receber} onFechar={() => setReceber(null)} onOk={invalidar} />
       <ReversaDialog d={reversa} onFechar={() => setReversa(null)} onOk={invalidar} />
       <DecidirDesfechoDialog alvo={decidir} onFechar={() => setDecidir(null)} onOk={invalidar} />
