@@ -72,7 +72,7 @@ interface ClienteBusca {
 interface ResultadoBusca {
   id: string | null; pessoa_id: string | null; funcionario: boolean; nome: string | null; cpf: string | null;
   telefone: string | null; email: string | null; cep: string | null; logradouro: string | null; numero: string | null;
-  complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null;
+  complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; inativo?: boolean | null;
 }
 interface NovoCliente extends Endereco { nome: string; cpf: string; telefone: string; email: string }
 interface Item { sku: string; nome: string | null; preco: number; quantidade: number }
@@ -394,24 +394,24 @@ export default function VendaDiretaNovo() {
   const cfgParcelasQ = useCfgParcelas();
   const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
     const [parcelasManual, setParcelasManual] = useState<number | null>(null);
-  // Haver Site SP: crédito do cliente (só o maior haver é aplicado por pedido nesta versão).
+  // Haver Site SP: crédito do cliente — o banco aplica TODOS os haveres (por vencimento) até cobrir o pedido.
   const parceiroId = !edicao ? cliente?.id ?? null : null;
   const haverQ = useQuery({
     queryKey: ["haver-disponivel-parceiro", parceiroId],
     enabled: !!parceiroId,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("fn_haver_disponivel_parceiro", { p_parceiro_id: parceiroId });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(rawMessage(error));
       return (data ?? []) as { haver_id: string; saldo: number; origem: string | null; descricao: string | null; expira_em: string | null }[];
     },
   });
   useEffect(() => { if (haverQ.error) toast.error("Não foi possível ler o crédito do cliente", { description: (haverQ.error as Error).message }); }, [haverQ.error]);
   const haveres = parceiroId ? haverQ.data ?? [] : [];
   const haverSaldoTotal = haveres.reduce((a, h) => a + Number(h.saldo ?? 0), 0);
-  const haverEscolhido = haveres.length ? [...haveres].sort((a, b) => Number(b.saldo) - Number(a.saldo))[0] : null;
+  const temHaver = haverSaldoTotal > 0;
   const [usarHaver, setUsarHaver] = useState(true);
-  const haverAtivo = !!haverEscolhido && usarHaver;
-  const haverAplicado = haverAtivo ? Math.min(Number(haverEscolhido!.saldo), total) : 0;
+  const haverAtivo = temHaver && usarHaver;
+  const haverAplicado = haverAtivo ? Math.min(haverSaldoTotal, total) : 0;
   const aPagarComHaver = Math.max(total - haverAplicado, 0);
   const haverCobreTudo = haverAtivo && aPagarComHaver <= 0.009;
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
@@ -488,7 +488,7 @@ export default function VendaDiretaNovo() {
         p_observacao: observacao.trim() || null,
         p_vendedor_id: vendedorId,
         ...(bonif ? { p_bonificacao: { autorizado_por: bonifAutorizado.trim(), motivo: bonifMotivo, observacao: bonifObs.trim() || null } } : {}),
-        ...(haverAtivo && !bonif ? { p_haver_id: haverEscolhido!.haver_id } : {}),
+        ...(haverAtivo && !bonif ? { p_usar_haver: true } : {}),
       });
       if (error) throw error;
       if (!data) throw new Error("A criação do pedido não devolveu resultado.");
@@ -789,6 +789,7 @@ export default function VendaDiretaNovo() {
                           <span className="font-medium">{c.nome}</span>
                           <span className="text-muted-foreground"> · {cpfOculto(c.cpf)} · {c.telefone ?? "sem telefone"}</span>
                           {c.funcionario && <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-[10px] font-normal">Funcionário</Badge>}
+                          {c.inativo && <Badge variant="outline" className="ml-2 px-1.5 py-0 text-[10px] font-normal">Inativo</Badge>}
                         </button>
                       </li>
                     ))}
@@ -881,12 +882,20 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader><CardTitle className="text-base">Pagamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {haverEscolhido && (
+          {temHaver && (
             <div className="space-y-2 rounded-md border bg-muted/40 p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">Crédito do cliente · <span className="tabular-nums">{formatBRL(haverSaldoTotal)}</span></span>
                 <label className="flex items-center gap-2 text-sm"><Switch checked={usarHaver} onCheckedChange={setUsarHaver} />Usar crédito neste pedido</label>
               </div>
+              <ul className="space-y-0.5 text-xs text-muted-foreground">
+                {haveres.map((h) => (
+                  <li key={h.haver_id} className="tabular-nums">
+                    {h.descricao || h.origem || "Crédito"} · {formatBRL(Number(h.saldo ?? 0))}
+                    {h.expira_em ? ` · vence em ${h.expira_em.slice(0, 10).split("-").reverse().join("/")}` : ""}
+                  </li>
+                ))}
+              </ul>
               {haverAtivo && (
                 <p className="tabular-nums text-muted-foreground">Crédito {formatBRL(haverAplicado)} · A pagar {formatBRL(aPagarComHaver)}</p>
               )}

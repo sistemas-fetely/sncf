@@ -218,6 +218,13 @@
       "when": 1793273318062,
       "tag": "0030_devolucao_sku_depara_origem_loja",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793275143658,
+      "tag": "0031_vd_haver_multiplo_cliente_inativo",
+      "breakpoints": true
     }
   ]
 }
