@@ -316,7 +316,8 @@ Deno.serve(async (req) => {
   const ehPix = meioEscolhido === "pix";
   if (ehPix && (cfg as any).pix_no_link !== true) return json({ ok: false, desligado: true, erro: "PIX por link desligado" }, 409);
   if (ehPix) parcelasEscolhidas = null;
-  const valor = ehVD ? Number(pedido.valor_liquido ?? 0) : Math.round(conjunto.reduce((s: number, p: any) => s + Number(p.valor ?? 0), 0) * 100) / 100;
+  const valor = Math.round(conjunto.reduce((s: number, p: any) => s + Number(p.valor ?? 0), 0) * 100) / 100;
+  if (ehVD && valor > Number(pedido.valor_liquido ?? 0) + 0.01) return json({ ok: false, erro: "Valor do portão maior que o pedido" }, 409);
   const amount = Math.round(valor * 100);
   if (!(amount > 0)) return json({ ok: false, erro: "Pedido sem valor a cobrar." }, 409);
 
@@ -329,11 +330,12 @@ Deno.serve(async (req) => {
   const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string; meio: string }[] = [];
   for (const l of vig ?? []) {
     const mesmoPortao = l.provisao_id != null && l.provisao_id === prov.id;
+    const mesmoValor = Math.round(Number(l.valor ?? 0) * 100) === Math.round(valor * 100);
     const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
-    if (valido && !forcarNovo && mesmoPortao) {
+    if (valido && !forcarNovo && mesmoPortao && mesmoValor) {
       return json({ ok: true, url: l.url, expira_em: l.expira_em, max_parcelas: l.max_parcelas, pagamento_link_id: l.id, reaproveitado: true });
     }
-    if (l.status === "criando" && !forcarNovo && mesmoPortao && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
+    if (l.status === "criando" && !forcarNovo && mesmoPortao && mesmoValor && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
       return json({ ok: false, erro: "Já há um link sendo criado para este pedido. Tente em instantes." }, 409);
     }
     const novoStatus = valido || l.status === "criando" || !mesmoPortao ? "cancelado" : "expirado";
