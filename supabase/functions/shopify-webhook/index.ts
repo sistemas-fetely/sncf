@@ -620,12 +620,24 @@ Deno.serve(async (req) => {
   }
 
   // POUSO RAW + DEDUP por event_id
+  // Dedupe só descarta evento já PROCESSADO com sucesso (processado_em), não apenas recebido:
+  // o pedido #1528 (23/10/2026) se perdeu porque o upsert deu timeout e o reenvio foi tratado como duplicado.
   let duplicado = false;
   try {
     const ins = await supabase.from("shopify_eventos_raw").insert({ event_id: eventId, topic, payload: evento });
     if (ins.error) {
-      if (ins.error.code === "23505") duplicado = true;
-      else await registrarLog(supabase, { topic, etapa: "erro_raw", detalhe: { msg: ins.error.message } });
+      if (ins.error.code === "23505") {
+        const { data: existente, error: selErr } = await supabase
+          .from("shopify_eventos_raw")
+          .select("processado_em")
+          .eq("event_id", eventId)
+          .maybeSingle();
+        if (!selErr && existente && existente.processado_em == null) {
+          await registrarLog(supabase, { topic, etapa: "reprocessando", detalhe: { eventId } });
+        } else {
+          duplicado = true;
+        }
+      } else await registrarLog(supabase, { topic, etapa: "erro_raw", detalhe: { msg: ins.error.message } });
     }
   } catch (_) {
     // pouso raw nunca bloqueia o processamento
@@ -636,22 +648,44 @@ Deno.serve(async (req) => {
     return jsonResponse(200, { ok: true, duplicado: true });
   }
 
-  // ROTEAMENTO por recurso. O dado ja esta no raw; estruturacao e best-effort.
-  try {
-    if (topic.startsWith("orders/")) return await processarOrder(supabase, evento, topic, utf8ok);
-    if (topic.startsWith("checkouts/")) return await processarCheckout(supabase, evento, topic, eventId);
-    if (topic.startsWith("products/")) return await processarProduto(supabase, evento, topic, eventId);
-    if (topic.startsWith("customers/")) return await processarCliente(supabase, evento, topic, eventId);
-    if (topic.startsWith("refunds/")) return await processarReembolso(supabase, evento, topic, eventId);
-    if (topic.startsWith("fulfillments/")) return await processarFulfillment(supabase, evento, topic, eventId);
-    if (topic.startsWith("inventory_levels/")) return await processarEstoque(supabase, evento, topic, eventId);
+  const resposta = await rotear();
+  // Sucesso = 2xx sem marca de erro no corpo (equivale às etapas ok / ok_raw / ok_delete).
+  if (eventId) {
+    try {
+      const corpo = await resposta.clone().json().catch(() => ({}));
+      const sucesso = resposta.status >= 200 && resposta.status < 300 &&
+        !corpo?.erro_estruturacao && !corpo?.erro && !corpo?.error;
+      if (sucesso) {
+        const { error: mErr } = await supabase
+          .from("shopify_eventos_raw")
+          .update({ processado_em: new Date().toISOString() })
+          .eq("event_id", eventId);
+        if (mErr) await registrarLog(supabase, { topic, etapa: "erro_marcar_processado", detalhe: { eventId, msg: mErr.message } });
+      }
+    } catch (e) {
+      await registrarLog(supabase, { topic, etapa: "erro_marcar_processado", detalhe: { eventId, msg: String((e as any)?.message ?? e) } });
+    }
+  }
+  return resposta;
 
-    // qualquer outro topic: fica so no raw
-    await registrarLog(supabase, { topic, etapa: "ok_raw", detalhe: { eventId } });
-    return jsonResponse(200, { ok: true, somente_raw: true, topic });
-  } catch (e) {
-    // rede de seguranca: dado ja salvo no raw, responde 2xx para nao disparar reenvio/delecao
-    await registrarLog(supabase, { topic, etapa: "erro", detalhe: { msg: String((e as any)?.message ?? e) } });
-    return jsonResponse(200, { ok: true, raw_salvo: true, erro: String((e as any)?.message ?? e) });
+  async function rotear(): Promise<Response> {
+    // ROTEAMENTO por recurso. O dado ja esta no raw; estruturacao e best-effort.
+    try {
+      if (topic.startsWith("orders/")) return await processarOrder(supabase, evento, topic, utf8ok);
+      if (topic.startsWith("checkouts/")) return await processarCheckout(supabase, evento, topic, eventId);
+      if (topic.startsWith("products/")) return await processarProduto(supabase, evento, topic, eventId);
+      if (topic.startsWith("customers/")) return await processarCliente(supabase, evento, topic, eventId);
+      if (topic.startsWith("refunds/")) return await processarReembolso(supabase, evento, topic, eventId);
+      if (topic.startsWith("fulfillments/")) return await processarFulfillment(supabase, evento, topic, eventId);
+      if (topic.startsWith("inventory_levels/")) return await processarEstoque(supabase, evento, topic, eventId);
+
+      // qualquer outro topic: fica so no raw
+      await registrarLog(supabase, { topic, etapa: "ok_raw", detalhe: { eventId } });
+      return jsonResponse(200, { ok: true, somente_raw: true, topic });
+    } catch (e) {
+      // rede de seguranca: dado ja salvo no raw, responde 2xx para nao disparar reenvio/delecao
+      await registrarLog(supabase, { topic, etapa: "erro", detalhe: { msg: String((e as any)?.message ?? e) } });
+      return jsonResponse(200, { ok: true, raw_salvo: true, erro: String((e as any)?.message ?? e) });
+    }
   }
 });
