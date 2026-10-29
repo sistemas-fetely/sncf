@@ -72,7 +72,7 @@ interface ClienteBusca {
 interface ResultadoBusca {
   id: string | null; pessoa_id: string | null; funcionario: boolean; nome: string | null; cpf: string | null;
   telefone: string | null; email: string | null; cep: string | null; logradouro: string | null; numero: string | null;
-  complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null;
+  complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; inativo?: boolean | null;
 }
 interface NovoCliente extends Endereco { nome: string; cpf: string; telefone: string; email: string }
 interface Item { sku: string; nome: string | null; preco: number; quantidade: number }
