@@ -1,3 +1,4 @@
+import { BotaoEtiquetaCorreios } from "./BotaoEtiquetaCorreios";
 import { useRef, useState } from "react";
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { Input } from "@/components/ui/input";
@@ -207,7 +208,8 @@ export function EstacaoDespacho({
                           {medidas(c)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {ehCorreiosGrupo(grupo.modalCodigo) && <BotaoEtiquetaCorreios pedidoId={c.pedido_id} />}
                         {grupo.temRastreioAutomatico && ehCorreiosGrupo(grupo.modalCodigo) && (() => {
                           const v = codigosLote[c.pedido_id] ?? "";
                           const n = normalizarCodigo(v);
