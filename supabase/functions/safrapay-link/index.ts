@@ -316,7 +316,8 @@ Deno.serve(async (req) => {
   const ehPix = meioEscolhido === "pix";
   if (ehPix && (cfg as any).pix_no_link !== true) return json({ ok: false, desligado: true, erro: "PIX por link desligado" }, 409);
   if (ehPix) parcelasEscolhidas = null;
-  const valor = ehVD ? Number(pedido.valor_liquido ?? 0) : Math.round(conjunto.reduce((s: number, p: any) => s + Number(p.valor ?? 0), 0) * 100) / 100;
+  const valor = Math.round(conjunto.reduce((s: number, p: any) => s + Number(p.valor ?? 0), 0) * 100) / 100;
+  if (ehVD && valor > Number(pedido.valor_liquido ?? 0) + 0.01) return json({ ok: false, erro: "Valor do portão maior que o pedido" }, 409);
   const amount = Math.round(valor * 100);
   if (!(amount > 0)) return json({ ok: false, erro: "Pedido sem valor a cobrar." }, 409);
 
