@@ -67,10 +67,11 @@ export function usePedidosFila(opts: Opts = {}) {
             : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
         }
 
-        // CARD-TRAVADO: o card "Travado" do funil conta só os travados; cada card
-        // de estágio conta `estagio = X` SEM travados. "Fila ativa" não recorta.
+        // CARD-TRAVADO (30/10/2026): o travado é filtro sobreposto, nunca exclusivo.
+        // `somenteTravados` recorta os travados de todos os estágios; um recorte
+        // por estágio mostra o estágio inteiro, travados inclusive — um pedido
+        // travado nunca sai do seu estágio.
         if (opts.somenteTravados) q = q.eq("travado", true);
-        if (filtroEstagioExplicito && !opts.comPagamentoSemVinculo) q = q.eq("travado", false);
 
         if (temBusca) {
           // Sanitiza: vírgula e parêntese quebram a sintaxe do .or() do PostgREST.
