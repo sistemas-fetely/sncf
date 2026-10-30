@@ -405,13 +405,13 @@ export default function Faturamento() {
 
   const filtrosAlterados = (mes && mes !== mesesComReceita[0]) || canal !== "todos" || componente !== "tudo" || estab !== "todos";
 
-  if (errMensal || (porEstab && errEstab)) {
+  if (errMensal || (porEstab && errEstab) || errDev) {
     return (
       <PageShell>
         <PageHeader titulo="Faturamento" icone={Receipt} />
         <Card className="border-destructive/50">
           <CardContent className="py-6 text-sm text-destructive">
-            Falha ao carregar o faturamento mensal: {((errorMensal ?? errorEstab) as any)?.message ?? String(errorMensal ?? errorEstab)}
+            Falha ao carregar o faturamento mensal: {((errorMensal ?? errorEstab ?? errorDev) as any)?.message ?? String(errorMensal ?? errorEstab ?? errorDev)}
           </CardContent>
         </Card>
       </PageShell>
