@@ -130,7 +130,7 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                 ))}
                 {temRealizado && primeiraProjetada && (
                   <ReferenceLine x={mesBr(primeiraProjetada.mes)} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5"
-                    label={{ value: "projeção →", position: "insideTopRight", fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                    label={{ value: "projeção →", position: "insideTopRight", fontSize: 11, fill: "hsl(var(--muted-foreground))", dy: -12 }} />
                 )}
               </BarChart>
             </ResponsiveContainer>
