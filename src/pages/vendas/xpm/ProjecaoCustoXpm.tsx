@@ -33,7 +33,8 @@ type Entrada = {
   mensal_armazenagem: number | null; mensal_seguro: number | null;
   incremento_mensal_mes1: number | null; meses_venda: number | null;
   rs_por_m3_fator: number | null; pos_por_m3_fator: number | null;
-  posicoes_cubagem: number | null; posicoes_piso_sku: number | null;
+  posicoes_pallet: number | null; posicoes_bin: number | null; skus_sem_medida: number | null;
+  preco_pallet: number | null; preco_bin: number | null;
   posicoes_fonte: string | null; rs_por_pos_fator: number | null;
 };
 type Param = { chave: string; valor: number | null; descricao: string | null };
@@ -287,10 +288,10 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                         </td>
                         <td className="px-2 py-1 text-right tabular-nums whitespace-nowrap">
                           {num(r.skus_novos)}
-                          {r.posicoes_fonte === "piso por SKU novo" && (
+                          {r.posicoes_fonte?.startsWith("cubagem") && (
                             <UiTooltip>
-                              <TooltipTrigger asChild><Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">define posições</Badge></TooltipTrigger>
-                              <TooltipContent>Cada SKU novo ocupa ao menos 1 posição própria; aqui o piso por SKU ({num(r.posicoes_piso_sku)}) supera a cubagem ({num(r.posicoes_cubagem)})</TooltipContent>
+                              <TooltipTrigger asChild><Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">sem itens</Badge></TooltipTrigger>
+                              <TooltipContent>Lote sem itens cadastrados: posições estimadas por cubagem × fator médio. Cadastre os itens para a conta SKU a SKU.</TooltipContent>
                             </UiTooltip>
                           )}
                         </td>
@@ -313,8 +314,17 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                               <div className="font-medium text-muted-foreground">Entrada (uma vez)</div>
                               <div className="font-medium text-muted-foreground">Mensal (mês 1)</div>
                               <div>Contêineres: {brl(r.custo_conteineres)}</div>
-                              <div>Armazenagem: {num(r.posicoes_estimadas, 1)} posições × R$ {num(r.rs_por_pos_fator, 2)}/posição = {brl(r.mensal_armazenagem)}</div>
-                              <div className="text-muted-foreground">cubagem → {num(r.posicoes_cubagem, 1)} pos ({num(r.pos_por_m3_fator, 2)} pos/m³) · piso por SKU novo → {num(r.posicoes_piso_sku, 1)} pos · vale o maior ({r.posicoes_fonte ?? "—"})</div>
+                              {r.posicoes_fonte?.startsWith("SKU") ? (
+                                <>
+                                  <div>Armazenagem: {num(r.posicoes_pallet ?? 0)} pallets × R$ {num(r.preco_pallet, 2)} + {num(r.posicoes_bin ?? 0)} bins × R$ {num(r.preco_bin, 2)} = {brl(r.mensal_armazenagem)}</div>
+                                  <div className="text-muted-foreground">SKU a SKU: cada SKU vai pra 1 pallet ou N bins, o que custar menos (capacidades nos parâmetros){(r.skus_sem_medida ?? 0) > 0 ? ` · ${num(r.skus_sem_medida)} SKUs sem medida` : ""}</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>Armazenagem: {num(r.posicoes_estimadas, 1)} posições × R$ {num(r.rs_por_pos_fator, 2)} = {brl(r.mensal_armazenagem)}</div>
+                                  <div className="text-muted-foreground">cubagem × fator médio do estoque ({num(r.pos_por_m3_fator, 2)} pos/m³) — sem itens cadastrados</div>
+                                </>
+                              )}
                               <div>Recebimento por caixa: {brl(r.custo_recebimento)}</div>
                               <div>Seguro: {brl(r.mensal_seguro)}</div>
                               <div>Insumos: {brl(r.custo_insumos)}</div>
@@ -344,7 +354,7 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
               )}
             </table>
           </div>
-          <p className="text-xs text-muted-foreground">Posições por lote = maior entre cubagem e 1 posição por SKU novo (parâmetro). Lotes sem itens cadastrados não têm SKUs novos contados — o piso não se aplica a eles.</p>
+          <p className="text-xs text-muted-foreground">Posições por lote: com itens cadastrados, cada SKU ocupa 1 pallet ou N bins (o mais barato; capacidades calibradas nas faturas). Sem itens, cubagem × fator médio.</p>
         </TooltipProvider>
       )}
     </section>
