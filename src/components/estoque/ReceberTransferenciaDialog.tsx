@@ -118,6 +118,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     setErrosPlanilha([]);
     if (!aberto) return;
     setResultado(null);
+    setConfirmarTudo(false);
     setBipando(false);
     setCega(true);
     setEtapa("grade");
@@ -195,6 +196,16 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     (itensQ.data ?? []).forEach((i) => { r[i.sku] = String(i.enviado); a[i.sku] = "0"; });
     setRecebido(r);
     setAvariado(a);
+  }
+
+  /** Conferir tudo: preenche TODAS as linhas com o enviado (sobrescreve o que foi digitado). Não grava nada. */
+  function preencherTudo() {
+    setEtapa("grade");
+    setListaRecontagem([]);
+    setRecontagem({});
+    setMostrarFaltas(false);
+    if (cega) setCega(false);
+    tudoConforme();
   }
 
   const num = (v: string | undefined) => (v === undefined || v === "" || isNaN(Number(v)) ? 0 : Number(v));
