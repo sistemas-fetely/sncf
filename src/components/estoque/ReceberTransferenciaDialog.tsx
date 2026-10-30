@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, Upload, X } from "lucide-react";
+import { CheckCheck, Download, FileText, Loader2, Upload, X } from "lucide-react";
 import { gerarFolhaContagemPdf, gerarPlanilhaConferencia, validarPlanilhaConferencia } from "@/components/estoque/conferenciaPlanilha";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ interface Props {
 
 export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, destinoRotulo, onRecebido }: Props) {
   const [confirmando, setConfirmando] = useState(false);
+  const [confirmarTudo, setConfirmarTudo] = useState(false);
   const [data, setData] = useState(hojeISO());
   const [centro, setCentro] = useState("SITE-SP");
   const [recebido, setRecebido] = useState<Record<string, string>>({});
