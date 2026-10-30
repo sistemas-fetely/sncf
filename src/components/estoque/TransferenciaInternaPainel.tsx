@@ -153,15 +153,20 @@ export function TransferenciaInternaPainel({
         p_origem: nav.origem, p_destino: nav.destino,
         p_itens: itens.map((i) => ({ sku: i.sku, quantidade: Number(i.qtd) })),
         p_observacao: obs.trim() || null,
+        p_permitir_negativo: algumPassa && permitirNegativo,
       });
       if (error) throw error;
-      const r = (data ?? {}) as { ok?: boolean; numero?: string; itens?: number; pecas?: number; erro?: string };
+      const r = (data ?? {}) as { ok?: boolean; numero?: string; itens?: number; pecas?: number; saldo_negativo?: boolean; erro?: string };
       if (r.ok === false) throw new Error(r.erro ?? "A transferência não foi registrada.");
       return r;
     },
     onSuccess: async (r) => {
-      toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças transferidas`);
-      setItens([]); setObs("");
+      if (r.saldo_negativo) {
+        toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças — Transferência registrada com saldo negativo na origem — será abatido na entrada.`);
+      } else {
+        toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças transferidas`);
+      }
+      setItens([]); setObs(""); setPermitirNegativo(false);
       await qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes("estoque") });
       await qc.invalidateQueries({ queryKey: ["ti-historico"] });
     },
