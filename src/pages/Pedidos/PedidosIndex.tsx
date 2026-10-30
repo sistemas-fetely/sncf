@@ -118,18 +118,23 @@ export default function PedidosIndex() {
 
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
+    next.delete("travado");
     next.set("estagio", estagio);
-    // CARD-TRAVADO (30/10/2026): o travado é filtro sobreposto — escolher um
-    // estágio não desliga o recorte de travados; os dois convivem na URL.
+    // CARD-TRAVADO (30/10/2026): um card ativo por vez; o estágio mostra todos
+    // os seus pedidos, travados inclusive.
     setSearchParams(next);
     revalidarFunil();
   };
 
   const handleTravadoClick = () => {
     const next = new URLSearchParams(searchParams);
-    // Card "Travado" é liga/desliga: mantém o estágio selecionado, se houver.
+    // Card "Travado" é liga/desliga: ao ligar, solta o estágio (mostra os
+    // travados de todos os estágios); ao desligar, só remove o recorte.
     if (travadoParam) next.delete("travado");
-    else next.set("travado", "1");
+    else {
+      next.delete("estagio");
+      next.set("travado", "1");
+    }
     setSearchParams(next);
     revalidarFunil();
   };
