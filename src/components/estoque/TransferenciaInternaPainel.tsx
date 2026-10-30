@@ -293,13 +293,23 @@ export function TransferenciaInternaPainel({
         </div>
       )}
 
+      {algumPassa && (<div className="space-y-2">
+        <p className="text-sm text-destructive">Há itens com quantidade acima do disponível na origem.</p>
+        <label className="flex max-w-xl cursor-pointer items-start gap-2 text-sm">
+          <Checkbox checked={permitirNegativo} onCheckedChange={(v) => setPermitirNegativo(v === true)} className="mt-0.5" />
+          <span>Separação física antecipada — a entrada ainda não foi finalizada (a origem ficará negativa até a entrada)</span>
+        </label>
+      </div>)}
+
       <div className="flex flex-wrap items-end gap-3">
-        <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação (opcional)" className="min-h-[60px] max-w-xl flex-1" />
+        <Textarea value={obs} onChange={(e) => setObs(e.target.value)}
+          placeholder={algumPassa ? "Observação (obrigatória — motivo do saldo negativo)" : "Observação (opcional)"}
+          className="min-h-[60px] max-w-xl flex-1" />
         <div className="ml-auto flex items-center gap-3">
           <span className="text-sm text-muted-foreground tabular-nums">{itens.length} itens · {pecas} peças</span>
           {podeTransferir && (
             <Button
-              disabled={itens.length === 0 || !origemC || !destinoC || algumPassa || algumInvalido || saldoQ.isLoading || transferir.isPending}
+              disabled={itens.length === 0 || !origemC || !destinoC || !podeEnviar || algumInvalido || saldoQ.isLoading || transferir.isPending}
               onClick={() => transferir.mutate()}
             >
               {transferir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} {rotuloBotao}
@@ -307,7 +317,6 @@ export function TransferenciaInternaPainel({
           )}
         </div>
       </div>
-      {algumPassa && <p className="text-sm text-destructive">Há itens com quantidade acima do disponível na origem.</p>}
       </>)}
 
       {mostrarHistorico && <div className={cn("space-y-2", mostrarFormulario && "pt-4")}>
