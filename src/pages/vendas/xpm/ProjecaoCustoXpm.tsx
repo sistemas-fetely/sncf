@@ -344,6 +344,7 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
               )}
             </table>
           </div>
+          <p className="text-xs text-muted-foreground">Posições por lote = maior entre cubagem e 1 posição por SKU novo (parâmetro). Lotes sem itens cadastrados não têm SKUs novos contados — o piso não se aplica a eles.</p>
         </TooltipProvider>
       )}
     </section>
