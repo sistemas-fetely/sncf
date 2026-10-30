@@ -584,6 +584,25 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={confirmarTudo} onOpenChange={setConfirmarTudo}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferir tudo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso desliga a contagem cega e preenche tudo com a quantidade enviada. Continuar?
+              {linhasJaDigitadas > 0 && (
+                ` ${linhasJaDigitadas === 1 ? "1 linha já digitada será sobrescrita." : `${linhasJaDigitadas} linhas já digitadas serão sobrescritas.`}`
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmarTudo(false); preencherTudo(); }}>
+              Preencher tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
