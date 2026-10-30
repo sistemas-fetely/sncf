@@ -33,6 +33,8 @@ type Entrada = {
   mensal_armazenagem: number | null; mensal_seguro: number | null;
   incremento_mensal_mes1: number | null; meses_venda: number | null;
   rs_por_m3_fator: number | null; pos_por_m3_fator: number | null;
+  posicoes_cubagem: number | null; posicoes_piso_sku: number | null;
+  posicoes_fonte: string | null; rs_por_pos_fator: number | null;
 };
 type Param = { chave: string; valor: number | null; descricao: string | null };
 
