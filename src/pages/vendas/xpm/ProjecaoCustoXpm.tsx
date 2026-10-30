@@ -285,7 +285,15 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                             <TooltipContent>bruto {num(r.m3_bruto, 1)} m³ · fonte: {r.m3_fonte ?? "—"}</TooltipContent>
                           </UiTooltip>
                         </td>
-                        <td className="px-2 py-1 text-right tabular-nums">{num(r.skus_novos)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums whitespace-nowrap">
+                          {num(r.skus_novos)}
+                          {r.posicoes_fonte === "piso por SKU novo" && (
+                            <UiTooltip>
+                              <TooltipTrigger asChild><Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">define posições</Badge></TooltipTrigger>
+                              <TooltipContent>Cada SKU novo ocupa ao menos 1 posição própria; aqui o piso por SKU ({num(r.posicoes_piso_sku)}) supera a cubagem ({num(r.posicoes_cubagem)})</TooltipContent>
+                            </UiTooltip>
+                          )}
+                        </td>
                         <td className="px-2 py-1 text-right tabular-nums whitespace-nowrap">
                           {r.valor_estimado_flag ? (
                             <UiTooltip>
