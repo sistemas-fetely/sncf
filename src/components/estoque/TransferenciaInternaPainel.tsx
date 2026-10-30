@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeftRight, ChevronDown, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,8 @@ export function TransferenciaInternaPainel({
   const [nav, setNav] = useEstadoTela({ origem: "", destino: "", de: diasAtras(30), ate: hojeISO() }, { prefixo: "ti" });
   const [itens, setItens] = useState<Item[]>([]);
   const [obs, setObs] = useState("");
+  // Separação física antecipada: permite itens acima do disponível na origem (saldo negativo até a entrada).
+  const [permitirNegativo, setPermitirNegativo] = useState(false);
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
@@ -140,6 +143,8 @@ export function TransferenciaInternaPainel({
   const qtdInvalida = (v: string) => v === "" || isNaN(Number(v)) || Number(v) <= 0 || !Number.isInteger(Number(v));
   const passa = (i: Item) => !!saldoQ.data && Number(i.qtd) > disp(nav.origem, i.sku);
   const algumPassa = itens.some(passa);
+  // Com item acima do disponível, exige o checkbox de separação antecipada E observação preenchida.
+  const podeEnviar = !algumPassa || (permitirNegativo && obs.trim().length > 0);
   const algumInvalido = itens.some((i) => qtdInvalida(i.qtd));
   const pecas = itens.reduce((s, i) => s + (Number(i.qtd) || 0), 0);
 
@@ -149,15 +154,20 @@ export function TransferenciaInternaPainel({
         p_origem: nav.origem, p_destino: nav.destino,
         p_itens: itens.map((i) => ({ sku: i.sku, quantidade: Number(i.qtd) })),
         p_observacao: obs.trim() || null,
+        p_permitir_negativo: algumPassa && permitirNegativo,
       });
       if (error) throw error;
-      const r = (data ?? {}) as { ok?: boolean; numero?: string; itens?: number; pecas?: number; erro?: string };
+      const r = (data ?? {}) as { ok?: boolean; numero?: string; itens?: number; pecas?: number; saldo_negativo?: boolean; erro?: string };
       if (r.ok === false) throw new Error(r.erro ?? "A transferência não foi registrada.");
       return r;
     },
     onSuccess: async (r) => {
-      toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças transferidas`);
-      setItens([]); setObs("");
+      if (r.saldo_negativo) {
+        toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças — Transferência registrada com saldo negativo na origem — será abatido na entrada.`);
+      } else {
+        toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças transferidas`);
+      }
+      setItens([]); setObs(""); setPermitirNegativo(false);
       await qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes("estoque") });
       await qc.invalidateQueries({ queryKey: ["ti-historico"] });
     },
@@ -284,13 +294,23 @@ export function TransferenciaInternaPainel({
         </div>
       )}
 
+      {algumPassa && (<div className="space-y-2">
+        <p className="text-sm text-destructive">Há itens com quantidade acima do disponível na origem.</p>
+        <label className="flex max-w-xl cursor-pointer items-start gap-2 text-sm">
+          <Checkbox checked={permitirNegativo} onCheckedChange={(v) => setPermitirNegativo(v === true)} className="mt-0.5" />
+          <span>Separação física antecipada — a entrada ainda não foi finalizada (a origem ficará negativa até a entrada)</span>
+        </label>
+      </div>)}
+
       <div className="flex flex-wrap items-end gap-3">
-        <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação (opcional)" className="min-h-[60px] max-w-xl flex-1" />
+        <Textarea value={obs} onChange={(e) => setObs(e.target.value)}
+          placeholder={algumPassa ? "Observação (obrigatória — motivo do saldo negativo)" : "Observação (opcional)"}
+          className="min-h-[60px] max-w-xl flex-1" />
         <div className="ml-auto flex items-center gap-3">
           <span className="text-sm text-muted-foreground tabular-nums">{itens.length} itens · {pecas} peças</span>
           {podeTransferir && (
             <Button
-              disabled={itens.length === 0 || !origemC || !destinoC || algumPassa || algumInvalido || saldoQ.isLoading || transferir.isPending}
+              disabled={itens.length === 0 || !origemC || !destinoC || !podeEnviar || algumInvalido || saldoQ.isLoading || transferir.isPending}
               onClick={() => transferir.mutate()}
             >
               {transferir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} {rotuloBotao}
@@ -298,7 +318,6 @@ export function TransferenciaInternaPainel({
           )}
         </div>
       </div>
-      {algumPassa && <p className="text-sm text-destructive">Há itens com quantidade acima do disponível na origem.</p>}
       </>)}
 
       {mostrarHistorico && <div className={cn("space-y-2", mostrarFormulario && "pt-4")}>
