@@ -49,6 +49,8 @@ export function TransferenciaInternaPainel({
   const [nav, setNav] = useEstadoTela({ origem: "", destino: "", de: diasAtras(30), ate: hojeISO() }, { prefixo: "ti" });
   const [itens, setItens] = useState<Item[]>([]);
   const [obs, setObs] = useState("");
+  // Separação física antecipada: permite itens acima do disponível na origem (saldo negativo até a entrada).
+  const [permitirNegativo, setPermitirNegativo] = useState(false);
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
