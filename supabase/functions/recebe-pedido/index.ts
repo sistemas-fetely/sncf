@@ -324,6 +324,72 @@ Deno.serve(async (req) => {
     }
     // ── fim branches balcao_* ──
 
+    // ── Branches: b2b_* — edição de pedido B2B pelo FOP (30/10/2026) ──
+    // Autenticação já validada acima via FOP_INBOUND_TOKEN. Regra toda no banco (fn_fop_b2b_*).
+    if (typeof body?.tipo === "string" && body.tipo.startsWith("b2b_")) {
+      const erroRpc = (error: any) => {
+        console.error(`[recebe-pedido] ${body.tipo}:`, error);
+        if (error?.code === "22023" || error?.code === "P0001") {
+          return jsonResponse(400, { ok: false, error: error.message });
+        }
+        if (error?.code === "42501") {
+          return jsonResponse(403, { ok: false, error: error.message });
+        }
+        return jsonResponse(500, { ok: false, error: error?.message ?? String(error) });
+      };
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const exigeUuid = (v: unknown, nome: string) =>
+        typeof v === "string" && UUID_RE.test(v)
+          ? null
+          : jsonResponse(400, { ok: false, error: `${nome} inválido (uuid esperado).` });
+
+      if (body.tipo === "b2b_permissoes") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_fop_b2b_permissoes", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
+      }
+
+      if (body.tipo === "b2b_editar_itens") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_fop_b2b_editar_itens", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_itens: body.itens, p_motivo: body.motivo ?? "",
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
+      }
+
+      if (body.tipo === "b2b_frete") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_fop_b2b_frete", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_valor_frete: body.valor_frete, p_motivo: body.motivo ?? "",
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
+      }
+
+      if (body.tipo === "b2b_trocar_pagamento") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_fop_b2b_trocar_pagamento", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_condicao_slug: body.condicao_slug, p_motivo: body.motivo ?? "",
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
+      }
+
+      return jsonResponse(400, { ok: false, error: `tipo '${body.tipo}' desconhecido.` });
+    }
+    // ── fim branches b2b_* ──
+
     // ── Branch: leitura do Farol de Pedidos (chamado pelo FOP) ──
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "farol") {
