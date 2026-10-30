@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ type Mensal = {
   base_estoque_fixo: number | null; base_expedicao: number | null;
   incremento_estoque: number | null; custo_entrada: number | null;
   minimo: number | null; total_projetado: number | null; piso_aplicado: boolean | null;
+  tipo: 'realizado' | 'projetado'; desconto: number | null;
   detalhe: unknown;
 };
 type Entrada = {
