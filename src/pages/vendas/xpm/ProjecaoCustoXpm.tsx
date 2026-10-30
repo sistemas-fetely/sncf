@@ -313,7 +313,8 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                               <div className="font-medium text-muted-foreground">Entrada (uma vez)</div>
                               <div className="font-medium text-muted-foreground">Mensal (mês 1)</div>
                               <div>Contêineres: {brl(r.custo_conteineres)}</div>
-                              <div>Armazenagem: {num(r.posicoes_estimadas, 1)} posições estimadas ({num(r.pos_por_m3_fator, 2)} pos/m³ · R$ {num(r.rs_por_m3_fator, 2)}/m³) = {brl(r.mensal_armazenagem)}</div>
+                              <div>Armazenagem: {num(r.posicoes_estimadas, 1)} posições × R$ {num(r.rs_por_pos_fator, 2)}/posição = {brl(r.mensal_armazenagem)}</div>
+                              <div className="text-muted-foreground">cubagem → {num(r.posicoes_cubagem, 1)} pos ({num(r.pos_por_m3_fator, 2)} pos/m³) · piso por SKU novo → {num(r.posicoes_piso_sku, 1)} pos · vale o maior ({r.posicoes_fonte ?? "—"})</div>
                               <div>Recebimento por caixa: {brl(r.custo_recebimento)}</div>
                               <div>Seguro: {brl(r.mensal_seguro)}</div>
                               <div>Insumos: {brl(r.custo_insumos)}</div>
