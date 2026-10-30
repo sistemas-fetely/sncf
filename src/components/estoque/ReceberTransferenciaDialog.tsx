@@ -233,6 +233,8 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   }
   const vazio = (v: string | undefined) => v === undefined || v.trim() === "";
   const semContagem = cega ? itens.filter((i) => vazio(recebido[i.sku])) : [];
+  /** Linhas já digitadas com valor diferente do enviado — sobrescritas pelo "Conferir tudo". */
+  const linhasJaDigitadas = itens.filter((i) => !vazio(recebido[i.sku]) && num(recebido[i.sku]) !== i.enviado).length;
   /** Recebido efetivo: a recontagem substitui a 1ª contagem do item. */
   const efetivo = (sku: string) =>
     listaRecontagem.includes(sku) && !vazio(recontagem[sku]) ? num(recontagem[sku]) : num(recebido[sku]);
@@ -446,6 +448,10 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                   Contagem cega
                 </label>
                 <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" disabled={itens.length === 0}
+                    onClick={() => (cega ? setConfirmarTudo(true) : preencherTudo())}>
+                    <CheckCheck className="mr-2 h-4 w-4" />Conferir tudo
+                  </Button>
                   {cega && (
                     <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => void baixarFolhaPdf()}>
                       <FileText className="mr-2 h-4 w-4" />Folha de contagem (PDF)
