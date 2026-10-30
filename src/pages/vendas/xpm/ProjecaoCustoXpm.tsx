@@ -48,11 +48,19 @@ const mesBr = (d: string | null) => {
 };
 
 const SERIES = [
-  { key: "base_estoque_fixo", label: "Estoque atual (armazenagem + seguro + fixo)", cor: "hsl(var(--chart-1))" },
-  { key: "base_expedicao", label: "Expedição base", cor: "hsl(var(--chart-2))" },
-  { key: "incremento_estoque", label: "Estoque dos lotes chegando", cor: "hsl(var(--chart-3))" },
-  { key: "custo_entrada", label: "Custo de entrada", cor: "hsl(var(--chart-5))" },
+  { key: "base_estoque_fixo", label: "Estoque", cor: "hsl(var(--chart-1))" },
+  { key: "base_expedicao", label: "Expedição", cor: "hsl(var(--chart-2))" },
+  { key: "incremento_estoque", label: "Lotes novos", cor: "hsl(var(--chart-3))" },
+  { key: "custo_entrada", label: "Entrada", cor: "hsl(var(--chart-5))" },
 ] as const;
+
+// Tooltip dos cabeçalhos de parcela da tabela mensal (chave → explicação curta).
+const TOOLTIP_PARCELA: Record<string, string> = {
+  base_estoque_fixo: "armazenagem (pallets + bins) + seguro + endereço virtual + insumos — congelado no último mês real para os projetados",
+  base_expedicao: "unidades expedidas × preço (projetado: parâmetro unidades_expedidas_mes)",
+  incremento_estoque: "incremento mensal dos lotes que chegaram após o último mês real, caindo 1/meses de venda por mês",
+  custo_entrada: "recebimento, descarga, adequação, contêiner extra, HE — uma vez, no mês de chegada",
+};
 
 export default function ProjecaoCustoXpm() {
   const mensal = useQuery({
@@ -140,25 +148,27 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
             <table className="w-full text-xs">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th className="px-2 py-1.5 text-left">Mês</th>
-                  <th className="px-2 py-1.5 text-left">Tipo</th>
+                  <th rowSpan={2} className="px-2 py-1.5 text-left align-bottom">Mês</th>
+                  <th rowSpan={2} className="px-2 py-1.5 text-left align-bottom">Tipo</th>
+                  <th colSpan={5} className="px-2 py-1.5 text-center border-b">Parcelas (somam o total)</th>
+                  <th rowSpan={2} className="px-2 py-1.5 text-right align-bottom border-l">= Total</th>
+                  <th rowSpan={2} className="px-2 py-1.5 text-right align-bottom font-normal">Piso contratual (referência, não soma)</th>
+                </tr>
+                <tr>
                   {SERIES.map((s) => (
                     <th key={s.key} className="px-2 py-1.5 text-right">
-                      {s.key === "base_estoque_fixo" || s.key === "custo_entrada" ? (
-                        <UiTooltip>
-                          <TooltipTrigger asChild><span className="underline decoration-dotted">{s.label}</span></TooltipTrigger>
-                          <TooltipContent>
-                            {s.key === "base_estoque_fixo"
-                              ? "armazenagem (pallets + bins) + seguro + endereço virtual + insumos"
-                              : "recebimento, descarga, adequação, contêiner extra, HE"}
-                          </TooltipContent>
-                        </UiTooltip>
-                      ) : s.label}
+                      <UiTooltip>
+                        <TooltipTrigger asChild><span className="underline decoration-dotted">{s.label}</span></TooltipTrigger>
+                        <TooltipContent className="max-w-64">{TOOLTIP_PARCELA[s.key]}</TooltipContent>
+                      </UiTooltip>
                     </th>
                   ))}
-                  <th className="px-2 py-1.5 text-right">Desconto</th>
-                  <th className="px-2 py-1.5 text-right">Mínimo</th>
-                  <th className="px-2 py-1.5 text-right">Total</th>
+                  <th className="px-2 py-1.5 text-right">
+                    <UiTooltip>
+                      <TooltipTrigger asChild><span className="underline decoration-dotted">Desconto</span></TooltipTrigger>
+                      <TooltipContent>abatimento concedido pela XPM na fatura</TooltipContent>
+                    </UiTooltip>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -168,12 +178,15 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                     <td className="px-2 py-1">
                       <Badge variant={r.tipo === "realizado" ? "outline" : "secondary"}>{r.tipo === "realizado" ? "real" : "proj."}</Badge>
                     </td>
-                    {SERIES.map((s) => <td key={s.key} className="px-2 py-1 text-right tabular-nums">{brl(r[s.key])}</td>)}
+                    {SERIES.map((s) => (
+                      <td key={s.key} className="px-2 py-1 text-right tabular-nums">{brl(Number(r[s.key] ?? 0))}</td>
+                    ))}
                     <td className="px-2 py-1 text-right tabular-nums">
-                      {r.desconto != null && Number(r.desconto) !== 0 ? brl(r.desconto) : "—"}
+                      {r.desconto == null ? "—" : (
+                        <span className={Number(r.desconto) < 0 ? "text-destructive" : undefined}>{brl(r.desconto)}</span>
+                      )}
                     </td>
-                    <td className="px-2 py-1 text-right tabular-nums">{brl(r.minimo)}</td>
-                    <td className="px-2 py-1 text-right tabular-nums font-semibold whitespace-nowrap">
+                    <td className="px-2 py-1 text-right tabular-nums font-semibold border-l whitespace-nowrap">
                       {r.piso_aplicado && (
                         <UiTooltip>
                           <TooltipTrigger asChild><Badge variant="outline" className="mr-1 px-1 py-0 text-[10px]">piso</Badge></TooltipTrigger>
@@ -182,9 +195,17 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                       )}
                       {brl(r.total_projetado)}
                     </td>
+                    <td className="px-2 py-1 text-right tabular-nums text-muted-foreground">{brl(r.minimo)}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={9} className="px-2 py-1.5 italic text-muted-foreground">
+                    Soma das 5 parcelas = Total, em todos os meses. O piso contratual só vale quando a soma fica abaixo dele.
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
           </TooltipProvider>
