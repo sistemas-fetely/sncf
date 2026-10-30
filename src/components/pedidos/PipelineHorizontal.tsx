@@ -108,8 +108,9 @@ export function PipelineHorizontal({
 }: Props) {
   const { data, isLoading, isError, error } = usePedidosPipeline();
 
-  // CARD-TRAVADO: o pipeline traz a linha estagio='travado' como desvio —
-  // o pedido sai da contagem do card do seu estágio real e conta só aqui.
+  // CARD-TRAVADO (30/10/2026): o pipeline traz a linha estagio='travado' como
+  // desvio — o travado é contado por cima do funil, sem tirar o pedido do
+  // card do seu estágio real.
   const travadoRow = useMemo(
     () => (data || []).find((r) => r.estagio === "travado") ?? null,
     [data],
@@ -345,8 +346,10 @@ export function PipelineHorizontal({
           </span>
         </button>
 
-        {/* CARD-TRAVADO (24/10/2026): desvio do pipeline, no tom de alerta dos desvios.
-            Posicionado entre a Fila ativa e Recebido; clicar filtra travado = true. */}
+        {/* CARD-TRAVADO (30/10/2026): desvio do pipeline, no tom de alerta dos desvios.
+            Posicionado entre a Fila ativa e Recebido; clicar liga/desliga o recorte
+            de travados, sobreposto ao estágio — o travado é contado por cima,
+            sem tirar o pedido do estágio. */}
         {travadoRow && (
           <button
             type="button"
