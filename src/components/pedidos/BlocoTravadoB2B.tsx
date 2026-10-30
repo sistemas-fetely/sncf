@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, HelpCircle, Info, Loader2 } from "lucide-react";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { DialogoAbrirProblema } from "@/components/chamados/DialogoAbrirProblema";
@@ -24,6 +24,7 @@ type MotivoTravado = {
   acao: string | null;
   o_que_fazer: string | null;
   classe?: string | null;
+  chave?: string | null;
   ref: Record<string, unknown> | null;
 };
 
@@ -254,8 +255,9 @@ export function BlocoTravadoB2B({ pedidoId, idExterno }: { pedidoId: string; idE
 
   if (motivos.length === 0) return null;
 
-  const travados = motivos.filter((m) => m.classe !== "parado");
+  const travados = motivos.filter((m) => m.classe === "travado");
   const parados = motivos.filter((m) => m.classe === "parado");
+  const sugestoes = motivos.filter((m) => m.classe === "sugestao");
 
   return (
     <div id={ID_BLOCO_TRAVADO} className="mx-6 mb-3 scroll-mt-24 space-y-3">
@@ -277,6 +279,72 @@ export function BlocoTravadoB2B({ pedidoId, idExterno }: { pedidoId: string; idE
           {parados.map((m, i) => <LinhaMotivo key={`${m.motivo}-${i}`} m={m} pedidoId={pedidoId} idExterno={idExterno} />)}
         </div>
       )}
+      {sugestoes.length > 0 && (
+        <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-warning">
+            <HelpCircle className="h-4 w-4" />
+            Parece travado?
+          </div>
+          {sugestoes.map((m, i) => <LinhaSugestao key={`${m.chave ?? m.motivo}-${i}`} m={m} pedidoId={pedidoId} idExterno={idExterno} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Sinal automático: não é travado até alguém declarar (abrir problema) ou descartar. */
+function LinhaSugestao({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: string; idExterno?: string | null }) {
+  const qc = useQueryClient();
+  const [declarando, setDeclarando] = useState(false);
+  const [descartando, setDescartando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const descartar = useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("fn_travado_sugestao_descartar", {
+        p_pedido_id: pedidoId,
+        p_chave: m.chave,
+        p_motivo: motivo.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Sugestão descartada");
+      setDescartando(false);
+      setMotivo("");
+      await invalidarTudo(qc, pedidoId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="space-y-1.5 text-sm">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="font-medium">{m.motivo}</span>
+        {fmtDdMm(m.desde) && <span className="text-xs text-muted-foreground">desde {fmtDdMm(m.desde)}</span>}
+      </div>
+      {m.o_que_fazer && <p className="text-xs text-muted-foreground">{m.o_que_fazer}</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDeclarando(true)}>
+          Declarar travado
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={!m.chave}
+          onClick={() => setDescartando((v) => !v)}>
+          Não está travado
+        </Button>
+      </div>
+      {descartando && (
+        <div className="flex gap-2">
+          <Input className="h-8 text-xs" placeholder="Por que não está travado? (mín. 3 caracteres)"
+            value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <Button size="sm" disabled={motivo.trim().length < 3 || descartar.isPending} onClick={() => descartar.mutate()}>
+            {descartar.isPending && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+            Confirmar
+          </Button>
+        </div>
+      )}
+      <DialogoAbrirProblema open={declarando}
+        onOpenChange={(v) => { setDeclarando(v); if (!v) invalidarTudo(qc, pedidoId); }}
+        contexto={{ pedidoRef: idExterno ?? pedidoId, descricao: m.motivo }} />
     </div>
   );
 }
