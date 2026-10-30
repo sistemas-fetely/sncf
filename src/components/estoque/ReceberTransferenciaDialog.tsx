@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, Upload, X } from "lucide-react";
+import { CheckCheck, Download, FileText, Loader2, Upload, X } from "lucide-react";
 import { gerarFolhaContagemPdf, gerarPlanilhaConferencia, validarPlanilhaConferencia } from "@/components/estoque/conferenciaPlanilha";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ interface Props {
 
 export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, destinoRotulo, onRecebido }: Props) {
   const [confirmando, setConfirmando] = useState(false);
+  const [confirmarTudo, setConfirmarTudo] = useState(false);
   const [data, setData] = useState(hojeISO());
   const [centro, setCentro] = useState("SITE-SP");
   const [recebido, setRecebido] = useState<Record<string, string>>({});
@@ -117,6 +118,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     setErrosPlanilha([]);
     if (!aberto) return;
     setResultado(null);
+    setConfirmarTudo(false);
     setBipando(false);
     setCega(true);
     setEtapa("grade");
@@ -196,6 +198,16 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     setAvariado(a);
   }
 
+  /** Conferir tudo: preenche TODAS as linhas com o enviado (sobrescreve o que foi digitado). Não grava nada. */
+  function preencherTudo() {
+    setEtapa("grade");
+    setListaRecontagem([]);
+    setRecontagem({});
+    setMostrarFaltas(false);
+    if (cega) setCega(false);
+    tudoConforme();
+  }
+
   const num = (v: string | undefined) => (v === undefined || v === "" || isNaN(Number(v)) ? 0 : Number(v));
 
   function alternarBipando(v: boolean) {
@@ -221,6 +233,8 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   }
   const vazio = (v: string | undefined) => v === undefined || v.trim() === "";
   const semContagem = cega ? itens.filter((i) => vazio(recebido[i.sku])) : [];
+  /** Linhas já digitadas com valor diferente do enviado — sobrescritas pelo "Conferir tudo". */
+  const linhasJaDigitadas = itens.filter((i) => !vazio(recebido[i.sku]) && num(recebido[i.sku]) !== i.enviado).length;
   /** Recebido efetivo: a recontagem substitui a 1ª contagem do item. */
   const efetivo = (sku: string) =>
     listaRecontagem.includes(sku) && !vazio(recontagem[sku]) ? num(recontagem[sku]) : num(recebido[sku]);
@@ -434,6 +448,10 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                   Contagem cega
                 </label>
                 <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" disabled={itens.length === 0}
+                    onClick={() => (cega ? setConfirmarTudo(true) : preencherTudo())}>
+                    <CheckCheck className="mr-2 h-4 w-4" />Conferir tudo
+                  </Button>
                   {cega && (
                     <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => void baixarFolhaPdf()}>
                       <FileText className="mr-2 h-4 w-4" />Folha de contagem (PDF)
@@ -563,6 +581,25 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { setConfirmando(false); receber.mutate(); }}>Sim, chegou</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmarTudo} onOpenChange={setConfirmarTudo}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferir tudo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso desliga a contagem cega e preenche tudo com a quantidade enviada. Continuar?
+              {linhasJaDigitadas > 0 && (
+                ` ${linhasJaDigitadas === 1 ? "1 linha já digitada será sobrescrita." : `${linhasJaDigitadas} linhas já digitadas serão sobrescritas.`}`
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmarTudo(false); preencherTudo(); }}>
+              Preencher tudo
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
