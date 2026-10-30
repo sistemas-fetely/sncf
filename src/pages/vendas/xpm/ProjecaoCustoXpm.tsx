@@ -13,18 +13,25 @@ import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger }
 type Mensal = {
   mes: string; competencia_base: string | null;
   base_estoque_fixo: number | null; base_expedicao: number | null;
-  incremento_estoque: number | null; incremento_expedicao: number | null;
-  custo_entrada: number | null; total_projetado: number | null;
+  incremento_estoque: number | null; custo_entrada: number | null;
+  minimo: number | null; total_projetado: number | null; piso_aplicado: boolean | null;
+  detalhe: unknown;
 };
 type Entrada = {
   id: number; numero_pedido: string | null; processo_ref: string | null; status: string | null;
-  eta: string | null; data_chegada: string | null; data_base: string | null;
-  conteineres: number | null; caixas: number | null; unidades: number | null; m3: number | null;
-  skus_novos: number | null; valor_mercadoria: number | null; valor_estimado_flag: boolean | null;
+  chegou: boolean | null; em_transito: boolean | null;
+  eta: string | null; data_chegada: string | null; entrada_xpm: string | null;
+  data_base: string | null; data_base_fonte: string | null; competencia_base: string | null;
+  ja_na_base: boolean | null; conta_na_projecao: boolean | null;
+  conteineres: number | null; caixas: number | null; unidades: number | null;
+  m3_bruto: number | null; m3_liquido: number | null; m3_fonte: string | null;
+  skus: number | null; skus_novos: number | null; un_vela: number | null; un_outros: number | null;
+  valor_mercadoria: number | null; valor_estimado_flag: boolean | null;
   custo_conteineres: number | null; custo_recebimento: number | null; custo_insumos: number | null;
-  custo_entrada_total: number | null; posicoes_pallet: number | null; mensal_pallet: number | null;
-  posicoes_picking: number | null; mensal_picking: number | null; mensal_seguro: number | null;
-  incremento_mensal_mes1: number | null; expedicao_total_lote: number | null;
+  custo_entrada_total: number | null; posicoes_estimadas: number | null;
+  mensal_armazenagem: number | null; mensal_seguro: number | null;
+  incremento_mensal_mes1: number | null; meses_venda: number | null;
+  rs_por_m3_fator: number | null; pos_por_m3_fator: number | null;
 };
 type Param = { chave: string; valor: number | null; descricao: string | null };
 
@@ -43,7 +50,6 @@ const SERIES = [
   { key: "base_estoque_fixo", label: "Estoque atual (armazenagem + seguro + fixo)", cor: "hsl(var(--chart-1))" },
   { key: "base_expedicao", label: "Expedição base", cor: "hsl(var(--chart-2))" },
   { key: "incremento_estoque", label: "Estoque dos lotes chegando", cor: "hsl(var(--chart-3))" },
-  { key: "incremento_expedicao", label: "Expedição dos lotes chegando", cor: "hsl(var(--chart-4))" },
   { key: "custo_entrada", label: "Custo de entrada", cor: "hsl(var(--chart-5))" },
 ] as const;
 
@@ -61,8 +67,10 @@ export default function ProjecaoCustoXpm() {
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("vw_xpm_projecao_entrada").select("*");
       if (error) throw error;
+      // conta_na_projecao primeiro (por data_base); depois já na base; sem data_base por último.
+      const grupo = (r: Entrada) => (!r.data_base ? 2 : r.conta_na_projecao ? 0 : 1);
       return ((data ?? []) as Entrada[]).sort((a, b) =>
-        !a.data_base ? 1 : !b.data_base ? -1 : a.data_base.localeCompare(b.data_base));
+        grupo(a) - grupo(b) || (a.data_base ?? "").localeCompare(b.data_base ?? ""));
     },
   });
 
@@ -108,12 +116,14 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <TooltipProvider>
           <div className="overflow-auto rounded-md border">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
                   <th className="px-2 py-1.5 text-left">Mês</th>
                   {SERIES.map((s) => <th key={s.key} className="px-2 py-1.5 text-right">{s.label}</th>)}
+                  <th className="px-2 py-1.5 text-right">Mínimo</th>
                   <th className="px-2 py-1.5 text-right">Total</th>
                 </tr>
               </thead>
@@ -122,14 +132,24 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                   <tr key={r.mes} className="border-t">
                     <td className="px-2 py-1">{mesBr(r.mes)}</td>
                     {SERIES.map((s) => <td key={s.key} className="px-2 py-1 text-right tabular-nums">{brl(r[s.key])}</td>)}
-                    <td className="px-2 py-1 text-right tabular-nums font-semibold">{brl(r.total_projetado)}</td>
+                    <td className="px-2 py-1 text-right tabular-nums">{brl(r.minimo)}</td>
+                    <td className="px-2 py-1 text-right tabular-nums font-semibold whitespace-nowrap">
+                      {r.piso_aplicado && (
+                        <UiTooltip>
+                          <TooltipTrigger asChild><Badge variant="outline" className="mr-1 px-1 py-0 text-[10px]">piso</Badge></TooltipTrigger>
+                          <TooltipContent>Soma ficou abaixo do mínimo contratual; cobra o mínimo</TooltipContent>
+                        </UiTooltip>
+                      )}
+                      {brl(r.total_projetado)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </TooltipProvider>
           <p className="text-xs text-muted-foreground">
-            Base = última fatura conferida ({mesBr(base ?? null)}). Incrementos caem conforme o lote vende (meses de venda nos parâmetros). Expedição só acontece se vender nesse ritmo.
+            Base = última fatura conferida ({mesBr(base ?? null)}). Incrementos caem conforme o lote vende (meses de venda nos parâmetros). Se a soma ficar abaixo do mínimo contratual, cobra-se o mínimo.
           </p>
         </>
       )}
@@ -140,9 +160,10 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
 function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
   const [aberto, setAberto] = useState<Set<number>>(new Set());
   const linhas = q.data ?? [];
-  const soma = (k: keyof Entrada) => linhas.reduce((a, r) => a + Number(r[k] ?? 0), 0);
+  const contam = linhas.filter((r) => r.conta_na_projecao);
+  const soma = (k: keyof Entrada) => contam.reduce((a, r) => a + Number(r[k] ?? 0), 0);
   const tog = (id: number) => setAberto((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const cols = 13;
+  const cols = 12;
   return (
     <section className="space-y-3">
       <h2 className="text-base font-semibold">O que está chegando</h2>
@@ -164,7 +185,6 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                   <th className="px-2 py-1.5 text-right">Valor mercadoria</th>
                   <th className="px-2 py-1.5 text-right">Custo de entrada</th>
                   <th className="px-2 py-1.5 text-right">Incremento/mês (mês 1)</th>
-                  <th className="px-2 py-1.5 text-right">Expedição do lote</th>
                 </tr>
               </thead>
               <tbody>
@@ -176,19 +196,32 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                   const semData = !r.data_base;
                   return (
                     <Fragment key={r.id}>
-                      <tr className={`border-t cursor-pointer hover:bg-muted/30 ${semData ? "text-muted-foreground" : ""}`} onClick={() => tog(r.id)}>
+                      <tr className={`border-t cursor-pointer hover:bg-muted/30 ${semData || !r.conta_na_projecao ? "text-muted-foreground" : ""}`} onClick={() => tog(r.id)}>
                         <td className="px-1">{ab ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</td>
-                        <td className="px-2 py-1 font-medium">{r.processo_ref ?? r.numero_pedido ?? "—"}</td>
+                        <td className="px-2 py-1 font-medium whitespace-nowrap">
+                          {r.processo_ref ?? r.numero_pedido ?? "—"}
+                          {!r.conta_na_projecao && r.ja_na_base && (
+                            <UiTooltip>
+                              <TooltipTrigger asChild><Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">já na base</Badge></TooltipTrigger>
+                              <TooltipContent>Já estava no estoque da última fatura conferida; não soma na projeção</TooltipContent>
+                            </UiTooltip>
+                          )}
+                        </td>
                         <td className="px-2 py-1">{r.status ?? "—"}</td>
                         <td className="px-2 py-1 whitespace-nowrap">
-                          {semData ? <span className="italic">sem data</span> : r.data_chegada ? dataBr(r.data_chegada) : (
-                            <>{dataBr(r.eta)} <Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">ETA</Badge></>
+                          {semData ? <span className="italic">sem data</span> : (
+                            <>{dataBr(r.data_base)}{r.data_base_fonte && <Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">{r.data_base_fonte}</Badge>}</>
                           )}
                         </td>
                         <td className="px-2 py-1 text-right tabular-nums">{num(r.conteineres, 1)}</td>
                         <td className="px-2 py-1 text-right tabular-nums">{num(r.caixas)}</td>
                         <td className="px-2 py-1 text-right tabular-nums">{num(r.unidades)}</td>
-                        <td className="px-2 py-1 text-right tabular-nums">{num(r.m3, 1)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums">
+                          <UiTooltip>
+                            <TooltipTrigger asChild><span className="underline decoration-dotted">{num(r.m3_liquido, 1)}</span></TooltipTrigger>
+                            <TooltipContent>bruto {num(r.m3_bruto, 1)} m³ · fonte: {r.m3_fonte ?? "—"}</TooltipContent>
+                          </UiTooltip>
+                        </td>
                         <td className="px-2 py-1 text-right tabular-nums">{num(r.skus_novos)}</td>
                         <td className="px-2 py-1 text-right tabular-nums whitespace-nowrap">
                           {r.valor_estimado_flag ? (
@@ -200,7 +233,6 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                         </td>
                         <td className="px-2 py-1 text-right tabular-nums">{brl(r.custo_entrada_total)}</td>
                         <td className="px-2 py-1 text-right tabular-nums">{brl(r.incremento_mensal_mes1)}</td>
-                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.expedicao_total_lote)}</td>
                       </tr>
                       {ab && (
                         <tr className="bg-muted/20">
@@ -210,11 +242,11 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                               <div className="font-medium text-muted-foreground">Entrada (uma vez)</div>
                               <div className="font-medium text-muted-foreground">Mensal (mês 1)</div>
                               <div>Contêineres: {brl(r.custo_conteineres)}</div>
-                              <div>Posições pallet ({num(r.posicoes_pallet, 1)}) × preço: {brl(r.mensal_pallet)}</div>
+                              <div>Armazenagem: {num(r.posicoes_estimadas, 1)} posições estimadas ({num(r.pos_por_m3_fator, 2)} pos/m³ · R$ {num(r.rs_por_m3_fator, 2)}/m³) = {brl(r.mensal_armazenagem)}</div>
                               <div>Recebimento por caixa: {brl(r.custo_recebimento)}</div>
-                              <div>Posições picking ({num(r.posicoes_picking, 1)}) × preço: {brl(r.mensal_picking)}</div>
-                              <div>Insumos: {brl(r.custo_insumos)}</div>
                               <div>Seguro: {brl(r.mensal_seguro)}</div>
+                              <div>Insumos: {brl(r.custo_insumos)}</div>
+                              <div>Meses de venda: {num(r.meses_venda)}</div>
                             </div>
                           </td>
                         </tr>
@@ -230,12 +262,11 @@ function BlocoEntrada({ q }: { q: ReturnType<typeof useQuery<Entrada[]>> }) {
                     <td className="px-2 py-1.5 text-right tabular-nums">{num(soma("conteineres"), 1)}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{num(soma("caixas"))}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{num(soma("unidades"))}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums">{num(soma("m3"), 1)}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">{num(soma("m3_liquido"), 1)}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{num(soma("skus_novos"))}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{brl(soma("valor_mercadoria"))}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{brl(soma("custo_entrada_total"))}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{brl(soma("incremento_mensal_mes1"))}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums">{brl(soma("expedicao_total_lote"))}</td>
                   </tr>
                 </tfoot>
               )}
