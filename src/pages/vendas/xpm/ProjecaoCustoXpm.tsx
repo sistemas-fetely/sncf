@@ -91,7 +91,18 @@ function Erro({ e }: { e: unknown }) {
 function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
   const dados = useMemo(() => (q.data ?? []).map((r) => ({ ...r, rotulo: mesBr(r.mes),
     ...Object.fromEntries(SERIES.map((s) => [s.key, Number(r[s.key] ?? 0)])) })), [q.data]);
-  const base = q.data?.[0]?.competencia_base;
+  // competencia_base vem da primeira linha projetada (nas realizadas também vem igual, mas por segurança).
+  const primeiraProjetada = q.data?.find((r) => r.tipo === "projetado");
+  const base = primeiraProjetada?.competencia_base ?? null;
+  const temRealizado = (q.data ?? []).some((r) => r.tipo === "realizado");
+  const paramQ = useQuery({
+    queryKey: ["xpm-projecao-param", "meses_venda_padrao"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("xpm_projecao_param").select("valor").eq("chave", "meses_venda_padrao").maybeSingle();
+      if (error) throw error;
+      return data as { valor: number | null } | null;
+    },
+  });
   return (
     <section className="space-y-3">
       <h2 className="text-base font-semibold">Quanto a XPM vai custar nos próximos meses</h2>
@@ -108,12 +119,19 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {SERIES.map((s, i) => (
                   <Bar key={s.key} dataKey={s.key} name={s.label} stackId="a" fill={s.cor}>
+                    {dados.map((d) => (
+                      <Cell key={d.mes} fill={s.cor} fillOpacity={d.tipo === "realizado" ? 0.45 : 1} />
+                    ))}
                     {i === SERIES.length - 1 && (
                       <LabelList dataKey="total_projetado" position="top"
                         formatter={(v: number) => brl(v)} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
                     )}
                   </Bar>
                 ))}
+                {temRealizado && primeiraProjetada && (
+                  <ReferenceLine x={mesBr(primeiraProjetada.mes)} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5"
+                    label={{ value: "projeção →", position: "insideTopRight", fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -123,16 +141,37 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
                   <th className="px-2 py-1.5 text-left">Mês</th>
-                  {SERIES.map((s) => <th key={s.key} className="px-2 py-1.5 text-right">{s.label}</th>)}
+                  <th className="px-2 py-1.5 text-left">Tipo</th>
+                  {SERIES.map((s) => (
+                    <th key={s.key} className="px-2 py-1.5 text-right">
+                      {s.key === "base_estoque_fixo" || s.key === "custo_entrada" ? (
+                        <UiTooltip>
+                          <TooltipTrigger asChild><span className="underline decoration-dotted">{s.label}</span></TooltipTrigger>
+                          <TooltipContent>
+                            {s.key === "base_estoque_fixo"
+                              ? "armazenagem (pallets + bins) + seguro + endereço virtual + insumos"
+                              : "recebimento, descarga, adequação, contêiner extra, HE"}
+                          </TooltipContent>
+                        </UiTooltip>
+                      ) : s.label}
+                    </th>
+                  ))}
+                  <th className="px-2 py-1.5 text-right">Desconto</th>
                   <th className="px-2 py-1.5 text-right">Mínimo</th>
                   <th className="px-2 py-1.5 text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {(q.data ?? []).map((r) => (
-                  <tr key={r.mes} className="border-t">
+                  <tr key={r.mes} className={`border-t ${r.tipo === "realizado" ? "bg-muted/20" : ""}`}>
                     <td className="px-2 py-1">{mesBr(r.mes)}</td>
+                    <td className="px-2 py-1">
+                      <Badge variant={r.tipo === "realizado" ? "outline" : "secondary"}>{r.tipo === "realizado" ? "real" : "proj."}</Badge>
+                    </td>
                     {SERIES.map((s) => <td key={s.key} className="px-2 py-1 text-right tabular-nums">{brl(r[s.key])}</td>)}
+                    <td className="px-2 py-1 text-right tabular-nums">
+                      {r.desconto != null && Number(r.desconto) !== 0 ? brl(r.desconto) : "—"}
+                    </td>
                     <td className="px-2 py-1 text-right tabular-nums">{brl(r.minimo)}</td>
                     <td className="px-2 py-1 text-right tabular-nums font-semibold whitespace-nowrap">
                       {r.piso_aplicado && (
@@ -150,7 +189,7 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
           </div>
           </TooltipProvider>
           <p className="text-xs text-muted-foreground">
-            Base = última fatura conferida ({mesBr(base ?? null)}). Incrementos caem conforme o lote vende (meses de venda nos parâmetros). Se a soma ficar abaixo do mínimo contratual, cobra-se o mínimo.
+            Realizado = faturas conferidas. Projeção congela estoque e expedição no último mês real ({mesBr(base ?? null)}) e soma os lotes chegando, caindo 1/{num(paramQ.data?.valor)} por mês. Se a soma ficar abaixo do mínimo contratual, cobra-se o mínimo.
           </p>
         </>
       )}
