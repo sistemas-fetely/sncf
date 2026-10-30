@@ -28,7 +28,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-  useFaturamentoMensal, useFaturamentoMensalEstab, useFaturamentoNf, useFaturamentoProduto,
+  useFaturamentoMensal, useFaturamentoMensalEstab, useDevolucaoMensal, useFaturamentoNf, useFaturamentoProduto,
   type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
 
 } from "@/hooks/financas/useFaturamento";
@@ -122,6 +122,8 @@ interface CascataAgg {
   receita_produto: number;
   receita_frete: number;
   receita_total: number;
+  devolucoes: number;
+  receita_liquida: number;
   cmv: number;
   icms: number;
   custo_frete_pago: number;
@@ -143,7 +145,9 @@ function CascataCard({ agg, componente, semFrete = false }: { agg: CascataAgg; c
       ? [
         { label: "Receita de produto", valor: agg.receita_produto, tipo: "linha" },
         { label: "Receita de frete", valor: agg.receita_frete, tipo: "linha" },
-        { label: "= Receita total", valor: agg.receita_total, tipo: "subtotal" },
+        { label: "= Receita bruta", valor: agg.receita_total, tipo: "subtotal" },
+        { label: "(−) Devoluções", valor: agg.devolucoes, tipo: "deducao" },
+        { label: "= Receita líquida", valor: agg.receita_liquida, tipo: "subtotal" },
         { label: "(−) CMV", valor: agg.cmv, tipo: "deducao" },
         { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
         { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
@@ -152,7 +156,9 @@ function CascataCard({ agg, componente, semFrete = false }: { agg: CascataAgg; c
       ]
       : componente === "produto"
         ? [
-          { label: "= Receita de produto", valor: agg.receita_produto, tipo: "subtotal" },
+          { label: "= Receita de produto bruta", valor: agg.receita_produto, tipo: "subtotal" },
+          { label: "(−) Devoluções", valor: agg.devolucoes, tipo: "deducao" },
+          { label: "= Receita líquida", valor: agg.receita_liquida, tipo: "subtotal" },
           { label: "(−) CMV", valor: agg.cmv, tipo: "deducao" },
           { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
           { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
@@ -240,6 +246,7 @@ export default function Faturamento() {
     useFaturamentoMensal();
   const { data: mensalEstab = [], isLoading: loadingEstab, isError: errEstab, error: errorEstab } =
     useFaturamentoMensalEstab();
+  const { data: devolucoesMensal = [], isError: errDev, error: errorDev } = useDevolucaoMensal();
 
   const estabelecimentos = useMemo(
     () => Array.from(new Set(mensalEstab.map((r) => r.estabelecimento).filter(Boolean) as string[]))
@@ -302,25 +309,46 @@ export default function Faturamento() {
     [fonteMensal, mesEfetivo, canal],
   );
 
+  const devAgg = useMemo(() => {
+    const rows = devolucoesMensal.filter((r) =>
+      String(r.mes).slice(0, 10) === mesEfetivo && canalOk(r.canal) && estabOk(r.estabelecimento));
+    const s = (f: (r: typeof rows[number]) => number) => rows.reduce((t, r) => t + f(r), 0);
+    return {
+      devolucoes: s((r) => n(r.devolucoes)),
+      cmv_devolvido: s((r) => n(r.cmv_devolvido)),
+      icms_devolvido: s((r) => n(r.icms_devolvido)),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devolucoesMensal, mesEfetivo, canal, estab]);
+
   const agg = useMemo(() => {
     const soma = (f: (r: FaturamentoMensal) => number) => mesRows.reduce((s, r) => s + f(r), 0);
     const receita_produto = soma((r) => n(r.receita_produto));
     const receita_frete = soma((r) => n(r.receita_frete));
     const receita_total = soma((r) => n(r.receita_total));
-    const cmv = soma((r) => n(r.cmv));
-    const icms = soma((r) => n(r.icms));
-    const margem_produto = soma((r) => n(r.margem_produto));
-    const margem_com_frete = soma((r) => n(r.margem_com_frete_pago));
+    // Devolução é de produto: "Só frete" não abate nada.
+    const comDev = componente !== "frete";
+    const devolucoes = comDev ? devAgg.devolucoes : 0;
+    const cmvDev = comDev ? devAgg.cmv_devolvido : 0;
+    const icmsDev = comDev ? devAgg.icms_devolvido : 0;
+    const cmv = soma((r) => n(r.cmv)) - cmvDev;
+    const icms = soma((r) => n(r.icms)) - icmsDev;
+    // Margens das views são brutas: abate (devoluções − CMV devolvido − ICMS devolvido).
+    const ajusteDev = devolucoes - cmvDev - icmsDev;
+    const margem_produto = soma((r) => n(r.margem_produto)) - ajusteDev;
+    const margem_com_frete = soma((r) => n(r.margem_com_frete_pago)) - ajusteDev;
     const custo_frete_pago = soma((r) => n(r.custo_frete_pago));
     const resultado_frete = soma((r) => n(r.resultado_frete));
     const nfsQtd = soma((r) => n(r.nfs));
     const unidades = soma((r) => n(r.unidades));
     const lancamentos_frete = soma((r) => n(r.lancamentos_frete));
 
-    const faturamento =
+    const faturamentoBruto =
       componente === "produto" ? receita_produto : componente === "frete" ? receita_frete : receita_total;
+    const faturamento = faturamentoBruto - devolucoes; // receita líquida: base dos %
+    const receita_liquida = faturamento;
     const margem = componente === "produto" ? margem_produto : margem_com_frete;
-    const margemBruta = componente === "produto" ? receita_produto - cmv : receita_total - cmv;
+    const margemBruta = receita_liquida - cmv;
     const resultado =
       componente === "produto" ? margem_produto
         : componente === "frete" ? resultado_frete
@@ -328,14 +356,14 @@ export default function Faturamento() {
     const pct = (v: number) => (faturamento > 0 ? v / faturamento : null);
 
     return {
-      receita_produto, receita_frete, receita_total, cmv, icms, margem_produto,
+      receita_produto, receita_frete, receita_total, devolucoes, receita_liquida, faturamentoBruto, cmv, icms, margem_produto,
       margem_com_frete, custo_frete_pago, resultado_frete, nfsQtd, unidades,
       lancamentos_frete, faturamento, margem, margemBruta, resultado, pct,
-      ticket: nfsQtd > 0 ? faturamento / nfsQtd : null,
+      ticket: nfsQtd > 0 ? receita_produto / nfsQtd : null,
       margem_pct: faturamento > 0 ? margem / faturamento : null,
     };
 
-  }, [mesRows, componente]);
+  }, [mesRows, componente, devAgg]);
 
   const resolver = useMemo(() => {
     const soma = (f: (r: FaturamentoMensal) => number) => mesRows.reduce((s, r) => s + f(r), 0);
@@ -395,7 +423,7 @@ export default function Faturamento() {
       <PageHeader
         titulo="Faturamento"
         icone={Receipt}
-        estado={`Faturamento é fato fiscal — NF autorizada. Não é recebível: não bate com Contas a Receber por definição. Custo pela safra de ${safra}.`}
+        estado={`Faturamento é fato fiscal — NF autorizada. Receita bruta no mês da venda; devoluções abatem no mês da NF de devolução. Não é recebível. Custo pela safra de ${safra}.`}
       />
 
       {/* Filtros */}
@@ -487,9 +515,9 @@ export default function Faturamento() {
       ) : (
         <div className="grid gap-4 md:grid-cols-4">
           <KpiCard
-            label="Receita total"
+            label="Receita líquida"
             value={fmtBRL(agg.faturamento)}
-            sub={`${fmtInt(agg.nfsQtd)} NFs · ticket ${fmtBRL(agg.ticket)}`}
+            sub={`bruta ${fmtBRL(agg.faturamentoBruto)} · devoluções ${fmtBRL(agg.devolucoes)} · ${fmtInt(agg.nfsQtd)} NFs · ticket ${fmtBRL(agg.ticket)}`}
           />
           <KpiCard
             label="Margem bruta"

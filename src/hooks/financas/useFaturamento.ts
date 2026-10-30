@@ -177,3 +177,30 @@ export function useFaturamentoProduto(mes: string) {
     },
   });
 }
+
+export interface DevolucaoMensal {
+  mes: string;
+  estabelecimento: string | null;
+  canal: string | null;
+  devolucoes_qtd: number | null;
+  unidades_devolvidas: number | null;
+  devolucoes: number | null;
+  icms_devolvido: number | null;
+  cmv_devolvido: number | null;
+  itens_sem_custo: number | null;
+}
+
+/** Devoluções no mês da NF de devolução (abatem a receita bruta). */
+export function useDevolucaoMensal() {
+  return useQuery({
+    queryKey: ["devolucao-mensal"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_devolucao_mensal")
+        .select("mes, estabelecimento, canal, devolucoes_qtd, unidades_devolvidas, devolucoes, icms_devolvido, cmv_devolvido, itens_sem_custo")
+        .order("mes", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as DevolucaoMensal[];
+    },
+  });
+}
