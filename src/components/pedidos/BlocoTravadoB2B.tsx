@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -65,7 +65,7 @@ export function useVincularNfCandidata(pedidoId: string) {
   });
 }
 
-function AcoesMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: string; idExterno?: string | null }) {
+function AcoesMotivo({ m, pedidoId, idExterno, inline = false, extras }: { m: MotivoTravado; pedidoId: string; idExterno?: string | null; inline?: boolean; extras?: ReactNode }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -99,56 +99,67 @@ function AcoesMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: s
   const btn = "h-7 text-xs";
   const pode = permitido === true;
 
-  if (m.acao === "abrir_chamado" && ref.chamado_id) {
-    return (
-      <Button size="sm" variant="outline" className={btn}
-        onClick={() => navigate(`/chamados/${String(ref.chamado_id)}`, { state: { from: location.pathname + location.search, fromLabel: "Pedido" } })}>
-        Abrir {String(ref.numero ?? "chamado")}
-      </Button>
-    );
-  }
-  const ehAuditoria = typeof ref.regra_slug === "string" && !!ref.regra_slug;
-  if (ehAuditoria && ref.regra_slug === "pedido-em-separacao-sem-expedicao-xpm") {
-    return <BotaoEmpurrarXpm pedidoId={pedidoId} />;
-  }
-  if (ehAuditoria && ref.responsavel === "ti") {
-    return <BotaoAcionarTi pedidoRef={idExterno ?? pedidoId} titulo={m.motivo} />;
-  }
-  if (m.acao === "ver_auditoria" || ehAuditoria) {
-    return (
-      <Button size="sm" variant="outline" className={btn}
-        onClick={() => document.getElementById(ID_BLOCO_ALERTAS)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-        Ver alertas
-      </Button>
-    );
-  }
-  if (!pode) return null;
+  const botaoUnico = (() => {
+    if (m.acao === "abrir_chamado" && ref.chamado_id) {
+      return (
+        <Button size="sm" variant="outline" className={btn}
+          onClick={() => navigate(`/chamados/${String(ref.chamado_id)}`, { state: { from: location.pathname + location.search, fromLabel: "Pedido" } })}>
+          Abrir {String(ref.numero ?? "chamado")}
+        </Button>
+      );
+    }
+    const ehAuditoria = typeof ref.regra_slug === "string" && !!ref.regra_slug;
+    if (ehAuditoria && ref.regra_slug === "pedido-em-separacao-sem-expedicao-xpm") {
+      return <BotaoEmpurrarXpm pedidoId={pedidoId} />;
+    }
+    if (ehAuditoria && ref.responsavel === "ti") {
+      return <BotaoAcionarTi pedidoRef={idExterno ?? pedidoId} titulo={m.motivo} />;
+    }
+    if (m.acao === "ver_auditoria" || ehAuditoria) {
+      return (
+        <Button size="sm" variant="outline" className={btn}
+          onClick={() => document.getElementById(ID_BLOCO_ALERTAS)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+          Ver alertas
+        </Button>
+      );
+    }
+    return null;
+  })();
 
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {m.acao === "vincular_nf" && ref.nf_candidata_id && (
-          <Button size="sm" variant="outline" className={btn} disabled={vincular.isPending}
-            onClick={() => vincular.mutate(String(ref.nf_candidata_id))}>
-            Vincular NF {String(ref.nf_candidata_numero ?? "")}
-          </Button>
-        )}
-        {m.acao === "cobrar_ou_declarar_entrega" && (
-          <Button size="sm" variant="outline" className={btn} onClick={() => setCobrando((v) => !v)}>
-            Cobrei a transportadora
-          </Button>
-        )}
-        {m.acao === "declarar_embarque_ou_entrega" && (
-          <Button size="sm" variant="outline" className={btn} onClick={() => setDeclaracao("embarque")}>
-            Declarar embarque
-          </Button>
-        )}
-        {(m.acao === "cobrar_ou_declarar_entrega" || m.acao === "declarar_embarque_ou_entrega") && (
-          <Button size="sm" variant="outline" className={btn} onClick={() => setDeclaracao("entrega")}>
-            Declarar entrega
-          </Button>
-        )}
-      </div>
+  if (botaoUnico) {
+    return inline ? <>{botaoUnico}</> : <div className="flex flex-wrap gap-2">{botaoUnico}</div>;
+  }
+  // Sem saída permitida: no bloco (Travado/Parado) não renderiza nada; na sugestão mantém só "Declarar travado" / "Não está travado".
+  if (!pode) return inline ? <>{extras}</> : null;
+
+  const botoes = (
+    <>
+      {m.acao === "vincular_nf" && ref.nf_candidata_id && (
+        <Button size="sm" variant="outline" className={btn} disabled={vincular.isPending}
+          onClick={() => vincular.mutate(String(ref.nf_candidata_id))}>
+          Vincular NF {String(ref.nf_candidata_numero ?? "")}
+        </Button>
+      )}
+      {m.acao === "cobrar_ou_declarar_entrega" && (
+        <Button size="sm" variant="outline" className={btn} onClick={() => setCobrando((v) => !v)}>
+          Cobrei a transportadora
+        </Button>
+      )}
+      {m.acao === "declarar_embarque_ou_entrega" && (
+        <Button size="sm" variant="outline" className={btn} onClick={() => setDeclaracao("embarque")}>
+          Declarar embarque
+        </Button>
+      )}
+      {(m.acao === "cobrar_ou_declarar_entrega" || m.acao === "declarar_embarque_ou_entrega") && (
+        <Button size="sm" variant="outline" className={btn} onClick={() => setDeclaracao("entrega")}>
+          Declarar entrega
+        </Button>
+      )}
+    </>
+  );
+
+  const painel = (
+    <>
       {cobrando && (
         <div className="flex gap-2">
           <Input className="h-8 text-xs" placeholder="O que a transportadora respondeu (mín. 10 caracteres)"
@@ -168,6 +179,25 @@ function AcoesMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: s
             }
           }} />
       )}
+    </>
+  );
+
+  if (inline) {
+    return (
+      <>
+        <div className="flex flex-wrap items-center gap-2">
+          {botoes}
+          {extras}
+        </div>
+        {painel}
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">{botoes}</div>
+      {painel}
     </div>
   );
 }
@@ -323,15 +353,18 @@ function LinhaSugestao({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId:
         {fmtDdMm(m.desde) && <span className="text-xs text-muted-foreground">desde {fmtDdMm(m.desde)}</span>}
       </div>
       {m.o_que_fazer && <p className="text-xs text-muted-foreground">{m.o_que_fazer}</p>}
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDeclarando(true)}>
-          Declarar travado
-        </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={!m.chave}
-          onClick={() => setDescartando((v) => !v)}>
-          Não está travado
-        </Button>
-      </div>
+      <AcoesMotivo m={m} pedidoId={pedidoId} idExterno={idExterno} inline
+        extras={
+          <>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDeclarando(true)}>
+              Declarar travado
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={!m.chave}
+              onClick={() => setDescartando((v) => !v)}>
+              Não está travado
+            </Button>
+          </>
+        } />
       {descartando && (
         <div className="flex gap-2">
           <Input className="h-8 text-xs" placeholder="Por que não está travado? (mín. 3 caracteres)"
