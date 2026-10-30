@@ -142,6 +142,8 @@ export function TransferenciaInternaPainel({
   const qtdInvalida = (v: string) => v === "" || isNaN(Number(v)) || Number(v) <= 0 || !Number.isInteger(Number(v));
   const passa = (i: Item) => !!saldoQ.data && Number(i.qtd) > disp(nav.origem, i.sku);
   const algumPassa = itens.some(passa);
+  // Com item acima do disponível, exige o checkbox de separação antecipada E observação preenchida.
+  const podeEnviar = !algumPassa || (permitirNegativo && obs.trim().length > 0);
   const algumInvalido = itens.some((i) => qtdInvalida(i.qtd));
   const pecas = itens.reduce((s, i) => s + (Number(i.qtd) || 0), 0);
 
