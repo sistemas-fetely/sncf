@@ -40,6 +40,18 @@ interface Recebida {
   divergencias: unknown[] | null;
   id_externo: string | null;
 }
+// Transferência interna sem NF (TI-xxxx): atômica, nasce entregue — só rastreio aqui.
+interface LinhaTi {
+  ti: true;
+  id: string;
+  id_externo: string;
+  origem: string;
+  destino: string;
+  itens: number;
+  pecas: number;
+  data: string | null;
+}
+type LinhaRecebida = (Recebida & { ti?: false }) | LinhaTi;
 
 function SeloEstagio({ estagio }: { estagio: string | null }) {
   if (!estagio) return <span className="text-sm text-muted-foreground">—</span>;
