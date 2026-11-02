@@ -51,7 +51,8 @@ interface LinhaTi {
   pecas: number;
   data: string | null;
 }
-type LinhaRecebida = (Recebida & { ti?: false }) | LinhaTi;
+interface LinhaRecebidaPedido extends Recebida { ti: false }
+type LinhaRecebida = LinhaRecebidaPedido | LinhaTi;
 
 function SeloEstagio({ estagio }: { estagio: string | null }) {
   if (!estagio) return <span className="text-sm text-muted-foreground">—</span>;
