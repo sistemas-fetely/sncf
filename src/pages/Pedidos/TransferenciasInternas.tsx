@@ -4,7 +4,7 @@ import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BaixasUsoPainel, useBaixasUso } from "@/components/transferencias/BaixasUsoPainel";
 
@@ -58,6 +58,7 @@ import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransfere
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
 import { AlertasTransferenciaFisica } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
+import { GavetaTransferenciaTi } from "@/components/transferencias/GavetaTransferenciaTi";
 
 
 interface CentroDestino {
@@ -115,35 +116,6 @@ function SeloTipo({ t }: { t: TransferenciaRow }) {
   return <span className="text-sm text-muted-foreground">—</span>;
 }
 
-/** Itens de uma TI (sem NF), lidos de vw_transferencia_interna pelo número. */
-function ItensTi({ numero }: { numero: string | null }) {
-  const q = useQuery({
-    queryKey: ["ti-itens", numero],
-    enabled: !!numero,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_transferencia_interna")
-        .select("cod_cadastro, nome_comercial, quantidade")
-        .eq("numero", numero);
-      if (error) throw error;
-      return (data ?? []) as { cod_cadastro: string | null; nome_comercial: string | null; quantidade: number }[];
-    },
-  });
-  if (q.isLoading) return <p className="text-xs text-muted-foreground">Carregando itens…</p>;
-  if (q.isError) return <p className="text-xs text-destructive">Falha ao carregar itens: {formatError(q.error)}</p>;
-  if (!q.data?.length) return <p className="text-xs text-muted-foreground">Nenhum item encontrado.</p>;
-  return (
-    <ul className="space-y-0.5 text-sm">
-      {q.data.map((i, idx) => (
-        <li key={idx} className="flex gap-3">
-          <span className="font-mono text-xs text-muted-foreground w-24">{i.cod_cadastro ?? "—"}</span>
-          <span className="flex-1">{i.nome_comercial ?? "—"}</span>
-          <span className="tabular-nums">{i.quantidade}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /** Estágio da transferência: usa o mesmo selo da Casa dos Pedidos quando é
  *  um estágio canônico; fora da esteira, mostra o valor cru sem fingir cor. */
