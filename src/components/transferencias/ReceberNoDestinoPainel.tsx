@@ -142,7 +142,7 @@ export function ReceberNoDestinoPainel() {
 
   const recebidasQ = useQuery({
     queryKey: ["recebimento-loja", "recebidas"],
-    queryFn: async (): Promise<Recebida[]> => {
+    queryFn: async (): Promise<LinhaRecebida[]> => {
       const { data, error } = await (supabase as any)
         .from("trs_recebimento")
         .select("pedido_id, data_recebimento, divergencias")
@@ -150,23 +150,67 @@ export function ReceberNoDestinoPainel() {
         .limit(20);
       if (error) throw error;
       const rs = (data ?? []) as Recebida[];
-      if (!rs.length) return [];
-      // Venda fora (Casa 22) não é recebida nesta aba — mesma regra do Painel.
-      const { data: vs, error: eV } = await (supabase as any)
-        .from("v_transferencias_internas").select("id, finalidade_codigo").in("id", rs.map((r) => r.pedido_id));
-      if (eV) throw eV;
-      const vendaFora = new Set(
-        ((vs ?? []) as { id: string; finalidade_codigo: string | null }[])
-          .filter((x) => x.finalidade_codigo === "venda_fora")
-          .map((x) => x.id)
-      );
-      const proprios = rs.filter((r) => !vendaFora.has(r.pedido_id));
-      if (!proprios.length) return [];
-      const { data: peds, error: e2 } = await (supabase as any)
-        .from("pedidos").select("id, id_externo").in("id", proprios.map((r) => r.pedido_id));
-      if (e2) throw e2;
-      const m = new Map(((peds ?? []) as { id: string; id_externo: string | null }[]).map((p) => [p.id, p.id_externo]));
-      return proprios.map((r) => ({ ...r, id_externo: m.get(r.pedido_id) ?? null }));
+      // Transferências internas sem NF (TI-xxxx) — rastreio em Recebidas, mesmo critério de destino da aba.
+      const { data: tis, error: eTi } = await (supabase as any)
+        .from("vw_transferencias_painel")
+        .select("id, id_externo, origem_codigo, destino_codigo, destino_interno, qtd_itens, qtd_total_pecas, entregue_em, data_pedido")
+        .eq("origem_registro", "ti");
+      if (eTi) throw eTi;
+      const centrosTi = ((tis ?? []) as any[]).map((t) => t.destino_codigo ?? t.destino_interno).filter(Boolean);
+      let rotuloCodigo = new Map<string, string>();
+      let destinosValidos = new Set<string>();
+      if (centrosTi.length) {
+        // Mesma regra dos pendentes: centros ativos de chegada física (armazém/showroom), fora do XPM-SC.
+        const { data: cs, error: eC } = await (supabase as any)
+          .from("centro_distribuicao").select("codigo, rotulo_curto, nome, ativo, tipo");
+        if (eC) throw eC;
+        rotuloCodigo = new Map(((cs ?? []) as { codigo: string; rotulo_curto: string | null; nome: string | null }[]).map((c) => [c.codigo, c.rotulo_curto ?? c.nome ?? c.codigo]));
+        destinosValidos = new Set(((cs ?? []) as { codigo: string; ativo: boolean; tipo: string | null }[])
+          .filter((c) => c.ativo === true && (c.tipo === "armazem" || c.tipo === "showroom") && c.codigo !== "XPM-SC")
+          .map((c) => c.codigo));
+      }
+      const linhasTi: LinhaTi[] = ((tis ?? []) as any[])
+        .filter((t) => destinosValidos.has(t.destino_codigo ?? t.destino_interno))
+        .map((t) => ({
+          ti: true as const,
+          id: t.id,
+          id_externo: t.id_externo,
+          origem: rotuloCodigo.get(t.origem_codigo) ?? t.origem_codigo ?? "—",
+          destino: rotuloCodigo.get(t.destino_codigo ?? t.destino_interno) ?? t.destino_codigo ?? "—",
+          itens: Number(t.qtd_itens ?? 0),
+          pecas: Number(t.qtd_total_pecas ?? 0),
+          data: t.entregue_em ?? t.data_pedido ?? null,
+        }));
+      if (!rs.length && !linhasTi.length) return [];
+      let proprios: Recebida[] = [];
+      if (rs.length) {
+        // Venda fora (Casa 22) não é recebida nesta aba — mesma regra do Painel.
+        const { data: vs, error: eV } = await (supabase as any)
+          .from("v_transferencias_internas").select("id, finalidade_codigo").in("id", rs.map((r) => r.pedido_id));
+        if (eV) throw eV;
+        const vendaFora = new Set(
+          ((vs ?? []) as { id: string; finalidade_codigo: string | null }[])
+            .filter((x) => x.finalidade_codigo === "venda_fora")
+            .map((x) => x.id)
+        );
+        proprios = rs.filter((r) => !vendaFora.has(r.pedido_id));
+        if (proprios.length) {
+          const { data: peds, error: e2 } = await (supabase as any)
+            .from("pedidos").select("id, id_externo").in("id", proprios.map((r) => r.pedido_id));
+          if (e2) throw e2;
+          const m = new Map(((peds ?? []) as { id: string; id_externo: string | null }[]).map((p) => [p.id, p.id_externo]));
+          proprios = proprios.map((r) => ({ ...r, id_externo: m.get(r.pedido_id) ?? null }));
+        }
+      }
+      // Mais recente primeiro, pedidos e TIs juntos.
+      return [...proprios, ...linhasTi].sort((a, b) => {
+        const da = "ti" in a && a.ti ? a.data : a.data_recebimento;
+        const db = "ti" in b && b.ti ? b.data : b.data_recebimento;
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return db.localeCompare(da);
+      });
     },
   });
 
