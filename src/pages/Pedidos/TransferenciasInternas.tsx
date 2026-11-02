@@ -170,7 +170,8 @@ export default function TransferenciasInternas() {
     if (finalidadesFiltroQ.isError) toast.error(formatError(finalidadesFiltroQ.error));
   }, [finalidadesFiltroQ.isError, finalidadesFiltroQ.error]);
 
-  const [expandidoTi, setExpandidoTi] = useState<string | null>(null);
+  // Gaveta lateral da transferência sem NF (TI-*): linha TI clicada abre a gaveta.
+  const [gavetaTi, setGavetaTi] = useState<TransferenciaRow | null>(null);
   const listaQ = useQuery({
     queryKey: ["transferencias-internas"],
     queryFn: async (): Promise<TransferenciaRow[]> => {
@@ -405,14 +406,14 @@ export default function TransferenciasInternas() {
               </TableHeader>
               <TableBody>
                 {visiveis.filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
-                  // Linha TI (sem NF): id sintético, não existe em pedidos — expande os itens inline.
+                  // Linha TI (sem NF): id sintético, não existe em pedidos — abre a gaveta lateral.
                   const ehTi = t.origem_registro === "ti";
                   const abrir = ehTi
-                    ? () => setExpandidoTi((cur) => (cur === t.id ? null : t.id))
+                    ? () => setGavetaTi(t)
                     : () => abrirDetalhe(navigate, location, `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
                   return (
-                    <Fragment key={t.id}>
                     <TableRow
+                      key={t.id}
                       data-foco-id={t.id}
                       className="cursor-pointer hover:bg-muted/50"
                       role="link"
@@ -577,14 +578,6 @@ export default function TransferenciasInternas() {
                         })()}
                       </TableCell>
                     </TableRow>
-                    {ehTi && expandidoTi === t.id && (
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={15} className="py-2">
-                          <ItensTi numero={t.id_externo} />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    </Fragment>
                   );
                 })}
               </TableBody>
