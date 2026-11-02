@@ -4,7 +4,7 @@ import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BaixasUsoPainel, useBaixasUso } from "@/components/transferencias/BaixasUsoPainel";
 
