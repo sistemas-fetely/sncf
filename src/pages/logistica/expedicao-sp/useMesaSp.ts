@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } from "@/lib/logistica/postagemAgencia";
+
+const EVENTO_AGENCIA = "mesa_postagem_agencia";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import type { DanfeEtiqueta } from "./impressaoMesa";
@@ -577,55 +580,151 @@ interface FalhaDespachoLote {
   erro: string;
 }
 
-interface ResultadoDespachoLote {
+export interface ItemResultadoLote {
+  pedido_id: string;
+  id_externo: string | null;
+  referencia: string | null;
+  ok: boolean;
+  erro: string | null;
+}
+
+export interface ResultadoDespachoLote {
   modal: string;
   despachados: number;
   falhas: FalhaDespachoLote[];
+  itens: ItemResultadoLote[];
   total: number;
 }
 
+/** Pedido tem o evento "postagem na agência"? */
+export async function temPostagemAgencia(pedidoId: string): Promise<boolean> {
+  const { data, error } = await supabaseMesa
+    .from("pedido_eventos").select("id").eq("pedido_id", pedidoId).eq("tipo_evento", EVENTO_AGENCIA).limit(1);
+  if (error) throw new Error(`ler postagem na agência: ${mensagemErro(error)}`);
+  return (data ?? []).length > 0;
+}
+
+async function lerPrepostagemViva(pedidoId: string): Promise<PrepostagemViva | null> {
+  const { data, error } = await supabaseMesa
+    .from("correios_prepostagem").select("id, codigo_objeto, servico, status")
+    .eq("pedido_id", pedidoId).neq("status", "cancelada").maybeSingle();
+  if (error) throw new Error(`ler pré-postagem: ${mensagemErro(error)}`);
+  return (data as PrepostagemViva | null) ?? null;
+}
+
 /**
- * Coleta do dia: o Correios não busca um pedido, busca as caixas. A RPC despacha
- * o lote e devolve as falhas item a item — nenhuma é escondida (FAIL-LOUD): o
- * sucesso parcial vira dois toasts, o da contagem e o das falhas nomeadas.
+ * MESA-SP-AGENCIA-BIPE-VENCE: com agência + etiqueta SNCF viva diferente do bipado,
+ * cancela a etiqueta nos Correios (edge, que também desvincula) ANTES do despacho.
+ * Falha da edge sobe com a mensagem real — e o pedido não despacha.
+ */
+export async function substituirEtiquetaSeAgencia(pedidoId: string, bipado: string | null): Promise<string | null> {
+  if (!normalizarBipe(bipado)) return null;
+  const pp = await lerPrepostagemViva(pedidoId);
+  if (!pp?.codigo_objeto) return null;
+  const temAgencia = await temPostagemAgencia(pedidoId);
+  const sncf = etiquetaSncfASubstituir({ temAgencia, codigoSncf: pp.codigo_objeto, codigoBipado: bipado });
+  if (!sncf) return null;
+  await chamarPrepostagem({
+    acao: "cancelar", pedido_id: pedidoId, prepostagem_id: pp.id,
+    motivo: motivoSubstituicaoAgencia(bipado ?? "", sncf),
+  });
+  return sncf;
+}
+
+/** Aviso da linha: agência marcada + etiqueta SNCF viva → código dela (ou null). */
+export function useEtiquetaSncfAgencia(pedidoId: string | null) {
+  const ppQ = usePrepostagemViva(pedidoId);
+  const agQ = useQuery({
+    queryKey: [...CHAVE_EVENTOS_MESA, pedidoId, "agencia"],
+    enabled: !!pedidoId,
+    queryFn: () => temPostagemAgencia(pedidoId as string),
+  });
+  const codigo = agQ.data && ppQ.data?.codigo_objeto ? ppQ.data.codigo_objeto : null;
+  return { codigo, temAgencia: agQ.data === true, erro: agQ.error ?? ppQ.error ?? null };
+}
+
+/**
+ * Coleta do dia: o Correios não busca um pedido, busca as caixas. Antes da RPC,
+ * cada pedido com agência tem a etiqueta SNCF substituída; quem falha nesse passo
+ * fica fora do lote e entra nas falhas nomeadas. Toast de falhas não some sozinho.
  */
 export function useDespacharLote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { p_modal: string; p_itens: { pedido_id: string; referencia: string | null }[] }) => {
-      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_despachar_lote", args);
-      if (error) throw new Error(mensagemErro(error));
-      return data as unknown as ResultadoDespachoLote;
+    mutationFn: async (args: { p_modal: string; p_itens: { pedido_id: string; referencia: string | null }[] }): Promise<ResultadoDespachoLote> => {
+      const preFalhas: ItemResultadoLote[] = [];
+      const seguem: typeof args.p_itens = [];
+      for (const it of args.p_itens) {
+        try {
+          await substituirEtiquetaSeAgencia(it.pedido_id, it.referencia);
+          seguem.push(it);
+        } catch (e) {
+          preFalhas.push({
+            pedido_id: it.pedido_id, id_externo: null, referencia: it.referencia, ok: false,
+            erro: `Etiqueta SNCF não cancelada nos Correios: ${mensagemErro(e)}`,
+          });
+        }
+      }
+      let r: ResultadoDespachoLote = { modal: args.p_modal, despachados: 0, falhas: [], itens: [], total: 0 };
+      if (seguem.length > 0) {
+        const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_despachar_lote", { p_modal: args.p_modal, p_itens: seguem });
+        if (error) throw new Error(mensagemErro(error));
+        r = data as unknown as ResultadoDespachoLote;
+      }
+      return {
+        ...r,
+        itens: [...(r.itens ?? []), ...preFalhas],
+        falhas: [...(r.falhas ?? []), ...preFalhas.map((f) => ({ pedido_id: f.pedido_id, id_externo: f.id_externo, erro: f.erro ?? "" }))],
+        total: args.p_itens.length,
+      };
     },
     onSuccess: (r) => {
       const falhas = r?.falhas ?? [];
       if ((r?.despachados ?? 0) > 0) {
-        toast.success(
-          `${r.despachados} de ${r.total} pedido(s) despachado(s) — ${r.modal} coletou.`,
-        );
+        toast.success(`${r.despachados} de ${r.total} pedido(s) despachado(s) — ${r.modal} coletou.`);
       }
       if (falhas.length > 0) {
         toast.error(
           `${falhas.length} pedido(s) não despacharam:\n` +
             falhas.map((f) => `${f.id_externo ?? f.pedido_id}: ${f.erro}`).join("\n"),
+          { duration: Infinity, closeButton: true },
         );
       }
       void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_DOCUMENTOS_MESA });
     },
     onError: (e: unknown) => {
-      toast.error(mensagemErro(e));
+      toast.error(mensagemErro(e), { duration: Infinity, closeButton: true });
     },
   });
 }
 
+/** Despacho unitário: mesma substituição por agência antes da RPC; erro fica até fechar. */
 export function useDespachar() {
-  return useRpcMesa<{
-    p_pedido_id: string;
-    p_modal: string;
-    p_referencia: string | null;
-    p_executor: string | null;
-  }>("fn_mesa_sp_despachar", () => "Pedido despachado — saiu da mesa.");
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { p_pedido_id: string; p_modal: string; p_referencia: string | null; p_executor: string | null }) => {
+      try {
+        await substituirEtiquetaSeAgencia(args.p_pedido_id, args.p_referencia);
+      } catch (e) {
+        throw new Error(`Etiqueta SNCF não cancelada nos Correios: ${mensagemErro(e)}`);
+      }
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_despachar", args);
+      if (error) throw new Error(mensagemErro(error));
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Pedido despachado — saiu da mesa.");
+      void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_CANCELAMENTOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_DOCUMENTOS_MESA });
+    },
+    onError: (e: unknown) => {
+      toast.error(mensagemErro(e), { duration: Infinity, closeButton: true });
+    },
+  });
 }
 
 /** Cancelamentos solicitados pelos clientes dos pedidos listados (`fn_mesa_sp_cancelamentos`). */
