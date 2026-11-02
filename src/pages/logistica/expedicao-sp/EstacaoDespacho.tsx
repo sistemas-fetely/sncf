@@ -11,6 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FormDespacho } from "./FormDespacho";
 import { Selo } from "@/components/ui/selo";
 import type { ModalEntrega } from "./tipos";
+import type { ResultadoDespachoLote } from "./useMesaSp";
+import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
+import { codigosAposLote } from "@/lib/logistica/postagemAgencia";
 import { useQueryClient } from "@tanstack/react-query";
 import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
@@ -56,7 +59,14 @@ interface Props {
   onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   gruposColeta: GrupoColeta[];
   despachandoLote: boolean;
-  onDespacharLote: (modalCodigo: string, itens: { pedido_id: string; referencia: string | null }[]) => void;
+  /** `aoTerminar` recebe o resultado item a item: limpa só quem despachou, mostra o erro de quem falhou. */
+  onDespacharLote: (
+    modalCodigo: string,
+    itens: { pedido_id: string; referencia: string | null }[],
+    aoTerminar: (r: ResultadoDespachoLote) => void,
+  ) => void;
+  /** Erro do último despacho unitário deste pedido — fica visível sob o campo. */
+  erroDespacho?: string | null;
   /** Cancelamento solicitado no pedido selecionado: não despacha. */
   bloqueado?: boolean;
   /** Dados do pedido para o diálogo de retirada no balcão. */
@@ -95,7 +105,7 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 export function EstacaoDespacho({
   pedidoId, modais, modalEmbalado, despachando, onDespachar,
   gruposColeta, despachandoLote, onDespacharLote, bloqueado = false,
-  idExterno = null, clienteNome = null, onRetiradaRegistrada,
+  idExterno = null, clienteNome = null, onRetiradaRegistrada, erroDespacho = null,
 }: Props) {
   const qc = useQueryClient();
   const [retirada, setRetirada] = useState<LinhaVD | null>(null);
@@ -106,6 +116,7 @@ export function EstacaoDespacho({
   const semDespacho = escolhido?.sem_despacho === true;
   // Lote Correios: um código bipado por pedido (pedido_id → código).
   const [codigosLote, setCodigosLote] = useState<Record<string, string>>({});
+  const [errosLote, setErrosLote] = useState<Record<string, string>>({});
   const refsLote = useRef<Record<string, HTMLInputElement | null>>({});
   const ehCorreiosGrupo = (cod: string) => modais.find((m) => m.codigo === cod)?.exige_etiqueta_correios === true;
 
@@ -171,11 +182,15 @@ export function EstacaoDespacho({
                       size="sm"
                       onClick={() => {
                         const correios = ehCorreiosGrupo(grupo.modalCodigo);
+                        setErrosLote({});
                         onDespacharLote(grupo.modalCodigo, grupo.caixas.map((c) => ({
                           pedido_id: c.pedido_id,
                           referencia: correios ? normalizarCodigo(codigosLote[c.pedido_id] ?? "") : null,
-                        })));
-                        if (correios) setCodigosLote({});
+                        })), (r) => {
+                          // Só quem despachou sai do campo; quem falhou fica com o código e o erro.
+                          setCodigosLote((s) => codigosAposLote(s, r.itens ?? []));
+                          setErrosLote(Object.fromEntries((r.itens ?? []).filter((i) => !i.ok).map((i) => [i.pedido_id, i.erro ?? "Não despachou."])));
+                        });
                       }}
                       disabled={despachandoLote || (ehCorreiosGrupo(grupo.modalCodigo) && !loteCorreiosValido(grupo.caixas.map((c) => codigosLote[c.pedido_id] ?? "")))}
                     >
@@ -207,6 +222,7 @@ export function EstacaoDespacho({
                         <span className="block truncate text-xs text-muted-foreground">
                           {medidas(c)}
                         </span>
+                        {ehCorreiosGrupo(grupo.modalCodigo) && <AvisoAgenciaSncf pedidoId={c.pedido_id} />}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {ehCorreiosGrupo(grupo.modalCodigo) && <BotaoEtiquetaCorreios pedidoId={c.pedido_id} />}
@@ -224,7 +240,10 @@ export function EstacaoDespacho({
                                 placeholder="Código do comprovante"
                                 className="h-8 w-48 font-mono text-xs"
                                 value={v}
-                                onChange={(e) => setCodigosLote((s) => ({ ...s, [c.pedido_id]: e.target.value }))}
+                                onChange={(e) => {
+                                  setCodigosLote((s) => ({ ...s, [c.pedido_id]: e.target.value }));
+                                  setErrosLote((s) => { if (!s[c.pedido_id]) return s; const n = { ...s }; delete n[c.pedido_id]; return n; });
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key !== "Enter") return;
                                   e.preventDefault();
@@ -237,6 +256,9 @@ export function EstacaoDespacho({
                                 <span className="text-xs text-destructive">
                                   {repetido ? "Código repetido no lote" : invalido}
                                 </span>
+                              )}
+                              {errosLote[c.pedido_id] && (
+                                <span className="max-w-xs whitespace-pre-wrap text-xs text-destructive">{errosLote[c.pedido_id]}</span>
                               )}
                             </div>
                           );
@@ -261,6 +283,7 @@ export function EstacaoDespacho({
             despachando={despachando}
             bloqueado={bloqueado}
             clienteNome={clienteNome}
+            erroDespacho={erroDespacho}
             onDespachar={(ref, exec, modal) => onDespachar(modal, ref, exec)}
           />
         </CardContent>
@@ -268,3 +291,4 @@ export function EstacaoDespacho({
     </div>
   );
 }
+

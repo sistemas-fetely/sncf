@@ -16,6 +16,7 @@ import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } f
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { cancelarPrepostagemSeSairDeCorreios, useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
 import { BotaoEtiquetaCorreios } from "./BotaoEtiquetaCorreios";
+import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
 
 /**
  * Despacho individual (B2C e B2B). Modal pré-selecionado com o vigente;
@@ -40,9 +41,11 @@ interface Props {
   /** Presente quando o form vive num diálogo: mostra "Cancelar" no rodapé. */
   onCancelar?: () => void;
   onDespachar: (referencia: string | null, executor: string | null, modal: string) => void;
+  /** Erro do último despacho deste pedido: fica sob o campo até o operador tentar de novo. */
+  erroDespacho?: string | null;
 }
 
-export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onCancelar, onDespachar }: Props) {
+export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onCancelar, onDespachar, erroDespacho = null }: Props) {
   const qc = useQueryClient();
   // Modal vigente: considera troca registrada depois da embalagem.
   const vigenteQ = useQuery({
@@ -211,6 +214,8 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
             autoFocus={campo.id === "ref-correios"}
           />
           {erroSro && <p className="text-xs text-destructive">{erroSro}</p>}
+          {campo.id === "ref-correios" && <AvisoAgenciaSncf pedidoId={pedidoId} />}
+          {erroDespacho && !despachando && <p className="whitespace-pre-wrap text-xs text-destructive">{erroDespacho}</p>}
         </div>
       )}
 
