@@ -205,8 +205,8 @@ export function ReceberNoDestinoPainel() {
       }
       // Mais recente primeiro, pedidos e TIs juntos.
       return [...proprios, ...linhasTi].sort((a, b) => {
-        const da = "ti" in a && a.ti ? a.data : a.data_recebimento;
-        const db = "ti" in b && b.ti ? b.data : b.data_recebimento;
+        const da = a.ti ? a.data : a.data_recebimento;
+        const db = b.ti ? b.data : b.data_recebimento;
         if (!da && !db) return 0;
         if (!da) return 1;
         if (!db) return -1;
