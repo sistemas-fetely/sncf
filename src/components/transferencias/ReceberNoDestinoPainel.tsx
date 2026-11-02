@@ -331,7 +331,7 @@ export function ReceberNoDestinoPainel() {
                   </TableHeader>
                   <TableBody>
                     {recebidas.map((r) => {
-                      if ("ti" in r && r.ti) {
+                      if (r.ti) {
                         // TI sem NF: atômica, sem recebimento — linha só de rastreio, sem clique.
                         return (
                           <TableRow key={r.id}>
