@@ -1,5 +1,7 @@
 # Decisões técnicas
 
+- Keep B2C CD confirmation and pending-swap form rules in a tested pure helper; read the comparison suggestion from the queue, keeping stock hints separate so they never change confirmation eligibility.
+
 - Keep Logistics module tabs in the page shell and scope URL updates in a tested pure helper; carrier content receives the active tab to avoid duplicate navigation.
 
 - Await the shared order invalidation after payment actions and handle payment edge errors through a shared response parser; stage changes must remove stale payment controls without unhandled rejections.

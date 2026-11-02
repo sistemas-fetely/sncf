@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Confirmar escolha divergente e trocar CD pendente no B2C; testar sem alterar banco nem publicar.
+
 - [x] Corrigir atualização e erros da coluna de pagamento; validar PED-2309 e typecheck sem banco/publicação.
 
 - [x] M3: reunir abas e seletor de escopo da Logística, alinhar período e validar links e mobile sem banco/publicação.

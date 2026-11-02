@@ -175,19 +175,20 @@ export function usePedidosB2c() {
       if (ids.length > 0) {
         const { data: filaNumeros, error: erroFila } = await supabase
           .from("bling_pedido_fila_b2c")
-          .select("id, shopify_pedido_id, bling_pedido_numero")
+          .select("id, shopify_pedido_id, bling_pedido_numero, cd_sugerido")
           .in("shopify_pedido_id", ids);
         if (erroFila) throw erroFila;
         const mapa = new Map(
           (filaNumeros ?? []).map((r) => [
             r.shopify_pedido_id as string,
-            r as { id: string; bling_pedido_numero: string | null },
+            r as { id: string; bling_pedido_numero: string | null; cd_sugerido: string | null },
           ]),
         );
         for (const r of rows) {
           const linha = r.shopify_id ? mapa.get(r.shopify_id) : undefined;
           r.fila_bling_pedido_numero = linha?.bling_pedido_numero ?? null;
           r.fila_id = linha?.id ?? null;
+          if (linha) r.cd_sugerido = linha.cd_sugerido;
         }
       }
       return rows;
