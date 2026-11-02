@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } from "@/lib/logistica/postagemAgencia";
-
-const EVENTO_AGENCIA = "mesa_postagem_agencia";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import type { DanfeEtiqueta } from "./impressaoMesa";
@@ -595,6 +593,8 @@ export interface ResultadoDespachoLote {
   itens: ItemResultadoLote[];
   total: number;
 }
+
+const EVENTO_AGENCIA = "mesa_postagem_agencia";
 
 /** Pedido tem o evento "postagem na agência"? */
 export async function temPostagemAgencia(pedidoId: string): Promise<boolean> {
