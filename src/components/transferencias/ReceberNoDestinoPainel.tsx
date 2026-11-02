@@ -183,7 +183,7 @@ export function ReceberNoDestinoPainel() {
           data: t.entregue_em ?? t.data_pedido ?? null,
         }));
       if (!rs.length && !linhasTi.length) return [];
-      let proprios: Recebida[] = [];
+      let proprios: LinhaRecebidaPedido[] = [];
       if (rs.length) {
         // Venda fora (Casa 22) não é recebida nesta aba — mesma regra do Painel.
         const { data: vs, error: eV } = await (supabase as any)
