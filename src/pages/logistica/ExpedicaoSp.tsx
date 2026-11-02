@@ -833,10 +833,11 @@ export default function ExpedicaoSp() {
                   idExterno={selecionado.id_externo}
                   clienteNome={selecionado.cliente_nome}
                   onRetiradaRegistrada={() => setSelecionadoId(null)}
-                  onDespacharLote={(modalCodigo, itens) =>
+                  erroDespacho={despachar.isError && despachar.variables?.p_pedido_id === selecionado.id ? formatError(despachar.error) : null}
+                  onDespacharLote={(modalCodigo, itens, aoTerminar) =>
                     {
                       const lista = itens.filter((i) => !cancelamentos.has(i.pedido_id));
-                      if (lista.length > 0) despacharLote.mutate({ p_modal: modalCodigo, p_itens: lista });
+                      if (lista.length > 0) despacharLote.mutate({ p_modal: modalCodigo, p_itens: lista }, { onSuccess: aoTerminar });
                     }
                   }
                 />
