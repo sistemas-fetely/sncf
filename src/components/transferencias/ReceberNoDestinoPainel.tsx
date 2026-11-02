@@ -323,13 +323,30 @@ export function ReceberNoDestinoPainel() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Pedido</TableHead>
+                      <TableHead>Transferência</TableHead>
                       <TableHead>Recebido em</TableHead>
-                      <TableHead>Diferenças</TableHead>
+                      <TableHead>Detalhe</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {recebidas.map((r) => {
+                      if ("ti" in r && r.ti) {
+                        // TI sem NF: atômica, sem recebimento — linha só de rastreio, sem clique.
+                        return (
+                          <TableRow key={r.id}>
+                            <TableCell className="tabular-nums">
+                              <div className="flex flex-wrap items-center gap-1">
+                                {r.id_externo}
+                                <Badge variant="outline" className="text-muted-foreground">interna · sem NF</Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>{fmtData(r.data)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {r.origem} → {r.destino} · {r.itens} SKUs · {r.pecas} peças
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
                       const n = Array.isArray(r.divergencias) ? r.divergencias.length : 0;
                       return (
                         <TableRow key={r.pedido_id} className="cursor-pointer" onClick={() => setGaveta({ id: r.pedido_id, rec: r })}>
