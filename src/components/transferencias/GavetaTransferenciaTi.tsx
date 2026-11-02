@@ -17,8 +17,8 @@ import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { useFotosPrincipais } from "@/hooks/useFotosProduto";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
-import { formatBRL, formatError } from "@/lib/format-currency";
-import { formatError as rawFormatError } from "@/lib/format-error";
+import { formatBRL } from "@/lib/format-currency";
+import { formatError } from "@/lib/format-error";
 import { Loader2 } from "lucide-react";
 
 export interface LinhaTi {
