@@ -200,7 +200,7 @@ export function ReceberNoDestinoPainel() {
             .from("pedidos").select("id, id_externo").in("id", proprios.map((r) => r.pedido_id));
           if (e2) throw e2;
           const m = new Map(((peds ?? []) as { id: string; id_externo: string | null }[]).map((p) => [p.id, p.id_externo]));
-          proprios = proprios.map((r) => ({ ...r, id_externo: m.get(r.pedido_id) ?? null }));
+          proprios = proprios.map((r) => ({ ...r, ti: false as const, id_externo: m.get(r.pedido_id) ?? null }));
         }
       }
       // Mais recente primeiro, pedidos e TIs juntos.
