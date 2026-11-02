@@ -16,7 +16,7 @@ import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } f
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { cancelarPrepostagemSeSairDeCorreios, useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
 import { BotaoEtiquetaCorreios } from "./BotaoEtiquetaCorreios";
-import { AvisoAgenciaSncf } from "./EstacaoDespacho";
+import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
 
 /**
  * Despacho individual (B2C e B2B). Modal pré-selecionado com o vigente;

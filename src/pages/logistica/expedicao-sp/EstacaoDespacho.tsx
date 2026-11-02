@@ -11,7 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FormDespacho } from "./FormDespacho";
 import { Selo } from "@/components/ui/selo";
 import type { ModalEntrega } from "./tipos";
-import { useEtiquetaSncfAgencia, type ResultadoDespachoLote } from "./useMesaSp";
+import type { ResultadoDespachoLote } from "./useMesaSp";
+import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
 import { codigosAposLote } from "@/lib/logistica/postagemAgencia";
 import { useQueryClient } from "@tanstack/react-query";
 import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
@@ -291,14 +292,3 @@ export function EstacaoDespacho({
   );
 }
 
-/** Agência marcada + etiqueta SNCF viva: o bipado vai substituir (e cancelar) a etiqueta. */
-export function AvisoAgenciaSncf({ pedidoId }: { pedidoId: string }) {
-  const { codigo, erro } = useEtiquetaSncfAgencia(pedidoId);
-  if (erro) return <span className="block text-xs text-destructive">{(erro as Error).message}</span>;
-  if (!codigo) return null;
-  return (
-    <span className="block text-xs text-warning">
-      Postado na agência — o código bipado substitui a etiqueta SNCF <span className="font-mono">{codigo}</span> (ela será cancelada nos Correios)
-    </span>
-  );
-}
