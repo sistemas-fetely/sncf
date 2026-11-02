@@ -170,6 +170,7 @@ export function TransferenciaInternaPainel({
       setItens([]); setObs(""); setPermitirNegativo(false);
       await qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes("estoque") });
       await qc.invalidateQueries({ queryKey: ["ti-historico"] });
+      await qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
     },
     onError: (e) => toast.error(formatError(e)),
   });
