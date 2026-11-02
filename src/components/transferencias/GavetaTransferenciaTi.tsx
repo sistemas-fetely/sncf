@@ -85,6 +85,7 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
   const saldoOrigemQ = useQuery({
     queryKey: ["ti-estoque-origem-atual", linha?.origem_codigo, skus],
     enabled: !!linha?.origem_codigo && skus.length > 0,
+    staleTime: 0,
     refetchOnMount: "always",
     refetchInterval: 30_000,
     queryFn: async () => {
