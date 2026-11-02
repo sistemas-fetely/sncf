@@ -6213,6 +6213,54 @@ export type Database = {
           },
         ]
       }
+      b2c_troca_cd: {
+        Row: {
+          de_centro: string | null
+          fila_id: string
+          id: string
+          motivo: string
+          order_name: string | null
+          para_centro: string
+          trocado_em: string
+          trocado_por: string | null
+        }
+        Insert: {
+          de_centro?: string | null
+          fila_id: string
+          id?: string
+          motivo: string
+          order_name?: string | null
+          para_centro: string
+          trocado_em?: string
+          trocado_por?: string | null
+        }
+        Update: {
+          de_centro?: string | null
+          fila_id?: string
+          id?: string
+          motivo?: string
+          order_name?: string | null
+          para_centro?: string
+          trocado_em?: string
+          trocado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2c_troca_cd_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "bling_pedido_fila_b2c"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_troca_cd_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["fila_id"]
+          },
+        ]
+      }
       backup_campo_destino_bloco_20261020: {
         Row: {
           ativo: boolean | null
@@ -151388,6 +151436,14 @@ export type Database = {
           ultimo_em: string
           ultimo_status: string
         }[]
+      }
+      fn_b2c_trocar_cd: {
+        Args: {
+          p_centro_codigo: string
+          p_motivo: string
+          p_shopify_id: string
+        }
+        Returns: Json
       }
       fn_b2c_xpm_ciclo: {
         Args: never

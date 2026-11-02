@@ -78,7 +78,7 @@ function SeloTag({ tag }: { tag: string }) {
 
 /** Célula de "Próxima ação" para pedido parado aguardando o destino. */
 export function EscolhaCdCelula({ pedido, centros, processando, sugestao, onEscolher }: CelulaProps) {
-  const sugerido = sugestao?.cd_sugerido_efetivo ?? pedido.cd_sugerido;
+  const sugerido = pedido.cd_sugerido;
   const sugeridoCentro = centros.find((c) => c.codigo === sugerido);
   const siglaSugerido = abreviarCd(sugerido, sugeridoCentro?.nome);
   const tag = tagDoPedido(pedido);
@@ -233,7 +233,7 @@ interface ConfirmaProps {
   onConfirmar: () => void;
 }
 
-/** Divergiu da sugestão (ou há pedido sem saldo no CD): confirma, não bloqueia. */
+/** Divergiu da sugestão da fila: confirma, não bloqueia. */
 export function ConfirmaCdDivergente({
   open,
   onOpenChange,
@@ -248,8 +248,7 @@ export function ConfirmaCdDivergente({
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmar {escolhidoNome ?? "o CD escolhido"}?</AlertDialogTitle>
           <AlertDialogDescription>
-            {sugeridoNome && <>A sugestão é {sugeridoNome}. </>}A escolha do humano vale — confirme
-            para liberar a descida ao Bling.
+            Sugerido: {sugeridoNome}. Você escolheu: {escolhidoNome}. Confirma?
           </AlertDialogDescription>
         </AlertDialogHeader>
         {avisoSemSaldo && <p className="text-sm text-warning">{avisoSemSaldo}</p>}

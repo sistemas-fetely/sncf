@@ -30,6 +30,7 @@ import {
   abreviarCd, nomeCurtoCd, type SugestaoCdB2c,
 } from "@/components/vendas/EscolhaCdB2c";
 import { cn } from "@/lib/utils";
+import { divergeDaSugestao, podeTrocarCd, trocaCdValida } from "@/lib/b2c-cd";
 import { useOciosidade } from "@/hooks/useOciosidade";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
@@ -317,6 +318,10 @@ export default function ShopifyB2c() {
     sugeridoNome: string | null;
     avisoSemSaldo: string | null;
   } | null>(null);
+  const [trocaCd, setTrocaCd] = useState<PedidoB2cRow | null>(null);
+  const [novoCd, setNovoCd] = useState("");
+  const [motivoTrocaCd, setMotivoTrocaCd] = useState("");
+  const [trocandoCd, setTrocandoCd] = useState(false);
   const [reprocesso, setReprocesso] = useState<PedidoB2cRow[] | null>(null);
   const [motivoReprocesso, setMotivoReprocesso] = useState("");
   const [reprocessando, setReprocessando] = useState(false);
@@ -502,7 +507,7 @@ export default function ShopifyB2c() {
   // fila se atualiza sozinha; ocupado → só uma pílula avisa, nada muda debaixo dele.
   const ocioso = useOciosidade(5000);
   const ocupado =
-    selecionado !== null || marcados.size > 0 || confirmacao !== null || reprocesso !== null;
+    selecionado !== null || marcados.size > 0 || confirmacao !== null || reprocesso !== null || trocaCd !== null;
   const emAndamento = useRef(false);
   const ultimoAuto = useRef(0);
   const [falhouAtualizar, setFalhouAtualizar] = useState(false);
@@ -606,8 +611,9 @@ export default function ShopifyB2c() {
     const skusSemSaldo = new Set<string>();
     try {
       for (const p of alvos) {
+        if (!p.shopify_id) continue;
         const { data: rpcData, error: erroRpc } = await supabase.rpc("fn_b2c_escolher_cd", {
-          p_shopify_id: p.shopify_id!,
+          p_shopify_id: p.shopify_id,
           p_centro_codigo: centro.codigo,
         });
         if (erroRpc) falhas.push(`${p.order_name ?? p.shopify_id}: ${erroRpc.message}`);
@@ -615,7 +621,7 @@ export default function ShopifyB2c() {
           sucessos.push(p);
           const r = (rpcData ?? null) as { itens_sem_saldo?: number; skus_sem_saldo?: string[] } | null;
           if (Number(r?.itens_sem_saldo ?? 0) > 0) {
-            semSaldoItens.push(Number(r!.itens_sem_saldo));
+            semSaldoItens.push(Number(r?.itens_sem_saldo));
             (r?.skus_sem_saldo ?? []).forEach((s) => skusSemSaldo.add(s));
           }
         }
@@ -698,41 +704,58 @@ export default function ShopifyB2c() {
     }
   }
 
-  /** Divergir da sugestão (ou escolher CD sem saldo) pede confirmação, nunca bloqueia. */
+  /** A sugestão da fila determina a confirmação; saldo continua sendo apenas aviso. */
   function pedirEscolha(pedidos: PedidoB2cRow[], centro: CentroB2c) {
-    const divergentes = pedidos.filter((p) => {
-      const sug = p.shopify_id ? sugestoesPorPedido.get(p.shopify_id) : undefined;
-      const sugerido = sug?.cd_sugerido_efetivo ?? p.cd_sugerido;
-      return !!sugerido && sugerido !== centro.codigo;
-    });
-    const semSaldo = pedidos.filter((p) => {
-      if (!p.shopify_id) return false;
-      const saldos = sugestoesPorPedido.get(p.shopify_id)?.saldo_por_cd;
-      return Number(saldos?.[centro.codigo]?.sem_saldo ?? 0) > 0;
-    });
-    if (divergentes.length > 0 || semSaldo.length > 0) {
-      let sugeridoNome: string | null = null;
-      if (divergentes.length > 0) {
-        const p0 = divergentes[0];
-        const sug = p0.shopify_id ? sugestoesPorPedido.get(p0.shopify_id) : undefined;
-        const codigo = sug?.cd_sugerido_efetivo ?? p0.cd_sugerido;
-        const c = centros.find((x) => x.codigo === codigo);
-        sugeridoNome = c ? nomeCurtoCd(c) : codigo;
-      }
-      const skusSemSaldo = new Set<string>();
-      semSaldo.forEach((p) => {
-        (sugestoesPorPedido.get(p.shopify_id!)?.saldo_por_cd?.[centro.codigo]?.skus ?? []).forEach(
-          (s) => skusSemSaldo.add(s),
-        );
+    const divergentes = pedidos.filter((p) => divergeDaSugestao(p.cd_sugerido, centro.codigo));
+    if (divergentes.length > 0) {
+      const nomes = [...new Set(divergentes.map((p) => {
+        const c = centros.find((x) => x.codigo === p.cd_sugerido);
+        return c ? nomeCurtoCd(c) : p.cd_sugerido;
+      }))];
+      const semSaldo = pedidos.filter((p) => p.shopify_id &&
+        Number(sugestoesPorPedido.get(p.shopify_id)?.saldo_por_cd?.[centro.codigo]?.sem_saldo ?? 0) > 0);
+      const skus = new Set(semSaldo.flatMap((p) => p.shopify_id
+        ? sugestoesPorPedido.get(p.shopify_id)?.saldo_por_cd?.[centro.codigo]?.skus ?? [] : []));
+      setConfirmacao({
+        pedidos, centro, sugeridoNome: nomes.join(", "),
+        avisoSemSaldo: semSaldo.length > 0
+          ? `${semSaldo.length} pedido(s) sem saldo em ${nomeCurtoCd(centro)}: ${[...skus].slice(0, 5).join(", ")}. O pedido desce mesmo assim e vai faltar produto para separar.`
+          : null,
       });
-      const avisoSemSaldo =
-        semSaldo.length > 0
-          ? `${semSaldo.length} pedido(s) sem saldo em ${nomeCurtoCd(centro)}: ${[...skusSemSaldo].slice(0, 5).join(", ")}. O pedido desce mesmo assim e vai faltar produto para separar.`
-          : null;
-      setConfirmacao({ pedidos, centro, sugeridoNome, avisoSemSaldo });
       return;
     }
     void escolherCd(pedidos, centro);
+  }
+
+  async function confirmarTrocaCd() {
+    const pedido = trocaCd;
+    if (!pedido?.shopify_id || !trocaCdValida(pedido.cd_escolhido_codigo, novoCd, motivoTrocaCd) || trocandoCd) return;
+    setTrocandoCd(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_b2c_trocar_cd", {
+        p_shopify_id: pedido.shopify_id,
+        p_centro_codigo: novoCd,
+        p_motivo: motivoTrocaCd.trim(),
+      });
+      if (error) throw new Error(error.message);
+      const r = data as { ok?: boolean; trocado_de?: string; centro?: string; itens_sem_saldo?: number; skus_sem_saldo?: string[]; erro?: string; mensagem?: string } | null;
+      if (!r || r.ok === false) throw new Error(r?.erro ?? r?.mensagem ?? "A troca de CD não foi confirmada.");
+      toast.success(`CD trocado de ${r.trocado_de} para ${r.centro}`);
+      if (Number(r.itens_sem_saldo ?? 0) > 0) {
+        const centro = centros.find((c) => c.codigo === novoCd);
+        toast.warning(`Enviado para ${centro ? nomeCurtoCd(centro) : novoCd} sem saldo de ${r.itens_sem_saldo} item(ns)`, {
+          description: (r.skus_sem_saldo ?? []).join(", "),
+        });
+      }
+      setTrocaCd(null);
+      setNovoCd("");
+      setMotivoTrocaCd("");
+      await qc.invalidateQueries({}, { throwOnError: true });
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setTrocandoCd(false);
+    }
   }
 
 
@@ -1478,6 +1501,18 @@ export default function ShopifyB2c() {
                                     </span>
                                   );
                                 })()}
+                                {podeTrocarCd(p.fila_status, p.cd_escolhido_codigo) && p.shopify_id && (
+                                  <Button
+                                    size="sm" variant="outline" className="mt-1 h-7 px-2 text-xs"
+                                    disabled={gravandoCd || trocandoCd}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setNovoCd(""); setMotivoTrocaCd(""); setTrocaCd(p);
+                                    }}
+                                  >
+                                    <RotateCcw className="mr-1 h-3 w-3" />Trocar CD
+                                  </Button>
+                                )}
                                 {p.bloqueio_motivo && !alertaSuprimidoPorFila(p) && (
                                   (() => {
                                     const partes = p.bloqueio_motivo
@@ -1697,6 +1732,40 @@ export default function ShopifyB2c() {
           setConfirmacao(null);
         }}
       />
+
+      <Dialog open={trocaCd !== null} onOpenChange={(v) => {
+        if (!v && !trocandoCd) { setTrocaCd(null); setNovoCd(""); setMotivoTrocaCd(""); }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trocar CD — {trocaCd?.order_name}</DialogTitle>
+            <DialogDescription>CD atual: {trocaCd?.cd_escolhido_nome ?? trocaCd?.cd_escolhido_codigo}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="novo-cd-b2c">CD</Label>
+              <Select value={novoCd} onValueChange={setNovoCd} disabled={trocandoCd}>
+                <SelectTrigger id="novo-cd-b2c"><SelectValue placeholder="Selecione o CD" /></SelectTrigger>
+                <SelectContent>
+                  {centros.filter((c) => c.codigo !== trocaCd?.cd_escolhido_codigo).map((c) => (
+                    <SelectItem key={c.codigo} value={c.codigo}>{nomeCurtoCd(c)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="motivo-troca-cd-b2c">Motivo (obrigatório)</Label>
+              <Textarea id="motivo-troca-cd-b2c" value={motivoTrocaCd} onChange={(e) => setMotivoTrocaCd(e.target.value)} disabled={trocandoCd} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={trocandoCd} onClick={() => { setTrocaCd(null); setNovoCd(""); setMotivoTrocaCd(""); }}>Cancelar</Button>
+            <Button disabled={trocandoCd || !trocaCdValida(trocaCd?.cd_escolhido_codigo ?? null, novoCd, motivoTrocaCd)} onClick={() => void confirmarTrocaCd()}>
+              {trocandoCd && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* DEVOLVER-PARA-A-FILA: motivo obrigatório, e a resposta da RPC é o que a tela conta. */}
       <Dialog
