@@ -122,7 +122,7 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : q.isError ? (
-          <p className="py-6 text-sm text-destructive">Falha ao carregar itens: {rawFormatError(q.error)}</p>
+          <p className="py-6 text-sm text-destructive">Falha ao carregar itens: {formatError(q.error)}</p>
         ) : itens.length === 0 ? (
           <p className="py-6 text-sm text-muted-foreground">Nenhum item encontrado.</p>
         ) : (
