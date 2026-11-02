@@ -239,6 +239,13 @@
       "when": 1793315464442,
       "tag": "0033_correios_prepostagem_sncf",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793630281803,
+      "tag": "0034_importar_tabela_preco_v2",
+      "breakpoints": true
     }
   ]
 }
