@@ -1,67 +1,52 @@
 import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, Upload, AlertCircle, AlertTriangle, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
-import { useImportarTabelaPreco } from "@/hooks/logistica/useTabelasPreco";
+import { cn } from "@/lib/utils";
+import {
+  useImportarTabelaPrecoV2,
+  type ResultadoImportacaoV2,
+  type LadoComparativo,
+} from "@/hooks/logistica/useTabelasPreco";
+import {
+  lerPlanilhaTabelaPreco,
+  nomeSugerido,
+  payloadTarifa,
+  variacaoDestacada,
+  variacaoPct,
+  type PlanilhaLida,
+} from "@/lib/logistica/planilhaTabelaPreco";
 
-const COLUNAS_ZONA = [
-  "tarifa_code",
-  "uf",
-  "zona_nome",
-  "ate_10",
-  "ate_20",
-  "ate_35",
-  "ate_50",
-  "ate_70",
-  "fpk",
-  "fv_pct",
-  "txa",
-] as const;
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const fmtR = (v: number | null | undefined) => (v === null || v === undefined ? "—" : BRL.format(Number(v)));
+const fmtP = (v: number | null | undefined) =>
+  v === null || v === undefined ? "—" : `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}%`;
+const fmtN = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
 
-interface ZonaParseada {
-  linha: number;
-  tarifa_code: string;
-  uf: string;
-  zona_nome: string;
-  pesos: Record<string, number>;
-  kg_adicional: number;
-  fv_pct: number;
-  txa: number;
-  erros: string[];
+function Celula({ a, b, fmt }: { a: number | null | undefined; b: number | null | undefined; fmt: (v: number | null | undefined) => string }) {
+  const v = variacaoPct(a ?? null, b ?? null);
+  const destaque = variacaoDestacada(v);
+  return (
+    <td className={cn("px-2 py-1 text-right tabular-nums align-top", destaque && "bg-warning/15")}>
+      <div className="text-muted-foreground">{fmt(a)}</div>
+      <div className="font-medium">{fmt(b)}</div>
+      {v !== null && Math.abs(v) >= 0.05 && (
+        <div className={cn("text-[10px]", destaque ? "text-warning font-semibold" : "text-muted-foreground")}>
+          {v > 0 ? "+" : ""}{v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+        </div>
+      )}
+    </td>
+  );
 }
 
-function toNum(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  const s = String(v).replace(/\./g, "").replace(",", ".");
-  const n = Number(s);
-  if (Number.isFinite(n)) return n;
-  const n2 = Number(String(v));
-  return Number.isFinite(n2) ? n2 : null;
-}
-
-function numOpcional(v: string): number | null {
-  if (!v.trim()) return null;
-  const n = Number(v.replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
+const am = (l: LadoComparativo | null | undefined) => l?.amostra ?? null;
 
 export function ImportarTabelaPrecoDialog({
   open,
@@ -74,308 +59,311 @@ export function ImportarTabelaPrecoDialog({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [nome, setNome] = useState("");
-  const [modal, setModal] = useState("rodoviario");
   const [vigenciaInicio, setVigenciaInicio] = useState("");
   const [vigenciaDescricao, setVigenciaDescricao] = useState("");
-
-  // taxas globais
-  const [grisPct, setGrisPct] = useState("");
-  const [grisBase, setGrisBase] = useState<string>("frete");
-  const [grisMinimo, setGrisMinimo] = useState("");
-  const [admPct, setAdmPct] = useState("");
-  const [txColeta, setTxColeta] = useState("");
-  const [pedagio100kg, setPedagio100kg] = useState("");
-  const [suframa, setSuframa] = useState("");
-  const [tas, setTas] = useState("");
-
-  const [zonas, setZonas] = useState<ZonaParseada[]>([]);
+  const [modo, setModo] = useState<"parcial" | "completa">("parcial");
+  const [aplicarPrazo, setAplicarPrazo] = useState(true);
+  const [lida, setLida] = useState<PlanilhaLida | null>(null);
   const [fileName, setFileName] = useState("");
+  const [conferencia, setConferencia] = useState<ResultadoImportacaoV2 | null>(null);
 
-  const mut = useImportarTabelaPreco();
+  const mut = useImportarTabelaPrecoV2();
 
-  const { validas, comErro } = useMemo(() => {
-    let ok = 0;
-    let err = 0;
-    for (const z of zonas) (z.erros.length ? err++ : ok++);
-    return { validas: ok, comErro: err };
-  }, [zonas]);
+  const comErro = useMemo(() => lida?.tarifas.filter((t) => t.erros.length).length ?? 0, [lida]);
+  const comAviso = useMemo(() => lida?.tarifas.filter((t) => t.avisos.length).length ?? 0, [lida]);
+  const temPrazo = !!lida?.tarifas.some((t) => t.prazo !== null);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const vigenciaFutura = !!vigenciaInicio && vigenciaInicio > hoje;
 
   function reset() {
-    setNome("");
-    setModal("rodoviario");
-    setVigenciaInicio("");
-    setVigenciaDescricao("");
-    setGrisPct("");
-    setGrisBase("frete");
-    setGrisMinimo("");
-    setAdmPct("");
-    setTxColeta("");
-    setPedagio100kg("");
-    setSuframa("");
-    setTas("");
-    setZonas([]);
-    setFileName("");
+    setNome(""); setVigenciaInicio(""); setVigenciaDescricao(""); setModo("parcial");
+    setAplicarPrazo(true); setLida(null); setFileName(""); setConferencia(null);
     if (fileRef.current) fileRef.current.value = "";
   }
 
   async function handleFile(f: File) {
     setFileName(f.name);
+    setConferencia(null);
     try {
-      const buf = await f.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
+      const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-      const parsed: ZonaParseada[] = rows.map((r, i) => {
-        const erros: string[] = [];
-        const tarifa_code = String(r.tarifa_code ?? "").trim();
-        const uf = String(r.uf ?? "").trim().toUpperCase();
-        const zona_nome = String(r.zona_nome ?? "").trim();
-        if (!tarifa_code) erros.push("tarifa_code vazio");
-        if (!uf) erros.push("uf vazio");
-
-        const pesos: Record<string, number> = {};
-        for (const c of ["ate_10", "ate_20", "ate_35", "ate_50", "ate_70"]) {
-          const n = toNum(r[c]);
-          if (n === null) erros.push(`${c} inválido`);
-          else pesos[c] = n;
-        }
-        const fpk = toNum(r.fpk);
-        if (fpk === null) erros.push("fpk inválido");
-        const fv = toNum(r.fv_pct);
-        const txa = toNum(r.txa);
-
-        return {
-          linha: i + 2,
-          tarifa_code,
-          uf,
-          zona_nome,
-          pesos,
-          kg_adicional: fpk ?? 0,
-          fv_pct: fv ?? 0,
-          txa: txa ?? 0,
-          erros,
-        };
-      });
-      setZonas(parsed);
+      const linhas = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: true });
+      setLida(lerPlanilhaTabelaPreco(linhas));
+      if (!nome.trim()) setNome(nomeSugerido(f.name));
+      if (!vigenciaDescricao.trim()) setVigenciaDescricao(`Importada de ${f.name}`);
     } catch (e) {
+      setLida(null);
       toast.error("Falha ao ler arquivo: " + (e instanceof Error ? e.message : String(e)));
     }
   }
 
-  async function importar() {
-    if (!nome.trim() || !vigenciaInicio || zonas.length === 0 || comErro > 0) return;
+  const bloqueioPlanilha = !lida || lida.erros.length > 0 || lida.tarifas.length === 0 || comErro > 0;
+  const podeConferir = !!nome.trim() && !!vigenciaInicio && !bloqueioPlanilha && !mut.isPending;
 
-    const taxas: Record<string, unknown> = {};
-    const gp = numOpcional(grisPct);
-    if (gp !== null) taxas.gris_pct = gp;
-    if (grisBase) taxas.gris_base = grisBase;
-    const gm = numOpcional(grisMinimo);
-    if (gm !== null) taxas.gris_minimo = gm;
-    const ap = numOpcional(admPct);
-    if (ap !== null) taxas.adm_pct = ap;
-    const tc = numOpcional(txColeta);
-    if (tc !== null) taxas.tx_coleta = tc;
-    const p100 = numOpcional(pedagio100kg);
-    if (p100 !== null) taxas.pedagio_por_100kg = p100;
-    const sf = numOpcional(suframa);
-    if (sf !== null) taxas.suframa = sf;
-    const tt = numOpcional(tas);
-    if (tt !== null) taxas.tas = tt;
-
-    const zonasPayload = zonas.map((z) => ({
-      tarifa_code: z.tarifa_code,
-      uf: z.uf,
-      zona_nome: z.zona_nome,
-      pesos: z.pesos,
-      kg_adicional: z.kg_adicional,
-      fv_pct: z.fv_pct,
-      txa: z.txa,
-    }));
-
+  async function enviar(simular: boolean) {
+    if (!lida) return;
     try {
       const res = await mut.mutateAsync({
         transportadora_id: transportadoraId,
         nome: nome.trim(),
-        modal,
         vigencia_inicio: vigenciaInicio,
         vigencia_descricao: vigenciaDescricao.trim() || null,
-        taxas,
-        zonas: zonasPayload,
+        modo,
+        aplicar_prazo: temPrazo && aplicarPrazo,
+        tarifas: lida.tarifas.map(payloadTarifa),
+        simular,
       });
-      toast.success(`${res.zonas_inseridas} zonas importadas`);
-      reset();
-      onOpenChange(false);
+      if (simular) {
+        setConferencia(res);
+      } else {
+        toast.success(
+          `Versão publicada: ${res.resumo.tarifas_trocadas} tarifas trocadas, ${res.resumo.tarifas_mantidas} mantidas, ${res.resumo.ceps_copiados} CEPs`,
+        );
+        reset();
+        onOpenChange(false);
+      }
     } catch (e) {
-      toast.error("Erro ao importar: " + (e instanceof Error ? e.message : String(e)));
+      toast.error((simular ? "Erro na conferência: " : "Erro ao publicar: ") + (e instanceof Error ? e.message : String(e)));
     }
   }
 
-  const podeImportar =
-    !!nome.trim() &&
-    !!vigenciaInicio &&
-    zonas.length > 0 &&
-    comErro === 0 &&
-    !mut.isPending;
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) reset();
-        onOpenChange(v);
-      }}
-    >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova versão de tabela de preço</DialogTitle>
+          <DialogTitle>{conferencia ? "Conferência antes × depois" : "Nova versão de tabela de preço"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label>Nome *</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Tabela 2026" />
-            </div>
-            <div>
-              <Label>Modal</Label>
-              <Select value={modal} onValueChange={setModal}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rodoviario">Rodoviário</SelectItem>
-                  <SelectItem value="aereo">Aéreo</SelectItem>
-                  <SelectItem value="expresso">Expresso</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Vigência início *</Label>
-              <Input type="date" value={vigenciaInicio} onChange={(e) => setVigenciaInicio(e.target.value)} />
-            </div>
-            <div>
-              <Label>Descrição da vigência</Label>
-              <Input value={vigenciaDescricao} onChange={(e) => setVigenciaDescricao(e.target.value)} placeholder="Ex: Reajuste anual" />
-            </div>
-          </section>
-
-          <section className="rounded-md border p-3 space-y-3">
-            <div className="text-sm font-medium">Taxas globais (opcionais)</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <Label className="text-xs">GRIS %</Label>
-                <Input value={grisPct} onChange={(e) => setGrisPct(e.target.value)} placeholder="0,30" />
-              </div>
-              <div>
-                <Label className="text-xs">GRIS base</Label>
-                <Select value={grisBase} onValueChange={setGrisBase}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="frete">Frete</SelectItem>
-                    <SelectItem value="mercantil">Mercantil</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">GRIS mínimo (R$)</Label>
-                <Input value={grisMinimo} onChange={(e) => setGrisMinimo(e.target.value)} placeholder="5,00" />
-              </div>
-              <div>
-                <Label className="text-xs">Adm %</Label>
-                <Input value={admPct} onChange={(e) => setAdmPct(e.target.value)} placeholder="0,00" />
-              </div>
-              <div>
-                <Label className="text-xs">Tx. coleta (R$)</Label>
-                <Input value={txColeta} onChange={(e) => setTxColeta(e.target.value)} placeholder="0,00" />
-              </div>
-              <div>
-                <Label className="text-xs">Pedágio /100kg (R$)</Label>
-                <Input value={pedagio100kg} onChange={(e) => setPedagio100kg(e.target.value)} placeholder="0,00" />
-              </div>
-              <div>
-                <Label className="text-xs">SUFRAMA (R$)</Label>
-                <Input value={suframa} onChange={(e) => setSuframa(e.target.value)} placeholder="0,00" />
-              </div>
-              <div>
-                <Label className="text-xs">TAS (R$)</Label>
-                <Input value={tas} onChange={(e) => setTas(e.target.value)} placeholder="0,00" />
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Planilha de zonas</div>
+        {!conferencia ? (
+          <div className="space-y-4">
+            <section className="rounded-md border p-3 space-y-2">
+              <div className="text-sm font-medium">Planilha</div>
               <div className="text-xs text-muted-foreground">
-                Colunas: {COLUNAS_ZONA.join(", ")}
+                Aceita o layout de faixas (tarifa_code, uf, zona_nome, ate_10…, fpk, fv_pct, txa) ou o layout por kg
+                (código CAPITAL/INTERIOR-UF, prazo, pesos 1…N kg, VALOR EXCEDENTE, ADV, GRIS). O formato é detectado sozinho.
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFile(f);
-                }}
-              />
-              {fileName && <span className="text-xs text-muted-foreground">{fileName}</span>}
-            </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                />
+                {fileName && <span className="text-xs text-muted-foreground">{fileName}</span>}
+              </div>
+            </section>
 
-            {zonas.length > 0 && (
-              <>
-                <div className="flex items-center gap-3 text-sm">
-                  <Badge className="bg-success hover:bg-success">{validas} válidas</Badge>
-                  {comErro > 0 && (
-                    <Badge variant="destructive">
-                      <AlertCircle className="h-3 w-3 mr-1" /> {comErro} com erro
-                    </Badge>
-                  )}
-                </div>
-                <div className="max-h-64 overflow-auto border rounded">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/50 sticky top-0">
-                      <tr>
-                        <th className="text-left px-2 py-1">#</th>
-                        <th className="text-left px-2 py-1">tarifa</th>
-                        <th className="text-left px-2 py-1">uf</th>
-                        <th className="text-left px-2 py-1">zona</th>
-                        <th className="text-right px-2 py-1">≤10</th>
-                        <th className="text-right px-2 py-1">≤70</th>
-                        <th className="text-right px-2 py-1">fpk</th>
-                        <th className="text-left px-2 py-1">erros</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {zonas.map((z) => (
-                        <tr key={z.linha} className={z.erros.length ? "bg-destructive/10" : "border-t"}>
-                          <td className="px-2 py-1">{z.linha}</td>
-                          <td className="px-2 py-1">{z.tarifa_code}</td>
-                          <td className="px-2 py-1">{z.uf}</td>
-                          <td className="px-2 py-1">{z.zona_nome}</td>
-                          <td className="px-2 py-1 text-right tabular-nums">{z.pesos.ate_10 ?? "—"}</td>
-                          <td className="px-2 py-1 text-right tabular-nums">{z.pesos.ate_70 ?? "—"}</td>
-                          <td className="px-2 py-1 text-right tabular-nums">{z.kg_adicional}</td>
-                          <td className="px-2 py-1 text-destructive">{z.erros.join("; ")}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <Label>Nome *</Label>
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Reajuste Norte 2026" />
+              </div>
+              <div>
+                <Label>Vigência início *</Label>
+                <Input type="date" value={vigenciaInicio} onChange={(e) => setVigenciaInicio(e.target.value)} />
+              </div>
+              <div>
+                <Label>Descrição</Label>
+                <Input value={vigenciaDescricao} onChange={(e) => setVigenciaDescricao(e.target.value)} />
+              </div>
+            </section>
+
+            <section className="rounded-md border p-3 space-y-3">
+              <div className="text-sm font-medium">Modo de atualização</div>
+              <RadioGroup value={modo} onValueChange={(v) => setModo(v as "parcial" | "completa")} className="space-y-2">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <RadioGroupItem value="parcial" className="mt-0.5" />
+                  <span>
+                    <span className="font-medium">Atualização parcial</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Copia a versão ativa inteira (taxas, tarifas, faixas de CEP) e troca só as tarifas que vieram na planilha.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <RadioGroupItem value="completa" className="mt-0.5" />
+                  <span>
+                    <span className="font-medium">Versão completa</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Substitui todas as tarifas; as faixas de CEP vêm da versão ativa só para os códigos que casarem.
+                    </span>
+                  </span>
+                </label>
+              </RadioGroup>
+              {temPrazo && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={aplicarPrazo} onCheckedChange={(v) => setAplicarPrazo(v === true)} />
+                  Aplicar prazo da planilha às faixas de CEP desse código
+                </label>
+              )}
+            </section>
+
+            {vigenciaFutura && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                <span>
+                  A vigência é futura, mas publicar <strong>ativa hoje</strong> e desliga a versão atual. Até a data de
+                  vigência a cotação desta transportadora fica sem tabela válida.
+                </span>
+              </div>
             )}
-          </section>
-        </div>
+
+            {lida && (
+              <section className="space-y-2">
+                {lida.erros.map((e) => (
+                  <div key={e} className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" /> {e}
+                  </div>
+                ))}
+                {lida.layout && (
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <Badge variant="outline">Layout: {lida.layout === "por_kg" ? "por kg" : "faixas fixas"}</Badge>
+                    <Badge className="bg-success hover:bg-success">{lida.tarifas.length - comErro} válidas</Badge>
+                    {comErro > 0 && <Badge variant="destructive">{comErro} com erro — corrija a planilha</Badge>}
+                    {comAviso > 0 && <Badge variant="outline" className="border-warning text-warning">{comAviso} com aviso</Badge>}
+                  </div>
+                )}
+                {lida.tarifas.length > 0 && (
+                  <div className="max-h-72 overflow-auto border rounded">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0">
+                        <tr>
+                          <th className="text-left px-2 py-1">Linha</th>
+                          <th className="text-left px-2 py-1">Código</th>
+                          <th className="text-left px-2 py-1">tarifa_code</th>
+                          <th className="text-right px-2 py-1">Prazo</th>
+                          <th className="text-right px-2 py-1">Faixas</th>
+                          <th className="text-right px-2 py-1">Excedente</th>
+                          <th className="text-right px-2 py-1">ADV</th>
+                          <th className="text-right px-2 py-1">GRIS</th>
+                          <th className="text-left px-2 py-1">Erros / avisos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lida.tarifas.map((t) => (
+                          <tr key={t.linha} className={cn("border-t", t.erros.length && "bg-destructive/10")}>
+                            <td className="px-2 py-1">{t.linha}</td>
+                            <td className="px-2 py-1 font-mono">{t.codigo_original}</td>
+                            <td className="px-2 py-1 font-mono">{t.tarifa_code}</td>
+                            <td className="px-2 py-1 text-right">{fmtN(t.prazo)}</td>
+                            <td className="px-2 py-1 text-right">{Object.keys(t.pesos).length}</td>
+                            <td className="px-2 py-1 text-right tabular-nums">{fmtR(t.kg_adicional)}</td>
+                            <td className="px-2 py-1 text-right">{fmtP(t.adv_pct)}</td>
+                            <td className="px-2 py-1 text-right">{fmtP(t.gris_pct)}</td>
+                            <td className="px-2 py-1">
+                              {t.erros.map((e) => <div key={e} className="text-destructive">{e}</div>)}
+                              {t.avisos.map((e) => <div key={e} className="text-warning">{e}</div>)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Vigente: <span className="text-foreground">{conferencia.vigente_nome}</span> → Nova:{" "}
+              <span className="text-foreground">{nome}</span> ({modo === "parcial" ? "atualização parcial" : "versão completa"}).
+              Nada foi gravado ainda. Em cada célula: vigente em cinza, nova embaixo; destaque acima de ±20%.
+            </div>
+            <div className="flex gap-2 flex-wrap text-sm">
+              <Badge variant="outline">{conferencia.resumo.tarifas_trocadas} tarifas trocadas</Badge>
+              <Badge variant="outline">{conferencia.resumo.tarifas_mantidas} mantidas</Badge>
+              <Badge variant="outline">{conferencia.resumo.ceps_copiados} faixas de CEP copiadas</Badge>
+              <Badge variant="outline">{conferencia.resumo.prazos_alterados} prazos alterados</Badge>
+            </div>
+            {conferencia.resumo.codigos_sem_cep.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                <span>
+                  Sem faixa de CEP (ficam sem cotação): <span className="font-mono">{conferencia.resumo.codigos_sem_cep.join(", ")}</span>
+                </span>
+              </div>
+            )}
+            {conferencia.vigencia_futura && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                <span>Vigência futura: publicar ativa hoje e a cotação fica sem tabela válida até a data de vigência.</span>
+              </div>
+            )}
+            <div className="max-h-[50vh] overflow-auto border rounded">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50 sticky top-0">
+                  <tr>
+                    <th className="text-left px-2 py-1">tarifa_code</th>
+                    <th className="text-right px-2 py-1">1 kg</th>
+                    <th className="text-right px-2 py-1">10 kg</th>
+                    <th className="text-right px-2 py-1">30 kg</th>
+                    <th className="text-right px-2 py-1">100 kg</th>
+                    <th className="text-right px-2 py-1">Excedente/kg</th>
+                    <th className="text-right px-2 py-1">ADV</th>
+                    <th className="text-right px-2 py-1">GRIS</th>
+                    <th className="text-right px-2 py-1">Prazo</th>
+                    <th className="text-right px-2 py-1">Frete 10 kg · NF R$ 1.000</th>
+                    <th className="text-right px-2 py-1">Frete 50 kg · NF R$ 5.000</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {conferencia.comparativo.map((c) => {
+                    const va = am(c.vigente);
+                    const na = am(c.nova);
+                    return (
+                      <tr key={c.tarifa_code} className="border-t">
+                        <td className="px-2 py-1 align-top">
+                          <div className="font-mono">{c.tarifa_code}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {c.cep ? `CEP simulado ${c.cep.slice(0, 5)}-${c.cep.slice(5)}` : "sem CEP — não simulado"}
+                          </div>
+                          {c.vigente.existe === false && <div className="text-[10px] text-info">código novo</div>}
+                          {(va?.erro || na?.erro) && <div className="text-[10px] text-destructive">{na?.erro ?? va?.erro}</div>}
+                        </td>
+                        <Celula a={va?.p1} b={na?.p1} fmt={fmtR} />
+                        <Celula a={va?.p10} b={na?.p10} fmt={fmtR} />
+                        <Celula a={va?.p30} b={na?.p30} fmt={fmtR} />
+                        <Celula a={va?.p100} b={na?.p100} fmt={fmtR} />
+                        <Celula a={c.vigente.excedente} b={c.nova.excedente} fmt={fmtR} />
+                        <Celula a={c.vigente.adv} b={c.nova.adv} fmt={fmtP} />
+                        <Celula a={c.vigente.gris} b={c.nova.gris} fmt={fmtP} />
+                        <Celula a={va?.prazo} b={na?.prazo} fmt={fmtN} />
+                        <Celula a={va?.frete_10} b={na?.frete_10} fmt={fmtR} />
+                        <Celula a={va?.frete_50} b={na?.frete_50} fmt={fmtR} />
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Preços e fretes calculados pelo mesmo cálculo da calculadora de frete (preço base por peso; frete total com
+              taxas e ICMS). A versão anterior fica no histórico como inativa.
+            </div>
+          </div>
+        )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={mut.isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={importar} disabled={!podeImportar}>
-            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-            Importar
-          </Button>
+          {conferencia ? (
+            <>
+              <Button variant="outline" onClick={() => setConferencia(null)} disabled={mut.isPending}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+              </Button>
+              <Button onClick={() => enviar(false)} disabled={mut.isPending}>
+                {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                Publicar e ativar hoje
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={mut.isPending}>Cancelar</Button>
+              <Button onClick={() => enviar(true)} disabled={!podeConferir}>
+                {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+                Conferir antes × depois
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
