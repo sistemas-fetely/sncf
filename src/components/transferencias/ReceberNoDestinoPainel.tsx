@@ -195,7 +195,7 @@ export function ReceberNoDestinoPainel() {
             .filter((x) => x.finalidade_codigo === "venda_fora")
             .map((x) => x.id)
         );
-        proprios = rs.filter((r) => !vendaFora.has(r.pedido_id));
+        proprios = rs.filter((r) => !vendaFora.has(r.pedido_id)).map((r) => ({ ...r, ti: false as const }));
         if (proprios.length) {
           const { data: peds, error: e2 } = await (supabase as any)
             .from("pedidos").select("id, id_externo").in("id", proprios.map((r) => r.pedido_id));
