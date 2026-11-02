@@ -53,6 +53,7 @@ interface LinhaTi {
 }
 interface LinhaRecebidaPedido extends Recebida { ti: false }
 type LinhaRecebida = LinhaRecebidaPedido | LinhaTi;
+const ehTi = (r: LinhaRecebida): r is LinhaTi => r.ti === true;
 
 function SeloEstagio({ estagio }: { estagio: string | null }) {
   if (!estagio) return <span className="text-sm text-muted-foreground">—</span>;
