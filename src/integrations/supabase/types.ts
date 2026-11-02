@@ -130114,14 +130114,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -147636,6 +147636,48 @@ export type Database = {
           },
         ]
       }
+      vw_transferencias_painel: {
+        Row: {
+          canal: string | null
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          data_entrega_prevista: string | null
+          data_pedido: string | null
+          destino_centro_id: string | null
+          destino_codigo: string | null
+          destino_interno: string | null
+          entregue_em: string | null
+          estagio: string | null
+          finalidade_codigo: string | null
+          finalidade_rotulo: string | null
+          id: string | null
+          id_externo: string | null
+          natureza_codigo: string | null
+          nf_chave: string | null
+          nf_data_emissao: string | null
+          nf_numero: string | null
+          nf_serie: string | null
+          nf_situacao: string | null
+          observacao_pedido: string | null
+          orfao: boolean | null
+          origem_centro_id: string | null
+          origem_codigo: string | null
+          origem_registro: string | null
+          qtd_itens: number | null
+          qtd_total_pecas: number | null
+          recebido_em: string | null
+          regularizacao_lote_codigo: string | null
+          regularizacao_lote_id: string | null
+          remessa_venda_fora_nf: string | null
+          sem_destino: boolean | null
+          sem_origem: boolean | null
+          tipo_transferencia: string | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+          xpm_expedicao_codigo: string | null
+        }
+        Relationships: []
+      }
       vw_transp_fretes: {
         Row: {
           ad_valorem: number | null
@@ -149826,6 +149868,10 @@ export type Database = {
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
       _nf_fetely_exigir_permissao: { Args: never; Returns: undefined }
       _nf_fetely_parceiro: { Args: { p: string }; Returns: boolean }
+      _tabela_preco_amostra: {
+        Args: { p_cep: string; p_ref: string; p_transp: string }
+        Returns: Json
+      }
       abater_conta_corrente: {
         Args: { p_mov_id: string; p_user_id?: string }
         Returns: Json
@@ -152739,6 +152785,19 @@ export type Database = {
           p_vigencia_descricao: string
           p_vigencia_inicio: string
           p_zonas: Json
+        }
+        Returns: Json
+      }
+      fn_importar_tabela_preco_v2: {
+        Args: {
+          p_aplicar_prazo: boolean
+          p_modo: string
+          p_nome: string
+          p_simular?: boolean
+          p_tarifas: Json
+          p_transportadora_id: string
+          p_vigencia_descricao: string
+          p_vigencia_inicio: string
         }
         Returns: Json
       }
