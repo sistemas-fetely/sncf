@@ -4,7 +4,7 @@ import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BaixasUsoPainel, useBaixasUso } from "@/components/transferencias/BaixasUsoPainel";
 
@@ -55,7 +55,6 @@ import { Eye, Loader2, PackageCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
-import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
 import { AlertasTransferenciaFisica } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
@@ -96,6 +95,8 @@ interface TransferenciaRow {
   data_entrega_prevista: string | null;
   entregue_em: string | null;
   canal: string | null;
+  recebido_em: string | null;
+  origem_registro: "pedido" | "ti" | null;
 }
 
 /** Tipo da transferência: física, regularização (sem movimento físico) ou com retorno de remessa (lote). */
@@ -108,9 +109,40 @@ function SeloTipo({ t }: { t: TransferenciaRow }) {
       </Link>
     ) : <Badge variant="outline" className="whitespace-nowrap">{rotulo}</Badge>;
   }
+  if (t.tipo_transferencia === "sem_nf") return <Badge variant="outline" className="whitespace-nowrap" title="Transferência interna entre CDs de SP, sem NF">Sem NF</Badge>;
   if (t.tipo_transferencia === "regularizacao") return <Badge variant="secondary" className="whitespace-nowrap" title="Sem movimento físico">Regularização</Badge>;
   if (t.tipo_transferencia === "fisica") return <Badge variant="outline" className="whitespace-nowrap">Física</Badge>;
   return <span className="text-sm text-muted-foreground">—</span>;
+}
+
+/** Itens de uma TI (sem NF), lidos de vw_transferencia_interna pelo número. */
+function ItensTi({ numero }: { numero: string | null }) {
+  const q = useQuery({
+    queryKey: ["ti-itens", numero],
+    enabled: !!numero,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_transferencia_interna")
+        .select("cod_cadastro, nome_comercial, quantidade")
+        .eq("numero", numero);
+      if (error) throw error;
+      return (data ?? []) as { cod_cadastro: string | null; nome_comercial: string | null; quantidade: number }[];
+    },
+  });
+  if (q.isLoading) return <p className="text-xs text-muted-foreground">Carregando itens…</p>;
+  if (q.isError) return <p className="text-xs text-destructive">Falha ao carregar itens: {formatError(q.error)}</p>;
+  if (!q.data?.length) return <p className="text-xs text-muted-foreground">Nenhum item encontrado.</p>;
+  return (
+    <ul className="space-y-0.5 text-sm">
+      {q.data.map((i, idx) => (
+        <li key={idx} className="flex gap-3">
+          <span className="font-mono text-xs text-muted-foreground w-24">{i.cod_cadastro ?? "—"}</span>
+          <span className="flex-1">{i.nome_comercial ?? "—"}</span>
+          <span className="tabular-nums">{i.quantidade}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /** Estágio da transferência: usa o mesmo selo da Casa dos Pedidos quando é
@@ -166,17 +198,19 @@ export default function TransferenciasInternas() {
     if (finalidadesFiltroQ.isError) toast.error(formatError(finalidadesFiltroQ.error));
   }, [finalidadesFiltroQ.isError, finalidadesFiltroQ.error]);
 
+  const [expandidoTi, setExpandidoTi] = useState<string | null>(null);
   const listaQ = useQuery({
     queryKey: ["transferencias-internas"],
     queryFn: async (): Promise<TransferenciaRow[]> => {
-      const { data, error } = await supabase
-        .from("v_transferencias_internas")
+      const { data, error } = await (supabase as any)
+        .from("vw_transferencias_painel")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal, finalidade_codigo, finalidade_rotulo, remessa_venda_fora_nf"
-        )
-        .order("data_pedido", { ascending: false });
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, recebido_em, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal, finalidade_codigo, finalidade_rotulo, remessa_venda_fora_nf, origem_registro"
+        );
       if (error) throw error;
-      return (data ?? []) as TransferenciaRow[];
+      // A view não garante ordem: coalesce(recebido_em, data_pedido) desc.
+      const chave = (r: TransferenciaRow) => r.recebido_em ?? r.data_pedido ?? "";
+      return ((data ?? []) as TransferenciaRow[]).sort((a, b) => chave(b).localeCompare(chave(a)));
     },
   });
   // Lista visível = tudo que a tela mostra e conta. Venda fora só entra quando o
@@ -190,7 +224,7 @@ export default function TransferenciasInternas() {
   useRestaurarScroll(null, listaQ.isSuccess);
   const nOrfaos = visiveis.filter((t) => t.orfao === true).length;
 
-  const idsLista = linhas.map((t) => t.id);
+  const idsLista = linhas.filter((t) => t.origem_registro !== "ti").map((t) => t.id);
   const recebQ = useQuery({
     queryKey: ["trs-recebimento", idsLista.join("|")],
     enabled: idsLista.length > 0,
@@ -227,8 +261,10 @@ export default function TransferenciasInternas() {
     if (semBaixaQ.isError) toast.error(formatError(semBaixaQ.error));
   }, [semBaixaQ.isError, semBaixaQ.error]);
   const nSemBaixa = semBaixaQ.data?.length ?? 0;
+  // TI já nasce recebida: só pedidos contam como "a receber".
   const nAReceber = visiveis.filter(
     (t) =>
+      t.origem_registro !== "ti" &&
       t.sem_destino !== true &&
       (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") &&
       !recebMap.has(t.id),
@@ -397,10 +433,14 @@ export default function TransferenciasInternas() {
               </TableHeader>
               <TableBody>
                 {visiveis.filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
-                  const abrir = () => abrirDetalhe(navigate, location, `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
+                  // Linha TI (sem NF): id sintético, não existe em pedidos — expande os itens inline.
+                  const ehTi = t.origem_registro === "ti";
+                  const abrir = ehTi
+                    ? () => setExpandidoTi((cur) => (cur === t.id ? null : t.id))
+                    : () => abrirDetalhe(navigate, location, `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
                   return (
+                    <Fragment key={t.id}>
                     <TableRow
-                      key={t.id}
                       data-foco-id={t.id}
                       className="cursor-pointer hover:bg-muted/50"
                       role="link"
@@ -523,6 +563,9 @@ export default function TransferenciasInternas() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         {(() => {
+                          if (ehTi) {
+                            return t.entregue_em ? <Badge variant="secondary">Recebido em {formatDateBR(t.entregue_em)}</Badge> : <span className="text-sm text-muted-foreground">—</span>;
+                          }
                           const rec = recebMap.get(t.id);
                           if (rec) {
                             const n = Array.isArray(rec.divergencias) ? rec.divergencias.length : 0;
@@ -562,18 +605,20 @@ export default function TransferenciasInternas() {
                         })()}
                       </TableCell>
                     </TableRow>
+                    {ehTi && expandidoTi === t.id && (
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={15} className="py-2">
+                          <ItensTi numero={t.id_externo} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
                   );
                 })}
               </TableBody>
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle className="text-base">Entre CDs de SP</CardTitle></CardHeader>
-        <CardContent>
-          <TransferenciaInternaPainel mostrarFormulario={false} tituloHistorico="Transferências sem NF" seloSemNf />
         </CardContent>
       </Card>
         </TabsContent>
