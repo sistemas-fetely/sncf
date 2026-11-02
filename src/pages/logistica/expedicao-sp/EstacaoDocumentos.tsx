@@ -10,7 +10,11 @@ import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
-import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio } from "./useMesaSp";
+import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia } from "./useMesaSp";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Estação Documentos. O estado de cada documento (`liberado`) vem PRONTO de
@@ -49,6 +53,13 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   // Etiqueta Correios gerada pelo SNCF (pré-postagem viva) — a linha fica ok pelo código registrado.
   const ppQ = usePrepostagemViva(ehCorreios ? pedido.id : null);
   const pp = ppQ.data ?? null;
+  // Pedido marcado para agência: gerar etiqueta SNCF nova pede confirmação (provavelmente não será usada).
+  const agencia = useEtiquetaSncfAgencia(ehCorreios ? pedido.id : null);
+  const [confirmarAgencia, setConfirmarAgencia] = useState(false);
+  function gerarOuReimprimir() {
+    if (!pp && agencia.temAgencia) { setConfirmarAgencia(true); return; }
+    gerarCorreios.mutate({ pedidoId: pedido.id, prepostagemId: pp?.id ?? null });
+  }
   const comServico = (x: DadosImpressao): DadosImpressao => (ehCorreios ? x : { ...x, servico_correios: null });
   const etiquetaZebraEntrega = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(comServico(x), danfeQ.data); };
   const etiquetaZebraRetirada = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaRetirada(x, danfeQ.data); };
@@ -115,13 +126,31 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
             <SeloServicoCorreios servico={pedido.servico_correios} freteValor={pedido.frete_cliente_valor} freteGratis={pedido.frete_gratis} />
             <Button
               size="sm"
-              onClick={() => gerarCorreios.mutate({ pedidoId: pedido.id, prepostagemId: pp?.id ?? null })}
+              onClick={gerarOuReimprimir}
               disabled={bloqueado || gerarCorreios.isPending || ppQ.isLoading}
             >
               {gerarCorreios.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}
               {pp ? `Reimprimir etiqueta Correios${pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}` : "Gerar etiqueta Correios"}
             </Button>
             {ppQ.error && <span className="text-xs text-destructive">{formatError(ppQ.error)}</span>}
+            {agencia.erro && <span className="text-xs text-destructive">{formatError(agencia.erro)}</span>}
+            <AlertDialog open={confirmarAgencia} onOpenChange={setConfirmarAgencia}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Pedido marcado para postagem na agência</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Na agência a caixa recebe a etiqueta dos Correios e o código bipado no despacho substitui a do SNCF
+                    (que será cancelada). Gerar a etiqueta SNCF mesmo assim?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => gerarCorreios.mutate({ pedidoId: pedido.id, prepostagemId: null })}>
+                    Gerar mesmo assim
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             {!pp && (<>
             <Input
               className="h-8 w-44 font-mono uppercase"
