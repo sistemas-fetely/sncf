@@ -55,7 +55,6 @@ import { Eye, Loader2, PackageCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
-import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
 import { AlertasTransferenciaFisica } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
