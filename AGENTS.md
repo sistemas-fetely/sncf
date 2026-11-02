@@ -1,5 +1,7 @@
 # Decisões técnicas
 
+- TI drawer stock warnings query the origin's signed fiscal_sadio for the transfer SKUs and use the tested saldoOrigemTi selector; refresh on opening and while open so historical observation text never determines current stock status.
+
 - Keep B2C CD confirmation and pending-swap form rules in a tested pure helper; read the comparison suggestion from the queue, keeping stock hints separate so they never change confirmation eligibility.
 
 - Keep Logistics module tabs in the page shell and scope URL updates in a tested pure helper; carrier content receives the active tab to avoid duplicate navigation.
