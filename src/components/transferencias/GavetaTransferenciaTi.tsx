@@ -20,6 +20,7 @@ import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { Loader2 } from "lucide-react";
+import { saldosNegativosTi } from "./saldoOrigemTi";
 
 export interface LinhaTi {
   id: string;
@@ -62,10 +63,11 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
     queryKey: ["ti-itens", linha?.id_externo],
     enabled: !!linha?.id_externo,
     queryFn: async () => {
+      if (!linha?.id_externo) throw new Error("Transferência não informada.");
       const { data, error } = await (supabase as any)
         .from("vw_transferencia_interna")
         .select("cod_cadastro, sku, nome_comercial, quantidade, custo_unitario, origem_rotulo, destino_rotulo, data, criado_por, obs")
-        .eq("numero", linha!.id_externo);
+        .eq("numero", linha.id_externo);
       if (error) throw error;
       const itens = (data ?? []) as ItemTi[];
       // Ordena por cod_cadastro; itens sem código ficam no fim.
@@ -79,15 +81,34 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
   const itens = q.data ?? [];
   const cabecalho = itens[0];
   const fotosQ = useFotosPrincipais(itens.map((i) => i.cod_cadastro));
+  const skus = [...new Set(itens.flatMap((item) => item.sku ? [item.sku] : []))].sort();
+  const saldoOrigemQ = useQuery({
+    queryKey: ["ti-estoque-origem-atual", linha?.origem_codigo, skus],
+    enabled: !!linha?.origem_codigo && skus.length > 0,
+    refetchOnMount: "always",
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      if (!linha?.origem_codigo || skus.length === 0) throw new Error("Origem ou itens não informados.");
+      const { data, error } = await supabase
+        .from("vw_estoque_centro")
+        .select("sku, fiscal_sadio")
+        .eq("centro", linha.origem_codigo)
+        .in("sku", skus);
+      if (error) throw error;
+      return saldosNegativosTi(data ?? []);
+    },
+  });
+  const negativos = saldoOrigemQ.data ?? [];
 
   const criadoPorQ = useQuery({
     queryKey: ["ti-criado-por", cabecalho?.criado_por],
     enabled: !!cabecalho?.criado_por,
     queryFn: async () => {
+      if (!cabecalho?.criado_por) return null;
       const { data, error } = await (supabase as any)
         .from("profiles")
         .select("user_id, full_name")
-        .eq("user_id", cabecalho!.criado_por)
+        .eq("user_id", cabecalho.criado_por)
         .maybeSingle();
       if (error) throw error;
       return ((data ?? null) as { user_id: string; full_name: string | null } | null)?.full_name ?? null;
@@ -99,7 +120,6 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
   const valorCusto = itens.reduce((s, i) => s + (Number(i.quantidade) || 0) * (Number(i.custo_unitario) || 0), 0);
 
   const observacao = linha?.observacao_pedido?.trim() || null;
-  const saldoNegativo = !!observacao && observacao.includes("[SALDO NEGATIVO");
 
   const estagio = linha?.estagio ?? null;
 
@@ -161,15 +181,28 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
               </div>
             </section>
 
+            {saldoOrigemQ.isLoading && <p className="text-sm text-muted-foreground">Consultando saldo atual da origem…</p>}
+            {saldoOrigemQ.isError ? (
+              <p className="text-sm text-destructive">Falha ao consultar saldo atual da origem: {formatError(saldoOrigemQ.error)}</p>
+            ) : negativos.length > 0 && (
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertTitle>Saldo negativo na origem — entrada pendente</AlertTitle>
+                <AlertDescription>
+                  <ul className="mt-2 space-y-1">
+                    {itens.filter((item) => negativos.some((saldo) => saldo.sku === item.sku)).map((item) => (
+                      <li key={item.sku} className="flex items-center justify-between gap-3">
+                        <CodProduto chave={item.sku} variant="compacto" />
+                        <span className="font-mono tabular-nums">{negativos.find((saldo) => saldo.sku === item.sku)?.saldo.toLocaleString("pt-BR")}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {observacao && (
               <section className="space-y-2">
                 <h3 className="text-sm font-medium">Observação</h3>
-                {saldoNegativo && (
-                  <Alert>
-                    <AlertTitle>Registrada com saldo negativo na origem — entrada pendente</AlertTitle>
-                    <AlertDescription />
-                  </Alert>
-                )}
                 <p className="whitespace-pre-wrap break-words text-sm">{observacao}</p>
               </section>
             )}

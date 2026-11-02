@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Substituir aviso histórico da gaveta TI pelo saldo fiscal sadio atual da origem; conferir painel, testes e navegador, sem banco/publicação.
+
 - [x] Confirmar escolha divergente e trocar CD pendente no B2C; 3 testes e build OK, confirmação real conferida, troca/aviso/erro simulados no navegador porque não há pedido pendente; sem alterar banco nem publicar.
 
 - [x] Corrigir atualização e erros da coluna de pagamento; validar PED-2309 e typecheck sem banco/publicação.
