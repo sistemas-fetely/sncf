@@ -323,6 +323,13 @@
       "when": 1793723542310,
       "tag": "0045_baixa_nf_natureza_do_pedido_decide",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793723906971,
+      "tag": "0046_fechar_get_vault_secret",
+      "breakpoints": true
     }
   ]
 }
