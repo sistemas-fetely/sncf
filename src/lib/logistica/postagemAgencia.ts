@@ -31,3 +31,18 @@ export function codigosAposLote(
   const ok = new Set(itens.filter((i) => i.ok).map((i) => i.pedido_id));
   return Object.fromEntries(Object.entries(codigos).filter(([id]) => !ok.has(id)));
 }
+
+/**
+ * MESA-SP-DESPACHO-PELO-RASTREIO (03/11/2026): no lote Correios, pedido com etiqueta SNCF viva
+ * (código = rastreio vigente) e SEM postagem na agência despacha com o código já gravado — sem bipe.
+ * Só a agência (ou pedido sem etiqueta SNCF) exige o código do comprovante.
+ */
+export function referenciaLoteCorreios(args: {
+  codigoSncf: string | null | undefined;
+  temAgencia: boolean;
+  bipado: string | null | undefined;
+}): { exigeBipe: boolean; referencia: string } {
+  const sncf = normalizarBipe(args.codigoSncf);
+  if (sncf && !args.temAgencia) return { exigeBipe: false, referencia: sncf };
+  return { exigeBipe: true, referencia: normalizarBipe(args.bipado) };
+}

@@ -15,3 +15,17 @@ describe("postagem na agência: bipe vence etiqueta SNCF", () => {
     expect(codigosAposLote({ a: "X1", b: "X2" }, [{ pedido_id: "a", ok: true }, { pedido_id: "b", ok: false }])).toEqual({ b: "X2" });
   });
 });
+
+describe("referenciaLoteCorreios", () => {
+  it("etiqueta SNCF viva sem agência despacha com o código gravado, sem bipe", () => {
+    expect(referenciaLoteCorreios({ codigoSncf: "AP691267461BR", temAgencia: false, bipado: "" }))
+      .toEqual({ exigeBipe: false, referencia: "AP691267461BR" });
+  });
+  it("postagem na agência continua exigindo o bipe", () => {
+    expect(referenciaLoteCorreios({ codigoSncf: "AP691267461BR", temAgencia: true, bipado: " aa123 " }))
+      .toEqual({ exigeBipe: true, referencia: "AA123" });
+  });
+  it("sem etiqueta SNCF exige o bipe", () => {
+    expect(referenciaLoteCorreios({ codigoSncf: null, temAgencia: false, bipado: "" }).exigeBipe).toBe(true);
+  });
+});
