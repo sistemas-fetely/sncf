@@ -36,7 +36,8 @@ import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parse
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
-import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
+import { classificarXlsx } from "@/lib/financeiro/xlsx-classificar";
+import { competenciaDoArquivo, moverOriginalParaCompetencia } from "@/lib/contabil/arquivoOriginal";
 import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
 import { parseXlsxSafraPixLancamentos } from "@/lib/financeiro/xlsx-safra-pix-lancamentos-parser";
 import { parseXlsxSafraPayRecebiveis } from "@/lib/financeiro/xlsx-safrapay-recebiveis-parser";
@@ -144,29 +145,23 @@ async function ehRelatorioPagamentosItau(file: File): Promise<boolean> {
   return /tipo de pagamento/.test(cabecalho) && /nome favorecido/.test(cabecalho);
 }
 
-async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
+async function lerLinhasXlsx(file: File): Promise<unknown[][]> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
+  return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
+}
 
-  // ASSINATURA-MANDA-NO-NOME: o título que o Safra escreve dentro do arquivo tem
-  // precedência sobre qualquer palpite por nome de arquivo ou por cabeçalho.
-  const assinatura = detectarAssinaturaSafraXlsx(rows);
-  if (assinatura) return assinatura;
+/** CABECALHO-CONFIRMA-O-LEITOR: null = nenhum leitor confirmou o cabeçalho. */
+async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx"> | null> {
+  const c = classificarXlsx(await lerLinhasXlsx(file));
+  if (c === "relatorio_sncf") return null;
+  return c as Exclude<Fonte, "ofx"> | null;
+}
 
-  // Fontes de cobrança Safra: título nas primeiras linhas, em qualquer coluna,
-  // sem acento e sem caixa. O nome do arquivo NUNCA é critério — ele varia
-  // ("Francesinha (8).xlsx").
-  if (temTitulo(rows, /recebimentos\s*-\s*instrucoes/)) return "safra_instrucoes_2via";
-  if (temTitulo(rows, /francesinha/)) return "safra_francesinha";
-
-  const cabecalho = textoPrimeirasLinhas(rows, 5);
-
-  if (/data de liberacao do dinheiro/.test(cabecalho)) return "mp_settlement";
-  if (/valor liquido creditado/.test(cabecalho) && /saldo/.test(cabecalho)) return "mp_release";
-  if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
-  return "safra_lancamentos";
+async function ehRelatorioDoSncf(file: File): Promise<boolean> {
+  if (!file.name.toLowerCase().endsWith(".xlsx")) return false;
+  return classificarXlsx(await lerLinhasXlsx(file)) === "relatorio_sncf";
 }
 
 
@@ -499,7 +494,8 @@ export default function ExtratoImportacao() {
   async function processarArquivo(
     file: File,
     bloco: Bloco,
-    trilha: TrilhaArquivo = {}
+    trilha: TrilhaArquivo = {},
+    existenteId?: string
   ) {
     if (!user) throw new Error("Sessão expirada — entre novamente");
 
@@ -515,30 +511,42 @@ export default function ExtratoImportacao() {
           : base === "txt"
             ? "retorno_safra"
             : "safra_lancamentos";
+    let impId: string;
+    if (existenteId) {
+      // REPROCESSAR-DO-ORIGINAL: a mesma linha volta a processando; o original já está guardado.
+      const { error: errRe } = await sb
+        .from("extrato_importacoes")
+        .update({ status: "processando", erro_detalhe: null, fonte_tipo: tipoProvisorio })
+        .eq("id", existenteId);
+      if (errRe) throw errRe;
+      impId = existenteId;
+      trilha.impId = impId;
+    } else {
     const { data: impRow, error: errImp } = await sb
-      .from("extrato_importacoes")
-      .insert({
-        // A conta só é conhecida depois de detectar a fonte — o rastro nasce sem ela.
-        conta_bancaria_id: null,
-        fonte_tipo: tipoProvisorio,
-        nome_arquivo: file.name,
-        status: "processando",
-        importado_por: user.id,
-      })
-      .select("id")
-      .single();
-    if (errImp) throw errImp;
-    const impId = impRow.id as string;
-    trilha.impId = impId;
+        .from("extrato_importacoes")
+        .insert({
+          // A conta só é conhecida depois de detectar a fonte — o rastro nasce sem ela.
+          conta_bancaria_id: null,
+          fonte_tipo: tipoProvisorio,
+          nome_arquivo: file.name,
+          status: "processando",
+          importado_por: user.id,
+        })
+        .select("id")
+        .single();
+      if (errImp) throw errImp;
+      impId = impRow.id as string;
+      trilha.impId = impId;
 
-    // ORIGINAL-GUARDADO: o arquivo sobe antes de qualquer linha ser lida, para
-    // o pacote do contador levar exatamente o que foi importado.
-    try {
-      await guardarOriginalBanco(impId, file);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      await sb.from("extrato_importacoes").update({ status: "erro", erro_detalhe: msg }).eq("id", impId);
-      throw new Error(msg);
+      // ORIGINAL-GUARDADO: o arquivo sobe antes de qualquer linha ser lida, para
+      // o pacote do contador levar exatamente o que foi importado.
+      try {
+        await guardarOriginalBanco(impId, file);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await sb.from("extrato_importacoes").update({ status: "erro", erro_detalhe: msg }).eq("id", impId);
+        throw new Error(msg);
+      }
     }
 
     let fonte: Fonte = "safra_lancamentos";
@@ -566,7 +574,15 @@ export default function ExtratoImportacao() {
           );
         fonte = det.tipo;
       } else {
-        fonte = await detectarSubtipoXlsx(file);
+        const sub = await detectarSubtipoXlsx(file);
+        if (!sub) {
+          const { error: errNl } = await sb.from("extrato_importacoes").update({ fonte_tipo: "arquivo_nao_lido" }).eq("id", impId);
+          if (errNl) throw errNl;
+          throw new Error(
+            "Formato não suportado: nenhum leitor confirmou o cabeçalho desta planilha. Use \"Guardar sem ler\" para arquivar o original."
+          );
+        }
+        fonte = sub;
       }
       trilha.fonte = fonte;
 
@@ -633,10 +649,11 @@ export default function ExtratoImportacao() {
 
 
     } catch (e) {
-      await sb
+      const { error: errMarca } = await sb
         .from("extrato_importacoes")
         .update({ status: "erro", erro_detalhe: rawMessage(e) })
         .eq("id", impId);
+      if (errMarca) throw new Error(`${rawMessage(e)} (e não foi possível marcar a importação como erro: ${errMarca.message})`);
       throw e;
     }
 
@@ -1622,7 +1639,7 @@ export default function ExtratoImportacao() {
         throw new Error(detalhe);
       }
 
-      await sb
+      const { error: errFim } = await sb
         .from("extrato_importacoes")
         .update({
           status: "concluida",
@@ -1639,6 +1656,18 @@ export default function ExtratoImportacao() {
           periodo_fim: periodoFim,
         })
         .eq("id", impId);
+      // FAIL-LOUD: a gravação final já falhou calada e deixou a linha em "processando".
+      if (errFim) throw new Error(`Linhas gravadas, mas o fechamento da importação falhou: ${errFim.message}`);
+
+      // ORIGINAL-NA-COMPETENCIA: a pasta do original segue o período do arquivo, não o mês do upload.
+      const compArq = competenciaDoArquivo(periodoFim);
+      if (compArq) {
+        try {
+          await moverOriginalParaCompetencia(impId, compArq);
+        } catch (e) {
+          toast.warning(`${file.name}: importado, mas o original não mudou de pasta — ${formatError(e)}`);
+        }
+      }
 
       // O toast diz a conta E o efeito: contagem não responde "o que este
       // arquivo faz". O veredito detalhado por arquivo mora na lista da tela.
@@ -1662,10 +1691,11 @@ export default function ExtratoImportacao() {
       }
     } catch (e) {
       console.error("[ExtratoImportacao] falha ao processar", file.name, e);
-      await sb
+      const { error: errMarca } = await sb
         .from("extrato_importacoes")
         .update({ status: "erro", erro_detalhe: rawMessage(e) })
         .eq("id", impId);
+      if (errMarca) throw new Error(`${rawMessage(e)} (e não foi possível marcar a importação como erro: ${errMarca.message})`);
       throw e;
     }
   }
@@ -1699,6 +1729,12 @@ export default function ExtratoImportacao() {
                 tom: "erro",
               },
             ]);
+            continue;
+          }
+          if (await ehRelatorioDoSncf(f)) {
+            const msg = "Esta planilha é um relatório do próprio SNCF (estoque/resumo mensal), não um arquivo bancário — nada foi importado nem guardado.";
+            toast.error(`${f.name}: ${msg}`);
+            setResultados((r) => [...r, { arquivo: f.name, parser: "relatório do SNCF", resultado: msg, tom: "erro" }]);
             continue;
           }
           await processarArquivo(f, bloco, trilha);
