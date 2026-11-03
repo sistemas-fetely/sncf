@@ -1940,7 +1940,7 @@ export default function ExtratoImportacao() {
               <TableBody>
                 {historico.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
                       Nenhuma importação ainda
                     </TableCell>
                   </TableRow>
@@ -1979,6 +1979,32 @@ export default function ExtratoImportacao() {
                       >
                         {h.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {h.arquivo_storage_path ? (
+                        <span className="text-xs text-muted-foreground">guardado</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-muted-foreground">sem arquivo</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            disabled={anexandoId === h.id}
+                            onClick={() => {
+                              const inp = document.createElement("input");
+                              inp.type = "file";
+                              inp.onchange = () => {
+                                const f = inp.files?.[0];
+                                if (f) void anexarOriginal(h.id, f);
+                              };
+                              inp.click();
+                            }}
+                          >
+                            {anexandoId === h.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Anexar arquivo original"}
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
