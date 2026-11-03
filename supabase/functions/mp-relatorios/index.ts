@@ -27,6 +27,16 @@ Deno.serve(async (req) => {
       settlement_list: await get("settlement_report/list"),
     });
   }
+  if (body?.acao === "post_teste") {
+    const r = await fetch(`${MP}/${body.tipo}_report`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ begin_date: body.begin, end_date: body.end }) });
+    return json({ status: r.status, corpo: (await r.text()).slice(0, 2000) });
+  }
+  if (body?.acao === "baixar_teste") {
+    const r = await fetch(`${MP}/${body.tipo}_report/${body.file_name}`, { headers: { Authorization: `Bearer ${token}` } });
+    const b = new Uint8Array(await r.arrayBuffer());
+    let bin = ""; for (const x of b) bin += String.fromCharCode(x);
+    return json({ status: r.status, tipo: r.headers.get("content-type"), bytes: b.length, b64: btoa(bin) });
+  }
   if (body?.acao === "testar_csv" && typeof body.file_name === "string" && /^[\w.-]+\.csv$/.test(body.file_name)) {
     const tipo = body.tipo === "settlement" ? "settlement_report" : "release_report";
     return json(await get(`${tipo}/${body.file_name}`));
