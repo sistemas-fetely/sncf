@@ -49,12 +49,14 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
   const mut = useMutation({
     mutationFn: (acao: "gerar" | "verificar") => chamar(devolucaoId, acao),
     onSuccess: (d, acao) => {
+      // 03/11/2026: o resultado da verificação fica na tela até o operador fechar.
+      const fixo = { duration: Infinity, closeButton: true } as const;
       if (acao === "gerar") toast.success(`Rascunho NF nº ${d.numero ?? "?"} criado no Bling`);
-      else if (d.cancelada) toast.warning("NF cancelada no Bling — gere de novo");
-      else if (d.autorizada) toast.success(`NF de devolução ${d.numero} autorizada`);
-      else toast.info(`Ainda não autorizada (situação ${d.situacao}${d.cancelada ? ", cancelada" : ""})`);
+      else if (d.cancelada) toast.warning("NF cancelada/excluída no Bling — gere de novo", fixo);
+      else if (d.autorizada) toast.success(`NF ${d.numero ?? "?"} autorizada no Bling`, fixo);
+      else toast.info(`Ainda não autorizada no Bling (situação ${d.situacao ?? "?"})`, fixo);
     },
-    onError: (e) => toast.error(rawMessage(e)),
+    onError: (e) => toast.error(`Verificação falhou: ${rawMessage(e)}`, { duration: Infinity, closeButton: true }),
     onSettled: () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["devolucoes"] }); qc.invalidateQueries({ queryKey: podeKey }); onMudou(); },
   });
 

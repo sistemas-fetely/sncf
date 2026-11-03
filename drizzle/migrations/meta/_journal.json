@@ -281,6 +281,13 @@
       "when": 1793711331569,
       "tag": "0039_devolucao_divergencia_so_com_reembolso",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793713511449,
+      "tag": "0040_devolucao_nf_registrar_sem_pedido",
+      "breakpoints": true
     }
   ]
 }
