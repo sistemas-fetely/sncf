@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { fmtDataHora } from "@/lib/data";
+import { RelatoriosMercadoPago } from "./RelatoriosMercadoPago";
 
 const SLUG = "acao.credenciais_integracao.gravar";
 const NOME = "mp_access_token";
@@ -67,9 +68,15 @@ export function AbaMercadoPago() {
   });
 
   if (carregando) return <p className="text-sm text-muted-foreground">Carregando…</p>;
-  if (!permitido) return <p className="text-sm text-muted-foreground">Sem permissão para credenciais (acao.credenciais_integracao.gravar).</p>;
+  if (!permitido) return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Sem permissão para credenciais (acao.credenciais_integracao.gravar).</p>
+      <RelatoriosMercadoPago />
+    </div>
+  );
 
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <CardTitle>Credenciais Mercado Pago</CardTitle>
@@ -103,5 +110,7 @@ export function AbaMercadoPago() {
         )}
       </CardContent>
     </Card>
+    <RelatoriosMercadoPago />
+    </div>
   );
 }
