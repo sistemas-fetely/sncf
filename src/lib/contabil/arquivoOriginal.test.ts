@@ -16,3 +16,14 @@ describe("arquivo original bancário", () => {
     expect(h).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   });
 });
+
+import { competenciaDoArquivo, caminhoNaCompetencia } from "./arquivoOriginal";
+describe("original na competência do arquivo", () => {
+  it("usa o mês do fim do período, não o do upload", () => {
+    expect(competenciaDoArquivo("2026-10-31")).toBe("2026-10");
+    expect(competenciaDoArquivo(null)).toBeNull();
+  });
+  it("troca só a pasta da competência", () => {
+    expect(caminhoNaCompetencia("bancos/2026-11/abc/Extrato.ofx", "2026-10")).toBe("bancos/2026-10/abc/Extrato.ofx");
+  });
+});
