@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codigosAposLote, etiquetaSncfASubstituir } from "./postagemAgencia";
+import { codigosAposLote, etiquetaSncfASubstituir, referenciaLoteCorreios } from "./postagemAgencia";
 
 describe("postagem na agência: bipe vence etiqueta SNCF", () => {
   it("com agência e bipe diferente, a etiqueta SNCF é substituída", () => {
