@@ -373,7 +373,7 @@ async function pdfTexto(linhas: string[]): Promise<Uint8Array> {
   return await doc.save();
 }
 
-export const CABECALHO_PREVIA = "PRÉVIA — competência pré-fechada; posição de estoque inclui presunções";
+const CABECALHO_PREVIA = "PRÉVIA — competência pré-fechada; posição de estoque inclui presunções";
 function pdfManifesto(m: any): Promise<Uint8Array> {
   const L: string[] = [...(m.natureza === "previa" ? [CABECALHO_PREVIA, ""] : []), `Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, "", "PASTAS"];
   for (const [k, v] of Object.entries(m.pastas ?? {}) as [string, any][]) L.push(`  ${k}: ${v.arquivos} arquivo(s)${v.nfs != null ? `, ${v.nfs} NF(s)` : ""}${v.valor_total != null ? `, ${brl(v.valor_total)}` : ""}`);
