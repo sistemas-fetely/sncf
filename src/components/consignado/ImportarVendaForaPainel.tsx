@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatError } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
-import { hojeISO } from "@/lib/data";
+import { fmtData, hojeISO } from "@/lib/data";
 import {
   caminhoXmlSaida, lerEstoque, lerLiquidacoes, lerResumoSeller, lerXmlZip, periodoDoNome, type NfLida,
 } from "@/lib/consignado/vendaForaImport";
@@ -90,7 +90,14 @@ export function ImportarVendaForaPainel({ parceiroId }: { parceiroId: string }) 
       setRes(r);
       if (dry) return;
       if (!r.gravado) throw new Error((r.faltas ?? []).join(" · ") || r.erro || "A importação não foi gravada.");
-      toast.success(`Importado: ${r.unidades_novas ?? 0} unidades novas, ${r.unidades_atualizadas ?? 0} atualizadas, ${r.nfs_novas ?? 0} NFs novas.`);
+      const conc = (r as any).conciliacao ?? {};
+      const csp: any[] = conc.creditos_sem_par ?? []; const lsc: any[] = conc.liquidacoes_sem_credito ?? [];
+      const pend = [
+        ...csp.map((c) => `Crédito sem par: ${fmtData(c.data)} ${formatBRL(c.valor)}${c.motivo ? ` (${c.motivo})` : ""}`),
+        ...lsc.map((l) => `Liquidação sem crédito: ${l.liquidacao} ${formatBRL(l.valor)} ${fmtData(l.data)}`),
+      ];
+      toast.success(`Importado: ${r.unidades_novas ?? 0} unidades novas, ${r.unidades_atualizadas ?? 0} atualizadas, ${r.nfs_novas ?? 0} NFs novas. ${conc.conciliadas ?? 0} liquidações conciliadas com o banco.`,
+        pend.length ? { description: <div className="space-y-0.5 text-xs">{pend.map((t, i) => <div key={i}>{t}</div>)}</div>, duration: Infinity, closeButton: true } : undefined);
       await qc.invalidateQueries();
       setRes(null);
     } catch (e) {
