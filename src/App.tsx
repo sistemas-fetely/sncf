@@ -55,6 +55,7 @@ const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
 const SlaOperacao = lazy(() => import("@/pages/parametros/SlaOperacao"));
+const CredenciaisIntegracao = lazy(() => import("@/pages/admin/CredenciaisIntegracao"));
 const RedirecionarContratoPJ = lazy(() => import("@/pages/pessoas/RedirecionarContratoPJ"));
 const CadastroContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroContratoPJ").then(m => ({ default: m.CadastroContratoPJ })));
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
@@ -903,6 +904,9 @@ const App = () => (
                   <ProtectedRoute><SlaOperacao /></ProtectedRoute>
                 } />
                 <Route path="sla-xpm" element={<Navigate to="/admin/sla" replace />} />
+                <Route path="credenciais" element={
+                  <ProtectedRoute><RotaGate><CredenciaisIntegracao /></RotaGate></ProtectedRoute>
+                } />
 
 
               </Route>
