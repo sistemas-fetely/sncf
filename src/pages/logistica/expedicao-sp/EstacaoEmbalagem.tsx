@@ -284,6 +284,9 @@ export function EstacaoEmbalagem({
                 })}
               </div>
             )}
+            <div className="mt-2">
+              <SeletorCaixaAvulsa caixas={[]} mostrarCadastro={false} codigo={caixa} avulsa={avulsa} onCodigo={setCaixa} onAvulsa={setAvulsa} />
+            </div>
             <AlertDialog open={confirmarCaixa !== null} onOpenChange={(o) => { if (!o) setConfirmarCaixa(null); }}>
               <AlertDialogContent>
                 <AlertDialogHeader>
