@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Settings2, ExternalLink, Mail, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AbaMercadoPago } from "@/components/ti/AbaMercadoPago";
 import { PUBLIC_APP_URL } from "@/lib/urls";
 import { fmtDataHora } from "@/lib/data";
 import { formatDistanceToNow, format } from "date-fns";
@@ -485,6 +486,7 @@ export default function ConfiguracaoIntegracao() {
           <TabsTrigger value="bling">Bling</TabsTrigger>
           <TabsTrigger value="email">Email Externo</TabsTrigger>
           <TabsTrigger value="xpm">XPM / ZenLOG</TabsTrigger>
+          <TabsTrigger value="mercado_pago">Mercado Pago</TabsTrigger>
         </TabsList>
 
         {/* ABA BLING */}
@@ -1091,6 +1093,9 @@ export default function ConfiguracaoIntegracao() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="mercado_pago" className="space-y-6">
+          <AbaMercadoPago />
         </TabsContent>
       </Tabs>
 
