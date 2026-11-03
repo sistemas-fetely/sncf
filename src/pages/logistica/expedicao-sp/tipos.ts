@@ -307,6 +307,9 @@ export interface EmbalagemRegistrada {
   modal: string | null;
   peso_kg: number | null;
   volumes: number | null;
+  /** Caixa do cadastro e/ou medidas da caixa avulsa (MESA-SP-CAIXA-OBRIGATORIA). */
+  caixa?: string | null;
+  caixa_dim?: unknown;
   /** Quando a caixa ficou pronta — é daqui que sai a espera pela coleta. */
   criado_em: string;
 }
@@ -331,6 +334,8 @@ export function embalagemDoPedido(eventos: EventoMesa[]): EmbalagemRegistrada | 
     modal: typeof meta.modal === "string" && meta.modal.trim() !== "" ? meta.modal : null,
     peso_kg: numero(meta.peso_kg),
     volumes: numero(meta.volumes),
+    caixa: typeof meta.caixa === "string" && meta.caixa ? meta.caixa : null,
+    caixa_dim: meta.caixa_dim ?? null,
     criado_em: embalado.criado_em,
   };
 }

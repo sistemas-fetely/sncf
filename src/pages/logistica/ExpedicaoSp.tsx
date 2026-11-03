@@ -779,7 +779,7 @@ export default function ExpedicaoSp() {
                   erroCaixas={caixasQ.error ? formatError(caixasQ.error) : null}
                   salvando={embalar.isPending || trocarModal.isPending}
                   bloqueado={bloqueado}
-                  onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo, motivoTroca) => {
+                  onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo, motivoTroca, caixaDim) => {
                     const args = {
                       p_pedido_id: selecionado.id,
                       p_peso_kg: pesoKg,
@@ -787,6 +787,7 @@ export default function ExpedicaoSp() {
                       p_modal: modal,
                       p_checklist: checklist,
                       p_caixa_codigo: caixaCodigo,
+                      p_caixa_dim: caixaDim,
                     };
                     if (motivoTroca) {
                       trocarModal.mutate(

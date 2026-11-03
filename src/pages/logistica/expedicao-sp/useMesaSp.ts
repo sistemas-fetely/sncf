@@ -25,6 +25,7 @@ import {
  * REMOVER quando types.ts for regerado: trocar `supabaseMesa` por `supabase`.
  */
 const supabaseMesa = supabase as unknown as SupabaseClient;
+import type { DimCaixa } from "@/lib/logistica/caixaEmbalagem";
 
 export const CHAVE_PEDIDOS_MESA = ["mesa-sp", "pedidos"] as const;
 export const CHAVE_EVENTOS_MESA = ["mesa-sp", "eventos"] as const;
@@ -569,7 +570,33 @@ export function useEmbalar() {
      * inexistente, mas aceita caixa diferente da sugerida — escolha é humana.
      */
     p_caixa_codigo: string | null;
+    /** Caixa avulsa (fora do cadastro): medidas em cm. Correios exige caixa OU isto. */
+    p_caixa_dim?: DimCaixa | null;
   }>("fn_mesa_sp_embalar", () => "Embalagem registrada.");
+}
+
+/** MESA-SP-CAIXA-OBRIGATORIA: novo mesa_embalado com a caixa, mesmo peso/volumes do último. */
+export function useCorrigirCaixaEmbalagem() {
+  return useRpcMesa<{ p_pedido_id: string; p_caixa_codigo: string | null; p_caixa_dim: DimCaixa | null }>(
+    "fn_mesa_sp_corrigir_caixa", () => "Embalagem corrigida — caixa registrada.",
+  );
+}
+
+export interface CaixaAtiva { codigo: string; nome: string; comprimento_cm: number; largura_cm: number; altura_cm: number }
+
+/** Todas as caixas ativas do cadastro, para escolha quando a regra não sugere nenhuma. */
+export function useCaixasAtivas(enabled = true) {
+  return useQuery({
+    queryKey: ["mesa-sp", "caixas-ativas"],
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<CaixaAtiva[]> => {
+      const { data, error } = await supabaseMesa.from("b2c_embalagem_caixa")
+        .select("codigo, nome, comprimento_cm, largura_cm, altura_cm").eq("ativo", true).order("ordem");
+      if (error) throw new Error(`ler caixas: ${mensagemErro(error)}`);
+      return (data ?? []) as CaixaAtiva[];
+    },
+  });
 }
 
 interface FalhaDespachoLote {

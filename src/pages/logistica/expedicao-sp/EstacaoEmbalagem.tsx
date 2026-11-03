@@ -18,7 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
-import { useModalSugerido, usePesoEstimado } from "./useMesaSp";
+import { useCaixasAtivas, useModalSugerido, usePesoEstimado } from "./useMesaSp";
+import { SeletorCaixaAvulsa } from "./SeletorCaixaAvulsa";
+import { caixaOkParaModal, dimAvulsa, type DimCaixa, type DimCaixaTexto } from "@/lib/logistica/caixaEmbalagem";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
 
 /**
@@ -60,7 +62,7 @@ interface Props {
   /** Cancelamento solicitado: não embala. */
   bloqueado?: boolean;
   /** `motivoTroca` preenchido = modal diferente do sugerido; a tela registra a troca antes de embalar. */
-  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null, motivoTroca: string | null) => void;
+  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null, motivoTroca: string | null, caixaDim: DimCaixa | null) => void;
 }
 
 
@@ -76,6 +78,7 @@ export function EstacaoEmbalagem({
   const [modal, setModal] = useState<string>("");
   const [motivoTroca, setMotivoTroca] = useState("");
   const [caixa, setCaixa] = useState<string | null>(null);
+  const [avulsa, setAvulsa] = useState<DimCaixaTexto | null>(null);
 
   const marcadosSet = useMemo(() => new Set(marcados), [marcados]);
 
@@ -89,14 +92,15 @@ export function EstacaoEmbalagem({
     setVolumes("1");
     setVolumesEditado(false);
     setCaixa(null);
+    setAvulsa(null);
   }, [pedidoId]);
 
   // A sugerida vem pré-selecionada uma vez; depois disso a escolha é do operador
   // (SISTEMA SUGERE / HUMANO DECIDE) — recalcular por cima seria roubo de foco.
   useEffect(() => {
-    if (caixa !== null || !sugeridaCodigo) return;
+    if (caixa !== null || avulsa !== null || !sugeridaCodigo) return;
     setCaixa(sugeridaCodigo);
-  }, [pedidoId, sugeridaCodigo, caixa]);
+  }, [pedidoId, sugeridaCodigo, caixa, avulsa]);
 
   const sugestaoQ = useModalSugerido(pedidoId);
   const sugestao = sugestaoQ.data ?? null;
@@ -104,6 +108,10 @@ export function EstacaoEmbalagem({
   const modaisAtivos = useMemo(() => modais.filter((m) => m.ativo), [modais]);
 
   const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
+  // MESA-SP-CAIXA-OBRIGATORIA: sem sugestão (lista vazia ou nada cabe) → todas as ativas para escolha.
+  const semSugestao = !carregandoCaixas && (caixas.length === 0 || nenhumaCabe);
+  const ativasQ = useCaixasAtivas(semSugestao);
+  const dimOk = dimAvulsa(avulsa);
   const caixaDiferenteDaSugerida =
     caixa !== null && sugeridaCodigo !== null && caixa !== sugeridaCodigo;
 
@@ -150,7 +158,8 @@ export function EstacaoEmbalagem({
     Number.isFinite(volumesNum) && volumesNum >= 1 &&
     modal !== "" &&
     (!trocou || motivoTroca.trim() !== "") &&
-    faltando.length === 0;
+    faltando.length === 0 &&
+    caixaOkParaModal(modal, caixa, dimOk);
 
   return (
     <Card>
@@ -192,7 +201,23 @@ export function EstacaoEmbalagem({
           </p>
         )}
 
-        {!erroCaixas && !carregandoCaixas && caixas.length > 0 && (
+        {semSugestao && (
+          <div className="rounded-md border border-warning/40 bg-warning/10 p-4">
+            <div className="flex items-center gap-2.5">
+              <Box className="size-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="text-sm font-medium">Caixa usada</p>
+            </div>
+            <p className="mt-1 text-xs text-warning">
+              Nenhuma caixa do cadastro comporta pela regra — escolha a que foi usada.
+            </p>
+            {ativasQ.error && <p className="mt-1 text-xs text-destructive">{(ativasQ.error as Error).message}</p>}
+            <div className="mt-3">
+              <SeletorCaixaAvulsa caixas={ativasQ.data ?? []} codigo={caixa} avulsa={avulsa} onCodigo={setCaixa} onAvulsa={setAvulsa} />
+            </div>
+          </div>
+        )}
+
+        {!erroCaixas && !carregandoCaixas && caixas.length > 0 && !nenhumaCabe && (
           <div className="rounded-md border border-border bg-muted/40 p-4">
             <div className="flex items-center gap-2.5">
               <Box className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -202,11 +227,7 @@ export function EstacaoEmbalagem({
               )}
             </div>
 
-            {nenhumaCabe ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Nenhuma caixa cadastrada comporta este pedido — escolha a embalagem na bancada e registre normalmente.
-              </p>
-            ) : (
+            {nenhumaCabe ? null : (
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 {caixas.map((c) => {
                   const selecionadaCaixa = caixa === c.codigo;
@@ -215,7 +236,7 @@ export function EstacaoEmbalagem({
                     <button
                       key={c.codigo}
                       type="button"
-                      onClick={() => (c.cabe ? setCaixa(c.codigo) : setConfirmarCaixa(c))}
+                      onClick={() => { setAvulsa(null); if (c.cabe) setCaixa(c.codigo); else setConfirmarCaixa(c); }}
                       aria-pressed={selecionadaCaixa}
                       className={cn(
                         "rounded-md border p-3 text-left transition-colors",
@@ -263,6 +284,9 @@ export function EstacaoEmbalagem({
                 })}
               </div>
             )}
+            <div className="mt-2">
+              <SeletorCaixaAvulsa caixas={[]} mostrarCadastro={false} codigo={caixa} avulsa={avulsa} onCodigo={setCaixa} onAvulsa={setAvulsa} />
+            </div>
             <AlertDialog open={confirmarCaixa !== null} onOpenChange={(o) => { if (!o) setConfirmarCaixa(null); }}>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -432,12 +456,15 @@ export function EstacaoEmbalagem({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa, trocou ? motivoTroca.trim() : null)}
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa, trocou ? motivoTroca.trim() : null, caixa ? null : dimOk)}
             disabled={!podeSalvar || salvando || bloqueado}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
             Registrar embalagem
           </Button>
+          {modal === "CORREIOS" && !caixaOkParaModal(modal, caixa, dimOk) && (
+            <span className="text-xs text-warning">Correios exige a caixa usada (do cadastro ou medidas da caixa avulsa).</span>
+          )}
           {faltando.length > 0 && (
             <span className="text-xs text-muted-foreground">
               Faltam {faltando.length} item(ns) da rotina.
