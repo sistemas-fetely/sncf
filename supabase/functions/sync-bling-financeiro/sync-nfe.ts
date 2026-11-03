@@ -1,4 +1,5 @@
 import type { BlingClient } from "../_shared/bling/bling-client.ts";
+import { cachearNfEntradaXml } from "../_shared/nf-cache-storage.ts";
 import {
   extrairFinNFeDoXml,
   extrairRefNFeDoXml,
@@ -62,7 +63,7 @@ return { criados: st.criados, atualizados: st.atualizados, erros: st.erros, ulti
 async function lerXmlNfe(
   xmlUrl: string,
   numero: string | null,
-): Promise<{ refNFe: string | null; finNFe: number | null; natOp: string | null }> {
+): Promise<{ refNFe: string | null; finNFe: number | null; natOp: string | null; txt: string }> {
   const res = await fetch(xmlUrl);
   if (!res.ok) throw new Error(`XML ${res.status}`);
   const txt = await res.text();
@@ -73,6 +74,7 @@ async function lerXmlNfe(
     refNFe: normalizarChaveNfe(extrairRefNFeDoXml(txt), { numero, fonte: "bling_entrada" }),
     finNFe: extrairFinNFeDoXml(txt),
     natOp: mNat ? mNat[1].trim() : null,
+    txt,
   };
 }
 
@@ -119,6 +121,7 @@ async function syncNfeEntradas(
         let refChave: string | null = null;
         let finNfe: number | null = null;
         let natOpXml: string | null = null;
+        let xmlTexto: string | null = null;
         const numero = d.numero != null ? String(d.numero) : (nf.numero != null ? String(nf.numero) : null);
         if (d.xml) {
           await sleep(120);
@@ -127,6 +130,7 @@ async function syncNfeEntradas(
             refChave = x.refNFe;
             finNfe = x.finNFe;
             natOpXml = x.natOp;
+            xmlTexto = x.txt;
           } catch (e) {
             // XML fora do ar / 404: conta erro, loga e grava a linha com os tres
             // campos nulos — nota sem XML ainda entra em nfs_stage.
@@ -179,6 +183,12 @@ async function syncNfeEntradas(
           .rpc("fn_nfs_stage_inserir_entrada", { p_linha: linha });
         if (upErr) throw new Error("fn_nfs_stage_inserir_entrada: " + upErr.message);
         if (rpcOut?.acao === "criada") gravadas++;
+        // XML-ENTRADA-BLING-NO-STORAGE: mesmo destino do Qive (nfs/<AAAA-MM>/entrada/<chave>.xml).
+        // Best-effort: falha só é logada, nunca derruba o sync.
+        if (xmlTexto) {
+          try { await cachearNfEntradaXml(supabase, chave, linha.nf_data_emissao, xmlTexto); }
+          catch (e) { console.error(`entrada ${chave} XML no Storage: ${(e as Error).message}`); }
+        }
         // trg_stage_sugere_devolucao dispara sozinho para linhas com nf_referenciada_chave.
       } catch (e) {
         comErro++;

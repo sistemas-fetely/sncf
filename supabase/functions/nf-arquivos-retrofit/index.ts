@@ -3,7 +3,8 @@
 // o front chama de novo enquanto `restantes > 0`. Erro de uma NF fica gravado
 // em arquivos_erro e não para o lote.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { cachearNfSaida, type NfCacheRow } from "../_shared/nf-cache-storage.ts";
+import { cachearNfSaida, cachearNfEntradaXml, type NfCacheRow } from "../_shared/nf-cache-storage.ts";
+import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,8 @@ Deno.serve(async (req) => {
     const [a, m] = comp.split("-").map(Number);
     const ini = `${comp}-01`;
     const fim = new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
+
+    if (body.tipo === "entrada_bling") return json(await retrofitEntradaBling(admin, ini, fim));
 
     const base = () => admin.from("nfs_emitidas")
       .select("id, bling_id, numero, serie, pdf_url, xml_url, data_emissao, situacao", { count: "exact" })
@@ -73,3 +76,53 @@ Deno.serve(async (req) => {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
+
+// NFs de entrada do Bling (nfs_stage.fonte='bling_entrada') sem XML guardado: o stage
+// não guarda o id do Bling, então lista as entradas do mês e casa pela chave.
+// deno-lint-ignore no-explicit-any
+async function retrofitEntradaBling(admin: any, ini: string, fim: string) {
+  const { data: pend, error } = await admin.from("nfs_stage")
+    .select("nf_chave_acesso, nf_numero, nf_data_emissao")
+    .eq("fonte", "bling_entrada").is("xml_storage_path", null)
+    .gte("nf_data_emissao", ini).lt("nf_data_emissao", fim);
+  if (error) return { ok: false, erro: error.message };
+  const falta = new Map<string, any>();
+  for (const r of pend ?? []) if (r.nf_chave_acesso) falta.set(r.nf_chave_acesso, r);
+  const total = falta.size;
+  if (!total) return { ok: true, tipo: "entrada_bling", pendentes_antes: 0, guardadas: 0, erros: [] };
+  const { data: cfg } = await admin.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
+  if (!cfg?.access_token) return { ok: false, erro: "Bling não conectado" };
+  const client = makeBlingClient(admin, cfg, await ensureFreshToken(admin, cfg));
+  const ultimo = new Date(Date.parse(`${fim}T12:00:00Z`) - 86400_000).toISOString().slice(0, 10);
+  const erros: { numero: string | null; erro: string }[] = [];
+  let guardadas = 0;
+  for (let pagina = 1; pagina <= 10 && falta.size; pagina++) {
+    const lista: any = await client.get(`/nfe?tipo=0&limite=100&pagina=${pagina}&dataEmissaoInicial=${ini}&dataEmissaoFinal=${ultimo}`);
+    const items = lista?.data ?? [];
+    if (!items.length) break;
+    for (const it of items) {
+      const chave = it.chaveAcesso;
+      let alvo = chave ? falta.get(chave) : null;
+      let det: any = null;
+      if (!alvo) {
+        if (chave) continue;
+        det = (await client.get(`/nfe/${it.id}`))?.data ?? {};
+        alvo = falta.get(det.chaveAcesso); if (!alvo) continue;
+      }
+      try {
+        det = det ?? (await client.get(`/nfe/${it.id}`))?.data ?? {};
+        if (!det.xml) throw new Error("Bling não informou o link do XML");
+        const r = await fetch(String(det.xml));
+        const txt = await r.text();
+        if (!r.ok) throw new Error(`download do XML falhou [${r.status}]: ${txt.slice(0, 150)}`);
+        await cachearNfEntradaXml(admin, alvo.nf_chave_acesso, alvo.nf_data_emissao, txt);
+        guardadas++;
+      } catch (e) {
+        erros.push({ numero: alvo.nf_numero, erro: e instanceof Error ? e.message : String(e) });
+      }
+      falta.delete(alvo.nf_chave_acesso);
+    }
+  }
+  for (const r of falta.values()) erros.push({ numero: r.nf_numero, erro: "NF não encontrada na lista de entradas do Bling no mês" });
+  return { ok: true, tipo: "entrada_bling", pendentes_antes: total, guardadas, erros };
+}

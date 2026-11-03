@@ -25,6 +25,27 @@ export function caminhoNfSaida(nf: NfCacheRow, ext: "xml" | "pdf"): string {
   return `nfs/${comp}/saida/${num}-${serie}.${ext}`;
 }
 
+/** Caminho do XML de NF de entrada: nfs/<AAAA-MM>/entrada/<chave>.xml (mesmo do Qive). */
+export function caminhoNfEntrada(chave: string, dataEmissao: string | null, ext: "xml" | "pdf" = "xml"): string {
+  const comp = (dataEmissao ?? "").slice(0, 7) || "sem-data";
+  return `nfs/${comp}/entrada/${chave.replace(/\D/g, "")}.${ext}`;
+}
+
+/** Guarda o XML de uma NF de entrada (Bling/Qive) e marca as linhas de nfs_stage
+ *  dessa chave. Lança com a mensagem real; quem chama decide se é best-effort. */
+export async function cachearNfEntradaXml(supabase: any, chave: string, dataEmissao: string | null, xmlTexto: string) {
+  const xml = validarXmlNf(xmlTexto, { chave });
+  const path = caminhoNfEntrada(chave, dataEmissao);
+  const up = await supabase.storage.from(BUCKET_CONTABIL)
+    .upload(path, new TextEncoder().encode(xml), { contentType: "application/xml", upsert: true });
+  if (up.error) throw new Error(`NF entrada ${chave}: upload do XML falhou: ${up.error.message}`);
+  const { error } = await supabase.from("nfs_stage")
+    .update({ xml_storage_path: path, arquivos_sincronizados_em: new Date().toISOString() })
+    .eq("nf_chave_acesso", chave).is("xml_storage_path", null);
+  if (error) throw new Error(`NF entrada ${chave}: XML guardado, mas a marcação falhou: ${error.message}`);
+  return path;
+}
+
 /** Baixa XML e PDF, grava no Storage e marca a NF. Lança com a mensagem real. */
 export async function cachearNfSaida(supabase: any, nf: NfCacheRow) {
   const ctx = { nf_id: nf.id, numero: nf.numero };
