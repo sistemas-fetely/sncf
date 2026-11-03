@@ -87,6 +87,15 @@ interface LinhaNf {
   cmv: number;
 }
 
+interface ParteRemessa {
+  indice: number;
+  path: string;
+  bytes: number;
+  arquivos: number;
+  link?: string | null;
+  link_expira_em?: string | null;
+}
+
 interface Remessa {
   id: string;
   competencia: string | null;
@@ -96,8 +105,20 @@ interface Remessa {
   unidades: number | null;
   valor_custo: number | null;
   link_signed: string | null;
+  link_expira_em: string | null;
   link_expirado: boolean | null;
+  observacao: string | null;
+  versao: number | null;
+  status: "gerando" | "pronto" | "erro" | null;
+  progresso: ProgressoRemessa | null;
+  erro_mensagem: string | null;
+  partes: ParteRemessa[] | null;
+  manifesto: { faltantes?: unknown[]; total_arquivos?: number } | null;
+  gerado_em: string | null;
+  gerado_por_nome: string | null;
 }
+
+const fmtMB = (b: number) => `${(b / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
 
 /* ───────────────────────────── formato ───────────────────────────── */
 
@@ -327,53 +348,33 @@ export default function PacoteContador() {
     });
   };
 
+  // v2 (03/11/2026): a remessa nasce pela RPC; a planilha sobe para o bucket contabil e o ZIP
+  // é montado em segundo plano pela rotina gerar-pacote-contador-v2 (a antiga não é mais chamada).
   const gerar = useMutation({
     mutationFn: async () => {
       if (!selecionada || !comp) throw new Error("Selecione uma competência");
       if (comp.status !== "fechado") throw new Error("Feche a competência antes de gerar o pacote");
-
-      const blob = montarPlanilha();
-      const mes = selecionada.slice(0, 7); // YYYY-MM
-      const storagePath = `fechamento/${mes}/${crypto.randomUUID()}.xlsx`;
-
-      const { error: errUp } = await supabase.storage
-        .from("pacotes-contador")
-        .upload(storagePath, blob, {
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          upsert: false,
-        });
-      if (errUp) throw errUp; // upload falhou: NÃO chama a edge function
-
-      const emails = destinatarios
-        .split(/[,;\s]+/)
-        .map((e) => e.trim())
-        .filter((e) => e.includes("@"));
-
-      const { data, error } = await supabase.functions.invoke("gerar-pacote-contabil", {
-        body: {
-          competencia: selecionada,
-          storage_path: storagePath,
-          destinatarios: emails,
-          observacao: observacao.trim() || null,
-        },
+      const emails = destinatarios.split(/[,;\s]+/).map((e) => e.trim()).filter((e) => e.includes("@"));
+      const { data: ini, error: errIni } = await supabase.rpc("fn_remessa_contador_iniciar", {
+        p_competencia: selecionada,
+        p_destinatarios: emails,
+        p_observacao: observacao.trim() || null,
       });
-      if (error) throw error;
-      const resp = data as { ok?: boolean; erro?: string; link_signed?: string } | null;
-      if (!resp?.ok) throw new Error(resp?.erro || "Falha ao registrar o pacote");
-
-      // download local imediato
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Fetely_Estoque_Contabil_${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      return resp;
+      if (errIni) throw errIni;
+      const r = ini as { remessa_id: string; versao: number };
+      const planilhaPath = `pacotes/${selecionada.slice(0, 7)}/v${r.versao}/planilha.xlsx`;
+      const { error: errUp } = await supabase.storage.from("contabil").upload(planilhaPath, montarPlanilha(), {
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        upsert: true,
+      });
+      // Sem planilha o pacote segue e o manifesto a lista como faltante — mas o erro aparece.
+      if (errUp) toast.error(`Planilha não foi guardada: ${errUp.message}`, { duration: Infinity, closeButton: true });
+      await chamarGeracao(r.remessa_id, errUp ? null : planilhaPath);
+      return r;
     },
-    onError: (e) => toast.error(rawMessage(e)),
-    onSuccess: () => {
-      toast.success(`Pacote de ${comp?.rotulo} gerado.`);
+    onError: (e) => toast.error(rawMessage(e), { duration: Infinity, closeButton: true }),
+    onSuccess: (r) => {
+      toast.success(`Pacote de ${comp?.rotulo} v${r.versao} em geração.`);
       qc.invalidateQueries({ queryKey: ["contabil-remessas"] });
     },
   });
