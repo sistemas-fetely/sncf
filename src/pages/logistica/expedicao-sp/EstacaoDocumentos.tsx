@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
@@ -56,9 +57,27 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   // Pedido marcado para agência: gerar etiqueta SNCF nova pede confirmação (provavelmente não será usada).
   const agencia = useEtiquetaSncfAgencia(ehCorreios ? pedido.id : null);
   const [confirmarAgencia, setConfirmarAgencia] = useState(false);
+  // MESA-SP-TROCA-SERVICO-CORREIOS: PAC|SEDEX escolhível; padrão = serviço do cliente (do banco).
+  const servicoCliente = dados?.servico_cliente ?? null;
+  const servicoEfetivo = pp?.servico ?? null;
+  const [escolhaServico, setEscolhaServico] = useState<string | null>(null);
+  const servicoEscolhido = escolhaServico ?? servicoEfetivo ?? servicoCliente;
+  const [motivoTroca, setMotivoTroca] = useState("");
+  const [confirmarTroca, setConfirmarTroca] = useState(false);
+  const divergeCliente = !!servicoEscolhido && !!servicoCliente && servicoEscolhido !== servicoCliente;
+  const trocaViva = !!pp && !!servicoEscolhido && servicoEscolhido !== servicoEfetivo;
+  const motivoOk = !divergeCliente || motivoTroca.trim().length >= 3;
+  function disparar(trocar: boolean) {
+    gerarCorreios.mutate(
+      { pedidoId: pedido.id, prepostagemId: pp?.id ?? null, servico: servicoEscolhido, motivoTroca: divergeCliente ? motivoTroca : null, trocarServico: trocar },
+      { onSuccess: () => { setEscolhaServico(null); setMotivoTroca(""); } },
+    );
+  }
   function gerarOuReimprimir() {
+    if (!motivoOk) { toast.error("Informe o motivo da troca de serviço (mín. 3 caracteres)."); return; }
+    if (trocaViva) { setConfirmarTroca(true); return; }
     if (!pp && agencia.temAgencia) { setConfirmarAgencia(true); return; }
-    gerarCorreios.mutate({ pedidoId: pedido.id, prepostagemId: pp?.id ?? null });
+    disparar(false);
   }
   const comServico = (x: DadosImpressao): DadosImpressao => (ehCorreios ? x : { ...x, servico_correios: null });
   const etiquetaZebraEntrega = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(comServico(x), danfeQ.data); };
@@ -123,15 +142,61 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
       case "rastreio":
         return (
           <div className="flex flex-wrap items-center gap-2">
-            <SeloServicoCorreios servico={pedido.servico_correios} freteValor={pedido.frete_cliente_valor} freteGratis={pedido.frete_gratis} />
+            {pp && servicoEfetivo ? (
+              <SeloServicoCorreios
+                servico={servicoCliente && servicoEfetivo !== servicoCliente ? `${servicoEfetivo} (cliente: ${servicoCliente})` : servicoEfetivo}
+                freteValor={pedido.frete_cliente_valor} freteGratis={pedido.frete_gratis} />
+            ) : null}
+            <div role="radiogroup" aria-label="Serviço Correios" className="inline-flex rounded-md border">
+              {["PAC", "SEDEX"].map((sv) => (
+                <Button key={sv} type="button" size="sm" role="radio" aria-checked={servicoEscolhido === sv}
+                  variant={servicoEscolhido === sv ? "default" : "ghost"}
+                  disabled={bloqueado || gerarCorreios.isPending}
+                  onClick={() => setEscolhaServico(sv)}>
+                  {sv}
+                </Button>
+              ))}
+            </div>
+            {!pp && (
+              <span className="text-sm font-medium">
+                {pedido.frete_gratis ? "frete grátis" : `cliente pagou ${formatBRL(pedido.frete_cliente_valor ?? 0)}`}
+              </span>
+            )}
+            {!servicoCliente && dados && <span className="text-xs text-warning">Serviço do cliente não informado — confira no pedido</span>}
+            {divergeCliente && (
+              <div className="flex w-full flex-wrap items-center gap-2">
+                <span className="text-xs text-warning">Serviço diferente do escolhido pelo cliente</span>
+                {["Atraso no pedido", "Prazo do cliente", "Cliente pediu", "Outro"].map((m) => (
+                  <Button key={m} type="button" size="sm" variant="outline" className="h-7 px-2 text-xs"
+                    onClick={() => setMotivoTroca(m === "Outro" ? "" : m)}>{m}</Button>
+                ))}
+                <Input className="h-8 w-56" placeholder="Motivo da troca (obrigatório)" value={motivoTroca}
+                  onChange={(e) => setMotivoTroca(e.target.value)} aria-label="Motivo da troca de serviço" />
+              </div>
+            )}
             <Button
               size="sm"
               onClick={gerarOuReimprimir}
-              disabled={bloqueado || gerarCorreios.isPending || ppQ.isLoading}
+              disabled={bloqueado || gerarCorreios.isPending || ppQ.isLoading || !servicoEscolhido || !motivoOk}
             >
               {gerarCorreios.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}
-              {pp ? `Reimprimir etiqueta Correios${pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}` : "Gerar etiqueta Correios"}
+              {trocaViva ? `Trocar etiqueta para ${servicoEscolhido}`
+                : pp ? `Reimprimir etiqueta Correios${pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}` : "Gerar etiqueta Correios"}
             </Button>
+            <AlertDialog open={confirmarTroca} onOpenChange={setConfirmarTroca}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Trocar serviço da etiqueta</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso cancela a etiqueta {pp?.codigo_objeto ?? ""} e gera outra em {servicoEscolhido}.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => disparar(true)}>Cancelar e gerar em {servicoEscolhido}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             {ppQ.error && <span className="text-xs text-destructive">{formatError(ppQ.error)}</span>}
             {agencia.erro && <span className="text-xs text-destructive">{formatError(agencia.erro)}</span>}
             <AlertDialog open={confirmarAgencia} onOpenChange={setConfirmarAgencia}>
@@ -145,7 +210,7 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => gerarCorreios.mutate({ pedidoId: pedido.id, prepostagemId: null })}>
+                  <AlertDialogAction onClick={() => disparar(false)}>
                     Gerar mesmo assim
                   </AlertDialogAction>
                 </AlertDialogFooter>
