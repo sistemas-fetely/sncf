@@ -1,38 +1,82 @@
-# Diagnóstico DEV-B2C-1401: NF de devolução 000929 continua como "rascunho"
+# Mercado Pago — Fase 1: importação automática diária (plano, sem código)
 
-## O que já foi confirmado (somente leitura)
+Destino final do arquivo: `.lovable/plan-mp-fase1.md`. O modo plano só permite gravar em `.lovable/plan.md`; na aprovação, o primeiro ato do build é copiar este conteúdo para `.lovable/plan-mp-fase1.md` e devolver ao `plan.md` o conteúdo anterior (diagnóstico DEV-B2C-1401, já encerrado).
 
-**Botão "Verificar autorização"**
-- Fica em `NfDevolucaoBloco.tsx` e chama a rotina `devolucao-gerar-rascunho-nf` com `acao: "verificar"`.
-- A rotina lê `devolucao.nf_dev_bling_id` e consulta `GET /nfe/27251144278` na API v3 do Bling.
-- O resultado depende da situação devolvida pelo Bling:
-  - **5 ou 6, sem cancelamento:** considera a nota autorizada e grava status, número e chave na devolução.
-  - **2, cancelada ou 404:** grava "erro" com a mensagem "cancelada/excluída — gere de novo".
-  - **Qualquer outra (1 pendente, 4, 7, 10...):** não grava nada e só mostra "Ainda não autorizada (situação X)".
-- Ela olha **só** o id do rascunho e nunca procura outra nota da mesma cliente.
+## 1. Onde está hoje o importador manual
+- Tudo roda no front, em `src/pages/administrativo/ExtratoImportacao.tsx`:
+  - `mp_release` (≈ linha 1382): `parseXlsxMpReserveRelease` → para cada liberação, um hash `mp_rr|<id_operacao>` → `inserirMovimentacao` (origem `mp_release`; saque/devolução/pagamento decididos pela DESCRIÇÃO; classe `recebivel_b2c` no pagamento).
+  - `mp_settlement` (≈ linha 1347): `parseXlsxMpSettlement` → só enriquece, pela RPC `fn_extrato_enriquecer`; não cria movimento.
+  - `mp_withdraw` (≈ linha 1049): `parseXlsxMpWithdraw` → cria a transferência quando não há par.
+- Os parsers ficam em `src/lib/financeiro/xlsx-mp-*.ts` e leem **XLSX**. A API entrega **CSV**.
+- **Saques:** o parser de liberações já reconhece "Saque…" e cria o débito com a conta de destino. Proposta: na rotina automática, os saques vêm só pelo relatório de liberações, e o `mp_withdraw` fica apenas para importação manual (pergunta 1).
 
-**Estado no SNCF**
-- A devolução está assim: `nf_dev_status=rascunho`, bling_id 27251144278, número 000929, sem erro, atualizada em 28/10 21:02.
-- Os registros não mostram nenhum clique em "Verificar" desde então.
-- O SNCF não tem cópia de nenhuma NF de entrada da Silvane: a sincronização só traz notas de saída.
-- A única nota dela no SNCF é a de origem, 000683 (saída, autorizada, 06/10, chave 4226…0428042).
+### Como ter uma versão só
+- Separar cada importador em duas camadas puras e testadas, numa pasta compartilhada importável pelo front (Vite) e pela edge (Deno, import relativo):
+  - `normalizarMp*(linhas)`: recebe linhas já com chave de cabeçalho (vindas de XLSX ou de CSV) e devolve o mesmo objeto `MpLiberacao` / `MpTransacao` de hoje.
+  - `aplicarMp*(sb, conta, impId, itens, cont)`: o laço de hoje (hash, checagem de duplicidade, `inserirMovimentacao`, `fn_extrato_enriquecer`). Só usa o client recebido, sem toast.
+- A tela continua lendo o XLSX e passa a chamar essas funções; a edge lê o CSV e chama as mesmas. Mesmo hash = mesma deduplicação entre o manual e o automático.
+- Local proposto: `supabase/functions/_shared/financeiro/mp/` e reexporte em `src/lib/financeiro/mp/`. Isso exige confirmar que o Vite resolve import fora de `src/`; se não resolver, faz-se o inverso com um espelho verificado por teste (pergunta 3).
 
-**O que não consegui ver**
-- Não consultei o Bling. O único caminho que o sistema tem é o próprio botão, e ele grava na devolução quando a nota está autorizada ou cancelada. Por isso não rodei nada, para respeitar o "só leitura".
+## 2. Tabela de controle `mp_relatorio_execucao`
+Colunas:
+- `id`, `tipo` (`release` | `settlement`), `periodo_inicio`, `periodo_fim` (datas BRT)
+- `origem` (`sncf_pedido` | `schedule_mp`), `status` (`solicitado` → `processando` → `baixado` → `importado` | `erro` | `sem_movimento`)
+- `file_name`, `mp_report_id`, `tentativas`, `max_tentativas` (padrão 5), `proxima_tentativa_em`, `erro`
+- `extrato_importacao_id` (FK `extrato_importacoes`), `arquivo_storage_path`, `sha256`, `bytes`, `linhas_lidas`, `criadas`, `duplicadas`, `enriquecidas`, `solicitado_em`, `importado_em`
+- Único por (`tipo`, `periodo_inicio`, `periodo_fim`) e por `file_name` quando houver.
 
-## Passo que falta, se você aprovar (sem gravar nada)
-Rodar uma consulta avulsa ao Bling com o mesmo acesso das rotinas, sem salvar nada no SNCF e sem publicar:
-1. `GET /nfe/27251144278` para obter situação, número, série, chave e situacaoCancelamento.
-2. `GET /nfe?tipo=0&dataEmissaoInicial=2026-10-28` filtrando pelo contato da Silvane, ou pela nota referenciada 000683 / chave 4226…0428042, para ver se a Eva emitiu outra nota.
+Regras:
+- RLS `pode_ler_tabela`. Escrita só pela edge (service_role) e por uma RPC `fn_mp_relatorio_reprocessar(tipo, dia)`, que exige `acao.mp_relatorio.reprocessar`.
+- Cada download vira uma linha em `extrato_importacoes` com `fonte_tipo` `mp_release`/`mp_settlement` e a conta MP. O original (CSV) sobe para o bucket `contabil` com a mesma regra de caminho de `arquivoOriginal.ts`: âncora no id da importação e depois a pasta da competência de `periodo_fim`. Grava `arquivo_storage_path`, `sha256` e `bytes`, e o Pacote do Contador já pega o arquivo.
 
-A consulta é apagada logo depois. Também posso rodar a mesma coisa como script local, se você preferir.
+## 3. Edge + agendamento
+- Edge `mp-relatorios`, padrão `gateCronOuSessao` com `x-cron-secret` lido do cofre, e token `mp_access_token` via `get_vault_secret` (client service_role). Ações:
+  - `pedir`: cria as linhas do dia anterior (00:00–23:59 BRT, enviado em UTC −03:00) para os dois tipos e faz `POST /v1/account/{release|settlement}_report`. Se a linha já existir e não estiver em erro, não faz nada.
+  - `coletar`: `GET …/list` → casa cada linha `solicitado`/`processando` pelo período (`begin_date`/`end_date`, ou o id devolvido no POST) → `GET …/{file_name}` → sobe o original → normaliza e aplica → `importado`. O que ainda não estiver pronto continua `processando`.
+  - Erro: `tentativas+1`, espera crescente; ao atingir o limite fica `erro`, visível na tela e no alerta.
+  - `testar_csv` (só sessão com permissão): baixa um `file_name` e devolve cabeçalho e 3 linhas, sem gravar. É a ferramenta do primeiro teste real.
+- Duas rodadas por `fn_cron_chamar_edge`: `pedir` às 06:00 BRT e `coletar` a cada hora das 07:00 às 13:00 BRT (7 vezes por dia). Atraso máximo: cerca de 1 hora depois de o MP terminar o arquivo.
+- Idempotência: linha única por período + hash por operação no movimento + `fn_extrato_enriquecer`, que só atualiza. Rodar duas vezes não duplica.
+- **Não** fazer PUT na configuração. O POST só manda `begin_date`/`end_date`.
+- `settlement_report/config`: fazer `GET` no primeiro teste. Se não houver configuração, **parar e perguntar** (seria preciso criá-la).
 
-## Causas possíveis (o passo 1 decide qual é)
-- **A) A Eva emitiu uma nota nova** em vez de transmitir a 000929. O rascunho segue com situação 1 no Bling e o botão nunca enxerga a nota nova. Isso é o mais provável, pelo que o Flávio contou.
-- **B) A 000929 foi transmitida, mas ficou numa situação fora de 5/6**, por exemplo 4 (enviada, aguardando o recibo da Sefaz) ou rejeitada. O botão informa "situação X" e não grava nada.
-- **C) Ninguém clicou em "Verificar"** depois da transmissão. Os registros não mostram nenhuma chamada, então a tela continua com o estado antigo.
+## 4. Backfill (15/09/2026 → ontem)
+1. Primeiro aproveita o agendamento do MP: lista os relatórios `created_from = schedule` e cria linhas com `origem=schedule_mp` para os períodos que cobrirem dias faltantes, e baixa esses.
+2. Para o que sobrar, janelas de até 60 dias (15/09–13/11 já cobre tudo hoje), com `pedir` em janela única por tipo.
+3. A sobreposição com o `mp_settlement` manual até 25/10 é segura: settlement só enriquece (reaplicar é inofensivo) e release usa o mesmo hash do manual.
+4. Os contadores ficam gravados por linha (`duplicadas` deve ser alto no período já manual).
+- Botão "Buscar retroativo" na aba, com data inicial (padrão 15/09), sob a mesma permissão.
 
-## Correção mínima proposta (não será aplicada agora)
-- **Se for C:** só clicar em "Verificar autorização". Não precisa mudar código.
-- **Se for B:** acrescentar a situação que o Bling devolver ao critério de autorizada, conferindo antes se ela significa mesmo "autorizada", e mostrar o nome da situação no aviso.
-- **Se for A:** na verificação, quando o rascunho continuar pendente, procurar no Bling uma NF de entrada autorizada para o mesmo contato, emitida depois do rascunho, que referencie a nota 000683. Se houver exatamente uma, apontar a devolução para ela e avisar que o rascunho 000929 pode ser excluído. Para esta devolução, a correção pontual é uma migração versionada que troca bling_id, número e chave pela nota nova.
+## 5. Status na aba TI > Integrações > Mercado Pago
+- Novo bloco "Relatórios automáticos" abaixo de Credenciais:
+  - último sucesso por tipo;
+  - grade dos últimos 45 dias × (Liberações, Vendas) com selo de status, contagens e erro;
+  - contagem de "dias faltando";
+  - "Reprocessar dia" e "Buscar retroativo".
+- Os rótulos de status vêm de uma dimensão `mp_relatorio_status_dim`, sem texto hardcoded.
+- As duas ações são registradas em `acao_superficie` (`acao.mp_relatorio.reprocessar`). Os filtros ficam na URL (`useEstadoTela`). Não cria tela nova.
+
+## 6. Alerta no Dash de Tarefas
+- Fila nova em `tarefas_filas`: "Mercado Pago — relatório não importado", alimentada por view `vw_mp_relatorio_atrasado`. Mostra o dia D sem `importado`/`sem_movimento` depois das 12:00 BRT de D+1, ou uma linha em `erro` com tentativas esgotadas.
+- Responsável: Financeiro (pergunta 4). O card leva para a aba Mercado Pago com o dia em foco.
+
+## 7. Riscos e o que validar no primeiro teste real
+- **file_name:** se vem no POST (202) ou só na lista; e o formato `release-3201320885-…csv`.
+- **Fuso:** a configuração já está em GMT-03. Conferir que o primeiro e o último DATE do arquivo caem no dia pedido.
+- **Separador e decimal:** a configuração não mostrou `separator`. Detectar `;` ou `,`, e decimal com ponto ou vírgula, pelo cabeçalho.
+- **Cabeçalhos em pt** (`report_language "pt"`) versus os nomes que o parser XLSX espera. Mapear as duas formas no normalizador e comparar com um arquivo manual do mesmo dia (mesmo total líquido e mesmos ids).
+- **Colunas:** a configuração atual tem SOURCE_ID, mas é preciso confirmar EXTERNAL_REFERENCE (código do pedido), PAYMENT_METHOD, conta de destino do saque e o tipo de registro "Liberações". **Se faltar alguma, é preciso PUT, e isso exige sua autorização** (pergunta 2).
+- **Settlement:** endpoints e configuração não confirmados; o relatório "todas as transações" pode exigir a configuração própria.
+- Linhas "Reserva" e saldo inicial/total devem continuar fora (regra do parser atual).
+- Limite de taxa e expiração do arquivo na lista.
+
+## Perguntas
+1. Saques automáticos só pelo relatório de liberações, deixando o `mp_withdraw` apenas manual? Proposta: sim.
+2. Se o CSV da configuração atual não trouxer EXTERNAL_REFERENCE ou a conta de destino do saque, você autoriza o PUT adicionando só essas colunas (sem mudar fuso, prefixo nem agendamento)?
+3. Código compartilhado: pode ficar em `supabase/functions/_shared/` com reexporte no front, ou prefere em `src/` com espelho testado?
+4. Alerta: corte às 12:00 BRT de D+1 e responsável Financeiro? Quem recebe o card?
+5. Conta MP: confirmar qual registro de `contas_bancarias` recebe as importações automáticas (a mesma usada nas manuais de setembro?).
+6. Horários `pedir` 06:00 e `coletar` de hora em hora 07–13 BRT estão bons?
+
+## Ordem de entrega (após aprovação)
+Copiar o plano para `plan-mp-fase1.md` → migração (tabela, dimensão, view, fila, ação, RPC) → normalizadores e aplicadores compartilhados com testes, e a tela manual migrada (resultado idêntico) → edge `mp-relatorios` + `testar_csv` → primeiro teste real com um dia → agendamento → backfill → bloco na aba → alerta. Nada publicado.
