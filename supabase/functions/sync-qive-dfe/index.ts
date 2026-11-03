@@ -1,8 +1,12 @@
 /**
  * sync-qive-dfe — captura documentos fiscais de ENTRADA na API da Qive (ex-Arquivei)
- * e grava em `nfs_stage`.
+ * — NF-e (v1/nfe/received) + CT-e (v1/cte/taker) + NFS-e (v1/nfse/received) — e grava
+ * em `nfs_stage`, copiando o XML para o Storage (pacote do contador).
+ * NFS-e: a API não traz access_key; a chave sai do XML por `_shared/nfse-xml.ts`, com a
+ * MESMA convenção do upload manual (xml_nfse), para não duplicar na recarga histórica.
+ * ENTIDADE MUDA: 48 h sem nenhum documento numa entidade → alerta em integracoes_sync_log.
  *
- * SEM CRON: invocação manual apenas. A primeira execução real precisa ser observada.
+ * Agendada por cron (fn_cron_chamar_edge, x-cron-secret) e invocável manualmente (simular/desde).
  *
  * Credenciais NUNCA no código: lidas do vault via RPC `get_vault_secret`.
  *
@@ -13,6 +17,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { cachearNfEntradaXml } from "../_shared/nf-cache-storage.ts";
+import { parseNfseXml } from "../_shared/nfse-xml.ts";
 import {
   alertarDevolucaoSemReferencia,
   extrairFinNFeDoXml,
@@ -159,6 +164,27 @@ function adaptarV2(json: any): { docs: DocQive[]; next: string | null; total: nu
     }
   }
   return { docs, next, total: typeof json?.Total === "number" ? json.Total : null };
+}
+
+/* ------------------------------------------------------------ entidade muda */
+
+// deno-lint-ignore no-explicit-any
+async function alarmeEntidadeMuda(supabase: any, entidade: Entidade, resumo: ResumoEntidade, simular: boolean) {
+  const { data: ult, error } = await supabase.from("nfs_stage").select("created_at")
+    .eq("fonte", "qive").eq("tipo_documento", entidade).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) { anotarErro(resumo, `alarme 48h: ${error.message}`); return; }
+  const ultimo = ult?.created_at ? new Date(ult.created_at) : null;
+  const horas = ultimo ? (Date.now() - ultimo.getTime()) / 3600_000 : Infinity;
+  if (horas < 48) return;
+  const detalhes = `Qive/${entidade.toUpperCase()}: nenhum documento há ${ultimo ? `${Math.floor(horas)} h (último em ${ultimo.toISOString()})` : "sempre (nunca entrou documento)"}. Verificar rota/credencial na Qive.`;
+  (resumo as any).alarme_48h = detalhes;
+  if (simular) return;
+  const tipo = `alerta_entidade_muda_${entidade}`;
+  const { data: recente } = await supabase.from("integracoes_sync_log").select("id")
+    .eq("sistema", "qive").eq("tipo", tipo).gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()).limit(1);
+  if (recente?.length) return;
+  const { error: eIns } = await supabase.from("integracoes_sync_log").insert({ sistema: "qive", tipo, status: "erro", registros_criados: 0, registros_atualizados: 0, registros_erro: 0, detalhes });
+  if (eIns) anotarErro(resumo, `alarme 48h não gravou: ${eIns.message}`);
 }
 
 /* ------------------------------------------------------------------ parse XML */
@@ -493,32 +519,21 @@ Deno.serve(async (req) => {
             }
 
             let resp: Response;
-            if (entidade === "nfe" || entidade === "cte") {
+            {
               const qs = new URLSearchParams({
                 limit: String(LIMIT_POR_PAGINA),
                 "created_at[from]": de.toISOString(),
                 "created_at[to]": ate.toISOString(),
               });
               if (cursor) qs.set("cursor", cursor);
-              const caminho = entidade === "nfe" ? "v1/nfe/received" : "v1/cte/taker";
+              const caminho = entidade === "nfe" ? "v1/nfe/received" : entidade === "cte" ? "v1/cte/taker" : "v1/nfse/received";
               resp = await fetch(`${base}/${caminho}?${qs.toString()}`, {
                 method: "GET",
                 headers,
               });
-            } else {
-              // nfse: rota POST /v1/dfe/nfse — NÃO validada (404 no sandbox)
-              resp = await fetch(`${base}/v1/dfe/${entidade}`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
-                  limit: LIMIT_POR_PAGINA,
-                  cursor: cursor ?? undefined,
-                  created_at: { from: de.toISOString(), to: ate.toISOString() },
-                }),
-              });
             }
 
-            if (!resp.ok) {
+            if (resp.status !== 200) {
               const corpo = await resp.text();
               throw new Error(`HTTP ${resp.status} em ${entidade}: ${corpo.slice(0, 400)}`);
             }
@@ -532,14 +547,33 @@ Deno.serve(async (req) => {
               try {
                 let p: XmlParsed | null = null;
                 let xmlTexto: string | null = null;
+                let descNfse = "";
                 if (doc.xmlBase64) {
                   try {
                     const xmlDoc = decodificarBase64(doc.xmlBase64);
                     xmlTexto = xmlDoc;
-                    p = entidade === "cte" ? parseCteXml(xmlDoc) : parseXml(xmlDoc);
+                    if (entidade === "nfse") {
+                      const n = parseNfseXml(xmlDoc);
+                      // FAIL-LOUD: NFS-e sem chave, prestador ou valor não entra calada.
+                      if (!n.chave || !n.prestador_cnpj || n.valor == null) {
+                        throw new Error(`NFS-e ilegível (layout ${n.layout}, id Qive ${String(doc.bruto?.id ?? "?")}): chave=${n.chave ?? "—"} prestador=${n.prestador_cnpj ?? "—"} valor=${n.valor ?? "—"}`);
+                      }
+                      const desc = (n.descricao ?? "Serviço").replace(/\s+/g, " ").trim();
+                      p = {
+                        chave: n.chave, numero: n.numero, serie: null, data_emissao: n.data_emissao,
+                        natureza_operacao: "Prestação de Serviço", fin_nfe: null, tp_nf: null, referenciada: null,
+                        cnpj: n.prestador_cnpj, razao_social: n.prestador_razao, destinatarioCnpj: n.tomador_cnpj,
+                        valor: n.valor,
+                        itens: [{ descricao: desc.slice(0, 500), quantidade: 1, unidade: "SV", valor_unitario: n.valor, valor_total: n.valor }],
+                      };
+                      descNfse = desc.slice(0, 120);
+                    } else {
+                      p = entidade === "cte" ? parseCteXml(xmlDoc) : parseXml(xmlDoc);
+                    }
                   } catch (e) {
                     console.error(`[${entidade}] XML ilegível (${doc.chave}):`, e);
                     anotarErro(resumo, `XML ilegível (${doc.chave}): ${e instanceof Error ? e.message : String(e)}`);
+                    if (entidade === "nfse") continue;
                   }
                 }
 
@@ -643,7 +677,9 @@ Deno.serve(async (req) => {
                     p_fin_nfe: p?.fin_nfe ?? null,
                     p_nf_referenciada_chave: referenciada,
                     p_itens: p?.itens ?? null,
-                    p_descricao: `${entidade.toUpperCase()} ${numero ?? chave.slice(-9)} · Qive`,
+                    p_descricao: entidade === "nfse"
+                      ? `NFSE ${numero ?? chave.slice(-9)} · Qive · ${descNfse}`
+                      : `${entidade.toUpperCase()} ${numero ?? chave.slice(-9)} · Qive`,
                   },
                 );
 
@@ -695,8 +731,8 @@ Deno.serve(async (req) => {
                 // XML-ENTRADA-NO-STORAGE (03/11/2026): o XML que a Qive já entrega vai
                 // para contabil/nfs/<AAAA-MM>/entrada/<chave>.xml (pacote do contador).
                 // Best-effort: falha é anotada no resumo, nunca derruba a captura.
-                // NF-e e CT-e: mesma cópia (cachearNfEntradaXml); resultado em nf_entrada_arquivo_tentativa.
-                if ((entidade === "nfe" || entidade === "cte") && xmlTexto && chave) {
+                // NF-e, CT-e e NFS-e: mesma cópia (cachearNfEntradaXml); resultado em nf_entrada_arquivo_tentativa.
+                if (xmlTexto && chave) {
                   try {
                     await cachearNfEntradaXml(supabase, chave, p?.data_emissao ?? null, xmlTexto);
                     await supabase.from("nf_entrada_arquivo_tentativa").upsert({ nf_chave_acesso: chave, fonte: "qive", indisponivel_na_origem: false, erro: null, tentado_em: new Date().toISOString() });
@@ -801,6 +837,12 @@ Deno.serve(async (req) => {
           }
         }
 
+        // ENTIDADE-MUDA-48H: nenhum documento nesta execução e o último documento Qive
+        // desta entidade no nfs_stage tem mais de 48 h → alerta (1 por entidade a cada 24 h)
+        // no mecanismo já usado pelas integrações (integracoes_sync_log, status erro).
+        if (resumo.encontrados === 0 && !resumo.erro && ambiente === "producao") {
+          await alarmeEntidadeMuda(supabase, entidade, resumo, simular);
+        }
       } catch (e) {
         resumo.erro = e instanceof Error ? e.message : String(e);
         console.error(`[sync-qive-dfe] entidade ${entidade} falhou:`, e);
