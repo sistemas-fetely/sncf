@@ -337,6 +337,27 @@
       "when": 1793727906564,
       "tag": "0047_mesa_sp_servico_correios_efetivo",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793728484860,
+      "tag": "0048_pacote_contador_previa_dim",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793728544935,
+      "tag": "0049_pacote_contador_previa_iniciar",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793728638276,
+      "tag": "0050_vw_contabil_remessas_natureza",
+      "breakpoints": true
     }
   ]
 }

@@ -35,6 +35,7 @@ export async function enviarEmailRemessa(opts: {
   const linhas = [
     remessa.observacao ?? "",
     "",
+    ...(remessa.natureza === "previa" ? ["PRÉVIA — a competência está pré-fechada e a posição de estoque inclui presunções declaradas (ver seção Presunções no manifesto). A versão definitiva será enviada após o fechamento.", ""] : []),
     `Pacote ${rotulo} — versão ${remessa.versao} (${partes.length} parte${partes.length > 1 ? "s" : ""}):`,
     ...partes.map((p) => `Parte ${p.indice} (${mb(p.bytes)}): ${p.link}`),
     "",
@@ -53,7 +54,7 @@ export async function enviarEmailRemessa(opts: {
           idempotencyKey: `pacote-contador-v2-${remessa.id}-${opts.motivo}-${opts.expira}-${email}`,
           templateData: {
             mensagem_personalizada: linhas.join("\n"),
-            descricao_remessa: `Pacote contábil ${rotulo} v${remessa.versao}`,
+            descricao_remessa: `Pacote contábil ${rotulo} v${remessa.versao}${remessa.natureza === "previa" ? " (PRÉVIA)" : ""}`,
             qtd_contas: Object.keys(m.bancos ?? {}).length,
             qtd_documentos: Number(m.total_arquivos ?? 0),
             link_zip: partes[0]?.link ?? "",

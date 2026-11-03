@@ -103,7 +103,8 @@ async function gerar(c: { admin: any; userDb: any; url: string; anon: string; au
     const total = chunks.reduce((a, b) => a + b.length, 0);
     const buf = new Uint8Array(total); let o = 0; for (const ch of chunks) { buf.set(ch, o); o += ch.length; }
     const indice = partes.length + 1;
-    const nome = ultima && indice === 1 ? `pacote-contador-${mes}-v${rem.versao}.zip` : `pacote-contador-${mes}-v${rem.versao}-parte${indice}.zip`;
+    const suf = rem.natureza === "previa" ? "-PREVIA" : "";
+    const nome = ultima && indice === 1 ? `pacote-contador-${mes}-v${rem.versao}${suf}.zip` : `pacote-contador-${mes}-v${rem.versao}${suf}-parte${indice}.zip`;
     const path = `${base}/${nome}`;
     const { error } = await admin.storage.from(BUCKET).upload(path, buf, { contentType: "application/zip", upsert: true });
     if (error) throw new Error(`Falha ao gravar ${nome}: ${error.message}`);
@@ -205,14 +206,44 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
     todas(userDb.rpc("fn_contabil_posicao", { p_competencia: rem.competencia })).then((data) => ({ data, error: null })),
   ]);
   for (const r of [vendas, nfsP, pos]) if (r.error) throw r.error;
+  const presumidas = pos.data.filter((p: any) => p.fonte === "presumido");
+  // Prévia × definitiva: natureza nasce na RPC pelo status da competência.
+  const previa = rem.natureza === "previa";
+  const { data: fech, error: fe } = await admin.from("contabil_fechamento").select("id,status,politica,valor_presumido").eq("competencia", rem.competencia).single();
+  if (fe) throw fe;
+  if (previa && fech.status !== "pre_fechado") throw new Error(`Remessa nasceu como prévia mas a competência está '${fech.status}' — gere uma nova versão.`);
+  let presuncoes: any[] = [];
+  if (previa) {
+    const its = await todas(admin.from("contabil_fechamento_item").select("presuncao_nf_id,quantidade,valor_total").eq("fechamento_id", fech.id).eq("presumido", true));
+    const porNf = new Map<number, { un: number; v: number }>();
+    for (const it of its) { const a = porNf.get(it.presuncao_nf_id) ?? { un: 0, v: 0 }; a.un += Number(it.quantidade ?? 0); a.v += Number(it.valor_total ?? 0); porNf.set(it.presuncao_nf_id, a); }
+    presuncoes = (fech.politica?.presuncoes ?? []).map((p: any) => ({
+      nf: p.nf, nf_id: p.nf_id, fornecedor: p.fornecedor, data_chegada: p.data_chegada, centro: p.centro,
+      unidades: Number(p.unidades ?? porNf.get(p.nf_id)?.un ?? 0), valor_nf: Number(p.valor_nf ?? 0),
+      valor_presumido: Math.round((porNf.get(p.nf_id)?.v ?? 0) * 100) / 100, motivo: p.motivo,
+    }));
+  }
+  let delta: any = null;
+  if (!previa) {
+    const { count } = await admin.from("remessas_contador").select("id", { count: "exact", head: true }).eq("competencia", rem.competencia).eq("natureza", "previa");
+    if (count) {
+      const linhas = await todas(admin.from("vw_contabil_delta_pre_fechamento").select("nf,sku,qtd_presumida,qtd_real,delta_qtd,valor_presumido,valor_real,delta_valor").eq("competencia", rem.competencia));
+      const t = (k: string) => Math.round(linhas.reduce((a: number, l: any) => a + Number(l[k] ?? 0), 0) * 100) / 100;
+      delta = { linhas: linhas.length, qtd_presumida: t("qtd_presumida"), qtd_real: t("qtd_real"), delta_qtd: t("delta_qtd"),
+        valor_presumido: t("valor_presumido"), valor_real: t("valor_real"), delta_valor: t("delta_valor"),
+        itens: linhas.filter((l: any) => Number(l.delta_qtd) !== 0 || Number(l.delta_valor) !== 0) };
+    }
+  }
   const s = (a: any[], k: string) => Math.round(a.reduce((x, y) => x + Number(y[k] ?? 0), 0) * 100) / 100;
   const conferencia = {
-    posicao: { skus: pos.data.length, unidades: s(pos.data, "quantidade"), valor: s(pos.data, "valor_total") },
+    posicao: { skus: pos.data.length, unidades: s(pos.data, "quantidade"), valor: s(pos.data, "valor_total"),
+      presumido: { skus: presumidas.length, unidades: s(presumidas, "quantidade"), valor: s(presumidas, "valor_total") } },
     vendas: { pedidos: vendas.data.length, receita: s(vendas.data, "receita_total"), cmv: s(vendas.data, "cmv") },
     nfs: { notas: nfsP.data.length, receita: s(nfsP.data, "receita_total") },
     diferenca_vendas_menos_nfs: Math.round((s(vendas.data, "receita_total") - s(nfsP.data, "receita_total")) * 100) / 100,
   };
-  const pdfResumo = await pdfTexto([`Resumo do pacote contábil ${ini.slice(5, 7)}/${ini.slice(0, 4)} v${rem.versao}`, "",
+  const pdfResumo = await pdfTexto([...(previa ? [CABECALHO_PREVIA, ""] : []), `Resumo do pacote contábil ${ini.slice(5, 7)}/${ini.slice(0, 4)} v${rem.versao}`, "",
+    ...(previa ? [`Presumido na posição: ${conferencia.posicao.presumido.skus} SKUs, ${conferencia.posicao.presumido.unidades} un, ${brl(conferencia.posicao.presumido.valor)}`] : []),
     `Posição de estoque: ${conferencia.posicao.skus} SKUs, ${conferencia.posicao.unidades} un, ${brl(conferencia.posicao.valor)}`,
     `Vendas do período: ${conferencia.vendas.pedidos} pedidos, receita ${brl(conferencia.vendas.receita)}, CMV ${brl(conferencia.vendas.cmv)}`,
     `NFs do período: ${conferencia.nfs.notas} notas, receita ${brl(conferencia.nfs.receita)}`,
@@ -302,6 +333,7 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
 
   const manifesto = {
     competencia: rem.competencia, versao: rem.versao, gerado_por: rem.gerado_por,
+    natureza: rem.natureza ?? "definitiva", ...(previa ? { aviso: CABECALHO_PREVIA, presuncoes } : {}), ...(delta ? { delta_pre_final: delta } : {}),
     total_arquivos: entradas.length + 2,
     pastas, pdf_origem: { danfe_bling: pdfOrigem.bling, resumo_nfe_gerado_xml: pdfOrigem.gerado_xml, sem_pdf: pdfOrigem.sem_pdf },
     conferencia, bancos, eventos_nf: eventos, faltantes,
@@ -341,12 +373,23 @@ async function pdfTexto(linhas: string[]): Promise<Uint8Array> {
   return await doc.save();
 }
 
+const CABECALHO_PREVIA = "PRÉVIA — competência pré-fechada; posição de estoque inclui presunções";
 function pdfManifesto(m: any): Promise<Uint8Array> {
-  const L: string[] = [`Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, "", "PASTAS"];
+  const L: string[] = [...(m.natureza === "previa" ? [CABECALHO_PREVIA, ""] : []), `Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, "", "PASTAS"];
   for (const [k, v] of Object.entries(m.pastas ?? {}) as [string, any][]) L.push(`  ${k}: ${v.arquivos} arquivo(s)${v.nfs != null ? `, ${v.nfs} NF(s)` : ""}${v.valor_total != null ? `, ${brl(v.valor_total)}` : ""}`);
   L.push("", "PDF DAS NFs DE SAÍDA", `  DANFE do Bling: ${m.pdf_origem.danfe_bling}`, `  Resumo NF-e gerado do XML: ${m.pdf_origem.resumo_nfe_gerado_xml}`, `  Sem PDF: ${m.pdf_origem.sem_pdf}`);
   const c = m.conferencia;
   L.push("", "CONFERÊNCIA NFs x VENDAS", `  Vendas: ${c.vendas.pedidos} pedidos, ${brl(c.vendas.receita)}`, `  NFs: ${c.nfs.notas} notas, ${brl(c.nfs.receita)}`, `  Diferença: ${brl(c.diferenca_vendas_menos_nfs)}`, `  Posição de estoque: ${c.posicao.skus} SKUs, ${brl(c.posicao.valor)}`);
+  if (c.posicao.presumido?.skus) L.push(`  Dos quais presumidos: ${c.posicao.presumido.skus} SKUs, ${c.posicao.presumido.unidades} un, ${brl(c.posicao.presumido.valor)}`);
+  if (m.presuncoes?.length) {
+    L.push("", `PRESUNÇÕES (${m.presuncoes.length})`);
+    for (const p of m.presuncoes) L.push(`  NF ${p.nf} · ${p.fornecedor} · chegada ${p.data_chegada} · ${p.centro} · ${p.unidades} un · valor NF ${brl(p.valor_nf)} · presumido ${brl(p.valor_presumido)} · ${p.motivo}`);
+  }
+  if (m.delta_pre_final) {
+    const d = m.delta_pre_final;
+    L.push("", "DELTA PRÉ-FECHAMENTO x FINAL", `  Quantidade: presumida ${d.qtd_presumida}, real ${d.qtd_real}, delta ${d.delta_qtd}`, `  Valor: presumido ${brl(d.valor_presumido)}, real ${brl(d.valor_real)}, delta ${brl(d.delta_valor)}`);
+    for (const l of d.itens ?? []) L.push(`  NF ${l.nf} ${l.sku}: qtd ${l.qtd_presumida} -> ${l.qtd_real}, valor ${brl(l.valor_presumido)} -> ${brl(l.valor_real)}`);
+  }
   L.push("", "CONTAS BANCÁRIAS");
   for (const [k, v] of Object.entries(m.bancos ?? {}) as [string, any][]) L.push(`  ${k}: ${v.importacoes} importação(ões), ${v.com_arquivo} com arquivo, ${v.linhas ?? 0} linhas, saldo inicial ${brl(v.saldo_inicial)}, final ${brl(v.saldo_final)}, ${v.nao_conciliadas ?? 0} não conciliadas`);
   L.push("", `NFs CANCELADAS (${(m.eventos_nf ?? []).length}) - evento de cancelamento/CC-e indisponível na origem`);
