@@ -1683,6 +1683,32 @@ serve(async (req) => {
   if (cronSecret !== esperado) return err("x-cron-secret inválido.", 401);
 
   const body = await req.json().catch(() => ({}));
+
+  // DEV-TRS-AUTO (03/11/2026): envio inicial da TRS de retorno de devolução, disparado pela rotina devolucao-nf-verifica.
+  // Só a TRS vinculada à devolução, com natureza transferencia_retorno_devolucao e ainda sem pedido no Bling.
+  if (body?.trs_retorno_devolucao_id) {
+    const devId = String(body.trs_retorno_devolucao_id);
+    const { data: dev, error: devErr } = await supabase
+      .from("devolucao").select("id, criado_por, transferencia_pedido_id").eq("id", devId).maybeSingle();
+    if (devErr) return err(`Falha ao ler a devolução: ${devErr.message}`, 500);
+    if (!dev || !dev.transferencia_pedido_id || dev.transferencia_pedido_id !== body?.pedido_id) {
+      return err("TRS de retorno inválida: exige a TRS vinculada à devolução", 409);
+    }
+    const { data: ped, error: pedErr } = await supabase
+      .from("pedidos").select("bling_id_destino, naturezas_operacao(codigo)").eq("id", dev.transferencia_pedido_id).maybeSingle();
+    if (pedErr) return err(`Falha ao ler a TRS: ${pedErr.message}`, 500);
+    if ((ped as any)?.naturezas_operacao?.codigo !== "transferencia_retorno_devolucao") {
+      return err("Pedido não é TRS de retorno de devolução", 409);
+    }
+    if ((ped as any)?.bling_id_destino) return err("TRS já está no Bling — nada a enviar", 409);
+    if (!dev.criado_por) return err("Devolução sem criado_por — não há ator para o envio", 409);
+    return await handle(req, {
+      devolucaoId: devId,
+      criadoPor: String(dev.criado_por),
+      body: { pedido_id: dev.transferencia_pedido_id },
+    });
+  }
+
   const devolucaoId = body?.refaturar_devolucao_id ? String(body.refaturar_devolucao_id) : "";
   if (body?.acao !== "reenviar" || !devolucaoId) {
     return err("Modo sistema aceita apenas acao='reenviar' com refaturar_devolucao_id", 403);
