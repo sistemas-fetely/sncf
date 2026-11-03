@@ -271,7 +271,7 @@ async function handle(req: Request, sis: ModoSistema | null): Promise<Response> 
     if (pedido.natureza_operacao_id) {
       const { data: natDim, error: natDimErr } = await supabase
         .from("naturezas_operacao")
-        .select("bling_natureza_id, nome")
+        .select("bling_natureza_id, nome, codigo")
         .eq("id", pedido.natureza_operacao_id)
         .maybeSingle();
       if (natDimErr) {
@@ -280,6 +280,10 @@ async function handle(req: Request, sis: ModoSistema | null): Promise<Response> 
       naturezaNome = natDim?.nome ?? null;
       if (natDim?.bling_natureza_id != null) {
         blingNaturezaId = Number(natDim.bling_natureza_id);
+      }
+      // DEV-TRS-AUTO (03/11/2026): TRS de retorno de devolução só vai ao Bling com a natureza fiscal (CFOP) ligada.
+      if (natDim?.codigo === "transferencia_retorno_devolucao" && blingNaturezaId == null) {
+        return err(`Natureza "${naturezaNome}" sem natureza fiscal do Bling (CFOP) ligada — aguardando a Eva. Nada foi enviado ao Bling.`, 409);
       }
     }
 
