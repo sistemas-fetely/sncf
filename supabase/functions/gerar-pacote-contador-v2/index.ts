@@ -308,10 +308,10 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
   const contasSem = [...new Set(semArq.map((i: any) => i.conta_bancaria_id).filter(Boolean))];
   const comArqTodas = contasSem.length ? await todas(admin.from("extrato_importacoes").select("id,conta_bancaria_id,fonte_tipo,nome_arquivo,periodo_inicio,periodo_fim,created_at,arquivo_storage_path")
     .in("conta_bancaria_id", contasSem).not("arquivo_storage_path", "is", null).neq("status", "erro")) : [];
-  const { cobertas, faltantes: semCobertura } = separarCobertas(semArq, comArqTodas);
+  const { cobertas, faltantes: semCobertura } = separarCobertas(semArq, comArqTodas, { inicio: ini, fim: fimP });
   const idsFaltam = new Set(semCobertura.map((i) => i.id));
   const descImp = (i: any) => ({ nome: i.nome_arquivo ?? "?", fonte: i.fonte_tipo, conta: nomeConta.get(i.conta_bancaria_id) ?? "sem_conta", importada_em: String(i.created_at).slice(0, 10), periodo: `${i.periodo_inicio ?? "?"} a ${i.periodo_fim ?? "?"}` });
-  const cobertasReimportacao = cobertas.map((c) => ({ antiga: descImp(c.antiga), com_arquivo: descImp(c.com_arquivo), criterio: c.criterio }));
+  const cobertasReimportacao = cobertas.map((c) => ({ antiga: descImp(c.antiga), com_arquivo: descImp(c.com_arquivo), com_arquivos: (c.com_arquivos ?? [c.com_arquivo]).map(descImp), criterio: c.criterio }));
   for (const imp of imps) {
     const cn = nomeConta.get(imp.conta_bancaria_id) ?? "sem_conta";
     bancos[cn] ??= { importacoes: 0, com_arquivo: 0, cobertas_reimportacao: 0 };
@@ -425,7 +425,7 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
   L.push("", `NFs CANCELADAS (${(m.eventos_nf ?? []).length}) - evento de cancelamento/CC-e indisponível na origem`);
   for (const e of m.eventos_nf ?? []) L.push(`  NF ${e.numero}`);
   if (m.cobertas_reimportacao?.total) {
-    const rot: Record<string, string> = { mesmo_nome: "mesmo nome", periodo_contido: "período contido" };
+    const rot: Record<string, string> = { mesmo_nome: "mesmo nome", periodo_coberto_na_competencia: "período coberto na competência" };
     L.push("", `COBERTAS POR REIMPORTAÇÃO (${m.cobertas_reimportacao.total})`);
     for (const c of m.cobertas_reimportacao.itens) L.push(`  ${c.antiga.nome} (${c.antiga.fonte}, ${c.antiga.conta}, ${c.antiga.importada_em}) -> ${c.com_arquivo.nome} (${c.com_arquivo.importada_em}) · ${rot[c.criterio] ?? c.criterio}`);
   }
