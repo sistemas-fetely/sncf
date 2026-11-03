@@ -32,7 +32,7 @@ type Previa = {
 };
 const TH = "sticky top-0 bg-background z-10";
 
-export function RetornosALancarPainel({ parceiroId, parceiroNome }: { parceiroId: string; parceiroNome: string }) {
+export function RetornosALancarPainel({ parceiroId, parceiroNome, ocultarSemPendencia = false }: { parceiroId: string; parceiroNome: string; ocultarSemPendencia?: boolean }) {
   const sb = supabase as any;
   const [sel, setSel] = useState<Retorno | null>(null);
   const [destino, setDestino] = useState("");
@@ -86,6 +86,8 @@ export function RetornosALancarPainel({ parceiroId, parceiroNome }: { parceiroId
   const travados = previa?.travados ?? [];
   const podeConfirmar = !!previa && travados.length === 0 && previa.ok !== false;
 
+  if (ocultarSemPendencia && !q.isError && (q.isLoading || !q.data?.length)) return null;
+
   return (
     <Card>
       <CardHeader>
@@ -103,7 +105,7 @@ export function RetornosALancarPainel({ parceiroId, parceiroNome }: { parceiroId
                 <TableHead>Sugestão da regra</TableHead><TableHead />
               </TableRow></TableHeader>
               <TableBody>
-                {q.data!.map(r => (
+                {(q.data ?? []).map(r => (
                   <TableRow key={r.stage_id}>
                     <TableCell className="font-mono">{r.nf_numero ?? "—"}</TableCell>
                     <TableCell>{fmtData(r.nf_data)}</TableCell>

@@ -46,8 +46,9 @@ import { VisaoConsignado } from "./consignado/VisaoConsignado";
 import { ContratoConsignadoDialog } from "@/components/consignado/ContratoConsignadoDialog";
 import { RemessasAVincularPainel } from "@/components/consignado/RemessasAVincularPainel";
 import { RetornosALancarPainel } from "@/components/consignado/RetornosALancarPainel";
-import { FecharCicloVendaForaPainel } from "@/components/consignado/FecharCicloVendaForaPainel";
-import { MesAMesVendaFora } from "@/components/consignado/VendaForaVistas";
+import { ImportarVendaForaPainel } from "@/components/consignado/ImportarVendaForaPainel";
+import { ResumoVendaFora, EstoqueVendaForaTabela, DocumentosVendaFora } from "@/components/consignado/VendaForaContinuo";
+import { MesAMesVendaFora, RecebiveisVendaFora } from "@/components/consignado/VendaForaVistas";
 import { NfRetornoAcertoBloco } from "@/components/consignado/NfRetornoAcertoBloco";
 import { urlTitulo } from "@/hooks/tarefas/useTitulosParaVinculo";
 
@@ -318,11 +319,11 @@ export default function ConsignadoDetalhe() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("id, razao_social, nome_fantasia, cnpj, consignado_cadencia_dias, consignado_dia_acerto, consignado_dia_fechamento")
+        .select("id, razao_social, nome_fantasia, cnpj, consignado_modelo, consignado_cadencia_dias, consignado_dia_acerto, consignado_dia_fechamento")
         .eq("id", parceiroId)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_cadencia_dias: number | null; consignado_dia_acerto: number | null; consignado_dia_fechamento: number | null } | null;
+      return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_modelo: string | null; consignado_cadencia_dias: number | null; consignado_dia_acerto: number | null; consignado_dia_fechamento: number | null } | null;
     },
   });
 
@@ -391,7 +392,16 @@ export default function ConsignadoDetalhe() {
 
   // FONTE DO MODELO: a conta corrente manda; a view de limite é o espelho.
   const modelo: string | null = cc?.consignado_modelo ?? limite?.consignado_modelo ?? null;
-  const ehVendaFora = modelo === "venda_fora" || contratoQ.data?.modelo === "venda_fora";
+  const ehVendaFora = parceiroQ.data?.consignado_modelo === "venda_fora" || modelo === "venda_fora" || contratoQ.data?.modelo === "venda_fora";
+  const modeloVendaForaQ = useQuery({
+    queryKey: ["consignado-modelo-dim", parceiroQ.data?.consignado_modelo],
+    enabled: ehVendaFora,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("consignado_modelo_dim").select("nome").eq("codigo", parceiroQ.data?.consignado_modelo ?? "venda_fora").single();
+      if (error) throw error;
+      return data;
+    },
+  });
   const ehConsignacaoFiscal = modelo === "consignacao_fiscal";
   const diaAcerto = cc?.dia_acerto ?? limite?.dia_acerto ?? null;
 
@@ -972,7 +982,7 @@ export default function ConsignadoDetalhe() {
 
 
   const nome = parceiroQ.data?.razao_social ?? "Parceiro";
-  const rotuloModelo = ehConsignacaoFiscal
+  const rotuloModelo = ehVendaFora ? modeloVendaForaQ.data?.nome ?? contratoQ.data?.modelo_nome : ehConsignacaoFiscal
     ? "Consignação fiscal"
     : modelo === "venda_com_acerto"
       ? "Venda com acerto"
@@ -1130,7 +1140,7 @@ export default function ConsignadoDetalhe() {
         subtitle={[
           parceiroQ.data?.cnpj ? `CNPJ ${parceiroQ.data.cnpj}` : null,
           rotuloModelo,
-          cadencia,
+          ehVendaFora ? null : cadencia,
         ].filter(Boolean).join(" · ")}
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1155,6 +1165,8 @@ export default function ConsignadoDetalhe() {
         }
       />
 
+      {ehVendaFora && modeloVendaForaQ.isError && <ErroBloco error={modeloVendaForaQ.error} />}
+
       {operacaoBloqueada && !ehVendaFora && (
         <Alert variant="destructive" className="border-2">
           <AlertTriangle className="h-4 w-4" />
@@ -1175,7 +1187,7 @@ export default function ConsignadoDetalhe() {
       )}
 
       <section aria-label="Resumo de gestão">
-        {resumoQ.isError ? (
+        {ehVendaFora && parceiroId ? <ResumoVendaFora parceiroId={parceiroId} /> : resumoQ.isError ? (
           <ErroBloco error={resumoQ.error} />
         ) : resumoQ.isLoading ? (
           <Carregando />
@@ -1240,8 +1252,8 @@ export default function ConsignadoDetalhe() {
       <Tabs value={secao} onValueChange={mudarSecao} className="space-y-4">
         <TabsList className="h-auto w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="visao">Visão</TabsTrigger>
-          <TabsTrigger value="ciclo">Ciclo de acerto</TabsTrigger>
-          <TabsTrigger value="remessas">Remessas e extrato</TabsTrigger>
+          <TabsTrigger value="ciclo">{ehVendaFora ? "Vendas e acerto" : "Ciclo de acerto"}</TabsTrigger>
+          <TabsTrigger value="remessas">{ehVendaFora ? "Documentos" : "Remessas e extrato"}</TabsTrigger>
           <TabsTrigger value="estoque">Estoque no parceiro</TabsTrigger>
           {ehConsignacaoFiscal && <TabsTrigger value="retorno">Retorno</TabsTrigger>}
         </TabsList>
@@ -1288,13 +1300,17 @@ export default function ConsignadoDetalhe() {
           </Card>
           <ContratoConsignadoDialog aberto={contratoAberto} onFechar={() => setContratoAberto(false)} parceiroId={parceiroId}
             onSalvo={() => { setContratoAberto(false); void contratoQ.refetch(); void qc.invalidateQueries({ queryKey: ["consignado-parceiro", parceiroId] }); }} />
-          {contratoQ.data?.modelo === "venda_fora" && parceiroId && <MesAMesVendaFora parceiroId={parceiroId} />}
+          {ehVendaFora && parceiroId && <MesAMesVendaFora parceiroId={parceiroId} />}
           <VisaoConsignado parceiroId={parceiroId} />
         </TabsContent>
 
         <TabsContent value="ciclo" className="space-y-4">
-          {contratoQ.data?.modelo === "venda_fora" && parceiroId ? (
-            <FecharCicloVendaForaPainel parceiroId={parceiroId} vigenciaInicio={contratoQ.data.vigencia_inicio} />
+          {ehVendaFora && parceiroId ? (
+            <>
+              <ImportarVendaForaPainel parceiroId={parceiroId} />
+              <MesAMesVendaFora parceiroId={parceiroId} contas />
+              <RecebiveisVendaFora parceiroId={parceiroId} />
+            </>
           ) : <>
           {/* ═══ CICLO DE ACERTO ═══ */}
           <section className="space-y-3">
@@ -1622,12 +1638,13 @@ export default function ConsignadoDetalhe() {
         </TabsContent>
 
         <TabsContent value="remessas" className="space-y-6">
-          {contratoQ.data?.modelo === "venda_fora" && parceiroId && (
+          {ehVendaFora && parceiroId && (
             <>
-              <RemessasAVincularPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} />
-              <RetornosALancarPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} />
+              <RemessasAVincularPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} ocultarSemPendencia />
+              <RetornosALancarPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} ocultarSemPendencia />
             </>
           )}
+          {ehVendaFora && parceiroId ? <DocumentosVendaFora parceiroId={parceiroId} /> : <>
           <section className="space-y-3">
             <h2 className="font-display text-xl font-normal">Remessas</h2>
             {valorDuplicidade > 0 && (
@@ -1720,9 +1737,11 @@ export default function ConsignadoDetalhe() {
               </CardContent>
             </Card>
           </section>
+          </>}
         </TabsContent>
 
         <TabsContent value="estoque" className="space-y-4">
+          {ehVendaFora && parceiroId ? <EstoqueVendaForaTabela parceiroId={parceiroId} /> : <>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-display text-xl font-normal">{ehConsignacaoFiscal ? "Estoque em poder do parceiro" : "Estoque no parceiro — estimativa"}</h2>
@@ -1820,6 +1839,7 @@ export default function ConsignadoDetalhe() {
               )}
             </CardContent>
           </Card>
+          </>}
         </TabsContent>
 
         {ehConsignacaoFiscal && <TabsContent value="retorno" className="space-y-4">

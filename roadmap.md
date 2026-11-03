@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Adaptar somente venda_fora ao processo contínuo: indicadores, vendas e contas do mês, estoque real e documentos; 11 testes passaram, Casa 22 real conferida (1.268 unidades também no saldo documental), WeConnect preservado; sem SQL/publicação. Nova importação real não executada.
 
 - [x] Substituir aviso histórico da gaveta TI pelo saldo fiscal sadio atual da origem; painel sem dependência textual, 2 testes passaram, TI-0001 real sem negativos e aviso simulado com código/saldo conferidos no navegador; sem banco/publicação.
 

@@ -32,7 +32,7 @@ type Previa = {
   previa?: { sku: string; qtd: number; origem: string; destino: string }[];
 };
 
-export function RemessasAVincularPainel({ parceiroId, parceiroNome }: { parceiroId: string; parceiroNome: string }) {
+export function RemessasAVincularPainel({ parceiroId, parceiroNome, ocultarSemPendencia = false }: { parceiroId: string; parceiroNome: string; ocultarSemPendencia?: boolean }) {
   const sb = supabase as any;
   const [sel, setSel] = useState<Remessa | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -76,6 +76,8 @@ export function RemessasAVincularPainel({ parceiroId, parceiroNome }: { parceiro
   const travados = previa?.travados ?? [];
   const podeConfirmar = !!previa && travados.length === 0 && previa.ok !== false;
 
+  if (ocultarSemPendencia && !q.isError && (q.isLoading || !q.data?.length)) return null;
+
   return (
     <Card>
       <CardHeader>
@@ -92,7 +94,7 @@ export function RemessasAVincularPainel({ parceiroId, parceiroNome }: { parceiro
                 <TableHead className="text-right">Itens</TableHead><TableHead className="text-right">Unidades</TableHead><TableHead className="text-right">Valor</TableHead><TableHead />
               </TableRow></TableHeader>
               <TableBody>
-                {q.data!.map(r => (
+                {(q.data ?? []).map(r => (
                   <TableRow key={r.nf_chave}>
                     <TableCell className="font-mono">{r.nf_numero ?? "—"}</TableCell>
                     <TableCell>{fmtData(r.nf_data)}</TableCell>

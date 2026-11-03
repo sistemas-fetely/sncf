@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatError } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
+import type { CompetenciaVendaFora } from "@/lib/consignado/vendaForaContinuo";
 import { fmtData } from "@/lib/data";
 
 const sb = supabase as any;
@@ -30,13 +31,13 @@ export function useVendaForaCompetencia(parceiroId: string) {
     queryFn: async () => {
       const { data, error } = await sb.from("vw_venda_fora_competencia").select("*").eq("parceiro_id", parceiroId).order("competencia", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as CompetenciaVendaFora[];
     },
   });
 }
 
-export function RecebiveisVendaFora({ parceiroId }: { parceiroId: string }) {
-  const q = useQuery({
+export function useVendaForaRecebiveis(parceiroId: string) {
+  return useQuery({
     queryKey: ["vw_venda_fora_recebivel", parceiroId],
     queryFn: async () => {
       const { data, error } = await sb.from("vw_venda_fora_recebivel").select("*").eq("parceiro_id", parceiroId).order("prevista_liquidacao", { ascending: false });
@@ -44,6 +45,10 @@ export function RecebiveisVendaFora({ parceiroId }: { parceiroId: string }) {
       return (data ?? []) as any[];
     },
   });
+}
+
+export function RecebiveisVendaFora({ parceiroId }: { parceiroId: string }) {
+  const q = useVendaForaRecebiveis(parceiroId);
   const badge = (s: string) => {
     const t = (s ?? "").toLowerCase();
     if (t.includes("liquid")) return <Badge className="bg-success/15 text-success hover:bg-success/15">liquidado</Badge>;
@@ -83,7 +88,7 @@ export function RecebiveisVendaFora({ parceiroId }: { parceiroId: string }) {
     </div>
   );
   return (
-    <Card>
+    <Card className="min-w-0 text-card-foreground">
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">Recebíveis da plataforma</CardTitle>
         <Button size="sm" variant="outline" disabled={rodando} onClick={() => conciliar(true)}>{rodando && !previa ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}Conciliar com extrato</Button>
@@ -102,7 +107,7 @@ export function RecebiveisVendaFora({ parceiroId }: { parceiroId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <CardContent className="p-0">
+      <CardContent className="overflow-x-auto p-0">
         <Estado q={q} vazio="Nenhum recebível importado.">
           <Table>
             <TableHeader><TableRow>
@@ -125,18 +130,19 @@ export function RecebiveisVendaFora({ parceiroId }: { parceiroId: string }) {
   );
 }
 
-export function MesAMesVendaFora({ parceiroId }: { parceiroId: string }) {
+export function MesAMesVendaFora({ parceiroId, contas = false }: { parceiroId: string; contas?: boolean }) {
   const q = useVendaForaCompetencia(parceiroId);
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">Mês a mês</CardTitle></CardHeader>
-      <CardContent className="p-0">
+    <Card className="min-w-0 text-card-foreground">
+      <CardHeader><CardTitle className="text-base">{contas ? "Contas do mês" : "Mês a mês"}</CardTitle></CardHeader>
+      <CardContent className="overflow-x-auto p-0">
         <Estado q={q} vazio="Nenhuma venda importada.">
           <Table>
             <TableHeader><TableRow>
               <TableHead>Competência</TableHead><TableHead className="text-right">Unidades</TableHead><TableHead className="text-right">Receita bruta</TableHead>
               <TableHead className="text-right">Retido plataforma</TableHead><TableHead className="text-right">MDR</TableHead>
               <TableHead className="text-right">Líquido recebido</TableHead><TableHead className="text-right">Aluguel a pagar</TableHead>
+              {contas && <><TableHead>Status do aluguel</TableHead><TableHead>Vencimento</TableHead><TableHead>Alerta</TableHead></>}
             </TableRow></TableHeader>
             <TableBody>{(q.data ?? []).map((r) => (
               <TableRow key={r.competencia}>
@@ -144,6 +150,7 @@ export function MesAMesVendaFora({ parceiroId }: { parceiroId: string }) {
                 <TableCell className="text-right">{formatBRL(r.receita_bruta)}</TableCell><TableCell className="text-right">{formatBRL(r.retido_plataforma)}</TableCell>
                 <TableCell className="text-right">{formatBRL(r.mdr)}</TableCell><TableCell className="text-right">{formatBRL(r.liquido_recebido)}</TableCell>
                 <TableCell className="text-right">{formatBRL(r.aluguel_a_pagar)}</TableCell>
+                {contas && <><TableCell><Badge variant="outline" className={r.aluguel_status === "aberto" ? "border-warning/40 bg-warning/10 text-warning" : r.aluguel_status === "pago" ? "border-success/40 bg-success/10 text-success" : ""}>{r.aluguel_status ?? "—"}</Badge></TableCell><TableCell>{fmtData(r.aluguel_vencimento)}</TableCell><TableCell className="text-warning">{r.aluguel_alerta ?? "—"}</TableCell></>}
               </TableRow>
             ))}</TableBody>
           </Table>

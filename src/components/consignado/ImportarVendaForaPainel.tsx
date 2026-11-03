@@ -16,11 +16,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatError } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { fmtData, hojeISO } from "@/lib/data";
+import type { LancamentosMes } from "@/lib/consignado/vendaForaContinuo";
+import { Badge } from "@/components/ui/badge";
 import {
   caminhoXmlSaida, lerEstoque, lerLiquidacoes, lerResumoSeller, lerXmlZip, periodoDoNome, type NfLida,
 } from "@/lib/consignado/vendaForaImport";
 
 type Res = Record<string, any>;
+
+function ContasPrevistas({ meses }: { meses: LancamentosMes[] }) {
+  return <div className="space-y-2">
+    <p className="text-sm font-medium">Contas do mês que serão geradas/atualizadas</p>
+    <div className="overflow-x-auto rounded-md border"><Table>
+      <TableHeader><TableRow><TableHead>Competência</TableHead><TableHead className="text-right">Receita</TableHead><TableHead>Tipo</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Ação</TableHead><TableHead className="text-right">Anterior</TableHead><TableHead>Status da conta</TableHead></TableRow></TableHeader>
+      <TableBody>{meses.flatMap(m => m.lancamentos.map((l, i) => <TableRow key={`${m.competencia}-${l.tipo}-${i}`}>
+        <TableCell>{m.competencia.slice(0, 7).split("-").reverse().join("/")}</TableCell><TableCell className="text-right">{formatBRL(m.receita)}</TableCell><TableCell>{l.tipo}</TableCell><TableCell className="text-right">{formatBRL(l.valor)}</TableCell><TableCell><Badge variant="outline" className={l.acao === "alerta" ? "border-warning/40 text-warning" : ""}>{l.acao}</Badge></TableCell><TableCell className="text-right">{l.anterior == null ? "—" : formatBRL(l.anterior)}</TableCell><TableCell>{l.status_conta ?? "—"}</TableCell>
+      </TableRow>))}{!meses.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma conta prevista.</TableCell></TableRow>}</TableBody>
+    </Table></div>
+  </div>;
+}
 
 export function TabelaGenerica({ linhas }: { linhas: Record<string, unknown>[] }) {
   const cols = Object.keys(linhas[0] ?? {});
@@ -61,7 +75,7 @@ export function ImportarVendaForaPainel({ parceiroId }: { parceiroId: string }) 
     if (estoque && !lojaFinal) throw new Error("Informe o código da loja para ler o estoque.");
     const payload = {
       periodo_inicio: ini, periodo_fim: fim, data_ref_estoque: dataRef, loja: lojaFinal || null,
-      arquivos: [resumo, zip, estoque, liq].filter(Boolean).map((f) => f!.name),
+      arquivos: [resumo, zip, estoque, liq].filter((f): f is File => f !== null).map((f) => f.name),
       unidades: r.unidades, devolucoes: r.devolucoes, nfs,
       estoque: estoque ? await lerEstoque(estoque, lojaFinal) : [],
       liquidacoes: liq ? await lerLiquidacoes(liq) : [],
@@ -96,8 +110,10 @@ export function ImportarVendaForaPainel({ parceiroId }: { parceiroId: string }) 
         ...csp.map((c) => `Crédito sem par: ${fmtData(c.data)} ${formatBRL(c.valor)}${c.motivo ? ` (${c.motivo})` : ""}`),
         ...lsc.map((l) => `Liquidação sem crédito: ${l.liquidacao} ${formatBRL(l.valor)} ${fmtData(l.data)}`),
       ];
+      const lancamentos: LancamentosMes[] = r.lancamentos_mes ?? [];
+      const contas = lancamentos.flatMap(m => m.lancamentos.map(l => `${m.competencia.slice(0, 7).split("-").reverse().join("/")} · ${l.tipo}: ${formatBRL(l.valor)} · ${l.acao}${l.status_conta ? ` · ${l.status_conta}` : ""}`));
       toast.success(`Importado: ${r.unidades_novas ?? 0} unidades novas, ${r.unidades_atualizadas ?? 0} atualizadas, ${r.nfs_novas ?? 0} NFs novas. ${conc.conciliadas ?? 0} liquidações conciliadas com o banco.`,
-        pend.length ? { description: <div className="space-y-0.5 text-xs">{pend.map((t, i) => <div key={i}>{t}</div>)}</div>, duration: Infinity, closeButton: true } : undefined);
+        pend.length || contas.length ? { description: <div className="max-h-60 space-y-0.5 overflow-y-auto text-xs">{contas.length > 0 && <p className="font-medium">Contas do mês</p>}{[...contas, ...pend].map((t, i) => <div key={i}>{t}</div>)}</div>, duration: Infinity, closeButton: true } : undefined);
       await qc.invalidateQueries();
       setRes(null);
     } catch (e) {
@@ -119,7 +135,7 @@ export function ImportarVendaForaPainel({ parceiroId }: { parceiroId: string }) 
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Importar relatório da plataforma (Sublimity)</CardTitle>
-        <p className="text-xs text-muted-foreground">Os arquivos são lidos no seu navegador. Reimportar o mesmo arquivo é seguro: unidades já gravadas são só atualizadas (pelo lacre) e NFs já existentes não se repetem.</p>
+        <p className="text-xs text-muted-foreground">As vendas baixam o estoque da Casa 22 pela NF série 2; as contas do mês (aluguel, comissão e MDR) são geradas/atualizadas a cada importação; os pagamentos da plataforma são conciliados com o extrato.</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -160,6 +176,7 @@ export function ImportarVendaForaPainel({ parceiroId }: { parceiroId: string }) 
               <p className="text-sm font-medium">Baixa de estoque por SKU</p>
               {(res.baixa_estoque ?? []).length ? <TabelaGenerica linhas={res.baixa_estoque} /> : <p className="text-sm text-muted-foreground">Nenhuma baixa.</p>}
             </div>
+            <ContasPrevistas meses={res.lancamentos_previstos ?? []} />
             <div className="space-y-1">
               <p className="text-sm font-medium">Divergências de estoque SNCF × plataforma</p>
               {div.length ? <TabelaGenerica linhas={div} /> : (
