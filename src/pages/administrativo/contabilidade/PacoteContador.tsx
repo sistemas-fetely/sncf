@@ -3,7 +3,7 @@
  *
  * Backend pronto: vw_contabil_competencias, fn_contabil_posicao,
  * vw_contabil_vendas_periodo, vw_contabil_nfs_periodo, vw_contabil_remessas
- * e a edge function gerar-pacote-contabil. Esta tela apenas CONSOME.
+ * fn_remessa_contador_iniciar + gerar-pacote-contador-v2 (ZIP em segundo plano) e remessa-contador-novo-link.
  *
  * REGRA DURA: só competência fechada gera pacote.
  * FAIL-LOUD: upload e chamada de função com await; erro real vai pro toast.
