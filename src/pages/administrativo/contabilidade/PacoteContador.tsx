@@ -3,7 +3,7 @@
  *
  * Backend pronto: vw_contabil_competencias, fn_contabil_posicao,
  * vw_contabil_vendas_periodo, vw_contabil_nfs_periodo, vw_contabil_remessas
- * e a edge function gerar-pacote-contabil. Esta tela apenas CONSOME.
+ * fn_remessa_contador_iniciar + gerar-pacote-contador-v2 (ZIP em segundo plano) e remessa-contador-novo-link.
  *
  * REGRA DURA: só competência fechada gera pacote.
  * FAIL-LOUD: upload e chamada de função com await; erro real vai pro toast.
@@ -27,6 +27,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { rawMessage } from "@/lib/format-error";
 import { useNivel } from "@/hooks/useNivel";
+import { Progress } from "@/components/ui/progress";
+import { linkExpirado, percentualRemessa, precisaRetomar, type ProgressoRemessa } from "@/lib/contabil/remessaPacote";
+
+/** Dispara (ou retoma) a geração do ZIP em segundo plano. Erro real vai para quem chamou. */
+async function chamarGeracao(remessaId: string, planilhaPath: string | null) {
+  const { data, error } = await supabase.functions.invoke("gerar-pacote-contador-v2", {
+    body: { remessa_id: remessaId, ...(planilhaPath ? { planilha_path: planilhaPath } : {}) },
+  });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    let m = error.message;
+    try { const b = ctx ? await ctx.json() : null; if (b?.erro) m = b.erro; } catch { /* mantém */ }
+    throw new Error(m);
+  }
+  const r = data as { ok?: boolean; erro?: string } | null;
+  if (!r?.ok) throw new Error(r?.erro ?? "Falha ao iniciar a geração");
+}
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
@@ -87,6 +104,15 @@ interface LinhaNf {
   cmv: number;
 }
 
+interface ParteRemessa {
+  indice: number;
+  path: string;
+  bytes: number;
+  arquivos: number;
+  link?: string | null;
+  link_expira_em?: string | null;
+}
+
 interface Remessa {
   id: string;
   competencia: string | null;
@@ -96,8 +122,20 @@ interface Remessa {
   unidades: number | null;
   valor_custo: number | null;
   link_signed: string | null;
+  link_expira_em: string | null;
   link_expirado: boolean | null;
+  observacao: string | null;
+  versao: number | null;
+  status: "gerando" | "pronto" | "erro" | null;
+  progresso: ProgressoRemessa | null;
+  erro_mensagem: string | null;
+  partes: ParteRemessa[] | null;
+  manifesto: { faltantes?: unknown[]; total_arquivos?: number } | null;
+  gerado_em: string | null;
+  gerado_por_nome: string | null;
 }
+
+const fmtMB = (b: number) => `${(b / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
 
 /* ───────────────────────────── formato ───────────────────────────── */
 
@@ -204,6 +242,40 @@ export default function PacoteContador() {
       if (error) throw error;
       return (data ?? []) as unknown as Remessa[];
     },
+    // Acompanha a geração em segundo plano a cada 3 s enquanto houver remessa gerando.
+    refetchInterval: (q) => ((q.state.data as Remessa[] | undefined)?.some((r) => r.status === "gerando") ? 3000 : false),
+  });
+
+  // Retoma a geração quando a rotina pausou por tempo ou parou de dar sinal (uma chamada por sinal).
+  const [retomadas, setRetomadas] = useState<Record<string, string>>({});
+  useEffect(() => {
+    for (const r of remessas.data ?? []) {
+      const marca = r.progresso?.atualizado_em ?? "";
+      if (!precisaRetomar(r.status, r.progresso) || retomadas[r.id] === marca) continue;
+      setRetomadas((m) => ({ ...m, [r.id]: marca }));
+      chamarGeracao(r.id, null).catch((e) => toast.error(`Retomada do pacote falhou: ${rawMessage(e)}`, { duration: Infinity, closeButton: true }));
+    }
+  }, [remessas.data, retomadas]);
+
+  const novoLink = useMutation({
+    mutationFn: async ({ id, reenviar }: { id: string; reenviar: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("remessa-contador-novo-link", { body: { remessa_id: id, reenviar } });
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        let m = error.message;
+        try { const b = ctx ? await ctx.json() : null; if (b?.erro) m = b.erro; } catch { /* mantém */ }
+        throw new Error(m);
+      }
+      const r = data as { ok: boolean; erro?: string; email?: { enviados: number; erros: string[] } | null };
+      if (!r?.ok) throw new Error(r?.erro ?? "Falha sem mensagem");
+      return { ...r, reenviar };
+    },
+    onSuccess: (r) => {
+      if (r.reenviar) toast.success(`Reenviado para ${r.email?.enviados ?? 0} destinatário(s)` + (r.email?.erros.length ? ` · falhas: ${r.email.erros.join("; ")}` : ""), { duration: Infinity, closeButton: true });
+      else toast.success("Novo link gerado (30 dias)");
+      qc.invalidateQueries({ queryKey: ["contabil-remessas"] });
+    },
+    onError: (e) => toast.error(rawMessage(e), { duration: Infinity, closeButton: true }),
   });
 
   const linhasPosicao = posicao.data ?? [];
@@ -327,53 +399,33 @@ export default function PacoteContador() {
     });
   };
 
+  // v2 (03/11/2026): a remessa nasce pela RPC; a planilha sobe para o bucket contabil e o ZIP
+  // é montado em segundo plano pela rotina gerar-pacote-contador-v2 (a antiga não é mais chamada).
   const gerar = useMutation({
     mutationFn: async () => {
       if (!selecionada || !comp) throw new Error("Selecione uma competência");
       if (comp.status !== "fechado") throw new Error("Feche a competência antes de gerar o pacote");
-
-      const blob = montarPlanilha();
-      const mes = selecionada.slice(0, 7); // YYYY-MM
-      const storagePath = `fechamento/${mes}/${crypto.randomUUID()}.xlsx`;
-
-      const { error: errUp } = await supabase.storage
-        .from("pacotes-contador")
-        .upload(storagePath, blob, {
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          upsert: false,
-        });
-      if (errUp) throw errUp; // upload falhou: NÃO chama a edge function
-
-      const emails = destinatarios
-        .split(/[,;\s]+/)
-        .map((e) => e.trim())
-        .filter((e) => e.includes("@"));
-
-      const { data, error } = await supabase.functions.invoke("gerar-pacote-contabil", {
-        body: {
-          competencia: selecionada,
-          storage_path: storagePath,
-          destinatarios: emails,
-          observacao: observacao.trim() || null,
-        },
+      const emails = destinatarios.split(/[,;\s]+/).map((e) => e.trim()).filter((e) => e.includes("@"));
+      const { data: ini, error: errIni } = await supabase.rpc("fn_remessa_contador_iniciar", {
+        p_competencia: selecionada,
+        p_destinatarios: emails,
+        p_observacao: observacao.trim() || null,
       });
-      if (error) throw error;
-      const resp = data as { ok?: boolean; erro?: string; link_signed?: string } | null;
-      if (!resp?.ok) throw new Error(resp?.erro || "Falha ao registrar o pacote");
-
-      // download local imediato
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Fetely_Estoque_Contabil_${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      return resp;
+      if (errIni) throw errIni;
+      const r = ini as { remessa_id: string; versao: number };
+      const planilhaPath = `pacotes/${selecionada.slice(0, 7)}/v${r.versao}/planilha.xlsx`;
+      const { error: errUp } = await supabase.storage.from("contabil").upload(planilhaPath, montarPlanilha(), {
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        upsert: true,
+      });
+      // Sem planilha o pacote segue e o manifesto a lista como faltante — mas o erro aparece.
+      if (errUp) toast.error(`Planilha não foi guardada: ${errUp.message}`, { duration: Infinity, closeButton: true });
+      await chamarGeracao(r.remessa_id, errUp ? null : planilhaPath);
+      return r;
     },
-    onError: (e) => toast.error(rawMessage(e)),
-    onSuccess: () => {
-      toast.success(`Pacote de ${comp?.rotulo} gerado.`);
+    onError: (e) => toast.error(rawMessage(e), { duration: Infinity, closeButton: true }),
+    onSuccess: (r) => {
+      toast.success(`Pacote de ${comp?.rotulo} v${r.versao} em geração.`);
       qc.invalidateQueries({ queryKey: ["contabil-remessas"] });
     },
   });
@@ -640,39 +692,79 @@ export default function PacoteContador() {
               <thead className="border-b bg-muted/40">
                 <tr>
                   <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Competência</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Enviado em</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Versão</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Gerado por / em</th>
                   <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Destinatários</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Unidades</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Valor</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Link</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Observação</th>
+                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Pacote</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {historicoFiltrado.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/30">
-                    <td className="whitespace-nowrap px-3 py-2 font-medium">{r.rotulo ?? fmtData(r.competencia)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
-                      {fmtDataHora(r.enviada_em)}
-                    </td>
-                    <td className="max-w-[320px] truncate px-3 py-2 text-muted-foreground">
-                      {(r.destinatarios ?? []).join(", ") || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUn(r.unidades)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(r.valor_custo)}</td>
-                    <td className="px-3 py-2 text-right">
-                      {r.link_expirado || !r.link_signed ? (
-                        <Selo estado="warning">Link expirado</Selo>
-                      ) : (
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={r.link_signed} target="_blank" rel="noreferrer">
-                            <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                            Baixar
-                          </a>
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {historicoFiltrado.map((r) => {
+                  const v2 = r.status != null;
+                  const expirado = v2 ? linkExpirado(r.link_expira_em) : r.link_expirado || !r.link_signed;
+                  const faltantes = r.manifesto?.faltantes?.length ?? 0;
+                  return (
+                    <tr key={r.id} className="align-top hover:bg-muted/30">
+                      <td className="whitespace-nowrap px-3 py-2 font-medium">{r.rotulo ?? fmtData(r.competencia)}</td>
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums">{r.versao ? `v${r.versao}` : "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                        <div>{r.gerado_por_nome ?? "—"}</div>
+                        <div className="tabular-nums text-xs">{fmtDataHora(r.gerado_em ?? r.enviada_em)}</div>
+                      </td>
+                      <td className="max-w-[260px] truncate px-3 py-2 text-muted-foreground">
+                        {(r.destinatarios ?? []).join(", ") || "—"}
+                      </td>
+                      <td className="max-w-[220px] truncate px-3 py-2 text-muted-foreground">{r.observacao ?? "—"}</td>
+                      <td className="min-w-[260px] px-3 py-2 text-right">
+                        {r.status === "gerando" ? (
+                          <div className="space-y-1 text-left">
+                            <Progress value={percentualRemessa(r.status, r.progresso)} className="h-2" />
+                            <p className="text-xs text-muted-foreground">{r.progresso?.etapa_rotulo ?? "Iniciando…"}</p>
+                          </div>
+                        ) : r.status === "erro" ? (
+                          <p className="whitespace-pre-wrap break-words text-left text-xs text-destructive">{r.erro_mensagem ?? "Erro sem mensagem"}</p>
+                        ) : v2 ? (
+                          <div className="flex flex-col items-end gap-1">
+                            {!expirado && (r.partes ?? []).map((p) => (
+                              <Button key={p.indice} variant="outline" size="sm" asChild>
+                                <a href={p.link ?? "#"} target="_blank" rel="noreferrer">
+                                  <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                                  {(r.partes ?? []).length > 1 ? `Parte ${p.indice}` : "Baixar"} · {fmtMB(p.bytes)}
+                                </a>
+                              </Button>
+                            ))}
+                            {expirado && <Selo estado="warning">Link expirado</Selo>}
+                            {faltantes > 0 && <span className="text-xs text-warning">{faltantes} faltante(s) no manifesto</span>}
+                            {temNivel(3) && (
+                              <div className="flex gap-1">
+                                {expirado && (
+                                  <Button size="sm" variant="ghost" disabled={novoLink.isPending} onClick={() => novoLink.mutate({ id: r.id, reenviar: false })}>
+                                    Gerar novo link
+                                  </Button>
+                                )}
+                                {(r.destinatarios ?? []).length > 0 && (
+                                  <Button size="sm" variant="ghost" disabled={novoLink.isPending} onClick={() => novoLink.mutate({ id: r.id, reenviar: true })}>
+                                    Reenviar
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : expirado ? (
+                          <Selo estado="warning">Link expirado</Selo>
+                        ) : (
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={r.link_signed!} target="_blank" rel="noreferrer">
+                              <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                              Baixar
+                            </a>
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -288,6 +288,13 @@
       "when": 1793713511449,
       "tag": "0040_devolucao_nf_registrar_sem_pedido",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793713911485,
+      "tag": "0041_pacote_contador_v2_remessa",
+      "breakpoints": true
     }
   ]
 }

@@ -77,3 +77,4 @@
 - [x] Devoluções: sem reembolso na loja não é divergência (função + bloco Financeiro + botão nunca grava declaração vazia); sem publicação.
 - [x] Diagnóstico DEV-B2C-1401: consulta só leitura ao Bling (edge temporária removida)
 - [x] DEV-NF-VERIFICA-AUTO: regra única, botão com resultado fixo, cron 15 min, 1ª rodada
+- [x] Pacote do Contador v2 Fase 2 (blocos 3 e 4)
