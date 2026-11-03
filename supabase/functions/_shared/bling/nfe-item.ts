@@ -1,5 +1,6 @@
 import type { BlingClient } from "./bling-client.ts";
 import { resolverParceiroBling } from "./parceiro-resolver.ts";
+import { cachearNfSaida } from "../nf-cache-storage.ts";
 import {
   alertarDevolucaoSemReferencia,
   extrairFinNFeDoXml,
