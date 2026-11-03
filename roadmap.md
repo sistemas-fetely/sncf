@@ -73,3 +73,5 @@
 - [x] Cópia automática no sync (sync-nfe, vd-nf-sync, sync-qive-dfe entrada)
 - [x] Testar XML de evento cancelamento/CC-e na API v3
 - [ ] Mercado Pago Fase 1 (aguardando aprovação do plano)
+
+- [x] Devoluções: sem reembolso na loja não é divergência (função + bloco Financeiro + botão nunca grava declaração vazia); sem publicação.

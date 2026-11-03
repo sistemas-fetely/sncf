@@ -25,6 +25,8 @@ export type ItemDeclaracao = { sku: string; descricao: string | null; quantidade
 export type ItemOrigem = { sku: string; descricao: string | null; quantidade: number; valor_unitario: number | null };
 export type DivergenciaLoja = {
   aplica: boolean;
+  /** true quando a loja ainda não registrou nenhum reembolso — nunca é divergência. */
+  sem_reembolso?: boolean;
   diverge?: boolean;
   reembolsado_itens?: number;
   declarado_valor?: number;
@@ -251,15 +253,16 @@ export function BannerDivergenciaLoja({ devolucaoId, onAjustar, podeAjustar }: {
   const q = useDivergenciaLoja(devolucaoId);
   if (q.error) return <div className="text-xs text-destructive">Divergência com a loja: {formatError(q.error)}</div>;
   const d = q.data;
-  if (!d?.aplica || !d.diverge) return null;
+  if (!d?.aplica || d.sem_reembolso || !d.diverge) return null;
   const itens = d.itens_divergentes ?? [];
+  const reembolsoTemItens = itens.some((i) => Number(i.reembolsado) > 0);
   return (
     <div className="mt-1 rounded-md border border-warning/30 bg-warning/10 p-2 text-xs text-warning space-y-1">
       <div className="flex items-center gap-1.5 font-medium"><AlertTriangle className="h-3.5 w-3.5" />Loja reembolsou itens que não batem com a declaração ({itens.length} SKUs)</div>
       <ul className="space-y-0.5">
         {itens.map((i) => <li key={i.sku} className="font-mono">{i.sku} · {i.reembolsado} reembolsado × {i.declarado} declarado</li>)}
       </ul>
-      {podeAjustar && (
+      {podeAjustar && reembolsoTemItens && (
         <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={async () => {
           try {
             const atual = await buscarDeclaracaoAtual(devolucaoId);
@@ -269,6 +272,7 @@ export function BannerDivergenciaLoja({ devolucaoId, onAjustar, podeAjustar }: {
               if (i.reembolsado > 0) m.set(i.sku, { sku: i.sku, descricao: a?.descricao ?? null, quantidade: Number(i.reembolsado) });
               else m.delete(i.sku);
             }
+            if (m.size === 0) { toast.error("O reembolso da loja não tem itens — a declaração não pode ficar vazia."); return; }
             onAjustar([...m.values()]);
           } catch (e) { toast.error(formatError(e)); }
         }}>Ajustar declaração ao reembolso</Button>
@@ -280,7 +284,7 @@ export function BannerDivergenciaLoja({ devolucaoId, onAjustar, podeAjustar }: {
 /** Ícone âmbar na linha da tabela. */
 export function IconeDivergenciaLoja({ devolucaoId }: { devolucaoId: string }) {
   const q = useDivergenciaLoja(devolucaoId);
-  if (!q.data?.diverge) return null;
+  if (q.data?.sem_reembolso || !q.data?.diverge) return null;
   const n = q.data.itens_divergentes?.length ?? 0;
   return (
     <Tooltip>
