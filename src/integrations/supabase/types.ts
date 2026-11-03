@@ -5155,6 +5155,13 @@ export type Database = {
             foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_conciliacao_furos"
             referencedColumns: ["sugestao_stage_id"]
           },
@@ -13281,6 +13288,13 @@ export type Database = {
             foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -16899,6 +16913,13 @@ export type Database = {
             foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -17122,6 +17143,13 @@ export type Database = {
             foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -17166,6 +17194,7 @@ export type Database = {
           extrato_id: string
           id: string
           motivo_decisao: string | null
+          nfs_stage_id: string | null
           numero: string
           origem: string
           status: string
@@ -17184,6 +17213,7 @@ export type Database = {
           extrato_id: string
           id?: string
           motivo_decisao?: string | null
+          nfs_stage_id?: string | null
           numero: string
           origem: string
           status?: string
@@ -17202,6 +17232,7 @@ export type Database = {
           extrato_id?: string
           id?: string
           motivo_decisao?: string | null
+          nfs_stage_id?: string | null
           numero?: string
           origem?: string
           status?: string
@@ -17226,6 +17257,118 @@ export type Database = {
             referencedColumns: ["extrato_id"]
           },
           {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_indevida_alvo"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nfs_mercadoria"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
             foreignKeyName: "comissao_documento_fiscal_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
@@ -17244,6 +17387,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -17398,6 +17548,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_estorno_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -17603,6 +17760,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -21216,6 +21380,13 @@ export type Database = {
             foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
             columns: ["nf_retorno_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_conciliacao_furos"
             referencedColumns: ["sugestao_stage_id"]
           },
@@ -24004,6 +24175,7 @@ export type Database = {
           formato: string
           id: string
           nome_arquivo: string
+          origem: string
           periodo_fim: string | null
           periodo_inicio: string | null
           saldo_final: number | null
@@ -24024,6 +24196,7 @@ export type Database = {
           formato: string
           id?: string
           nome_arquivo: string
+          origem?: string
           periodo_fim?: string | null
           periodo_inicio?: string | null
           saldo_final?: number | null
@@ -24044,6 +24217,7 @@ export type Database = {
           formato?: string
           id?: string
           nome_arquivo?: string
+          origem?: string
           periodo_fim?: string | null
           periodo_inicio?: string | null
           saldo_final?: number | null
@@ -28015,6 +28189,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_stage"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "despesas_documento_id_fkey"
@@ -35641,6 +35822,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_stage"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
@@ -46159,6 +46347,47 @@ export type Database = {
           },
         ]
       }
+      mp_extrato_mensal_execucao: {
+        Row: {
+          competencia: string
+          erro: string | null
+          extrato_id: string | null
+          mp_report_id: number | null
+          solicitado_em: string
+          solicitado_por: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          competencia: string
+          erro?: string | null
+          extrato_id?: string | null
+          mp_report_id?: number | null
+          solicitado_em?: string
+          solicitado_por?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          competencia?: string
+          erro?: string | null
+          extrato_id?: string | null
+          mp_report_id?: number | null
+          solicitado_em?: string
+          solicitado_por?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mp_extrato_mensal_execucao_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "contabil_extrato_mensal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mp_relatorio_enriquecimento: {
         Row: {
           arquivo_bytes: number | null
@@ -47509,6 +47738,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_stage"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
@@ -49495,6 +49731,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_stage"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
@@ -61523,6 +61766,13 @@ export type Database = {
             foreignKeyName: "pedido_vendedor_divergencia_vendedor_fop_id_fkey"
             columns: ["vendedor_fop_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedido_vendedor_divergencia_vendedor_fop_id_fkey"
+            columns: ["vendedor_fop_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -61573,6 +61823,13 @@ export type Database = {
             columns: ["vendedor_sncf_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedido_vendedor_divergencia_vendedor_sncf_id_fkey"
+            columns: ["vendedor_sncf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -63718,6 +63975,13 @@ export type Database = {
             foreignKeyName: "pedidos_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -65203,6 +65467,13 @@ export type Database = {
             foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -65290,6 +65561,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_habilitacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -65403,6 +65681,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -91551,6 +91836,13 @@ export type Database = {
             foreignKeyName: "vendedor_alias_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_alias_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -91629,6 +91921,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -104887,6 +105186,13 @@ export type Database = {
             foreignKeyName: "pedidos_vendedor_id_fkey"
             columns: ["vendedor_abertura_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_abertura_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -105971,6 +106277,13 @@ export type Database = {
             foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -106084,6 +106397,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -106268,6 +106588,13 @@ export type Database = {
             foreignKeyName: "comissao_extrato_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -106337,6 +106664,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -106436,6 +106770,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -107200,6 +107541,13 @@ export type Database = {
             foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -107232,6 +107580,21 @@ export type Database = {
             referencedColumns: ["vendedor_id"]
           },
         ]
+      }
+      vw_comissao_nf_sem_extrato: {
+        Row: {
+          capturada_em: string | null
+          cnpj: string | null
+          descricao: string | null
+          nf_data_emissao: string | null
+          nf_numero: string | null
+          nfs_stage_id: string | null
+          pj: string | null
+          representante: string | null
+          valor: number | null
+          vendedor_id: string | null
+        }
+        Relationships: []
       }
       vw_comissao_pagamento_mes: {
         Row: {
@@ -110945,6 +111308,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nfs_stage"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
           },
           {
             foreignKeyName: "despesas_documento_id_fkey"
@@ -127613,6 +127983,13 @@ export type Database = {
             foreignKeyName: "pedidos_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -131158,6 +131535,13 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
             referencedColumns: ["vendedor_id"]
           },
           {
@@ -145506,6 +145890,13 @@ export type Database = {
             foreignKeyName: "pedidos_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -152161,6 +152552,13 @@ export type Database = {
             foreignKeyName: "pedidos_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["vendedor_id"]
           },
@@ -156287,6 +156685,7 @@ export type Database = {
         Returns: Json
       }
       fn_comissao_apurar_pendentes: { Args: never; Returns: Json }
+      fn_comissao_casar_nf: { Args: { p_nfs_stage_id: string }; Returns: Json }
       fn_comissao_decidir_diretoria: {
         Args: { p_apuracao_id: string; p_decisao: string; p_motivo?: string }
         Returns: Json
@@ -156538,6 +156937,22 @@ export type Database = {
           valor_aterrissagem: number
           valor_nf: number
         }[]
+      }
+      fn_contabil_extrato_mensal_auto_guardar: {
+        Args: {
+          p_bytes: number
+          p_competencia: string
+          p_conta: string
+          p_formato: string
+          p_nome: string
+          p_periodo_fim?: string
+          p_periodo_inicio?: string
+          p_saldo_final?: number
+          p_saldo_inicial?: number
+          p_sha256: string
+          p_storage_path: string
+        }
+        Returns: Json
       }
       fn_contabil_extrato_mensal_guardar: {
         Args: {

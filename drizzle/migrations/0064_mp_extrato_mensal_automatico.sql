@@ -1,0 +1,25 @@
+ALTER TABLE public.contabil_extrato_mensal ADD COLUMN origem text NOT NULL DEFAULT 'manual';
+ALTER TABLE public.contabil_extrato_mensal DROP CONSTRAINT contabil_extrato_mensal_formato_check;
+ALTER TABLE public.contabil_extrato_mensal ADD CONSTRAINT contabil_extrato_mensal_formato_check CHECK(formato IN ('ofx','pdf','xlsx','csv'));
+CREATE TABLE public.mp_extrato_mensal_execucao(competencia date PRIMARY KEY,status text NOT NULL DEFAULT 'aguardando',mp_report_id bigint,solicitado_em timestamptz NOT NULL DEFAULT now(),solicitado_por uuid,erro text,extrato_id uuid REFERENCES public.contabil_extrato_mensal(id),updated_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT ON public.mp_extrato_mensal_execucao TO authenticated;
+GRANT ALL ON public.mp_extrato_mensal_execucao TO service_role;
+ALTER TABLE public.mp_extrato_mensal_execucao ENABLE ROW LEVEL SECURITY;
+CREATE POLICY mp_mensal_ler ON public.mp_extrato_mensal_execucao FOR SELECT TO authenticated USING(public.pode_ler_tabela('contabil_extrato_mensal'));
+DO $$ DECLARE d text; BEGIN
+SELECT pg_get_functiondef('public.fn_contabil_extrato_mensal_guardar(date,uuid,text,text,text,text,bigint,date,date,numeric,numeric)'::regprocedure) INTO d;
+d:=replace(d,'fn_contabil_extrato_mensal_guardar(','fn_contabil_extrato_mensal_auto_guardar(');
+d:=replace(d,'v_conf jsonb;','v_conf jsonb; v_vigente boolean;');
+d:=replace(d,'IF auth.uid() IS NULL OR NOT public.usuario_tem_acao(''acao.contabil_extrato_mensal.enviar'') THEN RAISE EXCEPTION ''Sem permissão para enviar extrato mensal''; END IF;','IF current_setting(''request.jwt.claim.role'',true) IS DISTINCT FROM ''service_role'' AND session_user NOT IN (''postgres'',''supabase_admin'') THEN RAISE EXCEPTION ''Somente serviço pode guardar extrato automático''; END IF;');
+d:=replace(d,'''ofx'',''pdf'',''xlsx''','''csv''');
+d:=replace(d,'IF p_formato <> ''pdf'' AND NOT EXISTS','IF NOT EXISTS');
+d:=replace(d,'formato=p_formato AND','fonte_codigo=''mp_account_statement'' AND');
+d:=replace(d,'UPDATE public.contabil_extrato_mensal SET vigente=false WHERE competencia=v_ini AND conta_bancaria_id=p_conta AND vigente;', 'SELECT NOT EXISTS(SELECT 1 FROM public.contabil_extrato_mensal WHERE competencia=v_ini AND conta_bancaria_id=p_conta AND vigente AND origem=''manual'') INTO v_vigente; IF v_vigente THEN UPDATE public.contabil_extrato_mensal SET vigente=false WHERE competencia=v_ini AND conta_bancaria_id=p_conta AND vigente; END IF;');
+d:=replace(d,'conferencia,enviado_por)','conferencia,enviado_por,origem,vigente)');
+d:=replace(d,'v_si,v_sf,v_conf,auth.uid())','v_si,v_sf,v_conf,coalesce(auth.uid(),''00000000-0000-0000-0000-000000000000''::uuid),''api_mp'',v_vigente)');
+d:=replace(d,'''conferencia'',v_conf);','''conferencia'',v_conf,''vigente'',v_vigente);');
+EXECUTE d;
+END $$;
+REVOKE ALL ON FUNCTION public.fn_contabil_extrato_mensal_auto_guardar(date,uuid,text,text,text,text,bigint,date,date,numeric,numeric) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.fn_contabil_extrato_mensal_auto_guardar(date,uuid,text,text,text,text,bigint,date,date,numeric,numeric) TO service_role;
+REVOKE INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER ON public.mp_extrato_mensal_execucao FROM authenticated,anon;

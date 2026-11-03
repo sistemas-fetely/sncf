@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.fn_contabil_extrato_mensal_auto_guardar(date,uuid,text,text,text,text,bigint,date,date,numeric,numeric) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.fn_contabil_extrato_mensal_auto_guardar(date,uuid,text,text,text,text,bigint,date,date,numeric,numeric) TO service_role;

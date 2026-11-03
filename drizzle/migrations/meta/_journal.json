@@ -449,6 +449,27 @@
       "when": 1793749215097,
       "tag": "0063_extrato_mensal_somente_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793749624492,
+      "tag": "0064_mp_extrato_mensal_automatico",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1793750115928,
+      "tag": "0065_mp_mensal_servico_role_claim",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793750168505,
+      "tag": "0066_mp_mensal_fechar_rpc_auto",
+      "breakpoints": true
     }
   ]
 }

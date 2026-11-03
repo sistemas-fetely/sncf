@@ -1,4 +1,5 @@
 # Roadmap
+- [x] MP mensal: cron dia 1 às 06h BRT, coleta pela rotina horária existente; Gerar agora/outubro testado: 224 liberações, 01–31/10, arquivo R$ 4.966,91 → R$ 9.838,63, SNCF R$ 4.486,14 → R$ 9.357,86, diferenças R$ 480,77. Automático api_mp não vigente e manual preservado. Sem movimentos/remessa/publicação; primeira execução mensal agendada ainda não ocorreu.
 - [x] Extratos do mês: registro versionado/RPC, leitura sem importar, cards, ZIP/manifesto e confirmação. Outubro validado com Account Statement: arquivo R$ 4.966,91 → R$ 9.838,63, SNCF R$ 4.486,14 → R$ 9.357,86; diferença R$ 480,77 em ambos. Itaú/Safra faltantes. Dry-run: bancário 2, XML entrada 1, NF cancelada 1, devolução 1, outros/PDF 3; 104 apoios sem original informativos. Substituição/download/light/dark/mobile conferidos; 9 testes passaram, 3.038 movimentos e 6 remessas inalterados; sem publicação/remessa.
 - [x] Adaptar somente venda_fora ao processo contínuo: indicadores, vendas e contas do mês, estoque real e documentos; 11 testes passaram, Casa 22 real conferida (1.268 unidades também no saldo documental), WeConnect preservado; sem SQL/publicação. Nova importação real não executada.
 

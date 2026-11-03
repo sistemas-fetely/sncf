@@ -15,6 +15,7 @@ import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { ContagemImportacao } from "../_shared/financeiro/contagem-importacao.ts";
 import { aplicarMpRelease, enriquecerReferencias, lerCsvMp, normalizarMpRelease } from "../_shared/financeiro/mp/release.ts";
 import { aplicarMpSettlement, normalizarMpSettlement } from "../_shared/financeiro/mp/settlement.ts";
+import {janelaMensal,lerReleaseMensal} from "./mensal.ts";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const msg = (e: unknown) => e instanceof Error ? e.message : (e && typeof e === "object" && "message" in e ? String((e as any).message) : String(e));
@@ -41,12 +42,13 @@ Deno.serve(async (req) => {
 
   // Ações manuais exigem a ação do catálogo (cron passa só pelo segredo).
   if (!req.headers.get("x-cron-secret")) {
-    if (!["dia", "retroativo", "coletar", "status", "enriquecer"].includes(acao)) return json({ ok: false, erro: "ação inválida" }, 400);
+    if (!["dia", "retroativo", "coletar", "status", "enriquecer", "mensal"].includes(acao)) return json({ ok: false, erro: "ação inválida" }, 400);
     const { data: u } = await db.auth.getUser((req.headers.get("Authorization") ?? "").slice(7));
     body.__user = u?.user?.id ?? null;
-    const { data: pode, error } = await db.rpc("usuario_tem_acao", { p_slug: "acao.mp_relatorio.reprocessar", p_user_id: u?.user?.id });
+    const slug=acao==="mensal"?"acao.contabil_extrato_mensal.gerar":"acao.mp_relatorio.reprocessar";
+    const { data: pode, error } = await db.rpc("usuario_tem_acao", { p_slug: slug, p_user_id: u?.user?.id });
     if (error) return json({ ok: false, erro: error.message }, 500);
-    if (!pode) return json({ ok: false, erro: "Sem permissão (acao.mp_relatorio.reprocessar)" }, 403);
+    if (!pode) return json({ ok: false, erro: `Sem permissão (${slug})` }, 403);
   }
 
   const { data: token, error: te } = await db.rpc("get_vault_secret", { p_name: "mp_access_token" });
@@ -54,11 +56,22 @@ Deno.serve(async (req) => {
   const mp = new ClienteMp(String(token));
 
   try {
+    if(acao==="mensal") {
+      const hoje=hojeBrt(), anterior=new Date(Date.UTC(Number(hoje.slice(0,4)),Number(hoje.slice(5,7))-2,1)).toISOString().slice(0,10);
+      const comp=body.competencia??anterior;
+      janelaMensal(comp);
+      if(comp>=`${hoje.slice(0,7)}-01`) return json({ok:false,erro:"Selecione um mês encerrado"},400);
+      return json({ok:true,...await mensal(db,mp,comp,body.__user??null)});
+    }
     if (acao === "pedir") {
       const dia = validarDia(body.dia) ?? somaDia(hojeBrt(), -1);
       return json({ ok: true, pedido: await pedir(db, mp, dia) });
     }
-    if (acao === "coletar") return json({ ok: true, ...(await coletar(db, mp)) });
+    if (acao === "coletar") {
+      const {data:pend,error:ep}=await db.from("mp_extrato_mensal_execucao").select("competencia").eq("status","aguardando");if(ep)throw ep;
+      const mensais=[];for(const p of pend??[])mensais.push(await mensal(db,mp,p.competencia,null,false));
+      return json({ ok: true, ...(await coletar(db, mp)),mensais });
+    }
     if (acao === "dia") {
       const dia = validarDia(body.dia);
       if (!dia || dia >= hojeBrt()) return json({ ok: false, erro: "Informe um dia passado (AAAA-MM-DD)" }, 400);
@@ -370,4 +383,33 @@ async function enriquecer(db: any, mp: ClienteMp, body: any) {
     await db.from("mp_relatorio_enriquecimento").update({ status: "erro", erro: msg(e), updated_at: new Date().toISOString() }).eq("id", ex.id);
     throw e;
   }
+}
+
+// Fluxo mensal separado: somente arquivo e conferência; nunca importa movimentações.
+async function mensal(db:any,mp:ClienteMp,competencia:string,user:string|null,esperar=true) {
+ const janela=janelaMensal(competencia);
+ let {data:ex,error}=await db.from("mp_extrato_mensal_execucao").select("*").eq("competencia",competencia).maybeSingle();if(error)throw error;
+ if(ex?.status==="guardado")return {execucao:ex,ja_guardado:true};
+ if(!ex||ex.status==="erro") {
+  const id=await mp.pedirJanela("release",janela.inicio,janela.fim);
+  const r=await db.from("mp_extrato_mensal_execucao").upsert({competencia,mp_report_id:id,status:"aguardando",solicitado_por:user,solicitado_em:new Date().toISOString(),erro:null},{onConflict:"competencia"}).select("*").single();if(r.error)throw r.error;ex=r.data;
+ }
+ try {
+  let arq:any=null;
+  for(let i=0;i<(esperar?7:1)&&!arq;i++) {
+   if(i)await new Promise(r=>setTimeout(r,20000));
+   arq=(await mp.lista("release",true)).filter(x=>x.file_name && ["enabled","processed"].includes(x.status) && diaBrt(x.begin_date)===janela.inicio && diaBrt(x.end_date)===janela.fim && Date.parse(x.date_created??0)>=Date.parse(ex.solicitado_em)-60000)
+    .sort((a,b)=>String(b.date_created).localeCompare(String(a.date_created)))[0]??null;
+  }
+  if(!arq)return {execucao:ex,aguardando:true};
+  const bytes=await mp.baixar("release",arq.file_name);
+  const leitura=lerReleaseMensal(new TextDecoder().decode(bytes),diaBrt(arq.begin_date),diaBrt(arq.end_date));
+  const {data:fonte,error:ef}=await db.from("extrato_fontes").select("conta_bancaria_id").eq("fonte_codigo","mp_account_statement").eq("ativo",true).single();if(ef)throw ef;
+  const conta=fonte.conta_bancaria_id;if(!conta)throw new Error("Mercado Pago sem conta mapeada");
+  const path=`bancos/${competencia.slice(0,7)}/extrato_mensal/${conta}/${ex.mp_report_id??crypto.randomUUID()}-${nomeSeguro(arq.file_name)}`;
+  const up=await db.storage.from("contabil").upload(path,bytes,{contentType:"text/csv",upsert:true});if(up.error)throw up.error;
+  const r=await db.rpc("fn_contabil_extrato_mensal_auto_guardar",{p_competencia:competencia,p_conta:conta,p_storage_path:path,p_nome:arq.file_name,p_formato:"csv",p_sha256:await sha256Hex(bytes),p_bytes:bytes.length,p_periodo_inicio:leitura.periodo_inicio,p_periodo_fim:leitura.periodo_fim,p_saldo_inicial:leitura.saldo_inicial,p_saldo_final:leitura.saldo_final});if(r.error)throw r.error;
+  const fim=await db.from("mp_extrato_mensal_execucao").update({status:"guardado",extrato_id:r.data.id,updated_at:new Date().toISOString(),erro:null}).eq("competencia",competencia).select("*").single();if(fim.error)throw fim.error;
+  return {execucao:fim.data,leitura,...r.data};
+ }catch(e){const r=await db.from("mp_extrato_mensal_execucao").update({status:"erro",erro:msg(e),updated_at:new Date().toISOString()}).eq("competencia",competencia);if(r.error)throw r.error;throw e;}
 }
