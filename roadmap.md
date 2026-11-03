@@ -58,3 +58,10 @@
 - [x] Um botão por estado em aguardando_pagamento: confirmar só com linha em aberto, descer só sem portão aberto; PED-2338 conferido no navegador nos dois estados, sem banco/publicação.
 
 - [x] Esconder venda fora (Casa 22) do painel de Transferências, com chip para trazê-las de volta e selo "Remessa 5904: NF ..." na coluna NF; PED-2283/PED-2193 conferidos no navegador, sem banco/publicação.
+
+## Pacote do Contador v2
+- [x] Fase 1 · Bloco 1: original bancário guardado em toda importação + "Anexar arquivo original"
+- [x] Fase 1 · Bloco 2: XML das NFs de saída de 11/2026 guardado (botão "Buscar arquivos das NFs do mês")
+- [ ] Bloco 2: PDF (DANFE) — Bling responde 403 no download; investigar
+- [ ] Bloco 2: cópia automática no sync (sync-nfe / vd-nf-sync), NF de entrada (sync-qive-dfe), cancelamento/CC-e
+- [ ] Fase 2 · Blocos 3 e 4: pacote em segundo plano (ZIP + manifesto), versões, novo link, e-mail
