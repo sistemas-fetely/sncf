@@ -58,7 +58,7 @@ async function cartaoPorNumero(numero: string): Promise<Cartao> {
   return data as Cartao;
 }
 
-async function criar(pedidoId: string, uid: string) {
+async function criar(pedidoId: string, uid: string, servicoPedido?: string | null, motivoTroca?: string | null) {
   const { data: viva } = await admin.from("correios_prepostagem").select("*").eq("pedido_id", pedidoId).neq("status", "cancelada").maybeSingle();
   if (viva) return { ok: true, existente: true, prepostagem: viva };
 
@@ -75,8 +75,14 @@ async function criar(pedidoId: string, uid: string) {
   const { data: dados, error: eD } = await admin.rpc("fn_mesa_sp_dados_impressao", { p_pedido_id: pedidoId });
   if (eD) throw new Falha(500, `fn_mesa_sp_dados_impressao: ${eD.message}`);
   const d = dados as any;
-  const servico = d?.servico_correios as string | null;
+  // MESA-SP-TROCA-SERVICO-CORREIOS (03/11/2026): operador pode escolher PAC/SEDEX; padrão = serviço do cliente.
+  const servicoCliente = (d?.servico_cliente ?? d?.servico_correios) as string | null;
+  const servico = (servicoPedido ? String(servicoPedido).toUpperCase() : servicoCliente) as string | null;
+  if (servicoPedido && !["PAC", "SEDEX"].includes(servico ?? "")) throw new Falha(400, `Serviço inválido: ${servicoPedido} (use PAC ou SEDEX).`);
   if (!servico) throw new Falha(400, `${ped.id_externo}: serviço Correios (PAC/SEDEX) ausente no pedido.`);
+  const trocou = !!servicoCliente && servico !== servicoCliente;
+  const motivo = String(motivoTroca ?? "").trim();
+  if (trocou && motivo.length < 3) throw new Falha(400, `${ped.id_externo}: serviço ${servico} difere do escolhido pelo cliente (${servicoCliente}) — informe o motivo da troca (mín. 3 caracteres).`);
   const { data: sv } = await admin.from("correios_servico_codigo").select("codigo_servico").eq("servico", servico).eq("ativo", true).maybeSingle();
   if (!sv) throw new Falha(400, `Serviço ${servico} sem código em correios_servico_codigo.`);
 
@@ -138,6 +144,14 @@ async function criar(pedidoId: string, uid: string) {
   if (eI) throw new Falha(500, `Pré-postagem ${c.codigoObjeto} criada nos Correios mas não gravada: ${eI.message}`);
   const { error: eV } = await admin.rpc("fn_correios_prepostagem_vincular", { p_prepostagem_id: pp.id, p_auth_uid: uid });
   if (eV) throw new Falha(500, `Pré-postagem ${c.codigoObjeto} gravada mas não vinculada ao pedido: ${eV.message}`);
+  if (trocou) {
+    const { error: eEv } = await admin.from("pedido_eventos").insert({
+      pedido_id: pedidoId, tipo_evento: "mesa_servico_correios_trocado", operador_id: uid,
+      descricao: `Serviço Correios trocado: cliente ${servicoCliente} → usado ${servico} (${motivo})`,
+      metadata: { servico_cliente: servicoCliente, servico_usado: servico, motivo, codigo_objeto: c.codigoObjeto, frete_cliente_valor: d?.frete_cliente_valor ?? null, criado_por: uid },
+    });
+    if (eEv) throw new Falha(500, `Pré-postagem ${c.codigoObjeto} criada em ${servico}, mas o registro da troca de serviço falhou: ${eEv.message}`);
+  }
   return { ok: true, existente: false, prepostagem: pp };
 }
 
@@ -212,7 +226,7 @@ Deno.serve(async (req) => {
     const acao = body?.acao;
     if (acao === "criar") {
       if (!body.pedido_id) throw new Falha(400, "pedido_id obrigatório.");
-      return json(await criar(body.pedido_id, uid));
+      return json(await criar(body.pedido_id, uid, body.servico ?? null, body.motivo_troca_servico ?? null));
     }
     if (acao === "rotulo") {
       if (!body.prepostagem_id) throw new Falha(400, "prepostagem_id obrigatório.");
