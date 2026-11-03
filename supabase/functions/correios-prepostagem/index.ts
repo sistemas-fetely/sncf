@@ -94,8 +94,16 @@ async function criar(pedidoId: string, uid: string, servicoPedido?: string | nul
   if (Number(m.volumes ?? 1) > 1) throw new Falha(400, `${ped.id_externo}: ${m.volumes} volumes — pré-postagem do SNCF ainda só gera 1 volume por pedido. Use "Postar na agência".`);
   const pesoG = Math.round(Number(m.peso_kg ?? 0) * 1000);
   if (!(pesoG > 0)) throw new Falha(400, `${ped.id_externo}: peso da embalagem ausente.`);
-  const { data: cx } = await admin.from("b2c_embalagem_caixa").select("codigo, comprimento_cm, largura_cm, altura_cm").eq("codigo", m.caixa ?? "").maybeSingle();
-  if (!cx) throw new Falha(400, `${ped.id_externo}: caixa "${m.caixa ?? "?"}" da embalagem não encontrada no cadastro.`);
+  // MESA-SP-CAIXA-OBRIGATORIA (03/11/2026): caixa do cadastro ou avulsa (metadata.caixa_dim).
+  let cx: { codigo: string; comprimento_cm: number; largura_cm: number; altura_cm: number } | null = null;
+  if (m.caixa) {
+    const { data } = await admin.from("b2c_embalagem_caixa").select("codigo, comprimento_cm, largura_cm, altura_cm").eq("codigo", m.caixa).maybeSingle();
+    if (!data) throw new Falha(400, `${ped.id_externo}: caixa "${m.caixa}" da embalagem não encontrada no cadastro.`);
+    cx = data;
+  } else if (m.caixa_dim && Number(m.caixa_dim.comprimento_cm) > 0 && Number(m.caixa_dim.largura_cm) > 0 && Number(m.caixa_dim.altura_cm) > 0) {
+    cx = { codigo: "AVULSA", comprimento_cm: Number(m.caixa_dim.comprimento_cm), largura_cm: Number(m.caixa_dim.largura_cm), altura_cm: Number(m.caixa_dim.altura_cm) };
+  }
+  if (!cx) throw new Falha(400, `${ped.id_externo}: embalagem sem caixa registrada — corrija a embalagem`);
 
   const { data: nf } = await admin.from("nfs_emitidas").select("numero, chave_acesso").eq("pedido_venda_id", pedidoId).eq("situacao", "autorizada")
     .order("autorizada_em", { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
