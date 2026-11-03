@@ -26160,6 +26160,33 @@ export type Database = {
         }
         Relationships: []
       }
+      credenciais_integracao_log: {
+        Row: {
+          acao: string
+          descricao: string | null
+          em: string
+          id: string
+          nome: string
+          por: string | null
+        }
+        Insert: {
+          acao: string
+          descricao?: string | null
+          em?: string
+          id?: string
+          nome: string
+          por?: string | null
+        }
+        Update: {
+          acao?: string
+          descricao?: string | null
+          em?: string
+          id?: string
+          nome?: string
+          por?: string | null
+        }
+        Relationships: []
+      }
       credito_alcada_liberacao: {
         Row: {
           analise_id: string | null
@@ -152580,12 +152607,20 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_extrato_importacao_expirar_processando: {
+        Args: { p_minutos?: number }
+        Returns: number
+      }
       fn_extrato_importacao_guardar_sem_ler: {
         Args: {
           p_competencia: string
           p_conta_bancaria_id: string
           p_importacao_id: string
         }
+        Returns: Json
+      }
+      fn_extrato_importacao_mover_original: {
+        Args: { p_importacao_id: string; p_novo_path: string }
         Returns: Json
       }
       fn_fatura_cartao_importar: {
@@ -154358,6 +154393,19 @@ export type Database = {
           origem: string
           status: string
           tipo_vinculo: string
+        }[]
+      }
+      fn_vault_gravar_segredo: {
+        Args: { p_descricao?: string; p_nome: string; p_valor: string }
+        Returns: Json
+      }
+      fn_vault_listar_segredos: {
+        Args: never
+        Returns: {
+          atualizado_em: string
+          atualizado_por: string
+          descricao: string
+          nome: string
         }[]
       }
       fn_vd_calcular: {
