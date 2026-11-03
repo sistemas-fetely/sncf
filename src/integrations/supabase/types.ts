@@ -72463,61 +72463,88 @@ export type Database = {
       }
       remessas_contador: {
         Row: {
+          competencia: string | null
           created_at: string
           descricao: string | null
           destinatarios: string[]
           enviada_em: string
           enviada_por: string | null
+          erro_mensagem: string | null
           fechamento_id: string | null
+          gerado_em: string | null
+          gerado_por: string | null
           id: string
           link_expira_em: string | null
           link_signed: string | null
+          manifesto: Json | null
           metodo: string
           observacao: string | null
+          partes: Json
           periodo_fim: string
           periodo_inicio: string
+          progresso: Json
           qtd_contas: number
           qtd_documentos: number
+          status: string | null
           storage_path: string | null
           tipo: string
+          versao: number | null
         }
         Insert: {
+          competencia?: string | null
           created_at?: string
           descricao?: string | null
           destinatarios?: string[]
           enviada_em?: string
           enviada_por?: string | null
+          erro_mensagem?: string | null
           fechamento_id?: string | null
+          gerado_em?: string | null
+          gerado_por?: string | null
           id?: string
           link_expira_em?: string | null
           link_signed?: string | null
+          manifesto?: Json | null
           metodo: string
           observacao?: string | null
+          partes?: Json
           periodo_fim: string
           periodo_inicio: string
+          progresso?: Json
           qtd_contas?: number
           qtd_documentos?: number
+          status?: string | null
           storage_path?: string | null
           tipo?: string
+          versao?: number | null
         }
         Update: {
+          competencia?: string | null
           created_at?: string
           descricao?: string | null
           destinatarios?: string[]
           enviada_em?: string
           enviada_por?: string | null
+          erro_mensagem?: string | null
           fechamento_id?: string | null
+          gerado_em?: string | null
+          gerado_por?: string | null
           id?: string
           link_expira_em?: string | null
           link_signed?: string | null
+          manifesto?: Json | null
           metodo?: string
           observacao?: string | null
+          partes?: Json
           periodo_fim?: string
           periodo_inicio?: string
+          progresso?: Json
           qtd_contas?: number
           qtd_documentos?: number
+          status?: string | null
           storage_path?: string | null
           tipo?: string
+          versao?: number | null
         }
         Relationships: [
           {
@@ -106847,17 +106874,26 @@ export type Database = {
           descricao: string | null
           destinatarios: string[] | null
           enviada_em: string | null
+          erro_mensagem: string | null
+          gerado_em: string | null
+          gerado_por: string | null
+          gerado_por_nome: string | null
           id: string | null
           link_expira_em: string | null
           link_expirado: boolean | null
           link_signed: string | null
+          manifesto: Json | null
           observacao: string | null
+          partes: Json | null
+          progresso: Json | null
           qtd_documentos: number | null
           rotulo: string | null
+          status: string | null
           storage_path: string | null
           tipo: string | null
           unidades: number | null
           valor_custo: number | null
+          versao: number | null
         }
         Relationships: []
       }
@@ -143496,14 +143532,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -153895,6 +153931,15 @@ export type Database = {
       fn_remessa_5904_candidatos: {
         Args: { p_nf_id: string }
         Returns: string[]
+      }
+      fn_remessa_contador_iniciar: {
+        Args: {
+          p_competencia: string
+          p_destinatarios?: string[]
+          p_limite_parte_mb?: number
+          p_observacao?: string
+        }
+        Returns: Json
       }
       fn_remontar_plano_pela_condicao: {
         Args: { p_motivo?: string; p_origem?: string; p_pedido_id: string }
