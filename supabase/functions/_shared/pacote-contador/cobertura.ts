@@ -58,6 +58,10 @@ export function tipoFaltante(pasta: string, fonteTipo?: string | null): TipoFalt
 }
 
 /** Causa do XML de entrada ausente. */
-export function causaXmlEntrada(fonte: string | null | undefined): string {
-  return fonte === "qive" ? "Qive ainda não capturou o XML" : `XML não guardado pelo SNCF (origem ${fonte ?? "desconhecida"})`;
+export type TentativaXml = { indisponivel_na_origem: boolean; erro: string | null } | null | undefined;
+export function causaXmlEntrada(fonte: string | null | undefined, tentativa?: TentativaXml): string {
+  if (fonte !== "qive") return `XML não guardado pelo SNCF (origem ${fonte ?? "desconhecida"})`;
+  if (tentativa?.indisponivel_na_origem) return "Qive ainda não capturou o XML";
+  if (tentativa?.erro) return `Qive recusou: ${tentativa.erro}`;
+  return "XML não guardado pelo SNCF (Qive)";
 }

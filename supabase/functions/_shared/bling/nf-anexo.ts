@@ -180,7 +180,7 @@ export async function baixarPdfValidado(
 export function validarXmlNf(conteudo: string, ctx: Record<string, unknown> = {}): string {
   const texto = (conteudo ?? "").trim();
   const ehXml =
-    texto.startsWith("<?xml") || texto.includes("<nfeProc") || texto.includes("<NFe");
+    texto.startsWith("<?xml") || texto.includes("<nfeProc") || texto.includes("<NFe") || texto.includes("<cteProc") || texto.includes("<CTe");
   if (!ehXml) {
     throw new NfAnexoError(
       502,

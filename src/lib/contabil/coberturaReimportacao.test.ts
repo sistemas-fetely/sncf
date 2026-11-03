@@ -29,6 +29,8 @@ describe("cobertura por reimportação", () => {
   it("tipos e causa", () => {
     expect(tipoFaltante("04_bancos/x/mp_settlement", "mp_settlement")).toBe("mercado_pago");
     expect(tipoFaltante("04_bancos/x/ofx", "ofx")).toBe("bancario");
-    expect(causaXmlEntrada("qive")).toBe("Qive ainda não capturou o XML");
+    expect(causaXmlEntrada("qive")).toBe("XML não guardado pelo SNCF (Qive)");
+    expect(causaXmlEntrada("qive", { indisponivel_na_origem: true, erro: "x" })).toBe("Qive ainda não capturou o XML");
+    expect(causaXmlEntrada("qive", { indisponivel_na_origem: false, erro: "HTTP 403" })).toBe("Qive recusou: HTTP 403");
   });
 });

@@ -400,6 +400,13 @@
       "when": 1793743385547,
       "tag": "0056_mp_relatorio_enriquecimento",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793743876992,
+      "tag": "0057_migration",
+      "breakpoints": true
     }
   ]
 }

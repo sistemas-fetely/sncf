@@ -280,12 +280,19 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
   for (const d of devs) faltantes.push({ pasta: "02_nfs_saida/devolucoes", referencia: `${d.numero} · NF ${d.nf_dev_numero ?? "?"}`, motivo: "XML da NF de devolução não é guardado pelo SNCF (chave " + (d.nf_devolucao ?? "?") + ")" });
 
   // 03_nfs_entrada
-  const ent = await todas(admin.from("nfs_stage").select("fonte,nf_numero,nf_serie,fornecedor_razao_social,valor,xml_storage_path,status")
+  const ent = await todas(admin.from("nfs_stage").select("fonte,nf_chave_acesso,nf_numero,nf_serie,fornecedor_razao_social,valor,xml_storage_path,status")
     .gte("nf_data_emissao", ini).lte("nf_data_emissao", fimP).not("status", "in", "(descartada,duplicada)"));
   pastas["03_nfs_entrada"] ??= { arquivos: 0 };
+  const semXml = ent.filter((n: any) => !n.xml_storage_path && n.nf_chave_acesso).map((n: any) => String(n.nf_chave_acesso).replace(/\D/g, ""));
+  const tentativas = new Map<string, any>();
+  for (let i = 0; i < semXml.length; i += 200) {
+    const { data: t, error: et } = await admin.from("nf_entrada_arquivo_tentativa").select("nf_chave_acesso,indisponivel_na_origem,erro").in("nf_chave_acesso", semXml.slice(i, i + 200));
+    if (et) throw new Error("Falha ao ler tentativas de XML de entrada: " + et.message);
+    for (const x of t ?? []) tentativas.set(x.nf_chave_acesso, x);
+  }
   for (const n of ent) {
     const ref = `NF ${n.nf_numero ?? "?"} · ${n.fornecedor_razao_social ?? "?"}`;
-    if (!n.xml_storage_path) { faltantes.push({ pasta: "03_nfs_entrada", referencia: ref, motivo: causaXmlEntrada(n.fonte) }); continue; }
+    if (!n.xml_storage_path) { faltantes.push({ pasta: "03_nfs_entrada", referencia: ref, motivo: causaXmlEntrada(n.fonte, tentativas.get(String(n.nf_chave_acesso ?? "").replace(/\D/g, ""))) }); continue; }
     entradas.push({ zip: nomeUnico(`03_nfs_entrada/${n.xml_storage_path.split("/").pop()}`), path: n.xml_storage_path });
     conta("03_nfs_entrada", 1, Number(n.valor ?? 0), 1);
   }

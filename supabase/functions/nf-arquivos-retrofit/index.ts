@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
     const fim = new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
 
     if (body.tipo === "entrada_bling") return json(await retrofitEntradaBling(admin, ini, fim));
+    if (body.tipo === "entrada_qive") return json(await retrofitEntradaQive(admin, ini, fim, body.incluir_falhas === true));
 
     const base = () => admin.from("nfs_emitidas")
       .select("id, bling_id, numero, serie, pdf_url, xml_url, data_emissao, situacao", { count: "exact" })
@@ -125,4 +126,83 @@ async function retrofitEntradaBling(admin: any, ini: string, fim: string) {
   }
   for (const r of falta.values()) erros.push({ numero: r.nf_numero, erro: "NF não encontrada na lista de entradas do Bling no mês" });
   return { ok: true, tipo: "entrada_bling", pendentes_antes: total, guardadas, erros };
+}
+
+// NFs/CT-e de entrada da Qive (nfs_stage.fonte='qive') capturadas antes da cópia
+// existir: busca o XML na Qive pela chave (mesma credencial do sync-qive-dfe),
+// em lotes de 20 chaves com pausa, e guarda em nfs/<AAAA-MM>/entrada/<chave>.xml.
+// O resultado de cada chave fica em nf_entrada_arquivo_tentativa (o manifesto lê).
+// deno-lint-ignore no-explicit-any
+async function retrofitEntradaQive(admin: any, ini: string, fim: string, incluirFalhas: boolean) {
+  const t0 = Date.now();
+  const { data: pend, error } = await admin.from("nfs_stage")
+    .select("nf_chave_acesso, nf_numero, nf_data_emissao, tipo_documento")
+    .eq("fonte", "qive").is("xml_storage_path", null).not("nf_chave_acesso", "is", null)
+    .gte("nf_data_emissao", ini).lt("nf_data_emissao", fim);
+  if (error) return { ok: false, erro: error.message };
+  const porChave = new Map<string, any>();
+  for (const r of pend ?? []) porChave.set(String(r.nf_chave_acesso).replace(/\D/g, ""), r);
+  if (!incluirFalhas && porChave.size) {
+    const { data: tent } = await admin.from("nf_entrada_arquivo_tentativa").select("nf_chave_acesso").in("nf_chave_acesso", [...porChave.keys()]);
+    for (const t of tent ?? []) porChave.delete(t.nf_chave_acesso);
+  }
+  const total = porChave.size;
+  if (!total) return { ok: true, tipo: "entrada_qive", processadas: 0, guardadas: 0, erros: [], restantes: 0 };
+
+  const sec = async (n: string) => {
+    const { data, error } = await admin.rpc("get_vault_secret", { p_name: n });
+    if (error) throw new Error(`Falha ao ler secret ${n}: ${error.message}`);
+    return typeof data === "string" ? data.trim() : "";
+  };
+  const headers = { "X-API-ID": await sec("qive_api_id_prod"), "X-API-KEY": await sec("qive_api_key_prod"), "X-Use-ApiGateway": "always", "Content-Type": "application/json" };
+  if (!headers["X-API-ID"] || !headers["X-API-KEY"]) return { ok: false, erro: "Credenciais de produção da Qive ausentes no cofre" };
+
+  const registrar = (chave: string, indisp: boolean, erro: string | null) =>
+    admin.from("nf_entrada_arquivo_tentativa").upsert({ nf_chave_acesso: chave, fonte: "qive", indisponivel_na_origem: indisp, erro, tentado_em: new Date().toISOString() });
+  const ehCte = (r: any, ch: string) => r.tipo_documento === "cte" || ch.slice(20, 22) === "57";
+  const erros: { numero: string | null; tipo: string; erro: string }[] = [];
+  let guardadas = 0; let processadas = 0;
+  const chaves = [...porChave.keys()];
+  for (let i = 0; i < chaves.length && Date.now() - t0 < 110_000; i += 20) {
+    const bloco = chaves.slice(i, i + 20);
+    for (const cte of [false, true]) {
+      const alvo = bloco.filter((c) => ehCte(porChave.get(c), c) === cte);
+      if (!alvo.length) continue;
+      const qs = new URLSearchParams({ limit: "50" });
+      for (const c of alvo) qs.append("access_key[]", c);
+      const caminho = cte ? "v1/cte/taker" : "v1/nfe/received";
+      let resp: Response | null = null;
+      for (let t = 0; t < 4; t++) {
+        resp = await fetch(`https://api.arquivei.com.br/${caminho}?${qs}`, { headers });
+        if (resp.status !== 429) break;
+        await new Promise((r) => setTimeout(r, 3000 * (t + 1)));
+      }
+      const recebidos = new Map<string, string>();
+      if (!resp!.ok) {
+        const msg = `Qive recusou [${resp!.status}]: ${(await resp!.text()).slice(0, 200)}`;
+        for (const c of alvo) { const r = porChave.get(c); erros.push({ numero: r.nf_numero, tipo: cte ? "cte" : "nfe", erro: msg }); await registrar(c, false, msg); processadas++; }
+        continue;
+      }
+      const payload = await resp!.json();
+      for (const d of payload?.data ?? []) if (d?.access_key && typeof d.xml === "string") recebidos.set(String(d.access_key), d.xml);
+      for (const c of alvo) {
+        const r = porChave.get(c); processadas++;
+        const b64 = recebidos.get(c);
+        if (!b64) {
+          const msg = "Qive não devolveu o documento para esta chave";
+          erros.push({ numero: r.nf_numero, tipo: cte ? "cte" : "nfe", erro: msg }); await registrar(c, true, msg); continue;
+        }
+        try {
+          const xml = new TextDecoder().decode(Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0)));
+          await cachearNfEntradaXml(admin, r.nf_chave_acesso, r.nf_data_emissao, xml);
+          await registrar(c, false, null); guardadas++;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          erros.push({ numero: r.nf_numero, tipo: cte ? "cte" : "nfe", erro: msg }); await registrar(c, false, msg);
+        }
+      }
+    }
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+  return { ok: true, tipo: "entrada_qive", pendentes_antes: total, processadas, guardadas, erros, restantes: total - processadas };
 }
