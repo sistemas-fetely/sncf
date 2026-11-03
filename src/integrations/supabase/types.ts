@@ -31933,6 +31933,11 @@ export type Database = {
       }
       extrato_importacoes: {
         Row: {
+          arquivo_anexado_em: string | null
+          arquivo_anexado_por: string | null
+          arquivo_bytes: number | null
+          arquivo_sha256: string | null
+          arquivo_storage_path: string | null
           conta_bancaria_id: string | null
           created_at: string
           divergencia_saldo: number | null
@@ -31953,6 +31958,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arquivo_anexado_em?: string | null
+          arquivo_anexado_por?: string | null
+          arquivo_bytes?: number | null
+          arquivo_sha256?: string | null
+          arquivo_storage_path?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
           divergencia_saldo?: number | null
@@ -31973,6 +31983,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arquivo_anexado_em?: string | null
+          arquivo_anexado_por?: string | null
+          arquivo_bytes?: number | null
+          arquivo_sha256?: string | null
+          arquivo_storage_path?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
           divergencia_saldo?: number | null
@@ -47494,6 +47509,8 @@ export type Database = {
         Row: {
           anulada_por_devolucao_em: string | null
           anulada_por_vinculo_id: string | null
+          arquivos_erro: string | null
+          arquivos_sincronizados_em: string | null
           ausente_na_origem_desde: string | null
           autorizada_em: string | null
           bling_id: string | null
@@ -47515,6 +47532,7 @@ export type Database = {
           origem: string | null
           parceiro_id: string | null
           parte_faturamento_dividido: boolean
+          pdf_storage_path: string | null
           pdf_url: string | null
           pedido_venda_id: string | null
           raw: Json | null
@@ -47540,11 +47558,14 @@ export type Database = {
           vinculo_em: string | null
           vinculo_origem: string | null
           vinculo_pedido_ref: string | null
+          xml_storage_path: string | null
           xml_url: string | null
         }
         Insert: {
           anulada_por_devolucao_em?: string | null
           anulada_por_vinculo_id?: string | null
+          arquivos_erro?: string | null
+          arquivos_sincronizados_em?: string | null
           ausente_na_origem_desde?: string | null
           autorizada_em?: string | null
           bling_id?: string | null
@@ -47566,6 +47587,7 @@ export type Database = {
           origem?: string | null
           parceiro_id?: string | null
           parte_faturamento_dividido?: boolean
+          pdf_storage_path?: string | null
           pdf_url?: string | null
           pedido_venda_id?: string | null
           raw?: Json | null
@@ -47591,11 +47613,14 @@ export type Database = {
           vinculo_em?: string | null
           vinculo_origem?: string | null
           vinculo_pedido_ref?: string | null
+          xml_storage_path?: string | null
           xml_url?: string | null
         }
         Update: {
           anulada_por_devolucao_em?: string | null
           anulada_por_vinculo_id?: string | null
+          arquivos_erro?: string | null
+          arquivos_sincronizados_em?: string | null
           ausente_na_origem_desde?: string | null
           autorizada_em?: string | null
           bling_id?: string | null
@@ -47617,6 +47642,7 @@ export type Database = {
           origem?: string | null
           parceiro_id?: string | null
           parte_faturamento_dividido?: boolean
+          pdf_storage_path?: string | null
           pdf_url?: string | null
           pedido_venda_id?: string | null
           raw?: Json | null
@@ -47642,6 +47668,7 @@ export type Database = {
           vinculo_em?: string | null
           vinculo_origem?: string | null
           vinculo_pedido_ref?: string | null
+          xml_storage_path?: string | null
           xml_url?: string | null
         }
         Relationships: [
@@ -48406,6 +48433,7 @@ export type Database = {
       nfs_stage: {
         Row: {
           arquivo_storage_path: string | null
+          arquivos_sincronizados_em: string | null
           base_icms: number | null
           categoria_sugerida_ia: boolean
           centro_custo_id: string | null
@@ -48464,9 +48492,11 @@ export type Database = {
           valor_icms: number | null
           valor_origem: number | null
           valor_pis: number | null
+          xml_storage_path: string | null
         }
         Insert: {
           arquivo_storage_path?: string | null
+          arquivos_sincronizados_em?: string | null
           base_icms?: number | null
           categoria_sugerida_ia?: boolean
           centro_custo_id?: string | null
@@ -48525,9 +48555,11 @@ export type Database = {
           valor_icms?: number | null
           valor_origem?: number | null
           valor_pis?: number | null
+          xml_storage_path?: string | null
         }
         Update: {
           arquivo_storage_path?: string | null
+          arquivos_sincronizados_em?: string | null
           base_icms?: number | null
           categoria_sugerida_ia?: boolean
           centro_custo_id?: string | null
@@ -48586,6 +48618,7 @@ export type Database = {
           valor_icms?: number | null
           valor_origem?: number | null
           valor_pis?: number | null
+          xml_storage_path?: string | null
         }
         Relationships: [
           {
@@ -152499,6 +152532,15 @@ export type Database = {
         }
         Returns: string
       }
+      fn_extrato_importacao_anexar_original: {
+        Args: {
+          p_bytes: number
+          p_importacao_id: string
+          p_sha256: string
+          p_storage_path: string
+        }
+        Returns: Json
+      }
       fn_fatura_cartao_importar: {
         Args: { p_fatura: Json; p_lancamentos: Json }
         Returns: {
@@ -154118,6 +154160,10 @@ export type Database = {
         Returns: boolean
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
+      fn_termo_data_entrada: {
+        Args: { p_data_termo: string; p_nf_id: number; p_pedido_id: number }
+        Returns: string
+      }
       fn_termo_entrada_hash_linhas: { Args: { p_rows: Json }; Returns: string }
       fn_termo_entrada_proximo_numero: { Args: never; Returns: string }
       fn_titulo_coberto_pela_conta: {

@@ -378,6 +378,49 @@ export default function PacoteContador() {
     },
   });
 
+  /* ── cópia dos XML/PDF das NFs de saída para o arquivo contábil ── */
+  const [progressoNfs, setProgressoNfs] = useState("");
+  const buscarNfs = useMutation({
+    mutationFn: async () => {
+      if (!selecionada) throw new Error("Selecione uma competência");
+      const mes = selecionada.slice(0, 7);
+      let guardadas = 0;
+      const erros: string[] = [];
+      for (let volta = 0; volta < 60; volta++) {
+        const { data, error } = await supabase.functions.invoke("nf-arquivos-retrofit", {
+          body: { competencia: mes },
+        });
+        if (error) {
+          const ctx = (error as { context?: Response }).context;
+          throw new Error(ctx ? await ctx.text() : error.message);
+        }
+        const r = data as { ok: boolean; erro?: string; processadas: number; guardadas: number;
+          erros: { numero: string | null; erro: string }[]; restantes: number };
+        if (!r.ok) throw new Error(r.erro || "Falha ao buscar arquivos das NFs");
+        guardadas += r.guardadas;
+        erros.push(...r.erros.map((e) => `NF ${e.numero ?? "?"}: ${e.erro}`));
+        setProgressoNfs(`${guardadas} guardadas · faltam ${r.restantes}`);
+        if (r.processadas === 0 || r.restantes === 0) break;
+      }
+      return { guardadas, erros };
+    },
+    onSuccess: ({ guardadas, erros }) => {
+      setProgressoNfs("");
+      if (erros.length) {
+        toast.error(`${guardadas} NFs guardadas; ${erros.length} com erro`, {
+          description: erros.slice(0, 5).join("\n"),
+          duration: Infinity,
+        });
+      } else {
+        toast.success(`${guardadas} NFs com XML e PDF guardados`);
+      }
+    },
+    onError: (e) => {
+      setProgressoNfs("");
+      toast.error(rawMessage(e));
+    },
+  });
+
   /* ── histórico ── */
 
   const historico = remessas.data ?? [];
@@ -555,14 +598,25 @@ export default function PacoteContador() {
           </div>
           {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
           {temNivel(3) && (
-            <Button
-              size="sm"
-              disabled={!fechada || carregandoPrevia || gerar.isPending}
-              onClick={() => gerar.mutate()}
-            >
-              <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
-              {gerar.isPending ? "Gerando…" : "Gerar pacote"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                disabled={!fechada || carregandoPrevia || gerar.isPending}
+                onClick={() => gerar.mutate()}
+              >
+                <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {gerar.isPending ? "Gerando…" : "Gerar pacote"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={buscarNfs.isPending}
+                onClick={() => buscarNfs.mutate()}
+              >
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {buscarNfs.isPending ? progressoNfs || "Buscando…" : "Buscar arquivos das NFs do mês"}
+              </Button>
+            </div>
           )}
         </section>
       )}
