@@ -42,6 +42,7 @@ import { CancelamentoReembolsoPainel } from "@/components/devolucao/Cancelamento
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
+import { linhaTrsRetorno, type TrsRetorno } from "@/lib/devolucao/trsRetorno";
 import { CorrecoesNfLista, contarCorrecoesAbertas, useCorrecoesNf } from "@/components/devolucao/CorrecoesNfLista";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 import { BannerDivergenciaLoja, EditarDeclaracaoDialog, IconeDivergenciaLoja, podeEditarDeclaracao, type ItemDeclaracao } from "@/components/devolucao/EditarDeclaracaoDialog";
