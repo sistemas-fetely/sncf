@@ -132,7 +132,10 @@ export async function baixarPdfValidado(
   origem: OrigemLink,
   ctx: Record<string, unknown> = {},
 ): Promise<Uint8Array> {
-  const res = await fetch(url, { headers: { Accept: "application/pdf,*/*" } });
+  // O doc.view.php responde 302 → security.file.php com PHPSESSID; o salto
+  // seguinte exige o cookie da sessão. fetch do Deno não guarda cookie entre
+  // redirects, então seguimos os saltos à mão repassando Set-Cookie.
+  const res = await fetchComCookie(url);
   const ct = (res.headers.get("content-type") || "").toLowerCase();
   console.log("[nf-anexo] resposta do Bling", {
     ...ctx,
