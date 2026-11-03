@@ -234,6 +234,15 @@ export default function RetornoDevolucao() {
     },
   });
   const editavel = (d: Funil) => nfDevQ.isSuccess && podeEditarDeclaracao({ ...d, nf_dev_status: nfDevQ.data.get(d.id) ?? null });
+  // DEV-TRS-AUTO: situação da TRS de retorno (decidida no banco) para a linha da Eva.
+  const trsQ = useQuery({
+    queryKey: [...QK_FUNIL, "trs_retorno"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("vw_devolucao_trs_retorno").select("id,trs_numero,situacao,nf_numero,erro");
+      if (error) throw error;
+      return new Map(((data ?? []) as TrsRetorno[]).map((r) => [r.id, r]));
+    },
+  });
   const [acaoId, setAcaoId] = useState<string | null>(null);
   const acaoLinha = async (id: string, nome: string, args: Record<string, unknown>, msg: string) => {
     setAcaoId(id);
@@ -542,6 +551,19 @@ export default function RetornoDevolucao() {
                               ) : d.e3_recebida ? (
                                 <>
                                   <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
+                                  {d.exige_transferencia_cd && d.recebido_em != null && trsQ.data?.get(d.id) && (() => {
+                                    const l = linhaTrsRetorno(trsQ.data.get(d.id)!);
+                                    const cor = l.tom === "ok" ? "text-success" : l.tom === "erro" ? "text-destructive" : "text-warning";
+                                    return (
+                                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                        <span className={cor}>{l.texto}</span>
+                                        {l.podeTentar && (
+                                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={acaoId === d.id}
+                                            onClick={() => void acaoLinha(d.id, "fn_devolucao_trs_retorno_tentar", { p_devolucao_id: d.id }, "Transferência de retorno criada.")}>Tentar de novo</Button>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                   {d.exige_transferencia_cd && d.recebido_em != null && (
                                     d.transferencia_ok ? (
                                       <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">{d.transferencia_numero ?? "TRS"}</Badge>
