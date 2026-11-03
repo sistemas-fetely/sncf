@@ -253,6 +253,13 @@
       "when": 1793709228399,
       "tag": "0035_contabil_arquivos_originais",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793710143673,
+      "tag": "0036_nfs_emitidas_pdf_origem",
+      "breakpoints": true
     }
   ]
 }
