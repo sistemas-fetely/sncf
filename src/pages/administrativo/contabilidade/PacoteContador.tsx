@@ -5,7 +5,7 @@
  * vw_contabil_vendas_periodo, vw_contabil_nfs_periodo, vw_contabil_remessas
  * fn_remessa_contador_iniciar + gerar-pacote-contador-v2 (ZIP em segundo plano) e remessa-contador-novo-link.
  *
- * REGRA DURA: só competência fechada gera pacote.
+ * REGRA DURA: só competência fechada (definitiva) ou pré-fechada (prévia) gera pacote.
  * FAIL-LOUD: upload e chamada de função com await; erro real vai pro toast.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -47,7 +47,7 @@ async function chamarGeracao(remessaId: string, planilhaPath: string | null) {
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
-type StatusComp = "aberto" | "fechado" | "reaberto";
+type StatusComp = "aberto" | "pre_fechado" | "fechado" | "reaberto";
 
 interface Competencia {
   competencia: string;
@@ -65,6 +65,7 @@ interface LinhaPosicao {
   quantidade: number;
   custo_unitario: number;
   valor_total: number;
+  fonte?: string | null;
 }
 
 interface LinhaVenda {
@@ -133,6 +134,8 @@ interface Remessa {
   manifesto: { faltantes?: unknown[]; total_arquivos?: number } | null;
   gerado_em: string | null;
   gerado_por_nome: string | null;
+  natureza: string | null;
+  natureza_rotulo: string | null;
 }
 
 const fmtMB = (b: number) => `${(b / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
@@ -153,6 +156,7 @@ const fmtDataHora = (iso: string | null | undefined) =>
 
 const SELO_STATUS: Record<StatusComp, { estado: EstadoSelo; texto: string }> = {
   fechado: { estado: "success", texto: "Fechado" },
+  pre_fechado: { estado: "warning", texto: "Pré-fechado" },
   aberto: { estado: "info", texto: "Aberto" },
   reaberto: { estado: "warning", texto: "Reaberto" },
 };
@@ -192,6 +196,8 @@ export default function PacoteContador() {
 
   const comp = competencias.data?.find((c) => c.competencia === selecionada) ?? null;
   const fechada = comp?.status === "fechado";
+  const preFechada = comp?.status === "pre_fechado";
+  const podeGerar = fechada || preFechada;
 
   const posicao = useQuery({
     queryKey: ["contabil-posicao", selecionada],
@@ -306,7 +312,7 @@ export default function PacoteContador() {
     const wb = XLSX.utils.book_new();
 
     const abaPosicao = [
-      ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total"],
+      ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total", ...(preFechada ? ["Origem"] : [])],
       ...linhasPosicao.map((l) => [
         l.sku,
         l.produto ?? "",
@@ -314,6 +320,7 @@ export default function PacoteContador() {
         num(l.quantidade),
         num(l.custo_unitario),
         num(l.valor_total),
+        ...(preFechada ? [l.fonte === "presumido" ? "PRESUMIDO" : "Real"] : []),
       ]),
       ["TOTAL", "", "", resumo.unidades, null, resumo.custo],
     ];
@@ -389,6 +396,21 @@ export default function PacoteContador() {
       if (wsPosicao[totalRef(c)]) wsPosicao[totalRef(c)].s = { font: { bold: true } };
     }
 
+    if (preFechada) {
+      const pres = linhasPosicao.filter((l) => l.fonte === "presumido");
+      const wsPrevia = XLSX.utils.aoa_to_sheet([
+        ["PRÉVIA — competência pré-fechada; posição de estoque inclui presunções"],
+        ["A versão definitiva será enviada após o fechamento."],
+        [],
+        ["Linhas presumidas", pres.length],
+        ["Unidades presumidas", soma(pres, (l) => l.quantidade)],
+        ["Valor presumido", soma(pres, (l) => l.valor_total)],
+        [],
+        ["Na aba Posição de Estoque, a coluna Origem marca cada linha como PRESUMIDO ou Real."],
+      ]);
+      wsPrevia["!cols"] = [{ wch: 70 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsPrevia, "PRÉVIA");
+    }
     XLSX.utils.book_append_sheet(wb, wsPosicao, "Posição de Estoque");
     XLSX.utils.book_append_sheet(wb, wsVendas, "Vendas do Período");
     XLSX.utils.book_append_sheet(wb, wsNfs, "NFs do Período");
@@ -404,7 +426,7 @@ export default function PacoteContador() {
   const gerar = useMutation({
     mutationFn: async () => {
       if (!selecionada || !comp) throw new Error("Selecione uma competência");
-      if (comp.status !== "fechado") throw new Error("Feche a competência antes de gerar o pacote");
+      if (comp.status !== "fechado" && comp.status !== "pre_fechado") throw new Error("Feche a competência antes de gerar o pacote");
       const emails = destinatarios.split(/[,;\s]+/).map((e) => e.trim()).filter((e) => e.includes("@"));
       const { data: ini, error: errIni } = await supabase.rpc("fn_remessa_contador_iniciar", {
         p_competencia: selecionada,
@@ -563,7 +585,7 @@ export default function PacoteContador() {
         </div>
       )}
 
-      {comp && !fechada && (
+      {comp && !podeGerar && (
         <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           Feche a competência antes de gerar o pacote.
@@ -653,11 +675,11 @@ export default function PacoteContador() {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
-                disabled={!fechada || carregandoPrevia || gerar.isPending}
+                disabled={!podeGerar || carregandoPrevia || gerar.isPending}
                 onClick={() => gerar.mutate()}
               >
                 <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                {gerar.isPending ? "Gerando…" : "Gerar pacote"}
+                {gerar.isPending ? "Gerando…" : preFechada ? "Gerar prévia" : "Gerar pacote"}
               </Button>
               <Button
                 size="sm"
@@ -707,7 +729,12 @@ export default function PacoteContador() {
                   return (
                     <tr key={r.id} className="align-top hover:bg-muted/30">
                       <td className="whitespace-nowrap px-3 py-2 font-medium">{r.rotulo ?? fmtData(r.competencia)}</td>
-                      <td className="whitespace-nowrap px-3 py-2 tabular-nums">{r.versao ? `v${r.versao}` : "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums">
+                        {r.versao ? `v${r.versao}` : "—"}
+                        {r.natureza === "previa" && r.natureza_rotulo && (
+                          <Selo estado="warning" className="ml-1.5">{r.natureza_rotulo}</Selo>
+                        )}
+                      </td>
                       <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                         <div>{r.gerado_por_nome ?? "—"}</div>
                         <div className="tabular-nums text-xs">{fmtDataHora(r.gerado_em ?? r.enviada_em)}</div>
