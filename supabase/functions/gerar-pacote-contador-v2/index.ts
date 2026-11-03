@@ -6,6 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { Zip, ZipDeflate, ZipPassThrough } from "npm:fflate@0.8.2";
 import { PDFDocument, StandardFonts } from "npm:pdf-lib@1.17.1";
+import { causaXmlEntrada, separarCobertas, tipoFaltante } from "../_shared/pacote-contador/cobertura.ts";
 import { assinarPartes, BUCKET, enviarEmailRemessa, type Parte } from "../_shared/pacote-contador/remessa.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
@@ -14,7 +15,7 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const msg = (e: unknown) => e instanceof Error ? e.message : (e && typeof e === "object" && "message" in e ? String((e as any).message) : String(e));
 
 type Entrada = { zip: string; path: string; bytes?: number };
-type Faltante = { pasta: string; referencia: string; motivo: string };
+type Faltante = { pasta: string; referencia: string; motivo: string; tipo?: string; fonte?: string | null };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -279,12 +280,12 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
   for (const d of devs) faltantes.push({ pasta: "02_nfs_saida/devolucoes", referencia: `${d.numero} · NF ${d.nf_dev_numero ?? "?"}`, motivo: "XML da NF de devolução não é guardado pelo SNCF (chave " + (d.nf_devolucao ?? "?") + ")" });
 
   // 03_nfs_entrada
-  const ent = await todas(admin.from("nfs_stage").select("nf_numero,nf_serie,fornecedor_razao_social,valor,xml_storage_path,status")
+  const ent = await todas(admin.from("nfs_stage").select("fonte,nf_numero,nf_serie,fornecedor_razao_social,valor,xml_storage_path,status")
     .gte("nf_data_emissao", ini).lte("nf_data_emissao", fimP).not("status", "in", "(descartada,duplicada)"));
   pastas["03_nfs_entrada"] ??= { arquivos: 0 };
   for (const n of ent) {
     const ref = `NF ${n.nf_numero ?? "?"} · ${n.fornecedor_razao_social ?? "?"}`;
-    if (!n.xml_storage_path) { faltantes.push({ pasta: "03_nfs_entrada", referencia: ref, motivo: "XML de entrada não capturado" }); continue; }
+    if (!n.xml_storage_path) { faltantes.push({ pasta: "03_nfs_entrada", referencia: ref, motivo: causaXmlEntrada(n.fonte) }); continue; }
     entradas.push({ zip: nomeUnico(`03_nfs_entrada/${n.xml_storage_path.split("/").pop()}`), path: n.xml_storage_path });
     conta("03_nfs_entrada", 1, Number(n.valor ?? 0), 1);
   }
@@ -295,13 +296,23 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
   const imps = await todas(admin.from("extrato_importacoes").select("id,conta_bancaria_id,fonte_tipo,nome_arquivo,periodo_inicio,periodo_fim,status,created_at,linhas_novas,arquivo_storage_path")
     .lte("periodo_inicio", fimP).gte("periodo_fim", ini).neq("status", "erro"));
   const bancos: Record<string, any> = {};
+  // Cobertas por reimportação: procura a com original em QUALQUER período (mesma conta + fonte).
+  const semArq = imps.filter((i: any) => !i.arquivo_storage_path);
+  const contasSem = [...new Set(semArq.map((i: any) => i.conta_bancaria_id).filter(Boolean))];
+  const comArqTodas = contasSem.length ? await todas(admin.from("extrato_importacoes").select("id,conta_bancaria_id,fonte_tipo,nome_arquivo,periodo_inicio,periodo_fim,created_at,arquivo_storage_path")
+    .in("conta_bancaria_id", contasSem).not("arquivo_storage_path", "is", null).neq("status", "erro")) : [];
+  const { cobertas, faltantes: semCobertura } = separarCobertas(semArq, comArqTodas);
+  const idsFaltam = new Set(semCobertura.map((i) => i.id));
+  const descImp = (i: any) => ({ nome: i.nome_arquivo ?? "?", fonte: i.fonte_tipo, conta: nomeConta.get(i.conta_bancaria_id) ?? "sem_conta", importada_em: String(i.created_at).slice(0, 10), periodo: `${i.periodo_inicio ?? "?"} a ${i.periodo_fim ?? "?"}` });
+  const cobertasReimportacao = cobertas.map((c) => ({ antiga: descImp(c.antiga), com_arquivo: descImp(c.com_arquivo), criterio: c.criterio }));
   for (const imp of imps) {
     const cn = nomeConta.get(imp.conta_bancaria_id) ?? "sem_conta";
-    bancos[cn] ??= { importacoes: 0, com_arquivo: 0 };
+    bancos[cn] ??= { importacoes: 0, com_arquivo: 0, cobertas_reimportacao: 0 };
     bancos[cn].importacoes++;
     const sub = imp.fonte_tipo === "arquivo_nao_lido" ? "outros" : seguro(imp.fonte_tipo ?? "outros");
     if (!imp.arquivo_storage_path) {
-      faltantes.push({ pasta: `04_bancos/${cn}/${sub}`, referencia: `${imp.nome_arquivo ?? "?"} · ${imp.fonte_tipo} · ${String(imp.created_at).slice(0, 10)}`, motivo: "Importação sem arquivo original guardado" });
+      if (!idsFaltam.has(imp.id)) { bancos[cn].cobertas_reimportacao = (bancos[cn].cobertas_reimportacao ?? 0) + 1; continue; }
+      faltantes.push({ pasta: `04_bancos/${cn}/${sub}`, fonte: imp.fonte_tipo, referencia: `${imp.nome_arquivo ?? "?"} · ${imp.fonte_tipo} · ${String(imp.created_at).slice(0, 10)}`, motivo: "Importação sem arquivo original guardado" });
       continue;
     }
     bancos[cn].com_arquivo++;
@@ -331,12 +342,17 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
     });
   }
 
+  const faltantesTipados = faltantes.map(({ fonte, ...f }) => ({ ...f, tipo: tipoFaltante(f.pasta, fonte) }));
+  const porTipo: Record<string, number> = { bancario: 0, xml_entrada: 0, mercado_pago: 0, nf_cancelada: 0, devolucao: 0, outros: 0 };
+  for (const f of faltantesTipados) porTipo[f.tipo]++;
   const manifesto = {
     competencia: rem.competencia, versao: rem.versao, gerado_por: rem.gerado_por,
     natureza: rem.natureza ?? "definitiva", ...(previa ? { aviso: CABECALHO_PREVIA, presuncoes } : {}), ...(delta ? { delta_pre_final: delta } : {}),
     total_arquivos: entradas.length + 2,
     pastas, pdf_origem: { danfe_bling: pdfOrigem.bling, resumo_nfe_gerado_xml: pdfOrigem.gerado_xml, sem_pdf: pdfOrigem.sem_pdf },
-    conferencia, bancos, eventos_nf: eventos, faltantes,
+    conferencia, bancos, eventos_nf: eventos,
+    faltantes_por_tipo: porTipo, cobertas_reimportacao: { total: cobertasReimportacao.length, itens: cobertasReimportacao },
+    faltantes: faltantesTipados,
   };
   return { entradas, manifesto };
 }
@@ -375,7 +391,14 @@ async function pdfTexto(linhas: string[]): Promise<Uint8Array> {
 
 const CABECALHO_PREVIA = "PRÉVIA — competência pré-fechada; posição de estoque inclui presunções";
 function pdfManifesto(m: any): Promise<Uint8Array> {
-  const L: string[] = [...(m.natureza === "previa" ? [CABECALHO_PREVIA, ""] : []), `Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, "", "PASTAS"];
+  const L: string[] = [...(m.natureza === "previa" ? [CABECALHO_PREVIA, ""] : []), `Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, ""];
+  if (m.faltantes_por_tipo) {
+    const t = m.faltantes_por_tipo;
+    L.push(`FALTANTES: ${(m.faltantes ?? []).length} — bancário ${t.bancario}, XML de entrada ${t.xml_entrada}, Mercado Pago ${t.mercado_pago}, NF cancelada ${t.nf_cancelada}, devolução ${t.devolucao}${t.outros ? `, outros ${t.outros}` : ""}`);
+    if (m.cobertas_reimportacao) L.push(`Importações sem original cobertas por reimportação: ${m.cobertas_reimportacao.total}`);
+    L.push("");
+  }
+  L.push("PASTAS");
   for (const [k, v] of Object.entries(m.pastas ?? {}) as [string, any][]) L.push(`  ${k}: ${v.arquivos} arquivo(s)${v.nfs != null ? `, ${v.nfs} NF(s)` : ""}${v.valor_total != null ? `, ${brl(v.valor_total)}` : ""}`);
   L.push("", "PDF DAS NFs DE SAÍDA", `  DANFE do Bling: ${m.pdf_origem.danfe_bling}`, `  Resumo NF-e gerado do XML: ${m.pdf_origem.resumo_nfe_gerado_xml}`, `  Sem PDF: ${m.pdf_origem.sem_pdf}`);
   const c = m.conferencia;
@@ -394,6 +417,11 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
   for (const [k, v] of Object.entries(m.bancos ?? {}) as [string, any][]) L.push(`  ${k}: ${v.importacoes} importação(ões), ${v.com_arquivo} com arquivo, ${v.linhas ?? 0} linhas, saldo inicial ${brl(v.saldo_inicial)}, final ${brl(v.saldo_final)}, ${v.nao_conciliadas ?? 0} não conciliadas`);
   L.push("", `NFs CANCELADAS (${(m.eventos_nf ?? []).length}) - evento de cancelamento/CC-e indisponível na origem`);
   for (const e of m.eventos_nf ?? []) L.push(`  NF ${e.numero}`);
+  if (m.cobertas_reimportacao?.total) {
+    const rot: Record<string, string> = { mesmo_nome: "mesmo nome", periodo_contido: "período contido" };
+    L.push("", `COBERTAS POR REIMPORTAÇÃO (${m.cobertas_reimportacao.total})`);
+    for (const c of m.cobertas_reimportacao.itens) L.push(`  ${c.antiga.nome} (${c.antiga.fonte}, ${c.antiga.conta}, ${c.antiga.importada_em}) -> ${c.com_arquivo.nome} (${c.com_arquivo.importada_em}) · ${rot[c.criterio] ?? c.criterio}`);
+  }
   L.push("", `FALTANTES (${(m.faltantes ?? []).length})`);
   for (const f of m.faltantes ?? []) L.push(`  [${f.pasta}] ${f.referencia}: ${f.motivo}`);
   return pdfTexto(L);
