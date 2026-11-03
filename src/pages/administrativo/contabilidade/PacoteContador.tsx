@@ -692,39 +692,79 @@ export default function PacoteContador() {
               <thead className="border-b bg-muted/40">
                 <tr>
                   <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Competência</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Enviado em</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Versão</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Gerado por / em</th>
                   <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Destinatários</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Unidades</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Valor</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Link</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Observação</th>
+                  <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Pacote</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {historicoFiltrado.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/30">
-                    <td className="whitespace-nowrap px-3 py-2 font-medium">{r.rotulo ?? fmtData(r.competencia)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
-                      {fmtDataHora(r.enviada_em)}
-                    </td>
-                    <td className="max-w-[320px] truncate px-3 py-2 text-muted-foreground">
-                      {(r.destinatarios ?? []).join(", ") || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUn(r.unidades)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(r.valor_custo)}</td>
-                    <td className="px-3 py-2 text-right">
-                      {r.link_expirado || !r.link_signed ? (
-                        <Selo estado="warning">Link expirado</Selo>
-                      ) : (
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={r.link_signed} target="_blank" rel="noreferrer">
-                            <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                            Baixar
-                          </a>
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {historicoFiltrado.map((r) => {
+                  const v2 = r.status != null;
+                  const expirado = v2 ? linkExpirado(r.link_expira_em) : r.link_expirado || !r.link_signed;
+                  const faltantes = r.manifesto?.faltantes?.length ?? 0;
+                  return (
+                    <tr key={r.id} className="align-top hover:bg-muted/30">
+                      <td className="whitespace-nowrap px-3 py-2 font-medium">{r.rotulo ?? fmtData(r.competencia)}</td>
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums">{r.versao ? `v${r.versao}` : "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                        <div>{r.gerado_por_nome ?? "—"}</div>
+                        <div className="tabular-nums text-xs">{fmtDataHora(r.gerado_em ?? r.enviada_em)}</div>
+                      </td>
+                      <td className="max-w-[260px] truncate px-3 py-2 text-muted-foreground">
+                        {(r.destinatarios ?? []).join(", ") || "—"}
+                      </td>
+                      <td className="max-w-[220px] truncate px-3 py-2 text-muted-foreground">{r.observacao ?? "—"}</td>
+                      <td className="min-w-[260px] px-3 py-2 text-right">
+                        {r.status === "gerando" ? (
+                          <div className="space-y-1 text-left">
+                            <Progress value={percentualRemessa(r.status, r.progresso)} className="h-2" />
+                            <p className="text-xs text-muted-foreground">{r.progresso?.etapa_rotulo ?? "Iniciando…"}</p>
+                          </div>
+                        ) : r.status === "erro" ? (
+                          <p className="whitespace-pre-wrap break-words text-left text-xs text-destructive">{r.erro_mensagem ?? "Erro sem mensagem"}</p>
+                        ) : v2 ? (
+                          <div className="flex flex-col items-end gap-1">
+                            {!expirado && (r.partes ?? []).map((p) => (
+                              <Button key={p.indice} variant="outline" size="sm" asChild>
+                                <a href={p.link ?? "#"} target="_blank" rel="noreferrer">
+                                  <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                                  {(r.partes ?? []).length > 1 ? `Parte ${p.indice}` : "Baixar"} · {fmtMB(p.bytes)}
+                                </a>
+                              </Button>
+                            ))}
+                            {expirado && <Selo estado="warning">Link expirado</Selo>}
+                            {faltantes > 0 && <span className="text-xs text-warning">{faltantes} faltante(s) no manifesto</span>}
+                            {temNivel(3) && (
+                              <div className="flex gap-1">
+                                {expirado && (
+                                  <Button size="sm" variant="ghost" disabled={novoLink.isPending} onClick={() => novoLink.mutate({ id: r.id, reenviar: false })}>
+                                    Gerar novo link
+                                  </Button>
+                                )}
+                                {(r.destinatarios ?? []).length > 0 && (
+                                  <Button size="sm" variant="ghost" disabled={novoLink.isPending} onClick={() => novoLink.mutate({ id: r.id, reenviar: true })}>
+                                    Reenviar
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : expirado ? (
+                          <Selo estado="warning">Link expirado</Selo>
+                        ) : (
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={r.link_signed!} target="_blank" rel="noreferrer">
+                              <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                              Baixar
+                            </a>
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
