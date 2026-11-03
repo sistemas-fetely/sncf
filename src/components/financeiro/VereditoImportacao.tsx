@@ -8,7 +8,7 @@
  * Arquivo com erro fica em destaque e não desaparece sozinho.
  */
 
-import { FileText, CheckCircle2, AlertTriangle, Info, Landmark } from "lucide-react";
+import { Archive, FileText, CheckCircle2, AlertTriangle, Info, Landmark } from "lucide-react";
 import { MOTIVO_ROTULO, type MotivoDescarte } from "@/lib/financeiro/contagem-importacao";
 
 /**
@@ -33,6 +33,10 @@ export interface VereditoArquivo {
   tom: TomVeredito;
   contagem?: string;
   ignoradas?: Record<string, number>;
+  /** Linha de extrato_importacoes criada para o arquivo (o original já foi guardado). */
+  importacaoId?: string;
+  /** Formato não suportado: oferece "Guardar sem ler". */
+  formatoNaoSuportado?: boolean;
 }
 
 
@@ -47,7 +51,13 @@ function rotuloMotivo(k: string) {
   return MOTIVO_ROTULO[k as MotivoDescarte] ?? MOTIVO_EXTRA[k] ?? k;
 }
 
-export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
+export function VereditoImportacao({
+  itens,
+  onGuardarSemLer,
+}: {
+  itens: VereditoArquivo[];
+  onGuardarSemLer?: (item: VereditoArquivo, indice: number) => void;
+}) {
   if (itens.length === 0) return null;
 
   return (
@@ -109,6 +119,25 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
             >
               {r.resultado}
             </div>
+
+            {r.formatoNaoSuportado && r.importacaoId && onGuardarSemLer && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="rounded border border-destructive/40 px-1.5 py-0.5 font-medium text-destructive">
+                  Formato não suportado
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onGuardarSemLer(r, i)}
+                  className="inline-flex items-center gap-1 rounded border bg-background px-2 py-0.5 font-medium hover:bg-muted"
+                >
+                  <Archive className="h-3 w-3" />
+                  Guardar sem ler
+                </button>
+                <span className="text-muted-foreground">
+                  O original vai para o pacote do contador; nenhuma linha é lida.
+                </span>
+              </div>
+            )}
 
             {r.contagem && <div className="font-mono text-muted-foreground">{r.contagem}</div>}
 
