@@ -153420,6 +153420,10 @@ export type Database = {
         Args: { p_auth_uid?: string; p_prepostagem_id: string }
         Returns: Json
       }
+      fn_correios_primeiro_movimento: {
+        Args: { p_eventos: Json }
+        Returns: Json
+      }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
@@ -153445,6 +153449,7 @@ export type Database = {
         Returns: number
       }
       fn_cron_coletar_respostas: { Args: never; Returns: number }
+      fn_cron_mesa_sp_rastreio_coleta: { Args: never; Returns: number }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
       fn_cronograma_sugerido_pedido: {
         Args: { p_pedido_id: string }
@@ -154272,6 +154277,7 @@ export type Database = {
           pedido_id: string
         }[]
       }
+      fn_mesa_sp_codigos_aguardando_coleta: { Args: never; Returns: string[] }
       fn_mesa_sp_corrigir_caixa: {
         Args: {
           p_caixa_codigo?: string
@@ -154296,6 +154302,10 @@ export type Database = {
       fn_mesa_sp_despachar_lote:
         | { Args: { p_itens: Json; p_modal: string }; Returns: Json }
         | { Args: { p_modal: string; p_pedido_ids: string[] }; Returns: Json }
+      fn_mesa_sp_despachar_por_rastreio: {
+        Args: { p_codigo: string }
+        Returns: Json
+      }
       fn_mesa_sp_devolver_fila: {
         Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json

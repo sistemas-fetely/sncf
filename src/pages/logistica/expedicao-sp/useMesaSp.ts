@@ -955,3 +955,31 @@ export async function cancelarPrepostagemSeSairDeCorreios(pedidoId: string, moda
   if (m?.exige_etiqueta_correios) return;
   await chamarPrepostagem({ acao: "cancelar", pedido_id: pedidoId, motivo: `Troca de modal para ${modalNovo}: ${motivo}` });
 }
+
+/**
+ * MESA-SP-DESPACHO-PELO-RASTREIO: por pedido do lote Correios, a etiqueta SNCF viva cujo código
+ * é o rastreio vigente, e se há postagem na agência. pedido_id → { codigoSncf, temAgencia }.
+ */
+export function useEtiquetasSncfColeta(pedidoIds: string[]) {
+  const ids = [...new Set(pedidoIds)].sort();
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, "coleta-sncf", ids],
+    enabled: ids.length > 0,
+    queryFn: async (): Promise<Record<string, { codigoSncf: string | null; temAgencia: boolean }>> => {
+      const [pp, ras, ag] = await Promise.all([
+        supabaseMesa.from("correios_prepostagem").select("pedido_id, codigo_objeto").in("pedido_id", ids).neq("status", "cancelada"),
+        supabaseMesa.from("pedido_rastreamento").select("pedido_id, codigo_rastreio").in("pedido_id", ids),
+        supabaseMesa.from("pedido_eventos").select("pedido_id").in("pedido_id", ids).eq("tipo_evento", EVENTO_AGENCIA),
+      ]);
+      for (const r of [pp, ras, ag]) if (r.error) throw new Error(`ler etiquetas da coleta: ${mensagemErro(r.error)}`);
+      const vigentes = new Set((ras.data ?? []).map((r: { pedido_id: string; codigo_rastreio: string }) => `${r.pedido_id}|${r.codigo_rastreio}`));
+      const agencia = new Set((ag.data ?? []).map((r: { pedido_id: string }) => r.pedido_id));
+      const out: Record<string, { codigoSncf: string | null; temAgencia: boolean }> = {};
+      for (const id of ids) out[id] = { codigoSncf: null, temAgencia: agencia.has(id) };
+      for (const p of (pp.data ?? []) as { pedido_id: string; codigo_objeto: string | null }[]) {
+        if (p.codigo_objeto && vigentes.has(`${p.pedido_id}|${p.codigo_objeto}`)) out[p.pedido_id].codigoSncf = p.codigo_objeto;
+      }
+      return out;
+    },
+  });
+}

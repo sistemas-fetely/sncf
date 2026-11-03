@@ -13,7 +13,8 @@ import { Selo } from "@/components/ui/selo";
 import type { ModalEntrega } from "./tipos";
 import type { ResultadoDespachoLote } from "./useMesaSp";
 import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
-import { codigosAposLote } from "@/lib/logistica/postagemAgencia";
+import { codigosAposLote, referenciaLoteCorreios } from "@/lib/logistica/postagemAgencia";
+import { useEtiquetasSncfColeta } from "./useMesaSp";
 import { useQueryClient } from "@tanstack/react-query";
 import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
@@ -119,6 +120,12 @@ export function EstacaoDespacho({
   const [errosLote, setErrosLote] = useState<Record<string, string>>({});
   const refsLote = useRef<Record<string, HTMLInputElement | null>>({});
   const ehCorreiosGrupo = (cod: string) => modais.find((m) => m.codigo === cod)?.exige_etiqueta_correios === true;
+  // Etiqueta SNCF viva (sem agência) despacha com o código gravado; só agência/sem etiqueta pede bipe.
+  const sncfQ = useEtiquetasSncfColeta(gruposColeta.flatMap((g) => g.caixas.map((c) => c.pedido_id)));
+  const refLote = (pedidoId: string) => {
+    const s = sncfQ.data?.[pedidoId];
+    return referenciaLoteCorreios({ codigoSncf: s?.codigoSncf, temAgencia: s?.temAgencia ?? false, bipado: codigosLote[pedidoId] });
+  };
 
   if (semDespacho) {
     return (
@@ -170,6 +177,9 @@ export function EstacaoDespacho({
 
             {gruposColeta.map((grupo) => (
               <div key={grupo.modalCodigo} className="space-y-2">
+                {ehCorreiosGrupo(grupo.modalCodigo) && sncfQ.error && (
+                  <p className="text-xs text-destructive">Não foi possível ler as etiquetas: {String((sncfQ.error as Error).message)}</p>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {grupo.modalNome} · {grupo.caixas.length}
@@ -185,14 +195,14 @@ export function EstacaoDespacho({
                         setErrosLote({});
                         onDespacharLote(grupo.modalCodigo, grupo.caixas.map((c) => ({
                           pedido_id: c.pedido_id,
-                          referencia: correios ? normalizarCodigo(codigosLote[c.pedido_id] ?? "") : null,
+                          referencia: correios ? refLote(c.pedido_id).referencia : null,
                         })), (r) => {
                           // Só quem despachou sai do campo; quem falhou fica com o código e o erro.
                           setCodigosLote((s) => codigosAposLote(s, r.itens ?? []));
                           setErrosLote(Object.fromEntries((r.itens ?? []).filter((i) => !i.ok).map((i) => [i.pedido_id, i.erro ?? "Não despachou."])));
                         });
                       }}
-                      disabled={despachandoLote || (ehCorreiosGrupo(grupo.modalCodigo) && !loteCorreiosValido(grupo.caixas.map((c) => codigosLote[c.pedido_id] ?? "")))}
+                      disabled={despachandoLote || (ehCorreiosGrupo(grupo.modalCodigo) && (!sncfQ.data || !loteCorreiosValido(grupo.caixas.map((c) => refLote(c.pedido_id).referencia))))}
                     >
                       {despachandoLote
                         ? <Loader2 className="animate-spin" aria-hidden="true" />
@@ -226,10 +236,13 @@ export function EstacaoDespacho({
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {ehCorreiosGrupo(grupo.modalCodigo) && <BotaoEtiquetaCorreios pedidoId={c.pedido_id} />}
-                        {grupo.temRastreioAutomatico && ehCorreiosGrupo(grupo.modalCodigo) && (() => {
+                        {grupo.temRastreioAutomatico && ehCorreiosGrupo(grupo.modalCodigo) && sncfQ.data && !refLote(c.pedido_id).exigeBipe && errosLote[c.pedido_id] && (
+                          <span className="max-w-xs whitespace-pre-wrap text-xs text-destructive">{errosLote[c.pedido_id]}</span>
+                        )}
+                        {grupo.temRastreioAutomatico && ehCorreiosGrupo(grupo.modalCodigo) && sncfQ.data && refLote(c.pedido_id).exigeBipe && (() => {
                           const v = codigosLote[c.pedido_id] ?? "";
                           const n = normalizarCodigo(v);
-                          const todos = grupo.caixas.map((x) => normalizarCodigo(codigosLote[x.pedido_id] ?? ""));
+                          const todos = grupo.caixas.map((x) => refLote(x.pedido_id).referencia);
                           const repetido = n !== "" && todos.filter((t) => t === n).length > 1;
                           const invalido = n !== "" ? erroCodigoSro(n) : null;
                           return (
