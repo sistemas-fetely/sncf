@@ -903,7 +903,6 @@ const App = () => (
                   <ProtectedRoute><SlaOperacao /></ProtectedRoute>
                 } />
                 <Route path="sla-xpm" element={<Navigate to="/admin/sla" replace />} />
-                <Route path="credenciais" element={<Navigate to="/ti/integracoes?aba=mercado_pago" replace />} />
 
 
               </Route>
