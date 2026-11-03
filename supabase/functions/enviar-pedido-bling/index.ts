@@ -1702,8 +1702,16 @@ serve(async (req) => {
     }
     if ((ped as any)?.bling_id_destino) return err("TRS já está no Bling — nada a enviar", 409);
     // Ator: quem abriu a devolução; sem ele, quem conferiu o retorno físico.
-    const atorTrs = dev.criado_por ?? (dev as any).recebido_por;
-    if (!atorTrs) return err("Devolução sem criado_por nem recebido_por — não há ator para o envio", 409);
+    // Último recurso: quem lançou o movimento físico do retorno no estoque.
+    let atorTrs: string | null = dev.criado_por ?? (dev as any).recebido_por ?? null;
+    if (!atorTrs) {
+      const { data: mov, error: movErr } = await supabase
+        .from("movimentacao_estoque").select("criado_por")
+        .eq("devolucao_id", devId).not("criado_por", "is", null).limit(1).maybeSingle();
+      if (movErr) return err(`Falha ao ler o movimento do retorno: ${movErr.message}`, 500);
+      atorTrs = (mov as any)?.criado_por ?? null;
+    }
+    if (!atorTrs) return err("Devolução sem criado_por, recebido_por nem movimento de retorno com autor — não há ator para o envio", 409);
     return await handle(req, {
       devolucaoId: devId,
       criadoPor: String(atorTrs),
