@@ -91,28 +91,14 @@ serve(async (req) => {
   };
 
   if (acao === "verificar") {
+    // Regra única compartilhada com a rotina automática devolucao-nf-verifica.
     try {
-      const { data: dev, error } = await db.from("devolucao").select("nf_dev_bling_id,nf_dev_numero,nf_dev_status").eq("id", devId).single();
-      if (error) throw error;
-      if (!dev?.nf_dev_bling_id) return json({ ok: false, erro: "Devolução sem rascunho de NF no Bling." }, 409);
-      const bling = await blingCliente();
-      let nf: any = null; let excluida = false;
-      try { nf = (await bling.get(`/nfe/${dev.nf_dev_bling_id}`))?.data; }
-      catch (ge) { if (ge instanceof BlingHttpError && ge.status === 404) excluida = true; else throw ge; }
-      // Na API v3 do Bling, situação 2 da NF-e = "Cancelada".
-      if (excluida || (nf && (cancelada(nf) || Number(nf.situacao) === 2))) {
-        await registrar("erro", null, null, `NF ${dev.nf_dev_numero ?? "?"} (Bling ${dev.nf_dev_bling_id}) cancelada/excluída no Bling — gere de novo.`);
-        return json({ ok: true, autorizada: false, cancelada: true });
-      }
-      if (!nf) throw new Error("Bling não devolveu a NF.");
-      const situacao = Number(nf.situacao);
-      if ((situacao === 5 || situacao === 6) && !cancelada(nf)) {
-        const numero = String(nf.numero ?? dev.nf_dev_numero ?? "");
-        await registrar("autorizada", Number(dev.nf_dev_bling_id), numero || null, null, nf.chaveAcesso ?? null);
-        return json({ ok: true, autorizada: true, numero, situacao });
-      }
-      return json({ ok: true, autorizada: false, situacao, cancelada: cancelada(nf) });
-    } catch (e) { return json({ ok: false, erro: mensagem(e) }, 502); }
+      const r = await verificarNfDevolucao(db, await blingCliente(), devId);
+      console.log(`verificar ${devId}:`, JSON.stringify(r));
+      if (r.resultado === "autorizada") return json({ ok: true, autorizada: true, numero: r.numero, situacao: r.situacao, chave: r.chave });
+      if (r.resultado === "cancelada") return json({ ok: true, autorizada: false, cancelada: true, situacao: r.situacao });
+      return json({ ok: true, autorizada: false, cancelada: false, situacao: r.situacao });
+    } catch (e) { console.error(`verificar ${devId}:`, mensagem(e)); return json({ ok: false, erro: mensagem(e) }, 502); }
   }
 
   try { await registrar("gerando"); } catch (e) { return json({ ok: false, erro: mensagem(e) }, 409); }
