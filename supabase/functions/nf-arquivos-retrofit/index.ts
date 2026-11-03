@@ -51,11 +51,13 @@ Deno.serve(async (req) => {
     }
 
     const erros: { numero: string | null; erro: string }[] = [];
-    let ok = 0;
+    let ok = 0; let pdfBling = 0; let pdfGerado = 0;
     for (const nf of rows) {
       try {
         const r = await cachearNfSaida(admin, nf);
         ok++;
+        if (r.pdfOrigem === "bling") pdfBling++;
+        if (r.pdfOrigem === "gerado_xml") pdfGerado++;
         if (r.erroPdf) erros.push({ numero: nf.numero, erro: r.erroPdf });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -66,7 +68,7 @@ Deno.serve(async (req) => {
     const { count: restantes } = await admin.from("nfs_emitidas").select("id", { count: "exact", head: true })
       .gte("data_emissao", ini).lt("data_emissao", fim).in("situacao", ["autorizada", "cancelada"])
       .or("xml_storage_path.is.null,pdf_storage_path.is.null").is("arquivos_erro", null);
-    return json({ ok: true, processadas: rows.length, guardadas: ok, erros, pendentes_antes: count, restantes });
+    return json({ ok: true, processadas: rows.length, guardadas: ok, pdf_bling: pdfBling, pdf_gerado_xml: pdfGerado, erros, pendentes_antes: count, restantes });
   } catch (e) {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
   }
