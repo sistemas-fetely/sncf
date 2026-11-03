@@ -21,13 +21,11 @@ import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { rawMessage } from "@/lib/format-error";
 import { useNivel } from "@/hooks/useNivel";
 import { Progress } from "@/components/ui/progress";
+import { SortableTableHead, ordenarPor, type SortState } from "@/components/shared/SortableTableHead";
 import { linkExpirado, percentualRemessa, precisaRetomar, type ProgressoRemessa } from "@/lib/contabil/remessaPacote";
 
 /** Dispara (ou retoma) a geração do ZIP em segundo plano. Erro real vai para quem chamou. */
@@ -171,9 +169,8 @@ export default function PacoteContador() {
   const qc = useQueryClient();
   const { temNivel } = useNivel();
   const [selecionada, setSelecionada] = useState<string | null>(null);
-  const [destinatarios, setDestinatarios] = useState("");
-  const [observacao, setObservacao] = useState("");
   const [buscaHist, setBuscaHist] = useState("");
+  const [sort, setSort] = useState<SortState<"competencia" | "versao" | "gerado_em"> | null>(null);
 
   const competencias = useQuery({
     queryKey: ["contabil-competencias"],
@@ -432,11 +429,11 @@ export default function PacoteContador() {
     mutationFn: async () => {
       if (!selecionada || !comp) throw new Error("Selecione uma competência");
       if (comp.status !== "fechado" && comp.status !== "pre_fechado") throw new Error("Feche a competência antes de gerar o pacote");
-      const emails = destinatarios.split(/[,;\s]+/).map((e) => e.trim()).filter((e) => e.includes("@"));
+      const emails: string[] = [];
       const { data: ini, error: errIni } = await supabase.rpc("fn_remessa_contador_iniciar", {
         p_competencia: selecionada,
         p_destinatarios: emails,
-        p_observacao: observacao.trim() || null,
+        p_observacao: null,
       });
       if (errIni) throw errIni;
       const r = ini as { remessa_id: string; versao: number };
@@ -505,13 +502,14 @@ export default function PacoteContador() {
   const historico = remessas.data ?? [];
   const historicoFiltrado = useMemo(() => {
     const t = buscaHist.trim().toLowerCase();
-    if (!t) return historico;
-    return historico.filter(
-      (r) =>
-        (r.rotulo ?? "").toLowerCase().includes(t) ||
-        (r.destinatarios ?? []).join(" ").toLowerCase().includes(t)
-    );
-  }, [historico, buscaHist]);
+    let lista = t ? historico.filter((r) => (r.rotulo ?? "").toLowerCase().includes(t)) : historico;
+    lista = ordenarPor(lista, sort, {
+      competencia: (r) => r.rotulo ?? r.competencia ?? "",
+      versao: (r) => r.versao ?? 0,
+      gerado_em: (r) => r.gerado_em ?? r.enviada_em ?? "",
+    });
+    return lista;
+  }, [historico, buscaHist, sort]);
 
   const carregandoPrevia = posicao.isLoading || vendas.isLoading || nfs.isLoading;
   const erroPrevia = posicao.error || vendas.error || nfs.error;
@@ -527,7 +525,7 @@ export default function PacoteContador() {
     itens: { rotulo: string; valor: string }[];
     principal?: boolean;
   }) => (
-    <div className={cn("flex-1 rounded-lg border p-4", principal && "border-primary/40 bg-primary/5")}>
+    <div className={cn("flex-1 rounded-lg border bg-card p-4 shadow-sm", principal && "border-primary/40 bg-primary/5")}>
       <p className="text-xs text-muted-foreground">{titulo}</p>
       <p className="mt-1 text-xl tabular-nums">{destaque}</p>
       <dl className="mt-2 space-y-0.5">
@@ -572,7 +570,7 @@ export default function PacoteContador() {
                 type="button"
                 onClick={() => setSelecionada(c.competencia)}
                 className={cn(
-                  "w-[240px] shrink-0 rounded-lg border p-3 text-left transition-colors",
+                  "w-[240px] shrink-0 rounded-lg border bg-card p-3 text-left shadow-sm transition-colors",
                   ativo ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "hover:bg-muted/50"
                 )}
               >
@@ -647,56 +645,29 @@ export default function PacoteContador() {
         </section>
       )}
 
-      {/* ZONA 4 — geração */}
-      {comp && (
-        <section className="space-y-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">Geração</h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="destinatarios" className="text-xs">
-                Destinatários (opcional, separados por vírgula)
-              </Label>
-              <Input
-                id="destinatarios"
-                value={destinatarios}
-                onChange={(e) => setDestinatarios(e.target.value)}
-                placeholder="contador@escritorio.com.br"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="observacao" className="text-xs">
-                Observação para o contador (opcional)
-              </Label>
-              <Textarea
-                id="observacao"
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </div>
+      {/* ZONA 4 — geração (barra de ações sob a prévia) */}
+      {comp && temNivel(3) && (
+        <section className="rounded-lg border bg-card p-4 shadow-sm">
           {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
-          {temNivel(3) && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                disabled={!podeGerar || carregandoPrevia || gerar.isPending}
-                onClick={() => gerar.mutate()}
-              >
-                <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                {gerar.isPending ? "Gerando…" : preFechada ? "Gerar prévia" : "Gerar pacote"}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={buscarNfs.isPending}
-                onClick={() => buscarNfs.mutate()}
-              >
-                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                {buscarNfs.isPending ? progressoNfs || "Buscando…" : "Buscar arquivos das NFs do mês"}
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              disabled={!podeGerar || carregandoPrevia || gerar.isPending}
+              onClick={() => gerar.mutate()}
+            >
+              <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              {gerar.isPending ? "Gerando…" : preFechada ? "Gerar prévia" : "Gerar pacote"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={buscarNfs.isPending}
+              onClick={() => buscarNfs.mutate()}
+            >
+              <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              {buscarNfs.isPending ? progressoNfs || "Buscando…" : "Buscar arquivos das NFs do mês"}
+            </Button>
+          </div>
         </section>
       )}
 
@@ -704,7 +675,7 @@ export default function PacoteContador() {
       <section className="space-y-2">
         <h2 className="text-sm font-medium">Remessas enviadas</h2>
         <TabelaFetely
-          busca={{ valor: buscaHist, aoMudar: setBuscaHist, placeholder: "Buscar por competência ou destinatário…" }}
+          busca={{ valor: buscaHist, aoMudar: setBuscaHist, placeholder: "Buscar por competência…" }}
           carregando={remessas.isLoading}
           erro={remessas.error ? rawMessage(remessas.error) : null}
           aoTentarNovamente={() => remessas.refetch()}
@@ -714,15 +685,19 @@ export default function PacoteContador() {
           exibidos={historicoFiltrado.length}
           rotulo="remessas"
         >
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto rounded-md border bg-card shadow-sm">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/40">
                 <tr>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Competência</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Versão</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Gerado por / em</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Destinatários</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-normal text-muted-foreground">Observação</th>
+                  <SortableTableHead column="competencia" sort={sort} onSort={setSort} className="px-3 py-2 text-[11px] font-normal">
+                    Competência
+                  </SortableTableHead>
+                  <SortableTableHead column="versao" sort={sort} onSort={setSort} className="px-3 py-2 text-[11px] font-normal">
+                    Versão
+                  </SortableTableHead>
+                  <SortableTableHead column="gerado_em" sort={sort} onSort={setSort} className="px-3 py-2 text-[11px] font-normal">
+                    Gerado por / em
+                  </SortableTableHead>
                   <th className="px-3 py-2 text-right text-[11px] font-normal text-muted-foreground">Pacote</th>
                 </tr>
               </thead>
@@ -744,10 +719,6 @@ export default function PacoteContador() {
                         <div>{r.gerado_por_nome ?? "—"}</div>
                         <div className="tabular-nums text-xs">{fmtDataHora(r.gerado_em ?? r.enviada_em)}</div>
                       </td>
-                      <td className="max-w-[260px] truncate px-3 py-2 text-muted-foreground">
-                        {(r.destinatarios ?? []).join(", ") || "—"}
-                      </td>
-                      <td className="max-w-[220px] truncate px-3 py-2 text-muted-foreground">{r.observacao ?? "—"}</td>
                       <td className="min-w-[260px] px-3 py-2 text-right">
                         {r.status === "gerando" ? (
                           <div className="space-y-1 text-left">
@@ -773,11 +744,6 @@ export default function PacoteContador() {
                                 {expirado && (
                                   <Button size="sm" variant="ghost" disabled={novoLink.isPending} onClick={() => novoLink.mutate({ id: r.id, reenviar: false })}>
                                     Gerar novo link
-                                  </Button>
-                                )}
-                                {(r.destinatarios ?? []).length > 0 && (
-                                  <Button size="sm" variant="ghost" disabled={novoLink.isPending} onClick={() => novoLink.mutate({ id: r.id, reenviar: true })}>
-                                    Reenviar
                                   </Button>
                                 )}
                               </div>
