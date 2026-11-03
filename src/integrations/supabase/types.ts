@@ -72590,6 +72590,27 @@ export type Database = {
           },
         ]
       }
+      remessa_contador_natureza_dim: {
+        Row: {
+          codigo: string
+          descricao: string | null
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          descricao?: string | null
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       remessas_contador: {
         Row: {
           competencia: string | null
@@ -72607,6 +72628,7 @@ export type Database = {
           link_signed: string | null
           manifesto: Json | null
           metodo: string
+          natureza: string | null
           observacao: string | null
           partes: Json
           periodo_fim: string
@@ -72635,6 +72657,7 @@ export type Database = {
           link_signed?: string | null
           manifesto?: Json | null
           metodo: string
+          natureza?: string | null
           observacao?: string | null
           partes?: Json
           periodo_fim: string
@@ -72663,6 +72686,7 @@ export type Database = {
           link_signed?: string | null
           manifesto?: Json | null
           metodo?: string
+          natureza?: string | null
           observacao?: string | null
           partes?: Json
           periodo_fim?: string
@@ -72682,6 +72706,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contabil_fechamento"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remessas_contador_natureza_fkey"
+            columns: ["natureza"]
+            isOneToOne: false
+            referencedRelation: "remessa_contador_natureza_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
