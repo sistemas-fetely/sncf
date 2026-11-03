@@ -309,6 +309,13 @@
       "when": 1793715938458,
       "tag": "0043_extrato_importacao_original_competencia",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793717767348,
+      "tag": "0044_dev_trs_auto_retorno_devolucao",
+      "breakpoints": true
     }
   ]
 }
