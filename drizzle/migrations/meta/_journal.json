@@ -295,6 +295,13 @@
       "when": 1793713911485,
       "tag": "0041_pacote_contador_v2_remessa",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793715590036,
+      "tag": "0042_credenciais_integracao_vault",
+      "breakpoints": true
     }
   ]
 }
