@@ -9,7 +9,7 @@ Deno.serve(async () => {
     const { data: cfg } = await db.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
     const bling = makeBlingClient(db, cfg, await ensureFreshToken(db, cfg));
     const r = (await bling.get(`/nfe/27251144278`))?.data;
-    out.rascunho = { situacao: r?.situacao, numero: r?.numero, serie: r?.serie, chave: r?.chaveAcesso, situacaoCancelamento: r?.situacaoCancelamento, contato: r?.contato?.nome, dataEmissao: r?.dataEmissao, tipo: r?.tipo };
+    out.rascunho = { situacao: r?.situacao, numero: r?.numero, serie: r?.serie, chave: r?.chaveAcesso, situacaoCancelamento: r?.situacaoCancelamento, contato: r?.contato?.nome, cancelamento: r?.cancelamento, chavesTopo: Object.keys(r??{}), dataEmissao: r?.dataEmissao, tipo: r?.tipo };
     const lista: any[] = [];
     for (let p = 1; p <= 10; p++) {
       const pg = (await bling.get(`/nfe?tipo=0&dataEmissaoInicial=2026-10-28%2000:00:00&pagina=${p}&limite=100`))?.data ?? [];
