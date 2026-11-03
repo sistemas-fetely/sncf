@@ -302,6 +302,13 @@
       "when": 1793715590036,
       "tag": "0042_credenciais_integracao_vault",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793715938458,
+      "tag": "0043_extrato_importacao_original_competencia",
+      "breakpoints": true
     }
   ]
 }
