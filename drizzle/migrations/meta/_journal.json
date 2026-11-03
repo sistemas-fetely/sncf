@@ -337,6 +337,13 @@
       "when": 1793727906564,
       "tag": "0047_mesa_sp_servico_correios_efetivo",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793728484860,
+      "tag": "0048_pacote_contador_previa_dim",
+      "breakpoints": true
     }
   ]
 }
