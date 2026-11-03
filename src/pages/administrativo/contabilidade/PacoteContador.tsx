@@ -203,9 +203,14 @@ export default function PacoteContador() {
     queryKey: ["contabil-posicao", selecionada],
     enabled: !!selecionada,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("fn_contabil_posicao", { p_competencia: selecionada! });
-      if (error) throw error;
-      return (data ?? []) as unknown as LinhaPosicao[];
+      // Paginado: a posição passa de 1.000 linhas (o servidor corta cada resposta em 1.000).
+      const out: LinhaPosicao[] = [];
+      for (let de = 0; ; de += 1000) {
+        const { data, error } = await supabase.rpc("fn_contabil_posicao", { p_competencia: selecionada! }).range(de, de + 999);
+        if (error) throw error;
+        out.push(...((data ?? []) as unknown as LinhaPosicao[]));
+        if (!data || data.length < 1000) return out;
+      }
     },
   });
 
