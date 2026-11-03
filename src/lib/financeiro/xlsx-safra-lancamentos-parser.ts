@@ -104,24 +104,28 @@ function parseValor(raw: unknown): number {
  * Recebe o ArrayBuffer do arquivo e retorna as movimentações extraídas.
  * Lança se o cabeçalho não for reconhecido.
  */
+/**
+ * Linha do cabeçalho do extrato Safra Lançamentos: contém "status" e ("valor" ou "data").
+ * -1 quando não há — o detector usa isto para NÃO aceitar planilha alheia.
+ */
+export function acharCabecalhoSafraLancamentos(rows: unknown[][]): number {
+  for (let i = 0; i < Math.min(rows.length, 40); i++) {
+    const r = rows[i] || [];
+    const temStatus = acharColuna(r, KEYS.status) >= 0;
+    const temValor = acharColuna(r, KEYS.valor) >= 0;
+    const temData = acharColuna(r, KEYS.data) >= 0;
+    if (temStatus && (temValor || temData)) return i;
+  }
+  return -1;
+}
+
 export function parseXlsxSafraLancamentos(buffer: ArrayBuffer): SafraLancParsed {
   const wb = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheetName = wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
 
-  // Achar linha de cabeçalho: aquela que contém ao menos "status" e ("valor" OU "data")
-  let headerIdx = -1;
-  for (let i = 0; i < Math.min(rows.length, 40); i++) {
-    const r = rows[i] || [];
-    const temStatus = acharColuna(r, KEYS.status) >= 0;
-    const temValor = acharColuna(r, KEYS.valor) >= 0;
-    const temData = acharColuna(r, KEYS.data) >= 0;
-    if (temStatus && (temValor || temData)) {
-      headerIdx = i;
-      break;
-    }
-  }
+  const headerIdx = acharCabecalhoSafraLancamentos(rows as unknown[][]);
 
   if (headerIdx < 0) {
     const primeiras = rows.slice(0, 10).map((r) => (r || []).map(norm).join(" | "));
