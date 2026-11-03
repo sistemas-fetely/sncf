@@ -202,7 +202,7 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
   const [vendas, nfsP, pos] = await Promise.all([
     userDb.from("vw_contabil_vendas_periodo").select("receita_total,cmv").eq("competencia", rem.competencia),
     userDb.from("vw_contabil_nfs_periodo").select("receita_total").eq("competencia", rem.competencia),
-    userDb.rpc("fn_contabil_posicao", { p_competencia: rem.competencia }),
+    todas(userDb.rpc("fn_contabil_posicao", { p_competencia: rem.competencia })).then((data) => ({ data, error: null })),
   ]);
   for (const r of [vendas, nfsP, pos]) if (r.error) throw r.error;
   const s = (a: any[], k: string) => Math.round(a.reduce((x, y) => x + Number(y[k] ?? 0), 0) * 100) / 100;
@@ -284,13 +284,19 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
       .eq("conta_bancaria_id", k.id).gte("data_transacao", ini).lte("data_transacao", fimP).order("data_transacao").order("created_at"));
     if (!movs.length && !bancos[cn]) continue;
     bancos[cn] ??= { importacoes: 0, com_arquivo: 0 };
-    const comSaldo = movs.filter((m: any) => m.saldo_pos_transacao != null);
-    const prim = comSaldo[0], ult = comSaldo[comSaldo.length - 1];
+    // Saldo do dia (saldo_diario_conta): inicial = último antes do mês; final = último do mês.
+    const [antes, ultimo] = await Promise.all([
+      admin.from("saldo_diario_conta").select("data,saldo").eq("conta_bancaria_id", k.id).lt("data", ini).order("data", { ascending: false }).limit(1),
+      admin.from("saldo_diario_conta").select("data,saldo").eq("conta_bancaria_id", k.id).gte("data", ini).lte("data", fimP).order("data", { ascending: false }).limit(1),
+    ]);
+    if (antes.error) throw antes.error; if (ultimo.error) throw ultimo.error;
     Object.assign(bancos[cn], {
       linhas: movs.length,
       nao_conciliadas: movs.filter((m: any) => !m.conciliado).length,
-      saldo_inicial: prim ? Math.round((Number(prim.saldo_pos_transacao) - Number(prim.valor)) * 100) / 100 : null,
-      saldo_final: ult ? Number(ult.saldo_pos_transacao) : null,
+      saldo_inicial: antes.data?.[0] ? Number(antes.data[0].saldo) : null,
+      saldo_inicial_data: antes.data?.[0]?.data ?? null,
+      saldo_final: ultimo.data?.[0] ? Number(ultimo.data[0].saldo) : null,
+      saldo_final_data: ultimo.data?.[0]?.data ?? null,
     });
   }
 
