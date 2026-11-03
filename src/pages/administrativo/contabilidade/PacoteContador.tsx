@@ -27,6 +27,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { rawMessage } from "@/lib/format-error";
 import { useNivel } from "@/hooks/useNivel";
+import { Progress } from "@/components/ui/progress";
+import { linkExpirado, percentualRemessa, precisaRetomar, type ProgressoRemessa } from "@/lib/contabil/remessaPacote";
+
+/** Dispara (ou retoma) a geração do ZIP em segundo plano. Erro real vai para quem chamou. */
+async function chamarGeracao(remessaId: string, planilhaPath: string | null) {
+  const { data, error } = await supabase.functions.invoke("gerar-pacote-contador-v2", {
+    body: { remessa_id: remessaId, ...(planilhaPath ? { planilha_path: planilhaPath } : {}) },
+  });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    let m = error.message;
+    try { const b = ctx ? await ctx.json() : null; if (b?.erro) m = b.erro; } catch { /* mantém */ }
+    throw new Error(m);
+  }
+  const r = data as { ok?: boolean; erro?: string } | null;
+  if (!r?.ok) throw new Error(r?.erro ?? "Falha ao iniciar a geração");
+}
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
@@ -225,6 +242,40 @@ export default function PacoteContador() {
       if (error) throw error;
       return (data ?? []) as unknown as Remessa[];
     },
+    // Acompanha a geração em segundo plano a cada 3 s enquanto houver remessa gerando.
+    refetchInterval: (q) => ((q.state.data as Remessa[] | undefined)?.some((r) => r.status === "gerando") ? 3000 : false),
+  });
+
+  // Retoma a geração quando a rotina pausou por tempo ou parou de dar sinal (uma chamada por sinal).
+  const [retomadas, setRetomadas] = useState<Record<string, string>>({});
+  useEffect(() => {
+    for (const r of remessas.data ?? []) {
+      const marca = r.progresso?.atualizado_em ?? "";
+      if (!precisaRetomar(r.status, r.progresso) || retomadas[r.id] === marca) continue;
+      setRetomadas((m) => ({ ...m, [r.id]: marca }));
+      chamarGeracao(r.id, null).catch((e) => toast.error(`Retomada do pacote falhou: ${rawMessage(e)}`, { duration: Infinity, closeButton: true }));
+    }
+  }, [remessas.data, retomadas]);
+
+  const novoLink = useMutation({
+    mutationFn: async ({ id, reenviar }: { id: string; reenviar: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("remessa-contador-novo-link", { body: { remessa_id: id, reenviar } });
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        let m = error.message;
+        try { const b = ctx ? await ctx.json() : null; if (b?.erro) m = b.erro; } catch { /* mantém */ }
+        throw new Error(m);
+      }
+      const r = data as { ok: boolean; erro?: string; email?: { enviados: number; erros: string[] } | null };
+      if (!r?.ok) throw new Error(r?.erro ?? "Falha sem mensagem");
+      return { ...r, reenviar };
+    },
+    onSuccess: (r) => {
+      if (r.reenviar) toast.success(`Reenviado para ${r.email?.enviados ?? 0} destinatário(s)` + (r.email?.erros.length ? ` · falhas: ${r.email.erros.join("; ")}` : ""), { duration: Infinity, closeButton: true });
+      else toast.success("Novo link gerado (30 dias)");
+      qc.invalidateQueries({ queryKey: ["contabil-remessas"] });
+    },
+    onError: (e) => toast.error(rawMessage(e), { duration: Infinity, closeButton: true }),
   });
 
   const linhasPosicao = posicao.data ?? [];
