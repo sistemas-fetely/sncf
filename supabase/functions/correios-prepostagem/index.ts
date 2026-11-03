@@ -3,6 +3,7 @@
 // Token por CARTÃO (correios_cartao_postagem), cache em correios_token id `cartao_<numero>`.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { PDFDocument } from "npm:pdf-lib@1.17.1";
 
 const AMBIENTE = (Deno.env.get("CORREIOS_AMBIENTE") ?? "PRODUCAO").toUpperCase();
 const BASE = AMBIENTE === "HOMOLOGACAO" ? "https://apihom.correios.com.br" : "https://api.correios.com.br";
@@ -160,7 +161,7 @@ async function rotulo(prepostagemId: string) {
   if (!pp || pp.status === "cancelada") throw new Falha(404, "Pré-postagem não encontrada ou cancelada.");
   const cartao = await cartaoPorNumero(pp.cartao);
   const s = await api(cartao, "POST", "/prepostagem/v1/prepostagens/rotulo/assincrono/pdf", {
-    idsPrePostagem: [pp.id_prepostagem_correios], tipoRotulo: "R", formatoRotulo: "ET", imprimeRemetente: "S", layoutImpressao: "PADRAO",
+    idsPrePostagem: [pp.id_prepostagem_correios], tipoRotulo: "P", formatoRotulo: "ET", imprimeRemetente: "S", layoutImpressao: "PADRAO",
   });
   if (!s.ok) throw new Falha(502, `Correios recusou o rótulo (HTTP ${s.status}): ${JSON.stringify(s.corpo)}`);
   const recibo = (s.corpo as any)?.idRecibo;
@@ -171,10 +172,27 @@ async function rotulo(prepostagemId: string) {
     const dados = (g.corpo as any)?.dados;
     if (g.ok && dados) {
       await admin.from("correios_prepostagem").update({ status: "rotulo_impresso" }).eq("id", pp.id).eq("status", "criada");
-      return { ok: true, pdf_base64: dados, codigo_objeto: pp.codigo_objeto };
+      return { ok: true, pdf_base64: await estreitar3cm(dados), codigo_objeto: pp.codigo_objeto };
     }
   }
   throw new Falha(504, `Rótulo do ${pp.codigo_objeto} ainda não ficou pronto nos Correios (recibo ${recibo}). Tente reimprimir.`);
+}
+
+// Mesmo rótulo, inteiro, escala uniforme para ficar 3 cm (85,04 pt) mais estreito; âncora no canto superior esquerdo.
+async function estreitar3cm(b64: string): Promise<string> {
+  const orig = await PDFDocument.load(Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0)));
+  const novo = await PDFDocument.create();
+  for (const pg of orig.getPages()) {
+    const { width: w, height: h } = pg.getSize();
+    const f = (w - 85.04) / w;
+    const emb = await novo.embedPage(pg);
+    const nw = w * f, nh = h * f;
+    novo.addPage([nw, nh]).drawPage(emb, { x: 0, y: 0, xScale: f, yScale: f });
+    console.log(`rotulo: original ${w.toFixed(2)}x${h.toFixed(2)} pt -> novo ${nw.toFixed(2)}x${nh.toFixed(2)} pt (fator ${f.toFixed(4)})`);
+  }
+  const out = await novo.save();
+  let bin = ""; for (let i = 0; i < out.length; i += 0x8000) bin += String.fromCharCode(...out.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 async function cancelar(arg: { prepostagem_id?: string; codigo_objeto?: string; pedido_id?: string; motivo?: string }, uid: string) {
