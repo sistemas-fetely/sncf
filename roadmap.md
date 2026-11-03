@@ -65,3 +65,11 @@
 - [ ] Bloco 2: PDF (DANFE) — Bling responde 403 no download; investigar
 - [ ] Bloco 2: cópia automática no sync (sync-nfe / vd-nf-sync), NF de entrada (sync-qive-dfe), cancelamento/CC-e
 - [ ] Fase 2 · Blocos 3 e 4: pacote em segundo plano (ZIP + manifesto), versões, novo link, e-mail
+
+## Pacote do Contador v2 — complementos Fase 1
+- [ ] PDF 403 do Bling (investigar nf-download / gerar DANFE do XML) + retrofit 11/2026 com incluir_falhas
+- [ ] Retrofit NFs de saída 10/2026 e reportar números
+- [ ] Importação "Guardar sem ler" para formato não reconhecido
+- [ ] Cópia automática no sync (sync-nfe, vd-nf-sync, sync-qive-dfe entrada)
+- [ ] Testar XML de evento cancelamento/CC-e na API v3
+- [ ] Mercado Pago Fase 1 (aguardando aprovação do plano)
