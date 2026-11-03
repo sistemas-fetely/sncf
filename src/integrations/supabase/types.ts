@@ -152544,6 +152544,14 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_extrato_importacao_guardar_sem_ler: {
+        Args: {
+          p_competencia: string
+          p_conta_bancaria_id: string
+          p_importacao_id: string
+        }
+        Returns: Json
+      }
       fn_fatura_cartao_importar: {
         Args: { p_fatura: Json; p_lancamentos: Json }
         Returns: {
