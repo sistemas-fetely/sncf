@@ -260,6 +260,13 @@
       "when": 1793710143673,
       "tag": "0036_nfs_emitidas_pdf_origem",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793710425830,
+      "tag": "0037_extrato_importacoes_status_guardado",
+      "breakpoints": true
     }
   ]
 }
