@@ -324,6 +324,26 @@ export async function processarNfItem(supabase: any, client: BlingClient, nf: an
       st.criados++;
     }
 
+    // CACHE-NF-NO-SYNC (03/11/2026): copia XML/PDF para o Storage `contabil`
+    // (pacote do contador). Best-effort: erro vai para arquivos_erro e não
+    // derruba o sync. Só NF autorizada/cancelada ainda sem arquivo e sem erro
+    // anterior (as que falharam ficam para o retrofit com incluir_falhas);
+    // cancelamento recém-detectado regrava para pegar o estado novo.
+    const virouCancelada = existing?.situacao === "autorizada" && registro.situacao === "cancelada";
+    if (registro.situacao === "autorizada" || registro.situacao === "cancelada") {
+      try {
+        const { data: row } = await supabase.from("nfs_emitidas")
+          .select("id, bling_id, numero, serie, pdf_url, xml_url, data_emissao, situacao, xml_storage_path, pdf_storage_path, arquivos_erro")
+          .eq("bling_id", blingId).maybeSingle();
+        const falta = row && (!row.xml_storage_path || !row.pdf_storage_path) && !row.arquivos_erro;
+        if (row && (falta || virouCancelada)) await cachearNfSaida(supabase, row);
+      } catch (e) {
+        const msg = (e as Error).message;
+        console.error(`[cache-nf] NF ${registro.numero ?? blingId}: ${msg}`);
+        await supabase.from("nfs_emitidas").update({ arquivos_erro: msg.slice(0, 1000) }).eq("bling_id", blingId);
+      }
+    }
+
   } catch (e) {
     st.erros++;
     st.ultimoErro = `item ${nf?.id}: ${(e as Error).message}`;
