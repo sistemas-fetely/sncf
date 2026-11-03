@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       try {
         const arr = JSON.parse(lst.texto);
         if (Array.isArray(arr)) {
-          lista = { total: arr.length, recentes: arr.slice(-8).map((x: any) => ({
+          lista = { total: arr.length, recentes: [...arr].sort((a: any, b: any) => String(b.begin_date).localeCompare(String(a.begin_date))).slice(0, 12).map((x: any) => ({
             file_name: x.file_name, begin_date: x.begin_date, end_date: x.end_date,
             created_from: x.created_from, status: x.status, id: x.id, date_created: x.date_created,
           })) };
