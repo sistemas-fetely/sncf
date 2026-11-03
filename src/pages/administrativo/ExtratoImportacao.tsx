@@ -50,6 +50,10 @@ import { gerarHashMov, identidadeMovOfx } from "@/lib/financeiro/hash-mov";
 import { ContagemImportacao } from "@/lib/financeiro/contagem-importacao";
 import { inserirMovimentacao, inserirMovimentacoes } from "@/lib/financeiro/inserir-mov";
 import { VereditoImportacao, type VereditoArquivo } from "@/components/financeiro/VereditoImportacao";
+import { ehFormatoNaoSuportado } from "@/lib/financeiro/formato-nao-suportado";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   extrairCabecalhoOFX,
   resolverContaPorCabecalhoOFX,
@@ -220,6 +224,8 @@ type TrilhaArquivo = {
    * processado antes. Veredito em tom neutro, nem verde nem vermelho.
    */
   neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
+  /** Linha de extrato_importacoes do arquivo (nasce antes da leitura, com o original guardado). */
+  impId?: string;
 };
 
 
@@ -365,6 +371,45 @@ export default function ExtratoImportacao() {
   }, [contas]);
 
 
+  // GUARDAR-SEM-LER (03/11/2026): formato não suportado não falha em silêncio —
+  // o original já subiu; o operador escolhe conta e competência e a linha vira
+  // fonte_tipo=arquivo_nao_lido / status=guardado, zero linhas.
+  const [guardarAlvo, setGuardarAlvo] = useState<{ item: VereditoArquivo; indice: number } | null>(null);
+  const [guardarConta, setGuardarConta] = useState("");
+  const [guardarComp, setGuardarComp] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [guardando, setGuardando] = useState(false);
+  async function confirmarGuardarSemLer() {
+    if (!guardarAlvo?.item.importacaoId) return;
+    setGuardando(true);
+    try {
+      const { error } = await sb.rpc("fn_extrato_importacao_guardar_sem_ler", {
+        p_importacao_id: guardarAlvo.item.importacaoId,
+        p_conta_bancaria_id: guardarConta,
+        p_competencia: guardarComp,
+      });
+      if (error) throw error;
+      const idx = guardarAlvo.indice;
+      setResultados((r) =>
+        r.map((x, i) =>
+          i === idx
+            ? { ...x, tom: "neutro", formatoNaoSuportado: false, resultado: `Guardado sem ler — competência ${guardarComp}`, parser: "arquivo não lido" }
+            : x,
+        ),
+      );
+      toast.success(`${guardarAlvo.item.arquivo}: guardado sem ler`);
+      setGuardarAlvo(null);
+      await refetch();
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setGuardando(false);
+    }
+  }
+
   const [anexandoId, setAnexandoId] = useState<string | null>(null);
   async function anexarOriginal(id: string, file: File) {
     setAnexandoId(id);
@@ -484,6 +529,7 @@ export default function ExtratoImportacao() {
       .single();
     if (errImp) throw errImp;
     const impId = impRow.id as string;
+    trilha.impId = impId;
 
     // ORIGINAL-GUARDADO: o arquivo sobe antes de qualquer linha ser lida, para
     // o pacote do contador levar exatamente o que foi importado.
@@ -1686,6 +1732,12 @@ export default function ExtratoImportacao() {
               tom: "erro",
               contagem: trilha.contagem?.resumo(),
               ignoradas: trilha.contagem?.detalhe,
+              importacaoId: trilha.impId,
+              formatoNaoSuportado: ehFormatoNaoSuportado({
+                fonteDetectada: !!trilha.fonte,
+                linhasLidas: trilha.contagem?.lidas ?? 0,
+                mensagem: formatError(e),
+              }),
             },
           ]);
         }
@@ -1784,7 +1836,10 @@ export default function ExtratoImportacao() {
               Importar {arquivos.length > 0 ? `(${arquivos.length})` : ""}
             </Button>
 
-            <VereditoImportacao itens={resultados} />
+            <VereditoImportacao
+              itens={resultados}
+              onGuardarSemLer={(item, indice) => { setGuardarConta(""); setGuardarAlvo({ item, indice }); }}
+            />
           </CardContent>
         </Card>
       </div>
@@ -1937,6 +1992,42 @@ export default function ExtratoImportacao() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!guardarAlvo} onOpenChange={(o) => { if (!o && !guardando) setGuardarAlvo(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Guardar sem ler</DialogTitle>
+            <DialogDescription>
+              {guardarAlvo?.item.arquivo}: o arquivo original fica guardado para o pacote do contador.
+              Nenhuma linha é importada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Conta bancária</Label>
+              <Select value={guardarConta} onValueChange={setGuardarConta}>
+                <SelectTrigger><SelectValue placeholder="Escolha a conta" /></SelectTrigger>
+                <SelectContent>
+                  {contas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Competência</Label>
+              <Input type="month" value={guardarComp} onChange={(e) => setGuardarComp(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGuardarAlvo(null)} disabled={guardando}>Cancelar</Button>
+            <Button onClick={confirmarGuardarSemLer} disabled={guardando || !guardarConta || !/^\d{4}-\d{2}$/.test(guardarComp)}>
+              {guardando && <Loader2 className="h-4 w-4 animate-spin" />}
+              Guardar sem ler
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ImportarFaturaCartaoDialog
         open={importarFaturaOpen}

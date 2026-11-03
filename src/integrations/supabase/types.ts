@@ -47532,6 +47532,7 @@ export type Database = {
           origem: string | null
           parceiro_id: string | null
           parte_faturamento_dividido: boolean
+          pdf_origem: string | null
           pdf_storage_path: string | null
           pdf_url: string | null
           pedido_venda_id: string | null
@@ -47587,6 +47588,7 @@ export type Database = {
           origem?: string | null
           parceiro_id?: string | null
           parte_faturamento_dividido?: boolean
+          pdf_origem?: string | null
           pdf_storage_path?: string | null
           pdf_url?: string | null
           pedido_venda_id?: string | null
@@ -47642,6 +47644,7 @@ export type Database = {
           origem?: string | null
           parceiro_id?: string | null
           parte_faturamento_dividido?: boolean
+          pdf_origem?: string | null
           pdf_storage_path?: string | null
           pdf_url?: string | null
           pedido_venda_id?: string | null
@@ -152538,6 +152541,14 @@ export type Database = {
           p_importacao_id: string
           p_sha256: string
           p_storage_path: string
+        }
+        Returns: Json
+      }
+      fn_extrato_importacao_guardar_sem_ler: {
+        Args: {
+          p_competencia: string
+          p_conta_bancaria_id: string
+          p_importacao_id: string
         }
         Returns: Json
       }
