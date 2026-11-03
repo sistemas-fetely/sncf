@@ -116,8 +116,9 @@ async function gerar(c: { admin: any; userDb: any; url: string; anon: string; au
   const LOTE = 8;
   while (i < entradas.length) {
     if (Date.now() - t0 > ORCAMENTO_MS) {
-      // Descarta a parte em andamento; a retomada recomeça da última parte concluída.
-      await salvar({ pausado: true, etapa_rotulo: `Pausado em ${Number(rem.progresso.proxima ?? 0)}/${entradas.length} — retomando` });
+      // Fecha a parte em andamento (fica menor que o limite) e a próxima execução segue dali.
+      if (arquivosParte > 0) await fechar(false);
+      await salvar({ pausado: true, proxima: i, etapa_rotulo: `Pausado em ${i}/${entradas.length} — retomando` }, { partes });
       await retomarSozinho(c);
       return;
     }
