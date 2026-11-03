@@ -687,6 +687,25 @@ Deno.serve(async (req) => {
                   }
                 }
 
+                // XML-ENTRADA-NO-STORAGE (03/11/2026): o XML que a Qive já entrega vai
+                // para contabil/nfs/<AAAA-MM>/entrada/<chave>.xml (pacote do contador).
+                // Best-effort: falha é anotada no resumo, nunca derruba a captura.
+                if (entidade === "nfe" && xmlTexto) {
+                  try {
+                    const comp = String(p?.data_emissao ?? "").slice(0, 7) || "sem-data";
+                    const path = `nfs/${comp}/entrada/${chave}.xml`;
+                    const up = await supabase.storage.from("contabil")
+                      .upload(path, new TextEncoder().encode(xmlTexto), { contentType: "application/xml", upsert: true });
+                    if (up.error) throw new Error(up.error.message);
+                    const { error: mErr } = await supabase.from("nfs_stage")
+                      .update({ xml_storage_path: path })
+                      .eq("nf_chave_acesso", chave).is("xml_storage_path", null);
+                    if (mErr) throw new Error(mErr.message);
+                  } catch (e) {
+                    anotarErro(resumo, `XML no Storage falhou (${chave}): ${(e as Error).message}`);
+                  }
+                }
+
                 // CTE-QIVE-VIRA-FRETE (27/10/2026): depois do nfs_stage, o XML original
                 // do CT-e vai para transp_fretes. Falha aqui NÃO derruba a captura nem
                 // trava o cursor — mas é contada no resumo (cte_frete), nunca muda.
