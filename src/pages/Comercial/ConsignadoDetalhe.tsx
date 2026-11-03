@@ -47,6 +47,7 @@ import { ContratoConsignadoDialog } from "@/components/consignado/ContratoConsig
 import { RemessasAVincularPainel } from "@/components/consignado/RemessasAVincularPainel";
 import { RetornosALancarPainel } from "@/components/consignado/RetornosALancarPainel";
 import { FecharCicloVendaForaPainel } from "@/components/consignado/FecharCicloVendaForaPainel";
+import { MesAMesVendaFora } from "@/components/consignado/VendaForaVistas";
 import { NfRetornoAcertoBloco } from "@/components/consignado/NfRetornoAcertoBloco";
 import { urlTitulo } from "@/hooks/tarefas/useTitulosParaVinculo";
 
@@ -1287,6 +1288,7 @@ export default function ConsignadoDetalhe() {
           </Card>
           <ContratoConsignadoDialog aberto={contratoAberto} onFechar={() => setContratoAberto(false)} parceiroId={parceiroId}
             onSalvo={() => { setContratoAberto(false); void contratoQ.refetch(); void qc.invalidateQueries({ queryKey: ["consignado-parceiro", parceiroId] }); }} />
+          {contratoQ.data?.modelo === "venda_fora" && parceiroId && <MesAMesVendaFora parceiroId={parceiroId} />}
           <VisaoConsignado parceiroId={parceiroId} />
         </TabsContent>
 
