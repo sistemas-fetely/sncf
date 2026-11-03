@@ -112,24 +112,32 @@ async function gerar(c: { admin: any; userDb: any; url: string; anon: string; au
   };
 
   abrir();
+  // Baixa em lotes paralelos (o gargalo é a ida ao Storage, não a compactação).
+  const LOTE = 8;
   while (i < entradas.length) {
     if (Date.now() - t0 > ORCAMENTO_MS) {
-      // Descarta a parte em andamento; retomada recomeça da última parte concluída.
-      await salvar({ pausado: true, etapa_rotulo: `Pausado em ${i}/${entradas.length} — retomando` });
+      // Descarta a parte em andamento; a retomada recomeça da última parte concluída.
+      await salvar({ pausado: true, etapa_rotulo: `Pausado em ${Number(rem.progresso.proxima ?? 0)}/${entradas.length} — retomando` });
+      await retomarSozinho(c);
       return;
     }
-    const e = entradas[i];
-    const { data: blob, error } = await admin.storage.from(BUCKET).download(e.path);
-    if (error || !blob) throw new Error(`Falha ao ler ${e.path}: ${error?.message ?? "vazio"}`);
-    const dados = new Uint8Array(await blob.arrayBuffer());
-    if (arquivosParte > 0 && bytesParte + dados.length > limite) {
-      await fechar(false);
-      await salvar({ proxima: i, etapa: "zip", etapa_rotulo: `Parte ${partes.length} gravada` }, { partes });
-      abrir();
+    const lote = entradas.slice(i, i + LOTE);
+    const baixados = await Promise.all(lote.map(async (e) => {
+      const { data: blob, error } = await admin.storage.from(BUCKET).download(e.path);
+      if (error || !blob) throw new Error(`Falha ao ler ${e.path}: ${error?.message ?? "vazio"}`);
+      return new Uint8Array(await blob.arrayBuffer());
+    }));
+    for (let k = 0; k < lote.length; k++) {
+      const dados = baixados[k];
+      if (arquivosParte > 0 && bytesParte + dados.length > limite) {
+        await fechar(false);
+        await salvar({ proxima: i, etapa: "zip", etapa_rotulo: `Parte ${partes.length} gravada` }, { partes });
+        abrir();
+      }
+      adicionar(lote[k].zip, dados);
+      i++;
     }
-    adicionar(e.zip, dados);
-    i++;
-    if (i % 25 === 0) await salvar({ etapa: "zip", etapa_rotulo: `Compactando ${i}/${entradas.length}`, feitos: i });
+    if (i % 40 === 0 || i === entradas.length) await salvar({ etapa: "zip", etapa_rotulo: `Compactando ${i}/${entradas.length}`, feitos: i });
   }
 
   // 3. Manifesto (json + pdf) e resumo vão na última parte
@@ -153,6 +161,16 @@ async function gerar(c: { admin: any; userDb: any; url: string; anon: string; au
     const r = await enviarEmailRemessa({ supabaseUrl: c.url, anonKey: c.anon, authHeader: c.auth, remessa: { ...rem, manifesto }, partes: assinadas, expira, motivo: "envio" });
     await salvar({ email: { enviados: r.enviados, erros: r.erros, em: new Date().toISOString() } });
   }
+}
+
+/** Encadeia a próxima execução sem depender da tela aberta (mesmo token do usuário). */
+async function retomarSozinho(c: { url: string; anon: string; auth: string; remessaId: string }) {
+  try {
+    await fetch(`${c.url}/functions/v1/gerar-pacote-contador-v2`, {
+      method: "POST", headers: { Authorization: c.auth, apikey: c.anon, "Content-Type": "application/json" },
+      body: JSON.stringify({ remessa_id: c.remessaId }),
+    });
+  } catch (e) { console.error("retomarSozinho", msg(e)); /* a tela retoma pelo heartbeat */ }
 }
 
 /* ───────────────────────────── inventário ─────────────────────────── */
