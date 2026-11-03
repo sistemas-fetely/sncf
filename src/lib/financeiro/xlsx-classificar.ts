@@ -7,7 +7,7 @@
  *  - planilha do próprio SNCF → "relatorio_sncf" (recusada antes de importar);
  *  - nada confirma → null ("formato não suportado → guardar sem ler").
  */
-import { detectarAssinaturaSafraXlsx, type AssinaturaSafraXlsx } from "./xlsx-assinatura-reexport";
+import { detectarAssinaturaSafraXlsx, type AssinaturaSafraXlsx } from "./xlsx-safra-assinatura";
 import { temTitulo, textoPrimeirasLinhas } from "./xlsx-titulo";
 import { acharCabecalhoSafraLancamentos } from "./xlsx-safra-lancamentos-parser";
 
