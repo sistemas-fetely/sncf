@@ -32,6 +32,14 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, erro: "JSON inválido" }, 400); }
+  if (body?.simular === true) {
+    const comp = String(body.competencia ?? "");
+    if (!/^\d{4}-\d{2}-01$/.test(comp)) return json({ok:false,erro:"Competência inválida"},400);
+    const admin = createClient(url,service);
+    const {data:r,error:e} = await admin.from("remessas_contador").select("*").eq("competencia",comp).order("versao",{ascending:false}).limit(1).single();
+    if(e) return json({ok:false,erro:e.message},400);
+    try {const inv=await inventario({admin,userDb},{...r,progresso:{...r.progresso,planilha_path:r.progresso?.planilha_path??`pacotes/${comp.slice(0,7)}/v${r.versao}/planilha.xlsx`}},true);return json({ok:true,simular:true,...inv});} catch(e){return json({ok:false,erro:msg(e)},500);}
+  }
   const remessaId = String(body?.remessa_id ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(remessaId)) return json({ ok: false, erro: "remessa_id inválido" }, 400);
   const planilhaPath = typeof body?.planilha_path === "string" ? body.planilha_path : null;
@@ -180,7 +188,7 @@ async function retomarSozinho(c: { url: string; anon: string; auth: string; reme
 
 const seguro = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.() -]+/g, "_").replace(/\s+/g, " ").trim() || "sem_nome";
 
-async function inventario(c: { admin: any; userDb: any }, rem: any) {
+async function inventario(c: { admin: any; userDb: any }, rem: any, simular = false) {
   const { admin, userDb } = c;
   const ini = rem.periodo_inicio as string, fimP = rem.periodo_fim as string;
   const entradas: Entrada[] = [];
@@ -250,8 +258,10 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
     `NFs do período: ${conferencia.nfs.notas} notas, receita ${brl(conferencia.nfs.receita)}`,
     `Diferença vendas - NFs: ${brl(conferencia.diferenca_vendas_menos_nfs)}`]);
   const resumoPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/resumo.pdf`;
-  const up = await admin.storage.from(BUCKET).upload(resumoPath, pdfResumo, { contentType: "application/pdf", upsert: true });
-  if (up.error) throw new Error(`Falha ao gravar resumo.pdf: ${up.error.message}`);
+  if (!simular) {
+    const up = await admin.storage.from(BUCKET).upload(resumoPath, pdfResumo, { contentType: "application/pdf", upsert: true });
+    if (up.error) throw new Error(`Falha ao gravar resumo.pdf: ${up.error.message}`);
+  }
   entradas.push({ zip: nomeUnico("01_relatorios/resumo.pdf"), path: resumoPath }); conta("01_relatorios");
 
   // 02_nfs_saida
@@ -298,11 +308,24 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
   }
 
   // 04_bancos
-  const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta"));
+  const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta,ativo"));
+  const mensais = await todas(admin.from("contabil_extrato_mensal").select("*").eq("competencia",rem.competencia).eq("vigente",true));
+  const avisosMensais: any[] = [];
   const nomeConta = new Map(contas.map((k: any) => [k.id, seguro(k.nome_exibicao || `${k.banco} ${k.numero_conta ?? ""}`)]));
   const imps = await todas(admin.from("extrato_importacoes").select("id,conta_bancaria_id,fonte_tipo,nome_arquivo,periodo_inicio,periodo_fim,status,created_at,linhas_novas,arquivo_storage_path")
     .lte("periodo_inicio", fimP).gte("periodo_fim", ini).neq("status", "erro"));
   const bancos: Record<string, any> = {};
+  for (const k of contas.filter((k:any)=>k.ativo)) {
+    const cn = nomeConta.get(k.id) ?? "sem_conta";
+    const e = mensais.find((e:any)=>e.conta_bancaria_id===k.id);
+    const pasta = `04_bancos/${cn}/extrato_mensal`;
+    if (!e) faltantes.push({pasta,referencia:k.nome_exibicao,motivo:"Extrato oficial do mês inteiro não guardado"});
+    else {
+      entradas.push({zip:nomeUnico(`${pasta}/${seguro(e.nome_arquivo)}`),path:e.storage_path});conta(pasta);
+      bancos[cn] = {importacoes:0,com_arquivo:0,extrato_mensal:{nome:e.nome_arquivo,periodo_inicio:e.periodo_inicio,periodo_fim:e.periodo_fim,saldo_inicial:e.saldo_inicial,saldo_final:e.saldo_final,saldo_inicial_sncf:e.saldo_inicial_sncf,saldo_final_sncf:e.saldo_final_sncf,conferencia:e.conferencia}};
+      if (e.conferencia?.avisos?.length) avisosMensais.push({conta:k.nome_exibicao,...e.conferencia});
+    }
+  }
   // Cobertas por reimportação: procura a com original em QUALQUER período (mesma conta + fonte).
   const semArq = imps.filter((i: any) => !i.arquivo_storage_path);
   const contasSem = [...new Set(semArq.map((i: any) => i.conta_bancaria_id).filter(Boolean))];
@@ -319,12 +342,11 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
     const sub = imp.fonte_tipo === "arquivo_nao_lido" ? "outros" : seguro(imp.fonte_tipo ?? "outros");
     if (!imp.arquivo_storage_path) {
       if (!idsFaltam.has(imp.id)) { bancos[cn].cobertas_reimportacao = (bancos[cn].cobertas_reimportacao ?? 0) + 1; continue; }
-      faltantes.push({ pasta: `04_bancos/${cn}/${sub}`, fonte: imp.fonte_tipo, referencia: `${imp.nome_arquivo ?? "?"} · ${imp.fonte_tipo} · ${String(imp.created_at).slice(0, 10)}`, motivo: "Importação sem arquivo original guardado" });
       continue;
     }
     bancos[cn].com_arquivo++;
-    entradas.push({ zip: nomeUnico(`04_bancos/${cn}/${sub}/${seguro(imp.nome_arquivo ?? imp.arquivo_storage_path.split("/").pop())}`), path: imp.arquivo_storage_path });
-    conta(`04_bancos/${cn}/${sub}`);
+    entradas.push({ zip: nomeUnico(`04_bancos/${cn}/apoio_conciliacao/${sub}/${seguro(imp.nome_arquivo ?? imp.arquivo_storage_path.split("/").pop())}`), path: imp.arquivo_storage_path });
+    conta(`04_bancos/${cn}/apoio_conciliacao/${sub}`);
   }
   // Por conta: linhas do mês, saldo inicial/final, não conciliadas
   for (const k of contas) {
@@ -360,6 +382,8 @@ async function inventario(c: { admin: any; userDb: any }, rem: any) {
     conferencia, bancos, eventos_nf: eventos,
     faltantes_por_tipo: porTipo, cobertas_reimportacao: { total: cobertasReimportacao.length, itens: cobertasReimportacao },
     faltantes: faltantesTipados,
+    avisos_extratos_mensais: avisosMensais,
+    arquivos_apoio_sem_original: {total:semArq.length,itens:semArq.map(descImp)},
   };
   return { entradas, manifesto };
 }
@@ -421,6 +445,13 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
     for (const l of d.itens ?? []) L.push(`  NF ${l.nf} ${l.sku}: qtd ${l.qtd_presumida} -> ${l.qtd_real}, valor ${brl(l.valor_presumido)} -> ${brl(l.valor_real)}`);
   }
   L.push("", "CONTAS BANCÁRIAS");
+  L.push("", "EXTRATOS DO MÊS");
+  for (const [k,v] of Object.entries(m.bancos??{}) as [string,any][]) {
+    const e=v.extrato_mensal;
+    if(e) L.push(`  ${k}: ${e.nome} · ${e.periodo_inicio??"não conferido"} a ${e.periodo_fim??"não conferido"}`,`  Inicial arquivo ${brl(e.saldo_inicial)} x SNCF ${brl(e.saldo_inicial_sncf)}, diferença ${brl(e.conferencia?.diferenca_inicial)}`,`  Final arquivo ${brl(e.saldo_final)} x SNCF ${brl(e.saldo_final_sncf)}, diferença ${brl(e.conferencia?.diferenca_final)}`);
+  }
+  for(const a of m.avisos_extratos_mensais??[]) L.push(`  AVISO ${a.conta}: ${a.avisos.join("; ")}`);
+  L.push("",`ARQUIVOS DE APOIO SEM ORIGINAL (${m.arquivos_apoio_sem_original?.total??0}) — informativo`);
   for (const [k, v] of Object.entries(m.bancos ?? {}) as [string, any][]) L.push(`  ${k}: ${v.importacoes} importação(ões), ${v.com_arquivo} com arquivo, ${v.linhas ?? 0} linhas, saldo inicial ${brl(v.saldo_inicial)}, final ${brl(v.saldo_final)}, ${v.nao_conciliadas ?? 0} não conciliadas`);
   L.push("", `NFs CANCELADAS (${(m.eventos_nf ?? []).length}) - evento de cancelamento/CC-e indisponível na origem`);
   for (const e of m.eventos_nf ?? []) L.push(`  NF ${e.numero}`);

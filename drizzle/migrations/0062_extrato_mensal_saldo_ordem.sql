@@ -1,0 +1,6 @@
+DO $$ DECLARE d text; BEGIN
+SELECT pg_get_functiondef('public.fn_contabil_extrato_mensal_guardar(date,uuid,text,text,text,text,bigint,date,date,numeric,numeric)'::regprocedure) INTO d;
+d := replace(d,'SELECT saldo_corrido - CASE WHEN conta_no_saldo THEN valor ELSE 0 END INTO v_si FROM public.vw_extrato_conta WHERE conta_bancaria_id=p_conta AND data_transacao BETWEEN v_ini AND v_fim ORDER BY data_transacao,data_hora NULLS FIRST,id LIMIT 1;', 'SELECT v.saldo_corrido - v.valor INTO v_si FROM public.vw_extrato_conta v JOIN public.movimentacoes_bancarias m ON m.id=v.id WHERE v.conta_bancaria_id=p_conta AND v.conta_no_saldo AND v.data_transacao BETWEEN v_ini AND v_fim ORDER BY v.data_transacao,m.created_at,v.id LIMIT 1;');
+d := replace(d,'SELECT saldo_corrido INTO v_sf FROM public.vw_extrato_conta WHERE conta_bancaria_id=p_conta AND data_transacao BETWEEN v_ini AND v_fim ORDER BY data_transacao DESC,data_hora DESC NULLS LAST,id DESC LIMIT 1;', 'SELECT v.saldo_corrido INTO v_sf FROM public.vw_extrato_conta v JOIN public.movimentacoes_bancarias m ON m.id=v.id WHERE v.conta_bancaria_id=p_conta AND v.conta_no_saldo AND v.data_transacao BETWEEN v_ini AND v_fim ORDER BY v.data_transacao DESC,m.created_at DESC,v.id DESC LIMIT 1;');
+EXECUTE d;
+END $$;

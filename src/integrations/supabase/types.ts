@@ -23993,6 +23993,77 @@ export type Database = {
           },
         ]
       }
+      contabil_extrato_mensal: {
+        Row: {
+          bytes: number
+          competencia: string
+          conferencia: Json
+          conta_bancaria_id: string
+          enviado_em: string
+          enviado_por: string
+          formato: string
+          id: string
+          nome_arquivo: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          saldo_final: number | null
+          saldo_final_sncf: number | null
+          saldo_inicial: number | null
+          saldo_inicial_sncf: number | null
+          sha256: string
+          storage_path: string
+          vigente: boolean
+        }
+        Insert: {
+          bytes: number
+          competencia: string
+          conferencia?: Json
+          conta_bancaria_id: string
+          enviado_em?: string
+          enviado_por: string
+          formato: string
+          id?: string
+          nome_arquivo: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          saldo_final?: number | null
+          saldo_final_sncf?: number | null
+          saldo_inicial?: number | null
+          saldo_inicial_sncf?: number | null
+          sha256: string
+          storage_path: string
+          vigente?: boolean
+        }
+        Update: {
+          bytes?: number
+          competencia?: string
+          conferencia?: Json
+          conta_bancaria_id?: string
+          enviado_em?: string
+          enviado_por?: string
+          formato?: string
+          id?: string
+          nome_arquivo?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          saldo_final?: number | null
+          saldo_final_sncf?: number | null
+          saldo_inicial?: number | null
+          saldo_inicial_sncf?: number | null
+          sha256?: string
+          storage_path?: string
+          vigente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabil_extrato_mensal_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contabil_fechamento: {
         Row: {
           competencia: string
@@ -156467,6 +156538,22 @@ export type Database = {
           valor_aterrissagem: number
           valor_nf: number
         }[]
+      }
+      fn_contabil_extrato_mensal_guardar: {
+        Args: {
+          p_bytes: number
+          p_competencia: string
+          p_conta: string
+          p_formato: string
+          p_nome: string
+          p_periodo_fim?: string
+          p_periodo_inicio?: string
+          p_saldo_final?: number
+          p_saldo_inicial?: number
+          p_sha256: string
+          p_storage_path: string
+        }
+        Returns: Json
       }
       fn_contabil_fechar: {
         Args: {

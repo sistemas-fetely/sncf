@@ -1,4 +1,5 @@
 # Decisões técnicas
+- Monthly bank statements use a versioned RPC and read-only parser; only missing monthlies are bank gaps, support remains informative.
 
 - TI drawer stock warnings query the origin's signed fiscal_sadio for the transfer SKUs and use the tested saldoOrigemTi selector; refresh on opening and while open so historical observation text never determines current stock status.
 

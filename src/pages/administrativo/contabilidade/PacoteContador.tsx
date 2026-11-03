@@ -27,6 +27,8 @@ import { useNivel } from "@/hooks/useNivel";
 import { Progress } from "@/components/ui/progress";
 import { SortableTableHead, ordenarPor, type SortState } from "@/components/shared/SortableTableHead";
 import { linkExpirado, percentualRemessa, precisaRetomar, type ProgressoRemessa } from "@/lib/contabil/remessaPacote";
+import { ExtratosMensais, useExtratosMensais } from "@/components/contabil/ExtratosMensais";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 /** Dispara (ou retoma) a geração do ZIP em segundo plano. Erro real vai para quem chamou. */
 async function chamarGeracao(remessaId: string, planilhaPath: string | null) {
@@ -169,6 +171,9 @@ export default function PacoteContador() {
   const qc = useQueryClient();
   const { temNivel } = useNivel();
   const [selecionada, setSelecionada] = useState<string | null>(null);
+  const extratosMensais = useExtratosMensais(selecionada);
+  const faltamExtratos = extratosMensais.data?.filter(c => !c.extrato) ?? [];
+  const [confirmarSemExtratos, setConfirmarSemExtratos] = useState(false);
   const [buscaHist, setBuscaHist] = useState("");
   const [sort, setSort] = useState<SortState<"competencia" | "versao" | "gerado_em"> | null>(null);
 
@@ -646,14 +651,18 @@ export default function PacoteContador() {
       )}
 
       {/* ZONA 4 — geração (barra de ações sob a prévia) */}
+      {selecionada && <ExtratosMensais competencia={selecionada} />}
+      <AlertDialog open={confirmarSemExtratos} onOpenChange={setConfirmarSemExtratos}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Extratos do mês pendentes</AlertDialogTitle><AlertDialogDescription>Faltam {faltamExtratos.length} extratos do mês: {faltamExtratos.map(c=>c.nome_exibicao).join(", ")}.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={()=>gerar.mutate()}>Gerar mesmo assim</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
       {comp && temNivel(3) && (
         <section className="rounded-lg border bg-card p-4 shadow-sm">
           {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              disabled={!podeGerar || carregandoPrevia || gerar.isPending}
-              onClick={() => gerar.mutate()}
+              disabled={!podeGerar || carregandoPrevia || gerar.isPending || extratosMensais.isLoading || !!extratosMensais.error}
+              onClick={() => faltamExtratos.length ? setConfirmarSemExtratos(true) : gerar.mutate()}
             >
               <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
               {gerar.isPending ? "Gerando…" : preFechada ? "Gerar prévia" : "Gerar pacote"}

@@ -428,6 +428,27 @@
       "when": 1793747323324,
       "tag": "0060_mp_fase2_vinculo_manual_na_view",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793749075283,
+      "tag": "0061_contabil_extrato_mensal",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793749161419,
+      "tag": "0062_extrato_mensal_saldo_ordem",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793749215097,
+      "tag": "0063_extrato_mensal_somente_rpc",
+      "breakpoints": true
     }
   ]
 }
