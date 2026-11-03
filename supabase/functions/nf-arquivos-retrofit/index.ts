@@ -54,8 +54,9 @@ Deno.serve(async (req) => {
     let ok = 0;
     for (const nf of rows) {
       try {
-        await cachearNfSaida(admin, nf);
+        const r = await cachearNfSaida(admin, nf);
         ok++;
+        if (r.erroPdf) erros.push({ numero: nf.numero, erro: r.erroPdf });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         erros.push({ numero: nf.numero, erro: msg });
