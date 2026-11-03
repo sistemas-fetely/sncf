@@ -12,6 +12,7 @@
  * lidas na última execução.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { cachearNfEntradaXml } from "../_shared/nf-cache-storage.ts";
 import {
   alertarDevolucaoSemReferencia,
   extrairFinNFeDoXml,
@@ -375,8 +376,10 @@ Deno.serve(async (req) => {
 
     let ambiente: "sandbox" | "producao" = "sandbox";
     let simularExplicito: boolean | null = null;
+    // deno-lint-ignore no-explicit-any
+    let body: any = null;
     try {
-      const body = await req.json();
+      body = await req.json();
       if (body?.ambiente === "producao") ambiente = "producao";
       if (typeof body?.simular === "boolean") simularExplicito = body.simular;
     } catch {
@@ -475,7 +478,9 @@ Deno.serve(async (req) => {
         // SOBREPOSICAO-DE-1H: documentos capturados no exato instante do corte
         // podem cair fora dos dois intervalos. Reprocessar é inofensivo (RPC devolve
         // ja_existia), mas perder documento não é.
-        const de = cur.ultima_data_corte
+        // Reprocesso manual: body.desde (ISO) abre a janela antes do corte (idempotente).
+        const desdeManual = typeof body?.desde === "string" && !isNaN(Date.parse(body.desde)) ? new Date(body.desde) : null;
+        const de = desdeManual ? desdeManual : cur.ultima_data_corte
           ? new Date(new Date(cur.ultima_data_corte).getTime() - 3600 * 1000)
           : new Date(Date.now() - 30 * 24 * 3600 * 1000);
         const ate = new Date();
@@ -690,19 +695,15 @@ Deno.serve(async (req) => {
                 // XML-ENTRADA-NO-STORAGE (03/11/2026): o XML que a Qive já entrega vai
                 // para contabil/nfs/<AAAA-MM>/entrada/<chave>.xml (pacote do contador).
                 // Best-effort: falha é anotada no resumo, nunca derruba a captura.
-                if (entidade === "nfe" && xmlTexto) {
+                // NF-e e CT-e: mesma cópia (cachearNfEntradaXml); resultado em nf_entrada_arquivo_tentativa.
+                if ((entidade === "nfe" || entidade === "cte") && xmlTexto && chave) {
                   try {
-                    const comp = String(p?.data_emissao ?? "").slice(0, 7) || "sem-data";
-                    const path = `nfs/${comp}/entrada/${chave}.xml`;
-                    const up = await supabase.storage.from("contabil")
-                      .upload(path, new TextEncoder().encode(xmlTexto), { contentType: "application/xml", upsert: true });
-                    if (up.error) throw new Error(up.error.message);
-                    const { error: mErr } = await supabase.from("nfs_stage")
-                      .update({ xml_storage_path: path })
-                      .eq("nf_chave_acesso", chave).is("xml_storage_path", null);
-                    if (mErr) throw new Error(mErr.message);
+                    await cachearNfEntradaXml(supabase, chave, p?.data_emissao ?? null, xmlTexto);
+                    await supabase.from("nf_entrada_arquivo_tentativa").upsert({ nf_chave_acesso: chave, fonte: "qive", indisponivel_na_origem: false, erro: null, tentado_em: new Date().toISOString() });
                   } catch (e) {
-                    anotarErro(resumo, `XML no Storage falhou (${chave}): ${(e as Error).message}`);
+                    const msg = (e as Error).message;
+                    anotarErro(resumo, `XML no Storage falhou (${chave}): ${msg}`);
+                    await supabase.from("nf_entrada_arquivo_tentativa").upsert({ nf_chave_acesso: chave, fonte: "qive", indisponivel_na_origem: false, erro: msg.slice(0, 1000), tentado_em: new Date().toISOString() }).then(() => {}, () => {});
                   }
                 }
 

@@ -124,7 +124,26 @@ async function retrofitEntradaBling(admin: any, ini: string, fim: string) {
       falta.delete(alvo.nf_chave_acesso);
     }
   }
-  for (const r of falta.values()) erros.push({ numero: r.nf_numero, erro: "NF não encontrada na lista de entradas do Bling no mês" });
+  const reg = (chave: string, indisp: boolean, erro: string | null) => admin.from("nf_entrada_arquivo_tentativa").upsert({
+    nf_chave_acesso: chave.replace(/\D/g, ""), fonte: "bling_entrada", indisponivel_na_origem: indisp, erro, tentado_em: new Date().toISOString() });
+  // Sobra da lista do mês: procura pela chave em qualquer data/tipo antes de desistir.
+  for (const r of [...falta.values()]) {
+    let msg: string;
+    try {
+      const busca: any = await client.get(`/nfe?chaveAcesso=${r.nf_chave_acesso}`);
+      const it = (busca?.data ?? [])[0];
+      if (!it) { msg = "Bling não tem NF com esta chave (busca por chave de acesso vazia)"; await reg(r.nf_chave_acesso, true, msg); erros.push({ numero: r.nf_numero, erro: msg }); continue; }
+      const det = (await client.get(`/nfe/${it.id}`))?.data ?? {};
+      if (!det.xml) throw new Error(`Bling achou a NF (id ${it.id}, tipo ${det.tipo ?? it.tipo}, situação ${det.situacao ?? it.situacao}, emissão ${det.dataEmissao ?? "?"}) mas não informou link do XML`);
+      const resp = await fetch(String(det.xml)); const txt = await resp.text();
+      if (!resp.ok) throw new Error(`download do XML falhou [${resp.status}]: ${txt.slice(0, 150)}`);
+      await cachearNfEntradaXml(admin, r.nf_chave_acesso, r.nf_data_emissao, txt);
+      await reg(r.nf_chave_acesso, false, null); guardadas++;
+    } catch (e) {
+      msg = e instanceof Error ? e.message : String(e);
+      await reg(r.nf_chave_acesso, false, msg); erros.push({ numero: r.nf_numero, erro: msg });
+    }
+  }
   return { ok: true, tipo: "entrada_bling", pendentes_antes: total, guardadas, erros };
 }
 
