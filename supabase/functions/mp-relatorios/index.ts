@@ -145,7 +145,7 @@ async function pedir(db: any, mp: ClienteMp, dia: string, refazer = false) {
 }
 
 async function coletar(db: any, mp: ClienteMp, soDia?: string) {
-  let q = db.from("mp_relatorio_execucao").select("*").eq("status", "aguardando").order("dia").limit(40);
+  let q = db.from("mp_relatorio_execucao").select("*").eq("status", "aguardando").order("dia").order("tipo").limit(40);
   if (soDia) q = q.eq("dia", soDia);
   const { data: pend, error } = await q;
   if (error) throw error;
