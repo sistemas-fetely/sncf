@@ -11,7 +11,9 @@ import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
-import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia } from "./useMesaSp";
+import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia, useCaixasAtivas, useCorrigirCaixaEmbalagem } from "./useMesaSp";
+import { SeletorCaixaAvulsa } from "./SeletorCaixaAvulsa";
+import { dimAvulsa, embalagemSemCaixa, erroPedeCorrigirEmbalagem, type DimCaixaTexto } from "@/lib/logistica/caixaEmbalagem";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -34,7 +36,7 @@ interface Props {
   bloqueado?: boolean;
 }
 
-export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
+export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Props) {
   const docsQ = useDocumentosMesa(pedido.id);
   const marcar = useMarcarDocumento();
   const rastreio = useRegistrarRastreio();
@@ -42,6 +44,14 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const postar = usePostarAgencia();
   const [codigo, setCodigo] = useState("");
   const gerarCorreios = useGerarEtiquetaCorreios();
+  // MESA-SP-CAIXA-OBRIGATORIA: recuperação — embalagem Correios sem caixa → nova caixa sem refazer separação/conferência.
+  const corrigirCaixa = useCorrigirCaixaEmbalagem();
+  const [corrigindo, setCorrigindo] = useState(false);
+  const [cxCodigo, setCxCodigo] = useState<string | null>(null);
+  const [cxAvulsa, setCxAvulsa] = useState<DimCaixaTexto | null>(null);
+  const ativasQ = useCaixasAtivas(corrigindo);
+  const cxDim = dimAvulsa(cxAvulsa);
+  const erroGerar = gerarCorreios.error ? (gerarCorreios.error as Error).message : null;
 
   const dadosQ = useDadosImpressao(pedido.id);
   const docs = docsQ.data ?? [];
@@ -194,6 +204,34 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={() => disparar(true)}>Cancelar e gerar em {servicoEscolhido}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            {!pp && (erroPedeCorrigirEmbalagem(erroGerar) || embalagemSemCaixa(embalagem ?? null)) && (
+              <Button size="sm" variant="outline" disabled={bloqueado} onClick={() => { setCxCodigo(null); setCxAvulsa(null); setCorrigindo(true); }}>
+                Corrigir embalagem
+              </Button>
+            )}
+            <AlertDialog open={corrigindo} onOpenChange={setCorrigindo}>
+              <AlertDialogContent className="max-w-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Corrigir embalagem — caixa usada</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Registra a caixa mantendo o peso ({embalagem?.peso_kg ?? "—"} kg) e os volumes ({embalagem?.volumes ?? "—"}) já informados. Não volta à separação nem refaz a conferência.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {ativasQ.error && <p className="text-xs text-destructive">{(ativasQ.error as Error).message}</p>}
+                <SeletorCaixaAvulsa caixas={ativasQ.data ?? []} codigo={cxCodigo} avulsa={cxAvulsa} onCodigo={setCxCodigo} onAvulsa={setCxAvulsa} />
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <Button disabled={corrigirCaixa.isPending || (!cxCodigo && !cxDim)}
+                    onClick={() => corrigirCaixa.mutate(
+                      { p_pedido_id: pedido.id, p_caixa_codigo: cxCodigo, p_caixa_dim: cxCodigo ? null : cxDim },
+                      { onSuccess: () => { setCorrigindo(false); gerarCorreios.reset(); } },
+                    )}>
+                    {corrigirCaixa.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+                    Registrar caixa
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
