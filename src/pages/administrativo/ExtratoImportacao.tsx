@@ -37,7 +37,7 @@ import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-rele
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
 import { classificarXlsx } from "@/lib/financeiro/xlsx-classificar";
-import { competenciaDoArquivo, moverOriginalParaCompetencia } from "@/lib/contabil/arquivoOriginal";
+import { competenciaDoArquivo, moverOriginalParaCompetencia, baixarOriginalComoArquivo } from "@/lib/contabil/arquivoOriginal";
 import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
 import { parseXlsxSafraPixLancamentos } from "@/lib/financeiro/xlsx-safra-pix-lancamentos-parser";
 import { parseXlsxSafraPayRecebiveis } from "@/lib/financeiro/xlsx-safrapay-recebiveis-parser";
@@ -387,6 +387,7 @@ export default function ExtratoImportacao() {
         p_competencia: guardarComp,
       });
       if (error) throw error;
+      await moverOriginalParaCompetencia(guardarAlvo.item.importacaoId, guardarComp);
       const idx = guardarAlvo.indice;
       setResultados((r) =>
         r.map((x, i) =>
@@ -402,6 +403,23 @@ export default function ExtratoImportacao() {
       toast.error(formatError(e));
     } finally {
       setGuardando(false);
+    }
+  }
+
+  const [reprocessandoId, setReprocessandoId] = useState<string | null>(null);
+  async function reprocessarDoOriginal(h: Importacao) {
+    if (!h.arquivo_storage_path) return;
+    setReprocessandoId(h.id);
+    const trilha: TrilhaArquivo = {};
+    try {
+      const file = await baixarOriginalComoArquivo(h.arquivo_storage_path, h.nome_arquivo);
+      await processarArquivo(file, "extrato", trilha, h.id);
+      toast.success(`${h.nome_arquivo}: reprocessado — ${trilha.contagem?.resumo() ?? trilha.neutro?.resultado ?? "ok"}`);
+    } catch (e) {
+      toast.error(`Falha ao reprocessar ${h.nome_arquivo}: ${formatError(e)}`);
+    } finally {
+      setReprocessandoId(null);
+      await refetch();
     }
   }
 
@@ -423,6 +441,9 @@ export default function ExtratoImportacao() {
   const { data: historico = [], refetch } = useQuery({
     queryKey: ["extrato-importacoes"],
     queryFn: async () => {
+      // Importação pendurada em "processando" vira erro declarado antes de listar.
+      const { error: errExp } = await sb.rpc("fn_extrato_importacao_expirar_processando", { p_minutos: 30 });
+      if (errExp) throw errExp;
       const { data, error } = await sb
         .from("extrato_importacoes")
         .select("*")
