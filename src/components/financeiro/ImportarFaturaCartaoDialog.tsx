@@ -172,6 +172,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
         .single();
       if (errImp) throw errImp;
       impId = row?.id ?? null;
+      if (impId) await guardarOriginalBanco(impId, f);
     } catch (e) {
       console.error("[ImportarFaturaCartao] não conseguiu abrir o rastro", e);
       toast.warning("Rastro da importação não pôde ser criado: " + formatError(e));

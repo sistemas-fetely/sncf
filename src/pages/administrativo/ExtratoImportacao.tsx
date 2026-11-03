@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
 import { ImportarFaturaCartaoDialog } from "@/components/financeiro/ImportarFaturaCartaoDialog";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
+import { guardarOriginalBanco } from "@/lib/contabil/arquivoOriginal";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
 import { parseCsvSafraPayTipo2 } from "@/lib/financeiro/csv-safrapay-tipo2-parser";
@@ -91,6 +92,7 @@ type Importacao = {
   divergencia_saldo: number | null;
   erro_detalhe: string | null;
   created_at: string;
+  arquivo_storage_path: string | null;
 };
 
 type Fonte =
@@ -363,6 +365,21 @@ export default function ExtratoImportacao() {
   }, [contas]);
 
 
+  const [anexandoId, setAnexandoId] = useState<string | null>(null);
+  async function anexarOriginal(id: string, file: File) {
+    setAnexandoId(id);
+    try {
+      const r = await guardarOriginalBanco(id, file);
+      toast.success("Arquivo original guardado");
+      if (r?.mesmo_arquivo_que) toast.warning("Este mesmo arquivo já está guardado em outra importação.");
+      await refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAnexandoId(null);
+    }
+  }
+
   const { data: historico = [], refetch } = useQuery({
     queryKey: ["extrato-importacoes"],
     queryFn: async () => {
@@ -467,6 +484,16 @@ export default function ExtratoImportacao() {
       .single();
     if (errImp) throw errImp;
     const impId = impRow.id as string;
+
+    // ORIGINAL-GUARDADO: o arquivo sobe antes de qualquer linha ser lida, para
+    // o pacote do contador levar exatamente o que foi importado.
+    try {
+      await guardarOriginalBanco(impId, file);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await sb.from("extrato_importacoes").update({ status: "erro", erro_detalhe: msg }).eq("id", impId);
+      throw new Error(msg);
+    }
 
     let fonte: Fonte = "safra_lancamentos";
     let contaResolvida: Conta | null = null;
@@ -1935,6 +1962,7 @@ export default function ExtratoImportacao() {
                   <TableHead className="text-right">Enriq.</TableHead>
                   <TableHead className="text-right">Dup.</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Original</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
