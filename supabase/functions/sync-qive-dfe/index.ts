@@ -6,7 +6,7 @@
  * MESMA convenção do upload manual (xml_nfse), para não duplicar na recarga histórica.
  * ENTIDADE MUDA: 48 h sem nenhum documento numa entidade → alerta em integracoes_sync_log.
  *
- * Agendada por cron (fn_cron_chamar_edge, x-cron-secret) e invocável manualmente (simular/desde).
+ * Agendada por cron (fn_cron_chamar_edge, x-cron-secret) e invocável manualmente (simular/desde/entidades).
  *
  * Credenciais NUNCA no código: lidas do vault via RPC `get_vault_secret`.
  *
@@ -412,6 +412,16 @@ Deno.serve(async (req) => {
       // sem body → sandbox
     }
 
+    if (body?.entidades !== undefined && (
+      !Array.isArray(body.entidades) ||
+      body.entidades.some((entidade: unknown) => !ENTIDADES.includes(entidade as Entidade))
+    )) {
+      return json({ ok: false, error: 'entidades deve ser um array com "nfe", "cte" ou "nfse".' }, 400);
+    }
+    const entidades = body?.entidades === undefined
+      ? ENTIDADES
+      : ENTIDADES.filter((entidade) => body.entidades.includes(entidade));
+
     // SANDBOX-NAO-ESCREVE-EM-PRODUCAO: `ambiente` decide de onde busca; sem esta
     // regra, dados fictícios do sandbox caíam em `nfs_stage` (tabela de produção)
     // e o trigger de despesas os transformava em lançamentos contábeis.
@@ -460,17 +470,14 @@ Deno.serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    const por_entidade: Record<Entidade, ResumoEntidade> = {
-      nfe: novoResumo(simular),
-      cte: novoResumo(simular),
-      nfse: novoResumo(simular),
-
-    };
+    const por_entidade = Object.fromEntries(
+      entidades.map((entidade) => [entidade, novoResumo(simular)]),
+    ) as Record<Entidade, ResumoEntidade>;
     // Lote do run para transp_cte_importacao_log; contagem por status do frete.
     const loteRun = `qive-${new Date(t0).toISOString()}`;
     const cteFrete: Record<string, any> = { importado: 0, duplicado: 0, erro: 0, primeiro_erro: null };
 
-    for (const entidade of ENTIDADES) {
+    for (const entidade of entidades) {
       const resumo = por_entidade[entidade];
       try {
         // ---- cursor + trava
