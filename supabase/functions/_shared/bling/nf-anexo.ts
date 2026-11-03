@@ -190,3 +190,33 @@ export function validarXmlNf(conteudo: string, ctx: Record<string, unknown> = {}
   }
   return texto;
 }
+
+const UA_NAVEGADOR =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+/** Segue até 5 redirects repassando cookies (Bling exige PHPSESSID no 2º salto). */
+async function fetchComCookie(url: string): Promise<Response> {
+  const cookies = new Map<string, string>();
+  let atual = url;
+  for (let i = 0; i < 6; i++) {
+    const headers: Record<string, string> = {
+      Accept: "application/pdf,text/html;q=0.9,*/*;q=0.8",
+      "User-Agent": UA_NAVEGADOR,
+    };
+    if (cookies.size) headers.Cookie = [...cookies].map(([k, v]) => `${k}=${v}`).join("; ");
+    const res = await fetch(atual, { headers, redirect: "manual" });
+    for (const sc of (res.headers as any).getSetCookie?.() ?? []) {
+      const par = String(sc).split(";")[0];
+      const eq = par.indexOf("=");
+      if (eq > 0) cookies.set(par.slice(0, eq).trim(), par.slice(eq + 1).trim());
+    }
+    const loc = res.headers.get("location");
+    if (res.status >= 300 && res.status < 400 && loc) {
+      await res.body?.cancel();
+      atual = new URL(loc, atual).toString();
+      continue;
+    }
+    return res;
+  }
+  throw new NfAnexoError(502, "Bling redirecionou o PDF demais (loop de redirect).", { url });
+}
