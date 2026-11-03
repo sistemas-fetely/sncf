@@ -12,7 +12,7 @@ describe("caixa obrigatória no Correios", () => {
     expect(caixaOkParaModal("CORREIOS", null, dimAvulsa({ c: "60", l: "20", a: "5" }))).toBe(true);
   });
   it("outro modal não exige caixa", () => {
-    expect(caixaOkParaModal("MOTOBOY", null, null)).toBe(false === true ? false : true);
+    expect(caixaOkParaModal("MOTOBOY", null, null)).toBe(true);
   });
   it("avulsa exige as três medidas maiores que zero", () => {
     expect(dimAvulsa({ c: "60", l: "0", a: "5" })).toBeNull();
