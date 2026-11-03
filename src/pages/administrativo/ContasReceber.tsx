@@ -10,6 +10,7 @@ import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { resolverAcao, lerOrdemKD, escreverOrdemKD, lerConjunto, escreverConjunto, type OrdemKD } from "@/lib/navegacao/codecUrl";
 import { supabase } from "@/integrations/supabase/client";
+import { BotaoFilaSemPedido, GavetaFilaSemPedido } from "@/components/financeiro/FilaRecebivelSemPedido";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -2583,6 +2584,8 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   return (
     <div className="space-y-6">
+      <GavetaFilaSemPedido />
+      <div className="flex justify-end"><BotaoFilaSemPedido /></div>
 
       <p className="max-w-3xl text-xs text-muted-foreground">
         B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro

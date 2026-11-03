@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
 
   // Diário: pedidos ATUALIZADOS na janela (pagamento aprovado depois da criação); backfill: criados.
   const campo = modo === "diario" ? "updated_at" : "created_at";
-  const q = `${campo}:>='${exec.desde}' ${campo}:<='${exec.ate}'`;
+  const q = `${campo}:>='${new Date(exec.desde).toISOString()}' ${campo}:<='${new Date(exec.ate).toISOString()}'`;
   let cursor: string | null = exec.cursor ?? null;
   const cont = { paginas: exec.paginas ?? 0, pedidos_lidos: exec.pedidos_lidos ?? 0, refs_novas: exec.refs_novas ?? 0, refs_ja_existiam: exec.refs_ja_existiam ?? 0 };
   const conflitos: any[] = Array.isArray(exec.conflitos) ? exec.conflitos : [];

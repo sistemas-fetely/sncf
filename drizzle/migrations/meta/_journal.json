@@ -421,6 +421,13 @@
       "when": 1793747034860,
       "tag": "0059_mp_fase2_fila_decisao",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793747323324,
+      "tag": "0060_mp_fase2_vinculo_manual_na_view",
+      "breakpoints": true
     }
   ]
 }
