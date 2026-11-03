@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       .select("id, bling_id, numero, serie, pdf_url, xml_url, data_emissao, situacao", { count: "exact" })
       .gte("data_emissao", ini).lt("data_emissao", fim)
       .in("situacao", ["autorizada", "cancelada"])
-      .is("xml_storage_path", null);
+      .or("xml_storage_path.is.null,pdf_storage_path.is.null");
     // Primeiro as nunca tentadas; as que já falharam ficam no fim.
     const { data, error, count } = await base().is("arquivos_erro", null).limit(lote);
     if (error) return json({ ok: false, erro: error.message }, 500);
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     }
     const { count: restantes } = await admin.from("nfs_emitidas").select("id", { count: "exact", head: true })
       .gte("data_emissao", ini).lt("data_emissao", fim).in("situacao", ["autorizada", "cancelada"])
-      .is("xml_storage_path", null).is("arquivos_erro", null);
+      .or("xml_storage_path.is.null,pdf_storage_path.is.null").is("arquivos_erro", null);
     return json({ ok: true, processadas: rows.length, guardadas: ok, erros, pendentes_antes: count, restantes });
   } catch (e) {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
