@@ -28,29 +28,41 @@ export function caminhoNfSaida(nf: NfCacheRow, ext: "xml" | "pdf"): string {
 export async function cachearNfSaida(supabase: any, nf: NfCacheRow) {
   const ctx = { nf_id: nf.id, numero: nf.numero };
   const link = await resolverLinkPdfFresco(supabase, null, nf);
-  const pdf = await baixarPdfValidado(link.url, link.origem, ctx);
+  // XML primeiro: é o documento fiscal que o contador escritura. O PDF (DANFE)
+  // é complemento — se o Bling recusar, o XML fica guardado e o erro registrado.
   const xmlUrl = link.xml ?? nf.xml_url;
   if (!xmlUrl) throw new Error(`NF ${nf.numero}: Bling não informou o link do XML`);
-  const resXml = await fetch(xmlUrl);
-  const corpoXml = await resXml.text();
-  if (!resXml.ok) throw new Error(`NF ${nf.numero}: download do XML falhou [${resXml.status}]: ${corpoXml.slice(0, 200)}`);
+  let corpoXml = xmlUrl;
+  if (xmlUrl.startsWith("http")) {
+    const resXml = await fetch(xmlUrl);
+    corpoXml = await resXml.text();
+    if (!resXml.ok) throw new Error(`NF ${nf.numero}: download do XML falhou [${resXml.status}]: ${corpoXml.slice(0, 200)}`);
+  }
   const xml = validarXmlNf(corpoXml, ctx);
-
-  const pathPdf = caminhoNfSaida(nf, "pdf");
   const pathXml = caminhoNfSaida(nf, "xml");
-  const up1 = await supabase.storage.from(BUCKET_CONTABIL)
-    .upload(pathPdf, pdf, { contentType: "application/pdf", upsert: true });
-  if (up1.error) throw new Error(`NF ${nf.numero}: upload do PDF falhou: ${up1.error.message}`);
   const up2 = await supabase.storage.from(BUCKET_CONTABIL)
     .upload(pathXml, new TextEncoder().encode(xml), { contentType: "application/xml", upsert: true });
   if (up2.error) throw new Error(`NF ${nf.numero}: upload do XML falhou: ${up2.error.message}`);
+
+  let pathPdf: string | null = null;
+  let erroPdf: string | null = null;
+  try {
+    const pdf = await baixarPdfValidado(link.url, link.origem, ctx);
+    const p = caminhoNfSaida(nf, "pdf");
+    const up1 = await supabase.storage.from(BUCKET_CONTABIL)
+      .upload(p, pdf, { contentType: "application/pdf", upsert: true });
+    if (up1.error) throw new Error(`upload do PDF falhou: ${up1.error.message}`);
+    pathPdf = p;
+  } catch (e) {
+    erroPdf = `PDF: ${e instanceof Error ? e.message : String(e)}`;
+  }
 
   const { error } = await supabase.from("nfs_emitidas").update({
     pdf_storage_path: pathPdf,
     xml_storage_path: pathXml,
     arquivos_sincronizados_em: new Date().toISOString(),
-    arquivos_erro: null,
+    arquivos_erro: erroPdf,
   }).eq("id", nf.id);
   if (error) throw new Error(`NF ${nf.numero}: arquivos guardados, mas a marcação falhou: ${error.message}`);
-  return { pdf: pathPdf, xml: pathXml };
+  return { pdf: pathPdf, xml: pathXml, erroPdf };
 }
