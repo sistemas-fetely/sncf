@@ -154,3 +154,40 @@ export async function aplicarMpRelease(sb: Client, conta: string, impId: string,
     }, cont);
   }
 }
+
+/** Lançamento já gravado (para o enriquecimento, Fase 2). */
+export interface MovExistente { id: string; id_transacao_banco: string; valor: number; referencia_pedido: string | null }
+export interface PlanoEnriquecimento {
+  atualizar: { id: string; referencia_pedido: string }[];
+  casados: number; ja_tinham: number; sem_token_no_arquivo: number;
+  sem_par: { id_operacao: string; data: string; valor: number }[];
+  conflitos: { id: string; id_operacao: string; atual: string; arquivo: string }[];
+}
+
+/**
+ * Fase 2 — enriquecer liberações antigas com EXTERNAL_REFERENCE. NUNCA cria lançamento:
+ * casa pela mesma identidade da importação (id da operação + valor assinado), só preenche
+ * referencia_pedido vazia; token diferente do gravado é conflito (não sobrescreve).
+ */
+export function enriquecerReferencias(libs: MpLiberacao[], existentes: MovExistente[]): PlanoEnriquecimento {
+  const porChave = new Map<string, MovExistente>();
+  for (const m of existentes) porChave.set(`${m.id_transacao_banco}|${Number(m.valor).toFixed(2)}`, m);
+  const p: PlanoEnriquecimento = { atualizar: [], casados: 0, ja_tinham: 0, sem_token_no_arquivo: 0, sem_par: [], conflitos: [] };
+  const vistos = new Set<string>();
+  for (const l of libs) {
+    if (!l.id_operacao) continue;
+    const chave = `${l.id_operacao}|${l.valor_liquido.toFixed(2)}`;
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    const m = porChave.get(chave);
+    if (!m) { p.sem_par.push({ id_operacao: l.id_operacao, data: l.data_liberacao, valor: l.valor_liquido }); continue; }
+    p.casados++;
+    const tok = l.codigo_referencia.trim();
+    const atual = (m.referencia_pedido ?? "").trim();
+    if (!tok) { p.sem_token_no_arquivo++; continue; }
+    if (atual === tok) { p.ja_tinham++; continue; }
+    if (atual) { p.conflitos.push({ id: m.id, id_operacao: l.id_operacao, atual, arquivo: tok }); continue; }
+    p.atualizar.push({ id: m.id, referencia_pedido: tok });
+  }
+  return p;
+}

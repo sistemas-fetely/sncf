@@ -13,7 +13,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import * as XLSX from "npm:xlsx@0.18.5";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { ContagemImportacao } from "../_shared/financeiro/contagem-importacao.ts";
-import { aplicarMpRelease, lerCsvMp, normalizarMpRelease } from "../_shared/financeiro/mp/release.ts";
+import { aplicarMpRelease, enriquecerReferencias, lerCsvMp, normalizarMpRelease } from "../_shared/financeiro/mp/release.ts";
 import { aplicarMpSettlement, normalizarMpSettlement } from "../_shared/financeiro/mp/settlement.ts";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -41,8 +41,9 @@ Deno.serve(async (req) => {
 
   // Ações manuais exigem a ação do catálogo (cron passa só pelo segredo).
   if (!req.headers.get("x-cron-secret")) {
-    if (!["dia", "retroativo", "coletar", "status"].includes(acao)) return json({ ok: false, erro: "ação inválida" }, 400);
+    if (!["dia", "retroativo", "coletar", "status", "enriquecer"].includes(acao)) return json({ ok: false, erro: "ação inválida" }, 400);
     const { data: u } = await db.auth.getUser((req.headers.get("Authorization") ?? "").slice(7));
+    body.__user = u?.user?.id ?? null;
     const { data: pode, error } = await db.rpc("usuario_tem_acao", { p_slug: "acao.mp_relatorio.reprocessar", p_user_id: u?.user?.id });
     if (error) return json({ ok: false, erro: error.message }, 500);
     if (!pode) return json({ ok: false, erro: "Sem permissão (acao.mp_relatorio.reprocessar)" }, 403);
@@ -72,6 +73,10 @@ Deno.serve(async (req) => {
       const desde = validarDia(body.desde) ?? INICIO_BACKFILL;
       return json({ ok: true, ...(await retroativo(db, mp, desde)) });
     }
+    if (acao === "enriquecer") {
+      // Fase 2: { inicio, fim } (≤ 60 dias) pede o release_report; ou { id } retoma a execução.
+      return json({ ok: true, ...(await enriquecer(db, mp, body)) });
+    }
     return json({ ok: false, erro: "ação inválida" }, 400);
   } catch (e) {
     console.error("mp-relatorios", acao, msg(e));
@@ -88,17 +93,18 @@ class ClienteMp {
   constructor(private token: string) {}
   private h() { return { Authorization: `Bearer ${this.token}` }; }
   private limpar(t: string) { return t.replaceAll(this.token, "***").slice(0, 300); }
-  async lista(tipo: Tipo): Promise<any[]> {
-    if (this.listas[tipo]) return this.listas[tipo];
+  async lista(tipo: Tipo, fresca = false): Promise<any[]> {
+    if (this.listas[tipo] && !fresca) return this.listas[tipo];
     const r = await fetch(`${MP}/${tipo}_report/list`, { headers: this.h() });
     const t = await r.text();
     if (!r.ok) throw new Error(`MP ${tipo}_report/list HTTP ${r.status}: ${this.limpar(t)}`);
     return (this.listas[tipo] = JSON.parse(t));
   }
-  async pedir(tipo: Tipo, dia: string): Promise<number | null> {
+  pedir(tipo: Tipo, dia: string) { return this.pedirJanela(tipo, dia, dia); }
+  async pedirJanela(tipo: Tipo, ini: string, fim: string): Promise<number | null> {
     const r = await fetch(`${MP}/${tipo}_report`, {
       method: "POST", headers: { ...this.h(), "Content-Type": "application/json" },
-      body: JSON.stringify({ begin_date: inicioUtc(dia), end_date: fimUtc(dia) }),
+      body: JSON.stringify({ begin_date: inicioUtc(ini), end_date: fimUtc(fim) }),
     });
     const t = await r.text();
     if (!r.ok) throw new Error(`MP POST ${tipo}_report HTTP ${r.status}: ${this.limpar(t)}`);
@@ -282,4 +288,86 @@ async function retroativo(db: any, mp: ClienteMp, desde: string) {
     }
   }
   return { desde, ate: ontem, linhas_criadas: criadas, pedidos_release: pedidos };
+}
+
+// ── Fase 2: enriquecer liberações antigas com EXTERNAL_REFERENCE (nunca insere) ──────────
+async function contarMovs(db: any): Promise<number> {
+  const { count, error } = await db.from("movimentacoes_bancarias").select("id", { count: "exact", head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
+async function enriquecer(db: any, mp: ClienteMp, body: any) {
+  let ex: any;
+  if (body.id) {
+    const { data, error } = await db.from("mp_relatorio_enriquecimento").select("*").eq("id", body.id).single();
+    if (error) throw error; ex = data;
+  } else {
+    const ini = validarDia(body.inicio), fim = validarDia(body.fim);
+    if (!ini || !fim || fim < ini) throw new Error("Informe inicio e fim (AAAA-MM-DD)");
+    if ((Date.parse(fim) - Date.parse(ini)) / 86400_000 > 60) throw new Error("Janela máxima de 60 dias");
+    await mp.pedirJanela("release", ini, fim);
+    const { data, error } = await db.from("mp_relatorio_enriquecimento").insert({
+      periodo_inicio: ini, periodo_fim: fim, solicitado_por: body.__user ?? null,
+    }).select("*").single();
+    if (error) throw error; ex = data;
+  }
+  if (ex.status === "processado") return { execucao: ex };
+  // Espera até ~2 min o arquivo da janela.
+  let arq: any = null;
+  for (let i = 0; i < 7 && !arq; i++) {
+    if (i) await new Promise((s) => setTimeout(s, 20_000));
+    const lista = await mp.lista("release", true);
+    arq = lista.filter((x: any) => x.file_name && ["enabled", "processed"].includes(x.status)
+      && diaBrt(x.begin_date) === ex.periodo_inicio && diaBrt(x.end_date) === ex.periodo_fim && x.file_name.endsWith(".csv")
+      && Date.parse(x.date_created ?? 0) >= Date.parse(ex.created_at) - 60_000)
+      .sort((a: any, b: any) => String(b.date_created).localeCompare(String(a.date_created)))[0] ?? null;
+  }
+  if (!arq) return { execucao: ex, aguardando: true };
+
+  try {
+    const bytes = await mp.baixar("release", arq.file_name);
+    const rows = lerCsvMp(new TextDecoder("utf-8").decode(bytes));
+    const colunas = ((rows[0] ?? []) as unknown[]).map((c) => String(c).trim());
+    const up = colunas.map((c) => c.toUpperCase());
+    const libs = normalizarMpRelease(rows);
+    const { data: mapa } = await db.from("importacao_fonte_conta").select("conta_bancaria_id").eq("fonte", "mp_release").maybeSingle();
+    const conta = mapa?.conta_bancaria_id;
+    if (!conta) throw new Error("mp_release sem conta mapeada");
+    const ids = [...new Set(libs.map((l) => l.id_operacao).filter(Boolean))];
+    const existentes: any[] = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await db.from("movimentacoes_bancarias").select("id,id_transacao_banco,valor,referencia_pedido")
+        .eq("conta_bancaria_id", conta).eq("origem", "mp_release").is("duplicada_de", null).in("id_transacao_banco", ids.slice(i, i + 200));
+      if (error) throw error;
+      existentes.push(...(data ?? []));
+    }
+    const plano = enriquecerReferencias(libs, existentes);
+    const antes = await contarMovs(db);
+    for (const u of plano.atualizar) {
+      const { error } = await db.from("movimentacoes_bancarias").update({ referencia_pedido: u.referencia_pedido })
+        .eq("id", u.id).is("referencia_pedido", null);
+      if (error) throw error;
+    }
+    const depois = await contarMovs(db);
+    // Evidência no bucket, FORA de bancos/ e de extrato_importacoes (não entra no pacote do contador).
+    const path = `evidencias/mp-enriquecimento/${ex.periodo_inicio.slice(0, 7)}/${ex.id}/${nomeSeguro(arq.file_name)}`;
+    const { error: eup } = await db.storage.from("contabil").upload(path, new Blob([bytes], { type: "text/csv" }), { upsert: true, contentType: "text/csv" });
+    if (eup) throw new Error(`Não foi possível guardar o CSV: ${eup.message}`);
+    const patch = {
+      status: "processado", file_name: arq.file_name, mp_report_id: arq.id ?? null, arquivo_storage_path: path,
+      arquivo_sha256: await sha256Hex(bytes), arquivo_bytes: bytes.length, colunas,
+      tem_external_reference: up.includes("EXTERNAL_REFERENCE"), tem_source_id: up.includes("SOURCE_ID"),
+      linhas_lidas: libs.length, casados: plano.casados, ganharam_token: plano.atualizar.length, ja_tinham: plano.ja_tinham,
+      sem_token_no_arquivo: plano.sem_token_no_arquivo, sem_par: plano.sem_par.length, conflitos: plano.conflitos.length,
+      sem_par_detalhe: plano.sem_par, conflitos_detalhe: plano.conflitos, movs_antes: antes, movs_depois: depois,
+      erro: null, updated_at: new Date().toISOString(),
+    };
+    const { data: fim, error: ef } = await db.from("mp_relatorio_enriquecimento").update(patch).eq("id", ex.id).select("*").single();
+    if (ef) throw ef;
+    return { execucao: fim };
+  } catch (e) {
+    await db.from("mp_relatorio_enriquecimento").update({ status: "erro", erro: msg(e), updated_at: new Date().toISOString() }).eq("id", ex.id);
+    throw e;
+  }
 }

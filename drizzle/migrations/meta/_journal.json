@@ -393,6 +393,13 @@
       "when": 1793740706448,
       "tag": "0055_mp_saques_duplicados_manter_liberacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1793743385547,
+      "tag": "0056_mp_relatorio_enriquecimento",
+      "breakpoints": true
     }
   ]
 }
