@@ -34,6 +34,8 @@ import { detectarCsvSafraPay } from "@/lib/financeiro/csv-safrapay-detect";
 import { parseCsvSafraPayLink } from "@/lib/financeiro/csv-safrapay-link-parser";
 import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
+import { aplicarMpRelease, saqueJaRegistrado } from "../../../supabase/functions/_shared/financeiro/mp/release.ts";
+import { aplicarMpSettlement } from "../../../supabase/functions/_shared/financeiro/mp/settlement.ts";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
 import { classificarXlsx } from "@/lib/financeiro/xlsx-classificar";
@@ -1067,6 +1069,11 @@ export default function ExtratoImportacao() {
             continue;
           }
           const valorAssinado = -m.valor; // saque = débito
+          // SAQUE-UMA-VEZ (03/11/2026): o saque já veio pelo relatório de liberações → duplicada.
+          if (await saqueJaRegistrado(sb, conta, m.id_transacao_banco, valorAssinado, "mp_release")) {
+            cont.duplicada();
+            continue;
+          }
           const { data: exist } = await sb
             .from("movimentacoes_bancarias")
             .select("id, contraparte_documento, id_transacao_banco")
@@ -1354,30 +1361,8 @@ export default function ExtratoImportacao() {
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
 
-        // Settlement é ENRIQUECIMENTO, não extrato: não cria movimentação.
-        for (const t of parsed.transacoes) {
-          if (!t.id_transacao_mp) {
-            cont.ignorar("sem_identificador");
-            continue;
-          }
-
-          const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
-
-          // Enriquecer o crédito que já entrou pelo extrato, se existir
-          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
-            p_conta: conta,
-            p_data: t.data_liberacao || t.data_aprovacao,
-            p_valor: t.valor_liquido,
-            p_contraparte_nome: `MP ${t.meio_pagamento.toUpperCase()}`.trim(),
-            p_contraparte_documento: null,
-            p_referencia_pedido: t.codigo_referencia || null,
-            p_tipo_meio: tipoMeio,
-            p_classe: null,
-          });
-          if (errEnr) throw errEnr;
-          if (alvoId) cont.enriquecer();
-          else cont.ignorar("sem_par_no_extrato");
-        }
+        // Settlement é ENRIQUECIMENTO, não extrato: não cria movimentação (regra compartilhada com a edge).
+        await aplicarMpSettlement(sb, conta, parsed.transacoes, cont);
 
       } else if (fonte === "mp_release") {
         const buf = await file.arrayBuffer();
@@ -1400,68 +1385,8 @@ export default function ExtratoImportacao() {
         if (errUnid) throw errUnid;
         const cnpjProprio = (unidade?.cnpj ?? "").replace(/\D/g, "") || null;
 
-        for (const l of parsed.liberacoes) {
-          if (!l.id_operacao) {
-            cont.ignorar("sem_identificador");
-            continue;
-          }
-          const hash = await gerarHashMov(conta, l.data_liberacao, l.valor_liquido, `mp_rr|${l.id_operacao}`);
-
-          const { data: exist } = await sb
-            .from("movimentacoes_bancarias")
-            .select("id")
-            .eq("hash_unico", hash)
-            .maybeSingle();
-          if (exist) { cont.duplicada(); continue; }
-
-          const desc = l.descricao_mp
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-          const ehSaque = desc.startsWith("saque");
-          const ehDevolucao = desc.startsWith("devolucao");
-          const meio = l.meio_pagamento.toUpperCase();
-
-          let descricao: string;
-          let tipoMeio: string;
-          if (ehSaque) {
-            descricao = `MP SAQUE PARA CONTA ${l.conta_destino}`.trim();
-            tipoMeio = "transferencia";
-          } else if (ehDevolucao) {
-            descricao = `MP DEVOLUCAO ${meio}`.trim();
-            tipoMeio = "outro";
-          } else {
-            const meioNorm = l.meio_pagamento
-              .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-            descricao = `MP PAGAMENTO ${meio}`.trim();
-            tipoMeio = meioNorm.includes("saldo disponivel")
-              ? "outro"
-              : (meioNorm.includes("pix") || meioNorm.includes("transferencia bancaria"))
-                ? "pix"
-                : "cartao";
-          }
-          const ehPagamento = !ehSaque && !ehDevolucao;
-
-          await inserirMovimentacao(
-            sb,
-            {
-              conta_bancaria_id: conta,
-              data_transacao: l.data_liberacao,
-              descricao,
-              valor: l.valor_liquido,
-              tipo: l.valor_liquido < 0 ? "debito" : "credito",
-              id_transacao_banco: l.id_operacao,
-              hash_unico: hash,
-              origem: "mp_release",
-              tipo_meio: tipoMeio,
-              referencia_pedido: l.codigo_referencia || null,
-              classe: ehPagamento ? "recebivel_b2c" : null,
-              classe_definida_por: ehPagamento ? "regra_p1" : null,
-              contraparte_nome: ehSaque ? "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA" : null,
-              contraparte_documento: ehSaque ? cnpjProprio : null,
-              fonte_importacao_id: impId,
-            },
-            cont
-          );
-        }
+        // Mesmo laço da rotina automática (mp-relatorios): hash mp_rr|<id>, saque sem duplicar com retiradas.
+        await aplicarMpRelease(sb, conta, impId, parsed.liberacoes, cont, cnpjProprio);
       } else if (fonte === "safra_instrucoes_2via") {
         // Papel: CONFERÊNCIA. Não escreve no extrato, não dá baixa em título.
         const buf = await file.arrayBuffer();
