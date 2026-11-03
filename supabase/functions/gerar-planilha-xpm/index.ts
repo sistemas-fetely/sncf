@@ -410,9 +410,9 @@ serve(async (req) => {
     const { data, error } = await q;
     if (error) throw new Error(error.message);
 
-    const tipoRow = ["Caracter","Caracter","Caracter","Caracter","Caracter","Numerico","Caracter","","","Numerico","Numerico","Numerico","","","Numerico","Caracter","Numerico","Numerico","Numerico","Numerico","Numerico","Numerico","Numerico"];
-    const unidRow = ["","","","","","Kg","","","","","","","","","","","Kg","Metro","Metro","Metro","","",""];
-    const headerRow = ["Codigo Material","Categoria","Descrição","Descrição Reduzida","Unid. med","Peso Liquido","codigoBarras","Cod. Caixa","NF","Cod. NF","lastro","classificacaoFiscalNCM","Quantida de Caixas Master","Quantida de Caixas Inner","qtdItemSKU","descricaoEmbalagem","pesoSku","alturaSKU","larguraSKU","comprimentoSKU","Lote","Validade","Serie"];
+    const tipoRow = ["Caracter","Caracter","Caracter","Caracter","Caracter","Numerico","Caracter","","","Numerico","Numerico","Numerico","","","Numerico","Caracter","Numerico","Numerico","Numerico","Numerico","Numerico","Numerico","Numerico","Numerico"];
+    const unidRow = ["","","","","","Kg","","","","","","","","","","","Kg","Metro","Metro","Metro","","","","R$"];
+    const headerRow = ["Codigo Material","Categoria","Descrição","Descrição Reduzida","Unid. med","Peso Liquido","codigoBarras","Cod. Caixa","NF","Cod. NF","lastro","classificacaoFiscalNCM","Quantida de Caixas Master","Quantida de Caixas Inner","qtdItemSKU","descricaoEmbalagem","pesoSku","alturaSKU","larguraSKU","comprimentoSKU","Lote","Validade","Serie","Valor Unitário NF"];
 
     const codExtCad = await mapaCodigoExterno(supabase, (data || []).map((r: any) => String(r.codigo_material)));
     const dataRows = (data || []).map((r: any) => [
@@ -439,6 +439,7 @@ serve(async (req) => {
       r.lote ?? "",
       "",
       "",
+      r.valor_unit_nf == null ? "" : Number(r.valor_unit_nf),
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet([tipoRow, unidRow, headerRow, ...dataRows]);

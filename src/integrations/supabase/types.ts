@@ -127671,14 +127671,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -128804,14 +128804,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -131340,14 +131340,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -144714,14 +144714,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -149917,6 +149917,8 @@ export type Database = {
           qtd_item_sku: number | null
           qtd_pedida: number | null
           unid_med: string | null
+          valor_unit_nf: number | null
+          valor_unit_nf_misto: boolean | null
         }
         Relationships: [
           {
@@ -154244,6 +154246,7 @@ export type Database = {
         Args: { p_caixa_codigo: string; p_pedido_id: string; p_volumes: number }
         Returns: Json
       }
+      fn_mesa_sp_caixa_dim_valida: { Args: { p_dim: Json }; Returns: Json }
       fn_mesa_sp_caixas_sugeridas: {
         Args: { p_pedido_id: string }
         Returns: {
@@ -154268,6 +154271,14 @@ export type Database = {
           numero: string
           pedido_id: string
         }[]
+      }
+      fn_mesa_sp_corrigir_caixa: {
+        Args: {
+          p_caixa_codigo?: string
+          p_caixa_dim?: Json
+          p_pedido_id: string
+        }
+        Returns: Json
       }
       fn_mesa_sp_dados_impressao: {
         Args: { p_pedido_id: string }
@@ -154306,37 +154317,18 @@ export type Database = {
         }[]
       }
       fn_mesa_sp_documentos_ok: { Args: { p_pedido_id: string }; Returns: Json }
-      fn_mesa_sp_embalar:
-        | {
-            Args: {
-              p_modal: string
-              p_pedido_id: string
-              p_peso_kg: number
-              p_volumes: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_checklist?: Json
-              p_modal: string
-              p_pedido_id: string
-              p_peso_kg: number
-              p_volumes: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_caixa_codigo?: string
-              p_checklist?: Json
-              p_modal: string
-              p_pedido_id: string
-              p_peso_kg: number
-              p_volumes: number
-            }
-            Returns: Json
-          }
+      fn_mesa_sp_embalar: {
+        Args: {
+          p_caixa_codigo?: string
+          p_caixa_dim?: Json
+          p_checklist?: Json
+          p_modal: string
+          p_pedido_id: string
+          p_peso_kg: number
+          p_volumes: number
+        }
+        Returns: Json
+      }
       fn_mesa_sp_encerrar_cancelado: {
         Args: { p_pedido_id: string }
         Returns: Json
