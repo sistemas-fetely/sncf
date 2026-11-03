@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { digitos } from "../_shared/bling/conferir-nfe-retorno.ts";
+import { verificarNfDevolucao } from "../_shared/devolucao/verificar-nf-dev.ts";
 
 // deno-lint-ignore-file no-explicit-any
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -36,20 +37,6 @@ function divergenciaNfeDevolucao(nf: any, esp: { doc: string; valor: number; ite
   }
   for (const c of qNf.keys()) if (!qEsp.has(c)) return `${nome} tem item ${c} fora da devolução.`;
   return null;
-}
-
-/** Mesma regra de detectarCancelamento do sync-nfe. */
-function cancelada(d: any): boolean {
-  const sc = d?.situacaoCancelamento;
-  const scVal = sc != null && typeof sc === "object" ? sc.valor : sc;
-  let porSc = false;
-  if (scVal != null && scVal !== "" && scVal !== false) {
-    const n = Number(scVal);
-    porSc = Number.isFinite(n) ? n > 0 : !/^(nao|não|n|0|false|sem)/i.test(String(scVal).trim());
-  }
-  const c = d?.cancelamento;
-  const porC = c != null && c !== "" && c !== false && (typeof c !== "object" || Object.keys(c).length > 0);
-  return porSc || porC;
 }
 
 serve(async (req) => {
