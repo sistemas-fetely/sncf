@@ -45962,6 +45962,143 @@ export type Database = {
           },
         ]
       }
+      mp_relatorio_execucao: {
+        Row: {
+          arquivo_storage_path: string | null
+          dia: string
+          erro: string | null
+          extrato_importacao_id: string | null
+          file_name: string | null
+          id: string
+          importado_em: string | null
+          linhas_duplicadas: number | null
+          linhas_enriquecidas: number | null
+          linhas_ignoradas: number | null
+          linhas_lidas: number | null
+          linhas_novas: number | null
+          mp_report_id: number | null
+          origem: string
+          solicitado_em: string
+          status: string
+          tentativas: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo_storage_path?: string | null
+          dia: string
+          erro?: string | null
+          extrato_importacao_id?: string | null
+          file_name?: string | null
+          id?: string
+          importado_em?: string | null
+          linhas_duplicadas?: number | null
+          linhas_enriquecidas?: number | null
+          linhas_ignoradas?: number | null
+          linhas_lidas?: number | null
+          linhas_novas?: number | null
+          mp_report_id?: number | null
+          origem?: string
+          solicitado_em?: string
+          status?: string
+          tentativas?: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo_storage_path?: string | null
+          dia?: string
+          erro?: string | null
+          extrato_importacao_id?: string | null
+          file_name?: string | null
+          id?: string
+          importado_em?: string | null
+          linhas_duplicadas?: number | null
+          linhas_enriquecidas?: number | null
+          linhas_ignoradas?: number | null
+          linhas_lidas?: number | null
+          linhas_novas?: number | null
+          mp_report_id?: number | null
+          origem?: string
+          solicitado_em?: string
+          status?: string
+          tentativas?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mp_relatorio_execucao_extrato_importacao_id_fkey"
+            columns: ["extrato_importacao_id"]
+            isOneToOne: false
+            referencedRelation: "extrato_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mp_relatorio_execucao_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "mp_relatorio_status_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "mp_relatorio_execucao_tipo_fkey"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "mp_relatorio_tipo_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "mp_relatorio_execucao_tipo_fkey"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "vw_mp_relatorio_atrasado"
+            referencedColumns: ["tipo"]
+          },
+        ]
+      }
+      mp_relatorio_status_dim: {
+        Row: {
+          codigo: string
+          estado_selo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          estado_selo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          estado_selo?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      mp_relatorio_tipo_dim: {
+        Row: {
+          codigo: string
+          fonte_tipo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          fonte_tipo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          fonte_tipo?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       municipio_ibge: {
         Row: {
           codigo_ibge: string
@@ -125449,6 +125586,19 @@ export type Database = {
           status: string | null
           tipo: string | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_mp_relatorio_atrasado: {
+        Row: {
+          desde: string | null
+          dia: string | null
+          erro: string | null
+          id: string | null
+          status: string | null
+          tentativas: number | null
+          tipo: string | null
+          tipo_rotulo: string | null
         }
         Relationships: []
       }
