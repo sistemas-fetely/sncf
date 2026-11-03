@@ -104,7 +104,7 @@ export async function lerResumoSeller(f: File) {
   });
   let devolucoes: Linha[] = [];
   try { devolucoes = lerAba(wb, "Produtos Devolvidos", "Lacre").map((l) => l.txt); } catch { devolucoes = []; }
-  const lojaCol = vend.map((v) => s(v, "Loja") ?? s(v, "Filial")).find(Boolean);
+  const lojaCol = vend.map((v) => s(v, "Loja código") ?? s(v, "Loja fantasia") ?? s(v, "Loja") ?? s(v, "Filial")).find(Boolean);
   return { unidades, devolucoes, loja: lojaCol?.match(/\d{3,}/)?.[0] ?? null };
 }
 
