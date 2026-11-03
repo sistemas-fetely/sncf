@@ -407,6 +407,20 @@
       "when": 1793743876992,
       "tag": "0057_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793746938945,
+      "tag": "0058_mp_fase2_shopify_sync_execucao",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793747034860,
+      "tag": "0059_mp_fase2_fila_decisao",
+      "breakpoints": true
     }
   ]
 }
