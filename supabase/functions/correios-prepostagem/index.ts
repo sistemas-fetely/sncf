@@ -160,7 +160,7 @@ async function rotulo(prepostagemId: string) {
   if (!pp || pp.status === "cancelada") throw new Falha(404, "Pré-postagem não encontrada ou cancelada.");
   const cartao = await cartaoPorNumero(pp.cartao);
   const s = await api(cartao, "POST", "/prepostagem/v1/prepostagens/rotulo/assincrono/pdf", {
-    idsPrePostagem: [pp.id_prepostagem_correios], tipoRotulo: "P", formatoRotulo: "ET", imprimeRemetente: "S", layoutImpressao: "PADRAO",
+    idsPrePostagem: [pp.id_prepostagem_correios], tipoRotulo: "R", formatoRotulo: "ET", imprimeRemetente: "S", layoutImpressao: "PADRAO",
   });
   if (!s.ok) throw new Falha(502, `Correios recusou o rótulo (HTTP ${s.status}): ${JSON.stringify(s.corpo)}`);
   const recibo = (s.corpo as any)?.idRecibo;
