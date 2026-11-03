@@ -69,7 +69,10 @@ export interface DadosImpressao {
   canal: string | null;
   nf: string | null;
   modal: string | null;
+  /** Serviço EFETIVO (pré-postagem viva, senão o do cliente). */
   servico_correios: string | null;
+  /** Serviço que o cliente comprou — nunca muda. */
+  servico_cliente: string | null;
   frete_cliente_valor: number | null;
   frete_gratis: boolean | null;
   volumes: number | null;

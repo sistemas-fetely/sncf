@@ -881,10 +881,22 @@ export function imprimirPdfBase64(b64: string): boolean {
 export function useGerarEtiquetaCorreios() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ pedidoId, prepostagemId }: { pedidoId: string; prepostagemId?: string | null }) => {
-      let id = prepostagemId ?? null;
+    mutationFn: async ({ pedidoId, prepostagemId, servico, motivoTroca, trocarServico }: {
+      pedidoId: string; prepostagemId?: string | null;
+      /** MESA-SP-TROCA-SERVICO-CORREIOS: serviço escolhido e motivo quando difere do cliente. */
+      servico?: string | null; motivoTroca?: string | null;
+      /** Pré-postagem viva em outro serviço: cancela e gera nova numa ação só. */
+      trocarServico?: boolean;
+    }) => {
+      let id = trocarServico ? null : (prepostagemId ?? null);
+      if (trocarServico && prepostagemId) {
+        await chamarPrepostagem({ acao: "cancelar", prepostagem_id: prepostagemId, motivo: `Troca de serviço: ${motivoTroca?.trim() || `voltar ao serviço do cliente (${servico})`}` });
+      }
       if (!id) {
-        const r = await chamarPrepostagem<{ prepostagem: { id: string } }>({ acao: "criar", pedido_id: pedidoId });
+        const r = await chamarPrepostagem<{ prepostagem: { id: string } }>({
+          acao: "criar", pedido_id: pedidoId,
+          ...(servico ? { servico } : {}), ...(motivoTroca?.trim() ? { motivo_troca_servico: motivoTroca.trim() } : {}),
+        });
         id = r.prepostagem.id;
       }
       const rot = await chamarPrepostagem<{ pdf_base64: string; codigo_objeto: string }>({ acao: "rotulo", prepostagem_id: id });

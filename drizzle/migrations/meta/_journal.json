@@ -330,6 +330,13 @@
       "when": 1793723906971,
       "tag": "0046_fechar_get_vault_secret",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793727906564,
+      "tag": "0047_mesa_sp_servico_correios_efetivo",
+      "breakpoints": true
     }
   ]
 }
