@@ -2158,7 +2158,20 @@ export default function ExtratoImportacao() {
                     </TableCell>
                     <TableCell>
                       {h.arquivo_storage_path ? (
-                        <span className="text-xs text-muted-foreground">guardado</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">guardado</span>
+                          {h.status === "erro" && h.fonte_tipo !== "arquivo_nao_lido" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs"
+                              disabled={reprocessandoId === h.id}
+                              onClick={() => void reprocessarDoOriginal(h)}
+                            >
+                              {reprocessandoId === h.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reprocessar do original"}
+                            </Button>
+                          )}
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-muted-foreground">sem arquivo</Badge>
