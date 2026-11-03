@@ -891,10 +891,12 @@ function NfsARegularizar() {
     setOcupado(n.nf_id);
     try {
       const d = await chamarRascunhoNfDevolucao(devId, acao);
+      const fixo = { duration: Infinity, closeButton: true } as const;
       if (acao === "gerar") toast.success(`${numero ?? n.devolucao_numero ?? "Devolução"}: rascunho da NF de entrada gerado no Bling`);
-      else if (d.autorizada) toast.success(`NF de entrada ${d.numero} autorizada`);
-      else toast.info(`Ainda não autorizada (situação ${d.situacao}${d.cancelada ? ", cancelada" : ""})`);
-    } catch (e) { toast.error(formatError(e), { duration: 15000 }); }
+      else if (d.cancelada) toast.warning("NF cancelada/excluída no Bling — gere de novo", fixo);
+      else if (d.autorizada) toast.success(`NF de entrada ${d.numero ?? "?"} autorizada`, fixo);
+      else toast.info(`Ainda não autorizada no Bling (situação ${d.situacao ?? "?"})`, fixo);
+    } catch (e) { toast.error(formatError(e), { duration: Infinity, closeButton: true }); }
     finally { setOcupado(null); await invalidarReg(); }
   }
   async function confirmarAbrir() {
