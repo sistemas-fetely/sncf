@@ -201,7 +201,17 @@ function ordemPedido(a: PedidoLinha, b: PedidoLinha): number {
   return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
 }
 
-function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vazio: string }) {
+function PedidosTabela({
+  linhas,
+  vazio,
+  embarque,
+}: {
+  linhas: PedidoLinhaComParcial[];
+  vazio: string;
+  /** contexto do embarque pai: quando presente, ETD/ETA da linha sao as do EMBARQUE
+   *  (pedido parcial em varios embarques fica com etd/eta nulos no nivel do pedido). */
+  embarque?: { etd: string | null; eta: string | null };
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   if (linhas.length === 0) return <p className="text-sm text-muted-foreground">{vazio}</p>;
@@ -212,7 +222,7 @@ function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vaz
       p.numero_packing_list ? `PL ${p.numero_packing_list}` : null,
     ].filter(Boolean);
   return (
-    <div className="overflow-x-auto rounded-md border bg-background">
+    <div className="overflow-x-auto rounded-lg border bg-background shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -270,8 +280,12 @@ function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vaz
                 <TableCell className="whitespace-nowrap text-right tabular-nums text-sm">
                   {fmtUsd(p.valor_fob_total)}
                 </TableCell>
-                <TableCell className="whitespace-nowrap tabular-nums text-sm">{fmtData(p.etd)}</TableCell>
-                <TableCell className="whitespace-nowrap tabular-nums text-sm">{fmtData(p.eta)}</TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                  {fmtData(embarque ? embarque.etd : p.etd)}
+                </TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                  {fmtData(embarque ? embarque.eta : p.eta)}
+                </TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{p.centro ?? "—"}</TableCell>
               </TableRow>
             );
@@ -1482,11 +1496,11 @@ export default function PainelLista() {
           mensagem="Nenhum embarque bate com este filtro. Limpe a busca ou solte o filtro de status."
         />
       ) : (
-        <div className="max-h-[calc(100vh-18rem)] overflow-auto rounded-lg border">
+        <div className="max-h-[calc(100vh-18rem)] overflow-auto rounded-lg border bg-card shadow-sm">
           <Table containerClassName="overflow-visible">
-            <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableHeader className="sticky top-0 z-10 bg-muted">
               <TableRow>
-                <TableHead className="sticky left-0 z-20 bg-background">REF</TableHead>
+                <TableHead className="sticky left-0 z-20 bg-muted">REF</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Pedidos</TableHead>
                 <TableHead>Porto</TableHead>
@@ -1503,10 +1517,10 @@ export default function PainelLista() {
               {mostrarSemEmbarque ? (
                 <Fragment>
                   <TableRow
-                    className={cn("cursor-pointer", semEmbarqueAberto && "bg-muted/30")}
+                    className={cn("group cursor-pointer", semEmbarqueAberto && "bg-muted/30")}
                     onClick={() => setSemEmbarqueAberto((v) => !v)}
                   >
-                    <TableCell className="sticky left-0 z-[1] whitespace-nowrap bg-background text-sm font-medium">
+                    <TableCell className="sticky left-0 z-[1] whitespace-nowrap bg-card text-sm font-medium transition-colors group-hover:bg-muted/50">
                       Sem embarque
                     </TableCell>
                     <TableCell />
@@ -1524,7 +1538,7 @@ export default function PainelLista() {
                     </TableCell>
                   </TableRow>
                   {semEmbarqueAberto ? (
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
                       <TableCell colSpan={11} className="p-4">
                         <div className="w-0 min-w-full">
                           <PedidosTabela linhas={semEmbarque} vazio="Nenhum pedido sem embarque." />
@@ -1553,10 +1567,10 @@ export default function PainelLista() {
                 return (
                   <Fragment key={e.id}>
                     <TableRow
-                      className={cn("cursor-pointer", aberto && "bg-muted/30")}
+                      className={cn("group cursor-pointer", aberto && "bg-muted/40")}
                       onClick={() => setEditando(e.id)}
                     >
-                      <TableCell className="sticky left-0 z-[1] whitespace-nowrap bg-background font-mono text-sm font-medium">
+                      <TableCell className="sticky left-0 z-[1] whitespace-nowrap bg-card font-mono text-sm font-medium transition-colors group-hover:bg-muted/50">
                         {e.ref_rocabella}
                       </TableCell>
                       <TableCell>
@@ -1630,7 +1644,7 @@ export default function PainelLista() {
                       </TableCell>
                     </TableRow>
                     {aberto ? (
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell colSpan={11} className="p-4">
                   <div className="w-0 min-w-full space-y-4">
                   <PedidosTabela
@@ -1640,6 +1654,7 @@ export default function PainelLista() {
                       .sort((a, b) => ordemPedido(a.p, b.p))
                       .map(({ v, p }) => ({ ...p, parcial: v.parcial }))}
                     vazio="Nenhum pedido vinculado a este embarque."
+                    embarque={{ etd: e.etd, eta: e.eta }}
                   />
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEditando(e.id)}>
@@ -1668,6 +1683,7 @@ export default function PainelLista() {
                       Nenhum contêiner declarado neste embarque.
                     </p>
                   ) : (
+                    <div className="overflow-x-auto rounded-lg border bg-background shadow-sm">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1721,6 +1737,7 @@ export default function PainelLista() {
                         })}
                       </TableBody>
                     </Table>
+                    </div>
                   )}
 
                   {/* conferencia de CBM: so fala quando os dois lados existem */}
