@@ -512,6 +512,13 @@
       "when": 1793787249730,
       "tag": "0072_contabil_nf_numeracao_entradas_proprias",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793800411351,
+      "tag": "0073_pacote_etapa2_despesas_retencoes",
+      "breakpoints": true
     }
   ]
 }

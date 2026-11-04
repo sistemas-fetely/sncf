@@ -1,6 +1,3 @@
--- Pacote do Contador etapa 2 (fase 1): vínculo NFS-e ↔ pagamento e documentos de despesa do mês.
-
--- 1) Vínculo de pagamento da NFS-e com retenção (não altera movimentacoes_bancarias)
 CREATE TABLE public.contabil_nfse_pagamento (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   nfs_stage_id uuid NOT NULL REFERENCES public.nfs_stage(id),
@@ -16,7 +13,6 @@ ALTER TABLE public.contabil_nfse_pagamento ENABLE ROW LEVEL SECURITY;
 CREATE POLICY nfse_pagamento_ler ON public.contabil_nfse_pagamento FOR SELECT TO authenticated USING (public.pode_ler_tabela('remessas_contador'));
 CREATE UNIQUE INDEX contabil_nfse_pagamento_vigente ON public.contabil_nfse_pagamento (nfs_stage_id) WHERE vigente;
 
--- 2) Tipos de documento de despesa esperados (dimensão cadastrável; nasce vazia)
 CREATE TABLE public.contabil_documento_despesa_tipo (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   nome text NOT NULL,
@@ -32,7 +28,6 @@ ALTER TABLE public.contabil_documento_despesa_tipo ENABLE ROW LEVEL SECURITY;
 CREATE POLICY doc_despesa_tipo_ler ON public.contabil_documento_despesa_tipo FOR SELECT TO authenticated USING (public.pode_ler_tabela('remessas_contador'));
 CREATE UNIQUE INDEX contabil_documento_despesa_tipo_nome ON public.contabil_documento_despesa_tipo (lower(nome));
 
--- 3) Documentos de despesa guardados (substituir preserva o anterior)
 CREATE TABLE public.contabil_documento_despesa (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   competencia date NOT NULL,
@@ -48,7 +43,6 @@ ALTER TABLE public.contabil_documento_despesa ENABLE ROW LEVEL SECURITY;
 CREATE POLICY doc_despesa_ler ON public.contabil_documento_despesa FOR SELECT TO authenticated USING (public.pode_ler_tabela('remessas_contador'));
 CREATE UNIQUE INDEX contabil_documento_despesa_vigente ON public.contabil_documento_despesa (competencia, tipo_id) WHERE vigente AND tipo_id IS NOT NULL;
 
--- 4) Permissões + censo
 INSERT INTO public.permissoes_catalogo (slug, tipo, pilar, nome_exibicao, descricao) VALUES
  ('acao.contabil_nfse_pagamento.confirmar','acao','financas','Confirmar pagamento de NFS-e com retenção','Liga a NFS-e com retenção à movimentação bancária que a pagou (planilha de serviços tomados)'),
  ('acao.contabil_documento_despesa.enviar','acao','financas','Enviar documento de despesa do mês','Guarda fatura, recibo, contrato ou cupom de despesa para o pacote do contador'),
@@ -63,11 +57,9 @@ SELECT '/administrativo/contabilidade/pacote', a.arquivo, a.rotulo, a.dispara, '
   ) a(slug, arquivo, rotulo, dispara)
   JOIN public.permissoes_catalogo p ON p.slug = a.slug;
 
--- 5) Storage: upload só em despesas/ com a permissão de envio
 CREATE POLICY contabil_despesas_insert ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'contabil' AND name LIKE 'despesas/%' AND public.usuario_tem_acao('acao.contabil_documento_despesa.enviar'));
 
--- 6) Candidatos de pagamento: débitos pelo valor líquido (±0,01) na janela emissão−5 a +45 dias
 CREATE FUNCTION public.fn_contabil_nfse_pagamento_candidatos(p_nfs_stage_id uuid, p_valor_liquido numeric)
 RETURNS TABLE (movimentacao_id uuid, data_transacao date, valor numeric, descricao text, contraparte_nome text, conta text, exato boolean, mesmo_favorecido boolean)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -110,7 +102,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.fn_contabil_nfse_pagamento_confirmar(uuid,uuid,numeric) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.fn_contabil_nfse_pagamento_confirmar(uuid,uuid,numeric) TO authenticated, service_role;
 
--- 7) CRUD do tipo esperado e guarda do documento
 CREATE FUNCTION public.fn_contabil_documento_despesa_tipo_salvar(p_id uuid, p_nome text, p_pasta text, p_periodicidade text, p_local text, p_ativo boolean)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_id uuid;

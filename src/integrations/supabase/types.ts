@@ -6728,6 +6728,27 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_mig_flavio_20261104: {
+        Row: {
+          chave: string | null
+          dados: Json | null
+          em: string | null
+          tabela: string | null
+        }
+        Insert: {
+          chave?: string | null
+          dados?: Json | null
+          em?: string | null
+          tabela?: string | null
+        }
+        Update: {
+          chave?: string | null
+          dados?: Json | null
+          em?: string | null
+          tabela?: string | null
+        }
+        Relationships: []
+      }
       backup_migracao_boleto_ancora_ofx_20260909: {
         Row: {
           congelado_em: string | null
@@ -24253,6 +24274,95 @@ export type Database = {
           },
         ]
       }
+      contabil_documento_despesa: {
+        Row: {
+          bytes: number
+          competencia: string
+          descricao: string | null
+          enviado_em: string
+          enviado_por: string
+          id: string
+          nome_arquivo: string
+          pasta: string
+          sha256: string
+          storage_path: string
+          tipo_id: string | null
+          vigente: boolean
+        }
+        Insert: {
+          bytes: number
+          competencia: string
+          descricao?: string | null
+          enviado_em?: string
+          enviado_por: string
+          id?: string
+          nome_arquivo: string
+          pasta: string
+          sha256: string
+          storage_path: string
+          tipo_id?: string | null
+          vigente?: boolean
+        }
+        Update: {
+          bytes?: number
+          competencia?: string
+          descricao?: string | null
+          enviado_em?: string
+          enviado_por?: string
+          id?: string
+          nome_arquivo?: string
+          pasta?: string
+          sha256?: string
+          storage_path?: string
+          tipo_id?: string | null
+          vigente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabil_documento_despesa_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "contabil_documento_despesa_tipo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contabil_documento_despesa_tipo: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          id: string
+          local: string | null
+          nome: string
+          pasta: string
+          periodicidade: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          local?: string | null
+          nome: string
+          pasta: string
+          periodicidade: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          local?: string | null
+          nome?: string
+          pasta?: string
+          periodicidade?: string
+        }
+        Relationships: []
+      }
       contabil_extrato_mensal: {
         Row: {
           bytes: number
@@ -24504,6 +24614,282 @@ export type Database = {
           presumivel?: boolean
         }
         Relationships: []
+      }
+      contabil_nfse_pagamento: {
+        Row: {
+          confirmado_em: string
+          confirmado_por: string
+          id: string
+          movimentacao_id: string
+          nfs_stage_id: string
+          valor_liquido_calculado: number
+          vigente: boolean
+        }
+        Insert: {
+          confirmado_em?: string
+          confirmado_por: string
+          id?: string
+          movimentacao_id: string
+          nfs_stage_id: string
+          valor_liquido_calculado: number
+          vigente?: boolean
+        }
+        Update: {
+          confirmado_em?: string
+          confirmado_por?: string
+          id?: string
+          movimentacao_id?: string
+          nfs_stage_id?: string
+          valor_liquido_calculado?: number
+          vigente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_baixa_extrato_inequivoca"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cartao_credito_par"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_mesa"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_orfaos"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_extrato_conta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_movimentacao_destino"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pagamento_alocacao_detalhe"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_sem_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_baixa_extrato"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_nf_sem_extrato"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_indevida_alvo"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nfs_mercadoria"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
+          },
+        ]
       }
       contagem_estoque: {
         Row: {
@@ -157251,6 +157637,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_contabil_documento_despesa_guardar: {
+        Args: {
+          p_bytes: number
+          p_competencia: string
+          p_descricao?: string
+          p_nome: string
+          p_pasta: string
+          p_sha256: string
+          p_storage_path: string
+          p_tipo_id: string
+        }
+        Returns: Json
+      }
+      fn_contabil_documento_despesa_tipo_salvar: {
+        Args: {
+          p_ativo: boolean
+          p_id: string
+          p_local: string
+          p_nome: string
+          p_pasta: string
+          p_periodicidade: string
+        }
+        Returns: string
+      }
       fn_contabil_evolucao_mensal: {
         Args: never
         Returns: {
@@ -157335,6 +157745,27 @@ export type Database = {
           prazo_inutilizacao: string
           serie: string
         }[]
+      }
+      fn_contabil_nfse_pagamento_candidatos: {
+        Args: { p_nfs_stage_id: string; p_valor_liquido: number }
+        Returns: {
+          conta: string
+          contraparte_nome: string
+          data_transacao: string
+          descricao: string
+          exato: boolean
+          mesmo_favorecido: boolean
+          movimentacao_id: string
+          valor: number
+        }[]
+      }
+      fn_contabil_nfse_pagamento_confirmar: {
+        Args: {
+          p_movimentacao_id: string
+          p_nfs_stage_id: string
+          p_valor_liquido: number
+        }
+        Returns: Json
       }
       fn_contabil_posicao: {
         Args: { p_competencia: string }
