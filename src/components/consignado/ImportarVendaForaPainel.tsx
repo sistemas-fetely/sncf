@@ -104,6 +104,26 @@ export function ImportarVendaForaPainel({ parceiroId }: { parceiroId: string }) 
       setRes(r);
       if (dry) return;
       if (!r.gravado) throw new Error((r.faltas ?? []).join(" · ") || r.erro || "A importação não foi gravada.");
+      // A RPC mantém as regras financeiras; o mesmo cache do retrofit completa os PDFs.
+      const porMes = new Map<string, string[]>();
+      for (const nf of payload.nfs) {
+        if (nf.serie !== "2") continue;
+        const mes = nf.data_emissao.slice(0, 7);
+        porMes.set(mes, [...(porMes.get(mes) ?? []), nf.chave]);
+      }
+      const falhasPdf: string[] = [];
+      for (const [competencia, chaves] of porMes) {
+        for (let i = 0; i < chaves.length; i += 40) {
+          const { data: arquivos, error: erroArquivos } = await supabase.functions.invoke("nf-arquivos-retrofit", {
+            body: { competencia, tipo: "saida_sublimity", chaves: chaves.slice(i, i + 40), lote: 40, incluir_falhas: true },
+          });
+          if (erroArquivos) falhasPdf.push(await formatError(erroArquivos));
+          else if (!arquivos?.ok) falhasPdf.push(arquivos?.erro ?? "Falha ao guardar os PDFs");
+          else falhasPdf.push(...(arquivos.erros ?? []).map((e: { numero: string; erro: string }) => `NF ${e.numero}: ${e.erro}`));
+        }
+      }
+      await qc.invalidateQueries();
+      if (falhasPdf.length) throw new Error(`Importação gravada, mas há PDFs pendentes: ${falhasPdf.join(" · ")}`);
       const conc = (r as any).conciliacao ?? {};
       const csp: any[] = conc.creditos_sem_par ?? []; const lsc: any[] = conc.liquidacoes_sem_credito ?? [];
       const pend = [

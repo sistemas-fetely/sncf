@@ -5,32 +5,38 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { cachearNfSaida, cachearNfEntradaXml, type NfCacheRow } from "../_shared/nf-cache-storage.ts";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { corsHeaders as cors } from "npm:@supabase/supabase-js@2/cors";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!url || !serviceKey || !anonKey) throw new Error("Configuração da função indisponível");
+    const admin = createClient(url, serviceKey);
     const auth = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(url, anonKey, {
       global: { headers: { Authorization: auth } },
     });
     const { data: u, error: eu } = await userClient.auth.getUser();
     if (eu || !u?.user) return json({ ok: false, erro: "Sessão inválida" }, 401);
-    const { data: pode, error: ep } = await userClient.rpc("pode_ler_tabela", { p_tabela: "remessas_contador" });
+    const body = await req.json().catch(() => ({}));
+    const importacao = body.tipo === "saida_sublimity" && body.chaves !== undefined;
+    if (body.chaves !== undefined && (!importacao || !Array.isArray(body.chaves) || !body.chaves.length || body.chaves.length > 40 || !body.chaves.every((c: unknown) => typeof c === "string" && /^\d{44}$/.test(c)))) {
+      return json({ ok: false, erro: "Chaves inválidas (1 a 40 chaves de NF-e, somente saída Sublimity)" }, 400);
+    }
+    const { data: pode, error: ep } = importacao
+      ? await userClient.rpc("usuario_tem_acao", { p_slug: "acao.consignado_ciclo_fechar" })
+      : await userClient.rpc("pode_ler_tabela", { p_tabela: "remessas_contador" });
     if (ep) return json({ ok: false, erro: "Falha ao validar permissão: " + ep.message }, 500);
     if (!pode) return json({ ok: false, erro: "Sem permissão para o pacote do contador" }, 403);
 
-    const body = await req.json().catch(() => ({}));
     const comp = String(body.competencia ?? "");
-    if (!/^\d{4}-\d{2}$/.test(comp)) return json({ ok: false, erro: "Competência inválida (AAAA-MM)" }, 400);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(comp)) return json({ ok: false, erro: "Competência inválida (AAAA-MM)" }, 400);
     const lote = Math.min(Math.max(Number(body.lote) || 15, 1), 40);
     const [a, m] = comp.split("-").map(Number);
     const ini = `${comp}-01`;
@@ -39,11 +45,16 @@ Deno.serve(async (req) => {
     if (body.tipo === "entrada_bling") return json(await retrofitEntradaBling(admin, ini, fim));
     if (body.tipo === "entrada_qive") return json(await retrofitEntradaQive(admin, ini, fim, body.incluir_falhas === true));
 
-    const base = () => admin.from("nfs_emitidas")
-      .select("id, bling_id, numero, serie, pdf_url, xml_url, data_emissao, situacao", { count: "exact" })
+    const base = () => {
+      let query = admin.from("nfs_emitidas")
+      .select("id, bling_id, numero, serie, pdf_url, xml_url, data_emissao, situacao, origem, xml_storage_path, pdf_storage_path, pdf_origem", { count: "exact" })
       .gte("data_emissao", ini).lt("data_emissao", fim)
       .in("situacao", ["autorizada", "cancelada"])
       .or("xml_storage_path.is.null,pdf_storage_path.is.null");
+      if (body.tipo === "saida_sublimity") query = query.eq("origem", "sublimity").eq("serie", "2");
+      if (importacao) query = query.in("chave_acesso", body.chaves);
+      return query;
+    };
     // Primeiro as nunca tentadas; as que já falharam ficam no fim.
     const { data, error, count } = await base().is("arquivos_erro", null).limit(lote);
     if (error) return json({ ok: false, erro: error.message }, 500);
@@ -66,12 +77,12 @@ Deno.serve(async (req) => {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         erros.push({ numero: nf.numero, erro: msg });
-        await admin.from("nfs_emitidas").update({ arquivos_erro: msg.slice(0, 1000) }).eq("id", nf.id);
+        const { error: erroRegistro } = await admin.from("nfs_emitidas").update({ arquivos_erro: msg.slice(0, 1000) }).eq("id", nf.id);
+        if (erroRegistro) throw new Error(`NF ${nf.numero}: falha ao registrar erro: ${erroRegistro.message}`);
       }
     }
-    const { count: restantes } = await admin.from("nfs_emitidas").select("id", { count: "exact", head: true })
-      .gte("data_emissao", ini).lt("data_emissao", fim).in("situacao", ["autorizada", "cancelada"])
-      .or("xml_storage_path.is.null,pdf_storage_path.is.null").is("arquivos_erro", null);
+    const { count: restantes, error: erroRestantes } = await base().is("arquivos_erro", null);
+    if (erroRestantes) throw new Error(erroRestantes.message);
     return json({ ok: true, processadas: rows.length, guardadas: ok, pdf_bling: pdfBling, pdf_gerado_xml: pdfGerado, erros, pendentes_antes: count, restantes });
   } catch (e) {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);

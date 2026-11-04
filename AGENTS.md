@@ -1,4 +1,5 @@
 # Decisões técnicas
+- Reuse NF cache for Sublimity PDFs to avoid drift.
 - Monthly statements use versioned RPCs/read-only parsers; MP monthly collection never imports movements or replaces a manual current file.
 
 - TI drawer stock warnings query the origin's signed fiscal_sadio for the transfer SKUs and use the tested saldoOrigemTi selector; refresh on opening and while open so historical observation text never determines current stock status.

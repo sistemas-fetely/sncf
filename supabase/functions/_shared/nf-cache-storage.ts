@@ -16,6 +16,10 @@ export type NfCacheRow = {
   xml_url: string | null;
   data_emissao: string | null;
   situacao: string | null;
+  origem?: string | null;
+  xml_storage_path?: string | null;
+  pdf_storage_path?: string | null;
+  pdf_origem?: string | null;
 };
 
 export function caminhoNfSaida(nf: NfCacheRow, ext: "xml" | "pdf"): string {
@@ -48,6 +52,7 @@ export async function cachearNfEntradaXml(supabase: any, chave: string, dataEmis
 
 /** Baixa XML e PDF, grava no Storage e marca a NF. Lança com a mensagem real. */
 export async function cachearNfSaida(supabase: any, nf: NfCacheRow) {
+  if (nf.origem === "sublimity") return cachearResumoXmlGuardado(supabase, nf);
   const ctx = { nf_id: nf.id, numero: nf.numero };
   const link = await resolverLinkPdfFresco(supabase, null, nf);
   // XML primeiro: é o documento fiscal que o contador escritura. O PDF (DANFE)
@@ -103,4 +108,23 @@ export async function cachearNfSaida(supabase: any, nf: NfCacheRow) {
   }).eq("id", nf.id);
   if (error) throw new Error(`NF ${nf.numero}: arquivos guardados, mas a marcação falhou: ${error.message}`);
   return { pdf: pathPdf, xml: pathXml, erroPdf, pdfOrigem, falhaBling };
+}
+
+/** Série 2: usa exclusivamente o XML já guardado, sem consultar o Bling. */
+export async function cachearResumoXmlGuardado(supabase: any, nf: NfCacheRow) {
+  if (nf.pdf_storage_path) return { pdf: nf.pdf_storage_path, xml: nf.xml_storage_path, erroPdf: null, pdfOrigem: nf.pdf_origem, falhaBling: null };
+  if (!nf.xml_storage_path) throw new Error(`NF ${nf.numero}: XML não guardado para gerar o Resumo NF-e`);
+  const { data, error: downloadError } = await supabase.storage.from(BUCKET_CONTABIL).download(nf.xml_storage_path);
+  if (downloadError || !data) throw new Error(`NF ${nf.numero}: leitura do XML guardado falhou: ${downloadError?.message ?? "arquivo vazio"}`);
+  const xml = validarXmlNf(await data.text(), { nf_id: nf.id, numero: nf.numero });
+  const pdf = await gerarResumoNfePdf(xml);
+  const path = caminhoNfSaida(nf, "pdf");
+  const { error: uploadError } = await supabase.storage.from(BUCKET_CONTABIL).upload(path, pdf, { contentType: "application/pdf", upsert: true });
+  if (uploadError) throw new Error(`NF ${nf.numero}: upload do Resumo NF-e falhou: ${uploadError.message}`);
+  const { error } = await supabase.from("nfs_emitidas").update({
+    pdf_storage_path: path, pdf_origem: "gerado_xml", arquivos_erro: null,
+    arquivos_sincronizados_em: new Date().toISOString(),
+  }).eq("id", nf.id).is("pdf_storage_path", null);
+  if (error) throw new Error(`NF ${nf.numero}: PDF guardado, mas a marcação falhou: ${error.message}`);
+  return { pdf: path, xml: nf.xml_storage_path, erroPdf: null, pdfOrigem: "gerado_xml", falhaBling: null };
 }
