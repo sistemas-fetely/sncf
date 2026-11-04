@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/lib/format-currency";
 import { normalizarNumeroPedido } from "@/lib/devolucao/normalizarNumeroPedido";
@@ -33,6 +34,11 @@ type ItemNf = { codigo: string; descricao: string; quantidade: number; valor: nu
 const CANAL: Record<string, string> = { b2b: "B2B", b2c: "B2C Shopify", site_sp: "Site SP" };
 const ACAO_HUMANA: Record<string, string> = { "cancelar-expedicao-xpm": "Depois, corta a separação na XPM" };
 const GRUPO: Record<string, string> = { cliente: "Cliente", fetely: "Fetely", transportadora: "Transportadora" };
+
+function fmtData(v: string | null | undefined) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v ?? "");
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (v ?? "—");
+}
 
 async function rpc(nome: string, args: Record<string, unknown>) {
   const { data, error } = await (supabase.rpc as any)(nome, args);
@@ -129,6 +135,23 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
     ["entregue", "nf_nao_expedida"].includes(m.momento) ||
     (previa?.pendencias ?? []).some((p: string) => /desfecho/i.test(p))
   );
+
+  // B2B parcial: dívida em aberto define se haver/reembolso são possíveis.
+  const b2bParcial = m?.canal_devolucao === "b2b" && tipo === "parcial";
+  const haverQ = useQuery({
+    queryKey: ["fn_devolucao_haver_disponivel_b2b", selId],
+    enabled: open && !!selId && b2bParcial,
+    queryFn: async () => (await rpc("fn_devolucao_haver_disponivel_b2b", { p_pedido_id: selId })) as
+      { pago: number; aberto: number; ja_creditado: number; disponivel: number },
+  });
+  const emAberto = b2bParcial ? Number(haverQ.data?.aberto ?? 0) : 0;
+  const bloqueiaCredito = emAberto > 0;
+  useEffect(() => {
+    if (bloqueiaCredito && (desfecho === "" || desfecho === "haver" || desfecho === "reembolso")) setDesfecho("abater_divida");
+    if (!b2bParcial && desfecho === "abater_divida") setDesfecho("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bloqueiaCredito, b2bParcial]);
+  const dicaCredito = `Pedido com ${formatBRL(emAberto)} em aberto — devolução sobre dívida é abatida na parcela. Crédito/reembolso só sobre o que já foi pago.`;
 
   async function buscar() {
     const cands = normalizarNumeroPedido(busca);
@@ -372,11 +395,23 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                     <Select value={desfecho} onValueChange={setDesfecho}>
                       <SelectTrigger><SelectValue placeholder="Escolha o desfecho" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="haver">Haver (crédito)</SelectItem>
+                        {b2bParcial && <SelectItem value="abater_divida">Abater dívida</SelectItem>}
+                        {bloqueiaCredito ? (
+                          <TooltipProvider>
+                            <Tooltip><TooltipTrigger asChild><div><SelectItem value="haver" disabled>Haver (crédito)</SelectItem></div></TooltipTrigger>
+                              <TooltipContent className="max-w-xs">{dicaCredito}</TooltipContent></Tooltip>
+                          </TooltipProvider>
+                        ) : <SelectItem value="haver">Haver (crédito)</SelectItem>}
                         <SelectItem value="troca">Troca</SelectItem>
-                        <SelectItem value="reembolso">Reembolso</SelectItem>
+                        {bloqueiaCredito ? (
+                          <TooltipProvider>
+                            <Tooltip><TooltipTrigger asChild><div><SelectItem value="reembolso" disabled>Reembolso</SelectItem></div></TooltipTrigger>
+                              <TooltipContent className="max-w-xs">{dicaCredito}</TooltipContent></Tooltip>
+                          </TooltipProvider>
+                        ) : <SelectItem value="reembolso">Reembolso</SelectItem>}
                       </SelectContent>
                     </Select>
+                    {haverQ.isError && <p className="text-xs text-destructive">{(haverQ.error as Error).message}</p>}
                   </div>
                 )}
 
@@ -397,6 +432,11 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                       <ul className="list-disc pl-5 text-muted-foreground">
                         {previa.acoes_complementares.map((a: string) => <li key={a}>{ACAO_HUMANA[a] ?? a}</li>)}
                       </ul>
+                    )}
+                    {previa.parcela_abater && (
+                      <div className="rounded-md border border-info/40 bg-info/10 p-2">
+                        Abate na parcela {previa.parcela_abater.numero}: {formatBRL(Number(previa.parcela_abater.saldo_atual))} → {formatBRL(Number(previa.parcela_abater.novo_valor))} · venc. {fmtData(previa.parcela_abater.vencimento)}. O boleto atual vai para baixa e o novo sai pela remessa de reemissão (aba Banco).
+                      </div>
                     )}
                     {(previa.pendencias ?? []).length > 0 && (
                       <ul className="list-disc pl-5 text-destructive">
