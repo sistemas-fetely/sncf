@@ -17253,6 +17253,20 @@ export type Database = {
             foreignKeyName: "comissao_documento_fiscal_extrato_id_fkey"
             columns: ["extrato_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["anterior_extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_documento_fiscal_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_extrato_ciclo"
             referencedColumns: ["extrato_id"]
           },
@@ -17526,6 +17540,20 @@ export type Database = {
             foreignKeyName: "comissao_estorno_extrato_compensacao_id_fkey"
             columns: ["extrato_compensacao_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["anterior_extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_estorno_extrato_compensacao_id_fkey"
+            columns: ["extrato_compensacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_estorno_extrato_compensacao_id_fkey"
+            columns: ["extrato_compensacao_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_extrato_ciclo"
             referencedColumns: ["extrato_id"]
           },
@@ -17610,6 +17638,8 @@ export type Database = {
           pagar_ate: string
           sequencia: number
           snapshot_identidade: Json
+          transportado_em: string | null
+          transportado_para_extrato_id: string | null
           valor_total: number
           vendedor_id: string
         }
@@ -17628,6 +17658,8 @@ export type Database = {
           pagar_ate: string
           sequencia?: number
           snapshot_identidade: Json
+          transportado_em?: string | null
+          transportado_para_extrato_id?: string | null
           valor_total: number
           vendedor_id: string
         }
@@ -17646,6 +17678,8 @@ export type Database = {
           pagar_ate?: string
           sequencia?: number
           snapshot_identidade?: Json
+          transportado_em?: string | null
+          transportado_para_extrato_id?: string | null
           valor_total?: number
           vendedor_id?: string
         }
@@ -17742,6 +17776,34 @@ export type Database = {
             referencedColumns: ["cpr_id"]
           },
           {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "comissao_extrato"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["anterior_extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_ciclo"
+            referencedColumns: ["extrato_id"]
+          },
+          {
             foreignKeyName: "comissao_extrato_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
@@ -17829,6 +17891,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "comissao_extrato"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_item_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["anterior_extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_item_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["extrato_id"]
           },
           {
             foreignKeyName: "comissao_extrato_item_extrato_id_fkey"
@@ -65753,6 +65829,20 @@ export type Database = {
             foreignKeyName: "portal_sessao_extrato_id_fkey"
             columns: ["extrato_id"]
             isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["anterior_extrato_id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["extrato_id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
             referencedRelation: "vw_comissao_extrato_ciclo"
             referencedColumns: ["extrato_id"]
           },
@@ -106537,6 +106627,21 @@ export type Database = {
           },
         ]
       }
+      vw_comissao_extrato_anterior_aberto: {
+        Row: {
+          anterior_competencia: string | null
+          anterior_extrato_id: string | null
+          anterior_sequencia: number | null
+          cpr_status: string | null
+          documento_numero: string | null
+          documento_status: string | null
+          extrato_id: string | null
+          situacao: string | null
+          tipo_documento: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_comissao_extrato_ciclo: {
         Row: {
           competencia: string | null
@@ -106560,8 +106665,11 @@ export type Database = {
           pago_em: string | null
           pendencia: string | null
           representante: string | null
+          saldo_anterior: number | null
           tem_contraparte: boolean | null
           tipo_documento: string | null
+          transportado_para_competencia: string | null
+          transportado_para_extrato_id: string | null
           valor_total: number | null
           vendedor_id: string | null
         }
@@ -106656,6 +106764,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_titulo_pagar_acoes"
             referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "comissao_extrato"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["anterior_extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_anterior_aberto"
+            referencedColumns: ["extrato_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_transportado_para_extrato_id_fkey"
+            columns: ["transportado_para_extrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_extrato_ciclo"
+            referencedColumns: ["extrato_id"]
           },
           {
             foreignKeyName: "comissao_extrato_vendedor_id_fkey"
@@ -130839,14 +130975,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -134515,14 +134651,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -147943,14 +148079,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]

@@ -5,7 +5,7 @@ import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, type Linha } from "./dados";
-import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, parcelasEmAtraso, rotuloTaxas, somarMeses } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, parcelasEmAtraso, rotuloTaxas, saldosAnterioresDoExtrato, mmAaaa, somarMeses } from "./extratoMensal";
 import type { ExtratoFechadoDoRepresentante } from "./extratoCompetencias";
 import {
   competenciaFechada, dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
@@ -44,9 +44,12 @@ function Cartao({ rotulo, valor, sub, alerta }: { rotulo: string; valor: string;
   </div>;
 }
 
-function DocumentoMensal({ competencia, representante, extrato, extratos, parcelas, complementos, pagamentos, kpis }: {
-  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; extratos: Linha[]; parcelas: Linha[]; complementos: Linha[]; pagamentos: Linha[]; kpis: Linha[];
+function DocumentoMensal({ competencia, representante, extrato, extratos, parcelas, complementos, pagamentos, kpis, anteriores }: {
+  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; extratos: Linha[]; parcelas: Linha[]; complementos: Linha[]; pagamentos: Linha[]; kpis: Linha[]; anteriores: Linha[];
 }) {
+  const saldos = saldosAnterioresDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
+  const transportadoPara = extrato?.transportado_para_extrato_id
+    ? extratos.find(e => e.id === extrato.transportado_para_extrato_id)?.competencia ?? null : null;
   const fechadaSemExtrato = !extrato && competenciaFechada(competencia);
   const ajustes = ajustesDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
   const clientePorPedido = new Map(parcelas.map(p => [String(p.pedido), p.cliente]));
@@ -61,6 +64,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
   const linhasPagas = [
     ...pagamentos.map(p => ({ k: String(p.liberacao_id), cliente: p.cliente, pedido: p.pedido, parcela: `${p.numero_parcela}/${p.total_parcelas} · ${ddmm(p.pago_em ?? p.data_liquidacao)}`, base: fmtBRL(baseDaLiberacao(p)), taxa: rotuloTaxas(p.taxas_linhas), valor: numero(p.valor_liberado) })),
     ...ajustes.map((a, i) => ({ k: String(a.liberacao_id ?? a.estorno_id ?? i), cliente: a.cliente ?? clientePorPedido.get(String(a.pedido)), pedido: a.pedido, parcela: a.tipo === "estorno" ? "estorno" : "complemento", base: "—", taxa: "—", valor: numero(a.valor) })),
+    ...saldos.map(sa => ({ k: `saldo-${sa.k}`, cliente: sa.rotulo, pedido: null, parcela: sa.motivo ?? "—", base: "—", taxa: "—", valor: sa.valor })),
   ];
   return <section className="pagina-a4 pagina-mensal bg-card text-card-foreground">
     <header className="flex items-start justify-between gap-4 border-b border-border pb-4">
@@ -86,13 +90,22 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
       </div>
       <p className="mt-2 text-[7pt] text-muted-foreground">Acumulado {mesVendas.slice(0, 4)} · vendido {brl0(soma("vendido"))} · comissão {brl0(soma("comissao_gerada"))} · {soma("pedidos")} pedidos</p>
     </section>
+    {extrato?.transportado_para_extrato_id && <div className="bloco-mensal mt-5 rounded-md border border-border bg-muted px-3 py-2 text-[9pt] text-muted-foreground">
+      Valor transportado para o extrato de {transportadoPara ? mmAaaa(transportadoPara) : "competência seguinte"}.
+    </div>}
     {extrato && linhasPagas.length > 0 && <section className="bloco-mensal mt-6">
       <h2 className="text-[11pt] font-medium">Comissões pagas em {mesNome(competencia)}</h2>
       <table className="tabela-mensal mt-2 w-full table-fixed border-collapse text-[8pt]">
         <colgroup><col className="w-[28%]"/><col className="w-[13%]"/><col className="w-[17%]"/><col className="w-[16%]"/><col className="w-[11%]"/><col className="w-[15%]"/></colgroup>
         <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
         <tbody>{linhasPagas.map(l => <tr key={l.k}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="tabular-nums">{l.parcela}</td><td className="text-right tabular-nums">{l.base}</td><td className="text-right tabular-nums">{l.taxa}</td><td className="text-right tabular-nums">{fmtBRL(l.valor)}</td></tr>)}</tbody>
-        <tfoot><tr><td colSpan={5}>Total</td><td className="text-right tabular-nums">{fmtBRL(linhasPagas.reduce((t, l) => t + l.valor, 0))}</td></tr></tfoot>
+        <tfoot><tr><td colSpan={5}>Total</td><td className="text-right tabular-nums">{fmtBRL(numero(extrato.valor_total))}</td></tr></tfoot>
+      </table>
+    </section>}
+    {extrato && anteriores.length > 0 && <section className="bloco-mensal mt-4">
+      <h3 className="text-[9pt] font-medium text-muted-foreground">Valores anteriores em aberto (não somados)</h3>
+      <table className="tabela-mensal mt-1 w-full border-collapse text-[8pt]">
+        <tbody>{anteriores.map((a, i) => <tr key={String(a.anterior_extrato_id ?? i)}><td>{mmAaaa(a.anterior_competencia)}{numero(a.anterior_sequencia) > 1 ? ` (nº ${a.anterior_sequencia})` : ""}</td><td>{a.situacao ?? "—"}</td><td className="text-right tabular-nums">{fmtBRL(numero(a.valor))}</td></tr>)}</tbody>
       </table>
     </section>}
     {agenda.length > 0 && <section className="bloco-mensal mt-6">
@@ -191,14 +204,19 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     queryFn: () => lerTudo("vw_comissao_complemento_pendente", q => q.eq("vendedor_id", vendedorId)),
     enabled: Boolean(vendedorId) && competenciaValida,
   });
+  const anterioresQ = useQuery({
+    queryKey: ["representante-extrato-anteriores", extrato?.id],
+    queryFn: () => lerTudo("vw_comissao_extrato_anterior_aberto", q => q.eq("extrato_id", extrato!.id), { col: "anterior_competencia", asc: true }),
+    enabled: Boolean(extrato?.id),
+  });
   const anoVendas = somarMeses(competencia, -1).slice(0, 4);
   const kpisQ = useQuery({
     queryKey: ["representante-extrato-kpis", vendedorId, anoVendas],
     queryFn: () => lerTudo("vw_comissao_kpi_representante_mes", q => q.eq("vendedor_id", vendedorId).gte("competencia", `${anoVendas}-01-01`).lte("competencia", `${anoVendas}-12-31`)),
     enabled: Boolean(vendedorId) && competenciaValida,
   });
-  const carregando = kpisQ.isLoading || representanteQ.isLoading || extratosQ.isLoading || detalhesQ.isLoading || complementosQ.isLoading;
-  const erro = kpisQ.error || representanteQ.error || extratosQ.error || detalhesQ.error || complementosQ.error;
+  const carregando = kpisQ.isLoading || representanteQ.isLoading || extratosQ.isLoading || detalhesQ.isLoading || complementosQ.isLoading || anterioresQ.isLoading;
+  const erro = kpisQ.error || representanteQ.error || extratosQ.error || detalhesQ.error || complementosQ.error || anterioresQ.error;
   const representante = representanteQ.data?.[0];
   const sinal = !competenciaValida ? "Competência inválida" : carregando ? undefined
     : erro ? formatError(erro) : !representante ? "Representante não encontrado" : null;
@@ -249,7 +267,7 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
         </select>
         <span className="text-muted-foreground">{selo}</span>
       </div>}
-      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={parcelas} complementos={complementosQ.data ?? []} pagamentos={pagamentos} extratos={extratosQ.data ?? []} kpis={kpisQ.data ?? []}/>
+      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={parcelas} complementos={complementosQ.data ?? []} pagamentos={pagamentos} extratos={extratosQ.data ?? []} kpis={kpisQ.data ?? []} anteriores={anterioresQ.data ?? []}/>
     </>
   );
 }

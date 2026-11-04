@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { mmAaaa, saldosAnterioresDoExtrato } from "@/pages/Comercial/representantes/extratoMensal";
 import { chamarPortal, enviarDocumentoPortal, fmtBRL, fmtCompetencia, fmtData } from "@/lib/portal/api";
 
 const TOMADOR = "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA";
@@ -218,7 +219,10 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
             const st = situacaoDocumento(e);
             const conferido = e?.documento?.status === "conferido";
             const destaque = extratoDestacado === e.extrato_id;
-            const mostrarForm = !conferido && !e.pago && aberto === e.extrato_id;
+            const transportado = Boolean(e.transportado_para_competencia);
+            const mostrarForm = !transportado && !conferido && !e.pago && aberto === e.extrato_id;
+            const saldos = saldosAnterioresDoExtrato(Array.isArray(e.detalhe) ? e.detalhe : []);
+            const anteriores: any[] = Array.isArray(e.anteriores_em_aberto) ? e.anteriores_em_aberto : [];
             return (
               <div
                 key={e.extrato_id}
@@ -238,7 +242,9 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
                     <p className="text-xs text-muted-foreground">
                       Nota até {fmtData(e.prazo_documento)} · pagamento {fmtData(e.pagar_ate)}
                     </p>
-                    <p className={`text-xs ${st.cls}`}>{st.txt}</p>
+                    {transportado ? (
+                      <p className="text-xs text-muted-foreground">Valor transportado para o extrato de {mmAaaa(e.transportado_para_competencia)}</p>
+                    ) : <p className={`text-xs ${st.cls}`}>{st.txt}</p>}
                     {e.documento && (
                       <p className="text-xs text-muted-foreground">
                         {e.documento.tipo === "rpa" ? "RPA" : "Nota fiscal"} {e.documento.numero} · {fmtBRL(e.documento.valor)}
@@ -249,7 +255,7 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-medium">{fmtBRL(e.valor_total)}</p>
-                    {!conferido && !e.pago && (
+                    {!transportado && !conferido && !e.pago && (
                       <Button
                         variant={mostrarForm ? "ghost" : "outline"}
                         size="sm"
@@ -260,6 +266,24 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
                     )}
                   </div>
                 </div>
+                {saldos.length > 0 && (
+                  <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                    {saldos.map((sa) => (
+                      <p key={sa.k} className="flex justify-between gap-2"><span>{sa.rotulo}</span><span className="tabular-nums">{fmtBRL(sa.valor)}</span></p>
+                    ))}
+                    <p className="text-[11px]">Já incluído no valor do mês.</p>
+                  </div>
+                )}
+                {anteriores.length > 0 && (
+                  <div className="mt-2 rounded-md border border-border/60 bg-muted/40 p-2 text-xs">
+                    <p className="font-medium text-muted-foreground">Valores anteriores em aberto (não somados)</p>
+                    {anteriores.map((a, i) => (
+                      <p key={i} className="flex justify-between gap-2 text-muted-foreground">
+                        <span>{mmAaaa(a.competencia)} · {a.situacao ?? "—"}</span><span className="tabular-nums">{fmtBRL(a.valor)}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {mostrarForm && <FormularioNota sessao={sessao} extrato={e} onEnviado={carregar} />}
               </div>
             );

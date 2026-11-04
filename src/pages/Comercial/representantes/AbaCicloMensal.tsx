@@ -24,9 +24,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
+import { mmAaaa } from "./extratoMensal";
 import {
   BUCKET_DOCUMENTO, ORDEM_ETAPA, ORIGEM_DOCUMENTO, TIPO_DOCUMENTO, competenciaCorrente, competenciasRecentes,
-  datasDaCompetencia, lerCiclo, lerNfsSemExtrato, type LinhaCiclo, type NfSemExtrato,
+  datasDaCompetencia, lerAnterioresEmAberto, lerCiclo, lerNfsSemExtrato, type AnteriorAberto, type LinhaCiclo, type NfSemExtrato,
 } from "./cicloMensal";
 
 type Res = Record<string, any>;
@@ -51,6 +52,7 @@ function seloEtapa(l: LinhaCiclo) {
   if (e === "3b_documento_divergente") return { txt: "NF divergente", cls: "bg-warning/15 text-warning border-warning/30" };
   if (e === "4_documento_conferido") return { txt: "NF conferida", cls: "bg-success/15 text-success border-success/30" };
   if (e === "5_titulo_gerado") return { txt: "Título gerado", cls: "bg-success/15 text-success border-success/30" };
+  if (e === "7_transportado") return { txt: `Transportado para ${mmAaaa(l.transportado_para_competencia)}`, cls: "bg-muted text-muted-foreground border-border" };
   if (e === "6_pago") return { txt: `Pago em ${fmtData(l.pago_em)}`, cls: "bg-success/15 text-success border-success/30" };
   return { txt: e || "—", cls: "bg-muted text-muted-foreground border-border" };
 }
@@ -278,6 +280,20 @@ export function AbaCicloMensal() {
   const nfsSemExtrato = nfSemExtratoQ.data ?? [];
 
   const linhas = q.data ?? [];
+  const idsCiclo = linhas.map((l) => l.extrato_id);
+  const anterioresQ = useQuery({
+    queryKey: ["comissao-anteriores-aberto", competencia, idsCiclo.join(",")],
+    queryFn: () => lerAnterioresEmAberto(idsCiclo),
+    enabled: idsCiclo.length > 0,
+  });
+  useEffect(() => {
+    if (anterioresQ.error) toast.error(`Falha ao carregar valores anteriores em aberto: ${formatError(anterioresQ.error)}`);
+  }, [anterioresQ.error]);
+  const anterioresPorExtrato = useMemo(() => {
+    const m = new Map<string, AnteriorAberto[]>();
+    for (const a of anterioresQ.data ?? []) m.set(a.extrato_id, [...(m.get(a.extrato_id) ?? []), a]);
+    return m;
+  }, [anterioresQ.data]);
 
   // Pré-seleção: quem está em "1_fechado" com valor > 0.
   useEffect(() => {
@@ -454,6 +470,7 @@ export function AbaCicloMensal() {
                 const divergente = l.etapa === "3b_documento_divergente";
                 const podeGerar = l.etapa === "4_documento_conferido";
                 const podeReenviar = !l.cpr_id && ord >= 1;
+                const antes = anterioresPorExtrato.get(l.extrato_id) ?? [];
                 return (
                   <TableRow key={l.extrato_id}>
                     <TableCell>
@@ -464,7 +481,20 @@ export function AbaCicloMensal() {
                       {l.representante ?? "—"}
                       <div className="text-xs text-muted-foreground">{l.email_contato ?? "sem e-mail de contato"}</div>
                     </TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{fmtBRL(l.valor_total)}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {fmtBRL(l.valor_total)}
+                      {num(l.saldo_anterior) !== 0 && (
+                        <div className="text-xs font-normal text-muted-foreground">inclui saldo em aberto de {fmtBRL(l.saldo_anterior)}</div>
+                      )}
+                      {antes.length > 0 && (
+                        <div className="mt-1 text-xs font-normal text-muted-foreground">
+                          <div>Valores anteriores em aberto (não somados):</div>
+                          {antes.map((a) => (
+                            <div key={a.anterior_extrato_id ?? a.anterior_competencia}>{mmAaaa(a.anterior_competencia)} · {fmtBRL(a.valor)} · {a.situacao ?? "—"}</div>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("whitespace-nowrap", selo.cls)}>{selo.txt}</Badge>
                     </TableCell>

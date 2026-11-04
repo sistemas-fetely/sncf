@@ -30,6 +30,9 @@ export interface LinhaCiclo {
   tem_contraparte: boolean | null;
   etapa: string | null;
   pendencia: string | null;
+  transportado_para_extrato_id: string | null;
+  transportado_para_competencia: string | null;
+  saldo_anterior: number | null;
 }
 
 export const BUCKET_DOCUMENTO = "comissao-documento-fiscal";
@@ -56,6 +59,8 @@ export const ORDEM_ETAPA: Record<string, number> = {
   "4_documento_conferido": 4,
   "5_titulo_gerado": 5,
   "6_pago": 6,
+  // Transportado para o extrato seguinte: sem ações (como o zerado).
+  "7_transportado": -1,
 };
 
 export function competenciasRecentes(qtd = 24): string[] {
@@ -117,4 +122,25 @@ export async function lerNfsSemExtrato(): Promise<NfSemExtrato[]> {
     .order("capturada_em", { ascending: false });
   if (error) throw error;
   return (data ?? []) as NfSemExtrato[];
+}
+
+export interface AnteriorAberto {
+  extrato_id: string;
+  anterior_extrato_id: string | null;
+  anterior_competencia: string | null;
+  anterior_sequencia: number | null;
+  valor: number | null;
+  situacao: string | null;
+}
+
+/** Extratos anteriores ainda não pagos que seguem o próprio caminho — informativo, não somam. */
+export async function lerAnterioresEmAberto(extratoIds: string[]): Promise<AnteriorAberto[]> {
+  if (!extratoIds.length) return [];
+  const { data, error } = await (supabase as any)
+    .from("vw_comissao_extrato_anterior_aberto")
+    .select("extrato_id,anterior_extrato_id,anterior_competencia,anterior_sequencia,valor,situacao")
+    .in("extrato_id", extratoIds)
+    .order("anterior_competencia", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as AnteriorAberto[];
 }

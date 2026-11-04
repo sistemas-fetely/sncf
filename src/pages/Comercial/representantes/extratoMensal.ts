@@ -134,3 +134,19 @@ export function parcelasEmAtraso(parcelas: Linha[]): Linha[] {
   return parcelas.filter(p => p.situacao_parcela === "vencida")
     .sort((a, b) => String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")) || String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR"));
 }
+
+/** "2026-10-01" → "10/2026". */
+export function mmAaaa(competencia: unknown): string {
+  const s = String(competencia ?? "");
+  return s.length >= 7 ? `${s.slice(5, 7)}/${s.slice(0, 4)}` : "—";
+}
+
+/** Linhas `saldo_anterior` do detalhe (SALDO-ABERTO-TRANSPORTA) — somam no valor_total. */
+export function saldosAnterioresDoExtrato(itens: Linha[]): { k: string; rotulo: string; valor: number; motivo: string | null }[] {
+  return itens.filter(i => i.tipo === "saldo_anterior").map((i, n) => ({
+    k: String(i.extrato_origem_id ?? n),
+    rotulo: `Saldo em aberto de ${mmAaaa(i.competencia_origem)}${valorNumero(i.sequencia_origem) > 1 ? ` (nº ${i.sequencia_origem})` : ""}`,
+    valor: valorNumero(i.valor),
+    motivo: i.motivo ?? null,
+  }));
+}

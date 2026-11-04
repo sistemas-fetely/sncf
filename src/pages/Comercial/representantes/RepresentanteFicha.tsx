@@ -1,3 +1,4 @@
+import { mmAaaa, saldosAnterioresDoExtrato } from "./extratoMensal";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 import { useParams, useSearchParams, Link } from "react-router-dom";
@@ -321,9 +322,16 @@ function Pagamentos({ pags }: { pags: Linha[] }) {
           {pags.map((p) => (
             <TableRow key={p.id}>
               <TableCell>{fmtCompetencia(p.competencia)}</TableCell>
-              <TableCell className="tabular-nums">{fmtBRL(p.valor_total)}</TableCell>
+              <TableCell className="tabular-nums">
+                {fmtBRL(p.valor_total)}
+                {saldosAnterioresDoExtrato(Array.isArray(p.detalhe) ? p.detalhe : []).map((sa) => (
+                  <div key={sa.k} className="text-xs text-muted-foreground">inclui {sa.rotulo}: {fmtBRL(sa.valor)}</div>
+                ))}
+              </TableCell>
               <TableCell>{fmtData(p.pagar_ate)}</TableCell>
-              <TableCell>{p.cpr_id
+              <TableCell>{p.transportado_para_extrato_id
+                ? <Badge variant="outline" className="bg-muted text-muted-foreground">Transportado para {mmAaaa(pags.find((x) => x.id === p.transportado_para_extrato_id)?.competencia)}</Badge>
+                : p.cpr_id
                 ? <Badge variant="outline" className="bg-success/15 text-success border-success/30">Gerado</Badge>
                 : <Badge variant="outline" className="bg-muted text-muted-foreground">Sem título</Badge>}</TableCell>
             </TableRow>
