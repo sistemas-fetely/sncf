@@ -398,7 +398,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: baixasPendentesData } = useBaixasPendentes();
   const countSolicitada = baixasPendentesData?.countSolicitada ?? 0;
-  const baixaSolicitadaItens = baixasPendentesData?.baixaSolicitada ?? [];
+  // Baixa avulsa: títulos com reemissão pendente saem pela remessa de reemissão.
+  const baixaSolicitadaItens = (baixasPendentesData?.baixaSolicitada ?? []).filter(
+    (i) => !i.reemissao_pendente
+  );
   const { data: remessas = [] } = useRemessasSafra();
 
 
@@ -1804,6 +1807,13 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {baixaSolicitadaItens.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                      Nenhum título para baixa avulsa. Títulos com reemissão pendente saem pela remessa de reemissão.
+                    </TableCell>
+                  </TableRow>
+                )}
                 {baixaSolicitadaItens.map((i) => (
                   <TableRow key={i.id}>
                     <TableCell>

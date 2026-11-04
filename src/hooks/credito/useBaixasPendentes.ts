@@ -9,6 +9,8 @@ export type BaixaPendenteItem = {
   nosso_numero_seq: string | null;
   boleto_status: "baixa_solicitada" | "baixa_remessa_gerada";
   cliente: string;
+  /** baixa_solicitada com reemissão pendente: sai pela remessa de reemissão, não pela baixa avulsa. */
+  reemissao_pendente: boolean;
   // Rastro da remessa que carregou esse título (baixa/prorrogação):
   remessa_id: string | null;
   remessa_status: string | null;
@@ -27,6 +29,8 @@ type Row = {
   nosso_numero_seq: string | null;
   boleto_status: string | null;
   baixa_remessa_id: string | null;
+  reemissao_novo_valor: number | null;
+  reemissao_nova_data: string | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
   remessa: {
     id: string;
@@ -67,7 +71,7 @@ export function useBaixasPendentes() {
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as Row[]` abaixo.
       const SELECT_BAIXAS: string =
-        "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em, arquivo_nome, conteudo)";
+        "id, numero_titulo, valor_atual, valor_bruto, nosso_numero_seq, boleto_status, baixa_remessa_id, reemissao_novo_valor, reemissao_nova_data, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), remessa:remessas_safra!titulo_a_receber_baixa_remessa_id_fkey(id, status, gerado_em, enviada_em, retorno_processado_em, arquivo_nome, conteudo)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BAIXAS)
@@ -87,6 +91,9 @@ export function useBaixasPendentes() {
           nosso_numero_seq: r.nosso_numero_seq,
           boleto_status: r.boleto_status as BaixaPendenteItem["boleto_status"],
           cliente: r.conta?.parceiro?.razao_social ?? "—",
+          reemissao_pendente:
+            r.boleto_status === "baixa_solicitada" &&
+            (r.reemissao_novo_valor != null || r.reemissao_nova_data != null),
           remessa_id: r.remessa?.id ?? null,
           remessa_status: r.remessa?.status ?? null,
           remessa_gerado_em: r.remessa?.gerado_em ?? null,
