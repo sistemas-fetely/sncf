@@ -71,9 +71,10 @@ type Funil = {
 type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean; campo_funil: string | null; nao_aplica_sem_retorno: boolean | null };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
-const DESFECHO_ROTULO: Record<string, string> = { reenvio: "Reenvio ao cliente", reembolso: "Reembolso", haver: "Haver", troca: "Troca", nenhum: "Sem decisão" };
-const DESFECHO_BOTOES: { codigo: string; rotulo: string }[] = [
+const DESFECHO_ROTULO: Record<string, string> = { reenvio: "Reenvio ao cliente", reembolso: "Reembolso", haver: "Haver", troca: "Troca", abater_divida: "Abater dívida", nenhum: "Sem decisão" };
+const DESFECHO_BOTOES: { codigo: string; rotulo: string; soB2b?: boolean }[] = [
   { codigo: "reenvio", rotulo: "Reenviar" }, { codigo: "reembolso", rotulo: "Reembolsar" }, { codigo: "haver", rotulo: "Gerar haver" }, { codigo: "troca", rotulo: "Troca" },
+  { codigo: "abater_divida", rotulo: "Abater dívida", soB2b: true },
 ];
 const QK_QUARENTENA = ["vw_quarentena_fila"] as const;
 const ALTURA_CASA_HEADER = 64;
@@ -575,7 +576,7 @@ export default function RetornoDevolucao() {
                                 <div className="space-y-1 pt-1">
                                   <div className="text-xs font-medium">Decidir desfecho</div>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {DESFECHO_BOTOES.map((b) => (
+                                    {DESFECHO_BOTOES.filter((b) => !b.soB2b || d.canal === "b2b").map((b) => (
                                       <Button key={b.codigo} size="sm" variant="outline" onClick={() => setDecidir({ d, desfecho: b.codigo })}>{b.rotulo}</Button>
                                     ))}
                                   </div>
@@ -750,17 +751,70 @@ function useAcao(onOk: () => Promise<void>, onFechar: () => void) {
 function DecidirDesfechoDialog({ alvo, onFechar, onOk }: { alvo: { d: Funil; desfecho: string } | null; onFechar: () => void; onOk: () => Promise<void> }) {
   const [motivo, setMotivo] = useState("");
   const { rodando, run } = useAcao(onOk, onFechar);
-  useEffect(() => { if (alvo) setMotivo(""); }, [alvo]);
+  const [tituloId, setTituloId] = useState("");
+  const [novaData, setNovaData] = useState("");
+  useEffect(() => { if (alvo) { setMotivo(""); setTituloId(""); setNovaData(""); } }, [alvo]);
+  const abater = alvo?.desfecho === "abater_divida";
+  const titulosQ = useQuery({
+    queryKey: ["devolucao", "parcelas-abater", alvo?.d.id],
+    enabled: !!alvo && abater,
+    queryFn: async () => {
+      const { data: dev, error: e1 } = await supabase.from("devolucao").select("pedido_id").eq("id", alvo!.d.id).single();
+      if (e1) throw new Error(e1.message);
+      if (!dev?.pedido_id) throw new Error("Devolução sem pedido vinculado.");
+      const { data, error } = await supabase.from("titulo_a_receber")
+        .select("id,numero_titulo,data_vencimento_atual,valor_atual,valor_bruto,boleto_status,status")
+        .eq("pedido_id", dev.pedido_id)
+        .not("status", "in", "(pago,cancelado,cancelado_recuperacao,devolvido,baixado_por_perda)")
+        .order("data_vencimento_atual");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+  const tituloSel = (titulosQ.data ?? []).find((t) => t.id === tituloId);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const vencida = !!tituloSel?.data_vencimento_atual && tituloSel.data_vencimento_atual <= hoje
+    && ["registrado", "vencido", "rejeitado"].includes(tituloSel.boleto_status ?? "");
+  const fmtData = (d: string | null) => d ? d.split("-").reverse().join("/") : "—";
   const rotulo = alvo ? DESFECHO_ROTULO[alvo.desfecho] ?? alvo.desfecho : "";
   return (
     <Dialog open={!!alvo} onOpenChange={(o) => { if (!o && !rodando) onFechar(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>{rotulo} — {alvo?.d.numero ?? ""}</DialogTitle><DialogDescription>Registra a decisão comercial desta devolução.</DialogDescription></DialogHeader>
+        {abater && (
+          <div className="space-y-2">
+            <p className="text-sm">Valor a abater: <strong>{formatBRL(Number(alvo?.d.valor_credito ?? 0))}</strong></p>
+            <Label>Parcela</Label>
+            {titulosQ.isLoading ? <p className="text-sm text-muted-foreground">Carregando parcelas…</p>
+              : titulosQ.isError ? <p className="text-sm text-destructive">{(titulosQ.error as Error).message}</p>
+              : !(titulosQ.data ?? []).length ? <p className="text-sm text-destructive">Nenhuma parcela em aberto neste pedido.</p>
+              : (
+                <Select value={tituloId} onValueChange={setTituloId}>
+                  <SelectTrigger><SelectValue placeholder="Escolha a parcela" /></SelectTrigger>
+                  <SelectContent>
+                    {(titulosQ.data ?? []).map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.numero_titulo ?? "—"} · venc. {fmtData(t.data_vencimento_atual)} · {formatBRL(Number(t.valor_atual ?? t.valor_bruto ?? 0))} · boleto {t.boleto_status ?? "sem boleto"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            {vencida && (
+              <div className="space-y-1">
+                <Label>Nova data de vencimento</Label>
+                <Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+                <p className="text-xs text-muted-foreground">O vencimento desta parcela já passou — o boleto reemitido precisa de data futura.</p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-1"><Label>Motivo (opcional)</Label><Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
         <DialogFooter>
           <Button variant="outline" onClick={onFechar} disabled={rodando}>Cancelar</Button>
-          <Button disabled={rodando} onClick={() => alvo && run("decidir_desfecho_devolucao",
-            { p_devolucao_id: alvo.d.id, p_desfecho: alvo.desfecho, p_motivo: motivo.trim() || null },
+          <Button disabled={rodando || (abater && (!tituloId || (vencida && !novaData)))} onClick={() => alvo && run("decidir_desfecho_devolucao",
+            { p_devolucao_id: alvo.d.id, p_desfecho: alvo.desfecho, p_motivo: motivo.trim() || null,
+              ...(abater ? { p_titulo_abater: tituloId, p_nova_data: vencida ? novaData : null } : {}) },
             `Devolução ${alvo.d.numero ?? ""}: ${rotulo}`)}>
             {rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar
           </Button>

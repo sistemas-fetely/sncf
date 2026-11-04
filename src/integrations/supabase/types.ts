@@ -156444,7 +156444,13 @@ export type Database = {
         }[]
       }
       decidir_desfecho_devolucao: {
-        Args: { p_desfecho: string; p_devolucao_id: string; p_motivo?: string }
+        Args: {
+          p_desfecho: string
+          p_devolucao_id: string
+          p_motivo?: string
+          p_nova_data?: string
+          p_titulo_abater?: string
+        }
         Returns: Json
       }
       decisao_salario: {

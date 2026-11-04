@@ -519,6 +519,13 @@
       "when": 1793800411351,
       "tag": "0073_pacote_etapa2_despesas_retencoes",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793820932377,
+      "tag": "0074_devolucao_parcial_desfecho_a_definir",
+      "breakpoints": true
     }
   ]
 }

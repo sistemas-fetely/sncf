@@ -182,8 +182,8 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
   const emAberto = b2bParcial ? Number(haverQ.data?.aberto ?? 0) : 0;
   const bloqueiaCredito = emAberto > 0;
   useEffect(() => {
-    if (bloqueiaCredito && (desfecho === "" || desfecho === "haver" || desfecho === "reembolso")) setDesfecho("abater_divida");
-    if (!b2bParcial && desfecho === "abater_divida") setDesfecho("");
+    if (b2bParcial && (desfecho === "" || (bloqueiaCredito && (desfecho === "haver" || desfecho === "reembolso")))) setDesfecho("nenhum");
+    if (!b2bParcial && (desfecho === "abater_divida" || desfecho === "nenhum")) setDesfecho("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bloqueiaCredito, b2bParcial]);
   const dicaCredito = `Pedido com ${formatBRL(emAberto)} em aberto — devolução sobre dívida é abatida na parcela. Crédito/reembolso só sobre o que já foi pago.`;
@@ -477,6 +477,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                     <Select value={desfecho} onValueChange={setDesfecho}>
                       <SelectTrigger><SelectValue placeholder="Escolha o desfecho" /></SelectTrigger>
                       <SelectContent>
+                        {b2bParcial && <SelectItem value="nenhum">A definir</SelectItem>}
                         {b2bParcial && <SelectItem value="abater_divida">Abater dívida</SelectItem>}
                         {bloqueiaCredito ? (
                           <TooltipProvider>
