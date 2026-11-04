@@ -1,8 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, pagamentosDoExtrato, parcelasEmAtraso, representantesDoLote, rotuloTaxas, somarMeses } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, pagamentosDoExtrato, parcelasEmAtraso, representantesDoLote, rotuloTaxas, somarMeses, vendasDoMes, totaisVendas, taxaDaNota } from "./extratoMensal";
 import { competenciaFechada, dataDoFechamento } from "./extratoCompetencias";
 
 describe("prestação de contas mensal", () => {
+  it("vendas de M-1 agrupam por apuração sem multiplicar base e comissão pelas parcelas", () => {
+    const nota = { apuracao_id: "a", competencia: "2026-10-01", nf_emissao: "2026-10-20", base_comissionavel: 1000, comissao_da_nota: 80 };
+    const vendas = vendasDoMes([nota, { ...nota, numero_parcela: 2 }, { apuracao_id: "b", competencia: "2026-10", nf_emissao: "2026-10-01", base_comissionavel: 500, comissao_da_nota: 50 }, { ...nota, apuracao_id: "fora", competencia: "2026-09" }], somarMeses("2026-11", -1));
+    expect(vendas.map(n => n.apuracao_id)).toEqual(["b", "a"]);
+    expect(totaisVendas(vendas)).toEqual({ base: 1500, comissao: 130 });
+    expect(vendasDoMes([nota], "2026-09")).toEqual([]);
+  });
+  it("usa pct_efetivo somente quando a NF não tem taxas de linhas", () => {
+    expect(taxaDaNota({ taxas_linhas: [8, 10], pct_efetivo: 9 })).toBe("8% / 10%");
+    expect(taxaDaNota({ taxas_linhas: [], pct_efetivo: 8.5 })).toBe("8,5%");
+  });
+  it("previsão externa inclui vencidas em vencimento + 1 mês sem mudar a agenda interna", () => {
+    const parcelas = [{ situacao_parcela: "vencida", vencimento: "2026-09-20", base_parcela: 1000, comissao_da_parcela: 80 }, { situacao_parcela: "a_vencer", vencimento: "2026-12-20", comissao_da_parcela: 20 }];
+    expect(agendaRecebiveis(parcelas, [], [], "2026-11", { incluirVencidas: true }).map(m => [m.mes, m.total])).toEqual([["2026-10", 80], ["2027-01", 20]]);
+    expect(agendaRecebiveis(parcelas, [], [], "2026-11").map(m => [m.mes, m.total])).toEqual([["2027-01", 20]]);
+  });
   it("preserva base e taxas por linha na agenda futura e paga pendente", () => {
     const ag = agendaRecebiveis([
       { situacao_parcela: "a_vencer", vencimento: "2026-10-20", base_parcela: "1250", taxas_linhas: [8], comissao_da_parcela: 100 },

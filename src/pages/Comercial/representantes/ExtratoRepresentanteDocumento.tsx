@@ -5,7 +5,7 @@ import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, type Linha } from "./dados";
-import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, parcelasEmAtraso, rotuloTaxas, saldosAnterioresDoExtrato, mmAaaa, somarMeses } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, vendasDoMes, totaisVendas, taxaDaNota, rotuloTaxas, saldosAnterioresDoExtrato, mmAaaa, somarMeses } from "./extratoMensal";
 import type { ExtratoFechadoDoRepresentante } from "./extratoCompetencias";
 import {
   competenciaFechada, dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
@@ -44,8 +44,8 @@ function Cartao({ rotulo, valor, sub, alerta }: { rotulo: string; valor: string;
   </div>;
 }
 
-function DocumentoMensal({ competencia, representante, extrato, extratos, parcelas, complementos, pagamentos, kpis, anteriores }: {
-  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; extratos: Linha[]; parcelas: Linha[]; complementos: Linha[]; pagamentos: Linha[]; kpis: Linha[]; anteriores: Linha[];
+function DocumentoMensal({ competencia, representante, extrato, extratos, parcelas, complementos, pagamentos, kpis, anteriores, pagamentoExtrato }: {
+  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; extratos: Linha[]; parcelas: Linha[]; complementos: Linha[]; pagamentos: Linha[]; kpis: Linha[]; anteriores: Linha[]; pagamentoExtrato?: Linha;
 }) {
   const saldos = saldosAnterioresDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
   const transportadoPara = extrato?.transportado_para_extrato_id
@@ -53,18 +53,18 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
   const fechadaSemExtrato = !extrato && competenciaFechada(competencia);
   const ajustes = ajustesDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
   const clientePorPedido = new Map(parcelas.map(p => [String(p.pedido), p.cliente]));
-  const agenda = agendaRecebiveis(parcelas, complementos, extratos, competencia);
-  const atraso = parcelasEmAtraso(parcelas);
+  const agenda = agendaRecebiveis(parcelas, complementos, extratos, competencia, { incluirVencidas: true });
   const totalAgenda = agenda.reduce((t, m) => t + m.total, 0);
-  const totalAtraso = atraso.reduce((t, p) => t + numero(p.comissao_da_parcela), 0);
   const mesVendas = somarMeses(competencia, -1);
+  const vendas = vendasDoMes(parcelas, mesVendas);
+  const totalVendas = totaisVendas(vendas);
   const kMes = kpis.find(k => String(k.competencia).slice(0, 7) === mesVendas) ?? {};
   const ano = kpis.filter(k => String(k.competencia).slice(0, 4) === mesVendas.slice(0, 4) && String(k.competencia).slice(0, 7) <= mesVendas);
   const soma = (c: string) => ano.reduce((t, k) => t + numero(k[c]), 0);
   const linhasPagas = [
-    ...pagamentos.map(p => ({ k: String(p.liberacao_id), cliente: p.cliente, pedido: p.pedido, parcela: `${p.numero_parcela}/${p.total_parcelas} · ${ddmm(p.pago_em ?? p.data_liquidacao)}`, base: fmtBRL(baseDaLiberacao(p)), taxa: rotuloTaxas(p.taxas_linhas), valor: numero(p.valor_liberado) })),
-    ...ajustes.map((a, i) => ({ k: String(a.liberacao_id ?? a.estorno_id ?? i), cliente: a.cliente ?? clientePorPedido.get(String(a.pedido)), pedido: a.pedido, parcela: a.tipo === "estorno" ? "estorno" : "complemento", base: "—", taxa: "—", valor: numero(a.valor) })),
-    ...saldos.map(sa => ({ k: `saldo-${sa.k}`, cliente: sa.rotulo, pedido: null, parcela: sa.motivo ?? "—", base: "—", taxa: "—", valor: sa.valor })),
+    ...pagamentos.map(p => ({ k: String(p.liberacao_id), cliente: p.cliente, pedido: p.pedido, parcela: `${p.numero_parcela}/${p.total_parcelas}`, liquidadoEm: ddmm(p.pago_em ?? p.data_liquidacao), base: fmtBRL(baseDaLiberacao(p)), taxa: rotuloTaxas(p.taxas_linhas), valor: numero(p.valor_liberado) })),
+    ...ajustes.map((a, i) => ({ k: String(a.liberacao_id ?? a.estorno_id ?? i), cliente: a.cliente ?? clientePorPedido.get(String(a.pedido)), pedido: a.pedido, parcela: a.tipo === "estorno" ? "estorno" : "complemento", liquidadoEm: "—", base: "—", taxa: "—", valor: numero(a.valor) })),
+    ...saldos.map(sa => ({ k: `saldo-${sa.k}`, cliente: sa.rotulo, pedido: null, parcela: sa.motivo ?? "—", liquidadoEm: "—", base: "—", taxa: "—", valor: sa.valor })),
   ];
   return <section className="pagina-a4 pagina-mensal bg-card text-card-foreground">
     <header className="flex items-start justify-between gap-4 border-b border-border pb-4">
@@ -74,32 +74,43 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
         <p className="mt-1 text-[9pt] text-muted-foreground">Extrato de comissão · {mesAno(competencia)}</p>
       </div>
       <div className="text-right">
-        <div className="text-[8pt] text-muted-foreground">Pagamento de {mesNome(competencia)}</div>
+        <div className="text-[8pt] text-muted-foreground">Comissão a receber em {mesNome(competencia)}</div>
         {extrato ? <><div className="mt-1 text-[26pt] font-medium tabular-nums leading-tight">{fmtBRL(numero(extrato.valor_total))}</div><div className="text-[9pt]">até {fmtData(extrato.pagar_ate)}</div></>
           : fechadaSemExtrato ? <div className="mt-1 text-[26pt] font-medium tabular-nums leading-tight">{fmtBRL(0)}</div>
           : <div className="mt-1 text-[9pt] text-muted-foreground">Prévia · fechamento em {dataDoFechamento(competencia)}</div>}
+        <p className="mt-1 text-[8pt] text-muted-foreground">Títulos liquidados em {mesNome(mesVendas)}</p>
       </div>
     </header>
     <section className="bloco-mensal mt-5">
-      <div className="grid grid-cols-5 gap-2">
-        <Cartao rotulo={`Vendido em ${mesNome(mesVendas)}`} valor={brl0(numero(kMes.vendido))} sub={`${numero(kMes.pedidos)} pedidos · ${numero(kMes.clientes)} clientes`}/>
-        <Cartao rotulo="Comissão gerada" valor={brl0(numero(kMes.comissao_gerada))} sub={`taxa média ${pct(numero(kMes.taxa_media_pct))}`}/>
+      <div className="grid grid-cols-4 gap-2">
+        <Cartao rotulo={`Vendido em ${mesNome(mesVendas)}`} valor={brl0(totalVendas.base)} sub={`${numero(kMes.pedidos)} pedidos · ${numero(kMes.clientes)} clientes`}/>
+        <Cartao rotulo="Comissão gerada" valor={brl0(totalVendas.comissao)} sub={`taxa média ${pct(numero(kMes.taxa_media_pct))}`}/>
         <Cartao rotulo="Desconto médio" valor={pct(numero(kMes.desconto_medio_pct))} sub={numero(kMes.desconto_medio_pct) < 5 ? "sem redução de taxa" : ""}/>
         <Cartao rotulo="A receber" valor={fmtBRL(totalAgenda)} sub={agenda.length ? `${mesCurto(agenda[0].mes)} a ${mesCurto(agenda[agenda.length - 1].mes)}` : ""}/>
-        <Cartao rotulo="Em atraso" valor={totalAtraso > 0 ? fmtBRL(totalAtraso) : "R$ 0"} alerta={totalAtraso > 0} sub={`${atraso.length} parcela${atraso.length === 1 ? "" : "s"}`}/>
       </div>
       <p className="mt-2 text-[7pt] text-muted-foreground">Acumulado {mesVendas.slice(0, 4)} · vendido {brl0(soma("vendido"))} · comissão {brl0(soma("comissao_gerada"))} · {soma("pedidos")} pedidos</p>
+      <p className="mt-1 text-[7pt] text-muted-foreground">Comissão gerada é apurada na emissão da NF e vira pagamento conforme o cliente liquida cada parcela.</p>
     </section>
+    {vendas.length > 0 && <section className="bloco-mensal mt-6">
+      <h2 className="text-[11pt] font-medium">Vendas de {mesNome(mesVendas)}</h2>
+      <table className="tabela-mensal mt-2 w-full table-fixed border-collapse text-[8pt]">
+        <colgroup><col className="w-[25%]"/><col className="w-[12%]"/><col className="w-[10%]"/><col className="w-[10%]"/><col className="w-[16%]"/><col className="w-[12%]"/><col className="w-[15%]"/></colgroup>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>NF</th><th>Emissão</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <tbody>{vendas.map(n => <tr key={String(n.apuracao_id)}><td className="truncate" title={n.cliente || undefined}>{n.cliente || "—"}</td><td>{n.pedido || "—"}</td><td>{n.nf || "—"}</td><td className="tabular-nums">{ddmm(n.nf_emissao)}</td><td className="text-right tabular-nums">{fmtBRL(numero(n.base_comissionavel))}</td><td className="text-right tabular-nums">{taxaDaNota(n)}</td><td className="text-right tabular-nums">{fmtBRL(numero(n.comissao_da_nota))}</td></tr>)}</tbody>
+        <tfoot><tr><td colSpan={4}>Total</td><td className="text-right tabular-nums">{fmtBRL(totalVendas.base)}</td><td/><td className="text-right tabular-nums">{fmtBRL(totalVendas.comissao)}</td></tr></tfoot>
+      </table>
+    </section>}
     {extrato?.transportado_para_extrato_id && <div className="bloco-mensal mt-5 rounded-md border border-border bg-muted px-3 py-2 text-[9pt] text-muted-foreground">
       Valor transportado para o extrato de {transportadoPara ? mmAaaa(transportadoPara) : "competência seguinte"}.
     </div>}
     {extrato && linhasPagas.length > 0 && <section className="bloco-mensal mt-6">
-      <h2 className="text-[11pt] font-medium">Comissões pagas em {mesNome(competencia)}</h2>
+      <h2 className="text-[11pt] font-medium">Comissão a receber em {mesNome(competencia)} — títulos liquidados em {mesNome(mesVendas)}</h2>
+      <p className="mt-1 text-[8pt] text-muted-foreground">{pagamentoExtrato?.pago_em ? `Pago pela Fetély em ${fmtData(pagamentoExtrato.pago_em)}` : `Pagamento até ${fmtData(extrato.pagar_ate)}`}</p>
       <table className="tabela-mensal mt-2 w-full table-fixed border-collapse text-[8pt]">
-        <colgroup><col className="w-[28%]"/><col className="w-[13%]"/><col className="w-[17%]"/><col className="w-[16%]"/><col className="w-[11%]"/><col className="w-[15%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
-        <tbody>{linhasPagas.map(l => <tr key={l.k}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="tabular-nums">{l.parcela}</td><td className="text-right tabular-nums">{l.base}</td><td className="text-right tabular-nums">{l.taxa}</td><td className="text-right tabular-nums">{fmtBRL(l.valor)}</td></tr>)}</tbody>
-        <tfoot><tr><td colSpan={5}>Total</td><td className="text-right tabular-nums">{fmtBRL(numero(extrato.valor_total))}</td></tr></tfoot>
+        <colgroup><col className="w-[24%]"/><col className="w-[12%]"/><col className="w-[12%]"/><col className="w-[12%]"/><col className="w-[15%]"/><col className="w-[11%]"/><col className="w-[14%]"/></colgroup>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Liquidado em</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <tbody>{linhasPagas.map(l => <tr key={l.k}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="tabular-nums">{l.parcela}</td><td className="tabular-nums">{l.liquidadoEm}</td><td className="text-right tabular-nums">{l.base}</td><td className="text-right tabular-nums">{l.taxa}</td><td className="text-right tabular-nums">{fmtBRL(l.valor)}</td></tr>)}</tbody>
+        <tfoot><tr><td colSpan={6}>Total</td><td className="text-right tabular-nums">{fmtBRL(numero(extrato.valor_total))}</td></tr></tfoot>
       </table>
     </section>}
     {extrato && anteriores.length > 0 && <section className="bloco-mensal mt-4">
@@ -109,7 +120,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
       </table>
     </section>}
     {agenda.length > 0 && <section className="bloco-mensal mt-6">
-      <h2 className="text-[11pt] font-medium">Próximos pagamentos</h2>
+      <h2 className="text-[11pt] font-medium">Previsão</h2>
       <table className="tabela-mensal tabela-recebiveis mt-2 w-full table-fixed border-collapse text-[8pt]">
         <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
         <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Vencimento do cliente</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
@@ -117,15 +128,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
           <tr className="cabecalho-mes"><td colSpan={6}>{capital(mesAno(m.mes))} · até {ddmm(m.pagarAte)}</td><td className="text-right tabular-nums">{fmtBRL(m.total)}</td></tr>
           {m.itens.map((it, i) => <tr key={i}><td className="truncate" title={it.cliente || undefined}>{it.cliente || "—"}</td><td className="whitespace-nowrap">{it.pedido || "—"}</td><td className="tabular-nums">{it.parcela}</td><td className="tabular-nums">{it.parcela === "complemento" ? "—" : it.pago ? `pago ${ddmm(it.vencimento)}` : ddmm(it.vencimento)}</td><td className="text-right tabular-nums">{it.base === null ? "—" : fmtBRL(it.base)}</td><td className="text-right tabular-nums">{rotuloTaxas(it.taxas)}</td><td className="text-right tabular-nums">{fmtBRL(it.comissao)}</td></tr>)}
         </tbody>)}
-        <tfoot><tr><td colSpan={6}>Total a receber</td><td className="text-right tabular-nums">{fmtBRL(totalAgenda)}</td></tr></tfoot>
-      </table>
-    </section>}
-    {atraso.length > 0 && <section className="bloco-mensal mt-6">
-      <h2 className="text-[11pt] font-medium text-destructive">Em atraso</h2>
-      <table className="tabela-mensal tabela-recebiveis mt-2 w-full table-fixed border-collapse text-[8pt]">
-        <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Venceu em</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
-        <tbody>{atraso.map((p, i) => <tr key={i}><td className="truncate" title={p.cliente || undefined}>{p.cliente || "—"}</td><td className="whitespace-nowrap">{p.pedido || "—"}</td><td className="tabular-nums">{p.numero_parcela}/{p.total_parcelas}</td><td className="tabular-nums">{ddmm(p.vencimento)} · {numero(p.dias_atraso)} dias</td><td className="text-right tabular-nums">{fmtBRL(numero(p.base_parcela))}</td><td className="text-right tabular-nums">{rotuloTaxas(p.taxas_linhas)}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.comissao_da_parcela))}</td></tr>)}</tbody>
+        <tfoot><tr><td colSpan={6}>Total previsto</td><td className="text-right tabular-nums">{fmtBRL(totalAgenda)}</td></tr></tfoot>
       </table>
     </section>}
     <RodapeMensal/>
@@ -204,9 +207,20 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     queryFn: () => lerTudo("vw_comissao_complemento_pendente", q => q.eq("vendedor_id", vendedorId)),
     enabled: Boolean(vendedorId) && competenciaValida,
   });
+  const pagamentoExtratoQ = useQuery({
+    queryKey: ["representante-extrato-pagamento", extrato?.id],
+    queryFn: () => {
+      if (!extrato?.id) return [];
+      return lerTudo("vw_comissao_extrato_ciclo", q => q.eq("extrato_id", extrato.id));
+    },
+    enabled: Boolean(extrato?.id),
+  });
   const anterioresQ = useQuery({
     queryKey: ["representante-extrato-anteriores", extrato?.id],
-    queryFn: () => lerTudo("vw_comissao_extrato_anterior_aberto", q => q.eq("extrato_id", extrato!.id), { col: "anterior_competencia", asc: true }),
+    queryFn: () => {
+      if (!extrato?.id) return [];
+      return lerTudo("vw_comissao_extrato_anterior_aberto", q => q.eq("extrato_id", extrato.id), { col: "anterior_competencia", asc: true });
+    },
     enabled: Boolean(extrato?.id),
   });
   const anoVendas = somarMeses(competencia, -1).slice(0, 4);
@@ -215,8 +229,8 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     queryFn: () => lerTudo("vw_comissao_kpi_representante_mes", q => q.eq("vendedor_id", vendedorId).gte("competencia", `${anoVendas}-01-01`).lte("competencia", `${anoVendas}-12-31`)),
     enabled: Boolean(vendedorId) && competenciaValida,
   });
-  const carregando = kpisQ.isLoading || representanteQ.isLoading || extratosQ.isLoading || detalhesQ.isLoading || complementosQ.isLoading || anterioresQ.isLoading;
-  const erro = kpisQ.error || representanteQ.error || extratosQ.error || detalhesQ.error || complementosQ.error || anterioresQ.error;
+  const carregando = kpisQ.isLoading || representanteQ.isLoading || extratosQ.isLoading || detalhesQ.isLoading || complementosQ.isLoading || anterioresQ.isLoading || pagamentoExtratoQ.isLoading;
+  const erro = kpisQ.error || representanteQ.error || extratosQ.error || detalhesQ.error || complementosQ.error || anterioresQ.error || pagamentoExtratoQ.error;
   const representante = representanteQ.data?.[0];
   const sinal = !competenciaValida ? "Competência inválida" : carregando ? undefined
     : erro ? formatError(erro) : !representante ? "Representante não encontrado" : null;
@@ -267,7 +281,7 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
         </select>
         <span className="text-muted-foreground">{selo}</span>
       </div>}
-      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={parcelas} complementos={complementosQ.data ?? []} pagamentos={pagamentos} extratos={extratosQ.data ?? []} kpis={kpisQ.data ?? []} anteriores={anterioresQ.data ?? []}/>
+      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={parcelas} complementos={complementosQ.data ?? []} pagamentos={pagamentos} extratos={extratosQ.data ?? []} kpis={kpisQ.data ?? []} anteriores={anterioresQ.data ?? []} pagamentoExtrato={pagamentoExtratoQ.data?.[0]}/>
     </>
   );
 }

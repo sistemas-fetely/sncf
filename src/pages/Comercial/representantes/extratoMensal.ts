@@ -60,6 +60,26 @@ export function rotuloTaxas(taxas: unknown): string {
   return lista.map(fmt).join(" / ");
 }
 
+/** Uma NF por apuração do mês de vendas, sem repetir a base nas parcelas. */
+export function vendasDoMes(parcelas: Linha[], mesVendas: string): Linha[] {
+  const notas = new Map<string, Linha>();
+  for (const p of parcelas) {
+    if (!p.apuracao_id || String(p.competencia).slice(0, 7) !== mesVendas.slice(0, 7)) continue;
+    if (!notas.has(String(p.apuracao_id))) notas.set(String(p.apuracao_id), p);
+  }
+  return [...notas.values()].sort((a, b) => String(a.nf_emissao ?? "").localeCompare(String(b.nf_emissao ?? ""))
+    || String(a.nf ?? "").localeCompare(String(b.nf ?? "")));
+}
+
+export function totaisVendas(notas: Linha[]): { base: number; comissao: number } {
+  const centavos = (campo: string) => Math.round(notas.reduce((s, n) => s + valorNumero(n[campo]), 0) * 100) / 100;
+  return { base: centavos("base_comissionavel"), comissao: centavos("comissao_da_nota") };
+}
+
+export function taxaDaNota(nota: Linha): string {
+  return rotuloTaxas(Array.isArray(nota.taxas_linhas) && nota.taxas_linhas.length ? nota.taxas_linhas : [valorNumero(nota.pct_efetivo)]);
+}
+
 /** AAAA-MM somado de n meses. */
 export function somarMeses(ym: string, n: number): string {
   const [a, m] = ym.slice(0, 7).split("-").map(Number);
@@ -86,7 +106,7 @@ export interface MesAgenda { mes: string; pagarAte: string | null; total: number
  * representante recebe. Competência ≤ documento já foi paga; extratos de
  * competência futura definem o mês das parcelas/complementos que contêm.
  */
-export function agendaRecebiveis(parcelas: Linha[], complementos: Linha[], extratos: Linha[], competencia: string): MesAgenda[] {
+export function agendaRecebiveis(parcelas: Linha[], complementos: Linha[], extratos: Linha[], competencia: string, opcoes: { incluirVencidas?: boolean } = {}): MesAgenda[] {
   const comp = competencia.slice(0, 7);
   const pagos = liberacoesEmExtratos(extratos.filter(e => String(e.competencia).slice(0, 7) <= comp));
   const futuros = extratos.filter(e => String(e.competencia).slice(0, 7) > comp);
@@ -98,7 +118,7 @@ export function agendaRecebiveis(parcelas: Linha[], complementos: Linha[], extra
   for (const p of parcelas) {
     const lib = p.liberacao_id ? String(p.liberacao_id) : null;
     const parcela = `${valorNumero(p.numero_parcela)}/${valorNumero(p.total_parcelas)}`;
-    if (p.situacao_parcela === "a_vencer") {
+    if (p.situacao_parcela === "a_vencer" || (opcoes.incluirVencidas && p.situacao_parcela === "vencida")) {
       if (!p.vencimento) continue;
       itens.push({ mes: somarMeses(String(p.vencimento), 1), cliente: p.cliente, pedido: p.pedido, parcela, vencimento: p.vencimento, pago: false, base: valorNumero(p.base_parcela), taxas: p.taxas_linhas, comissao: valorNumero(p.comissao_da_parcela) });
     } else if (p.situacao_parcela === "paga_aguarda_liberacao" || (p.situacao_parcela === "liberada" && lib && !pagos.has(lib))) {
