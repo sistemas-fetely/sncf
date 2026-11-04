@@ -526,6 +526,13 @@
       "when": 1793820932377,
       "tag": "0074_devolucao_parcial_desfecho_a_definir",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793835227086,
+      "tag": "0075_devolucao_troca_credito_so_pago",
+      "breakpoints": true
     }
   ]
 }
