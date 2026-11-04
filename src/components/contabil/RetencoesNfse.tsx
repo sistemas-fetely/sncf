@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { dbSemTipos } from "@/lib/contabil/dbSemTipos";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
@@ -45,7 +46,7 @@ export function RetencoesNfse({ competencia }: { competencia: string }) {
   const [escolha, setEscolha] = useState<Record<string, string>>({});
   const confirmar = useMutation({
     mutationFn: async ({ item, mov }: { item: Item; mov: string }) => {
-      const { error } = await supabase.rpc("fn_contabil_nfse_pagamento_confirmar", { p_nfs_stage_id: item.nfs_stage_id, p_movimentacao_id: mov, p_valor_liquido: item.liquido });
+      const { error } = await dbSemTipos.rpc("fn_contabil_nfse_pagamento_confirmar", { p_nfs_stage_id: item.nfs_stage_id, p_movimentacao_id: mov, p_valor_liquido: item.liquido });
       if (error) throw error;
     },
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ["contabil-retencoes-nfse"] }); toast.success("Pagamento confirmado"); },

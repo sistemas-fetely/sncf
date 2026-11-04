@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { dbSemTipos } from "@/lib/contabil/dbSemTipos";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,8 @@ export function useDocumentosDespesa(competencia: string | null) {
     queryFn: async () => {
       if (!competencia) throw new Error("Selecione uma competência");
       const [tipos, docs] = await Promise.all([
-        supabase.from("contabil_documento_despesa_tipo").select("*").order("nome"),
-        supabase.from("contabil_documento_despesa").select("*").eq("vigente", true).lte("competencia", competencia).order("enviado_em", { ascending: false }),
+        dbSemTipos.from("contabil_documento_despesa_tipo").select("*").order("nome"),
+        dbSemTipos.from("contabil_documento_despesa").select("*").eq("vigente", true).lte("competencia", competencia).order("enviado_em", { ascending: false }),
       ]);
       if (tipos.error) throw tipos.error; if (docs.error) throw docs.error;
       const ds = (docs.data ?? []) as DocDespesa[];
@@ -53,7 +54,7 @@ export function DocumentosDespesaMes({ competencia }: { competencia: string }) {
 
   const salvarTipo = useMutation({
     mutationFn: async (f: typeof vazio) => {
-      const { error } = await supabase.rpc("fn_contabil_documento_despesa_tipo_salvar", { p_id: f.id ?? undefined, p_nome: f.nome, p_pasta: f.pasta, p_periodicidade: f.periodicidade, p_local: f.local, p_ativo: f.ativo });
+      const { error } = await dbSemTipos.rpc("fn_contabil_documento_despesa_tipo_salvar", { p_id: f.id ?? undefined, p_nome: f.nome, p_pasta: f.pasta, p_periodicidade: f.periodicidade, p_local: f.local, p_ativo: f.ativo });
       if (error) throw error;
     },
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ["contabil-documentos-despesa"] }); setForm(null); toast.success("Documento esperado salvo"); },
@@ -65,7 +66,7 @@ export function DocumentosDespesaMes({ competencia }: { competencia: string }) {
       const path = `despesas/${competencia.slice(0, 7)}/${pasta}/${crypto.randomUUID()}-${nomeSeguro(file.name)}`;
       const { error: up } = await supabase.storage.from("contabil").upload(path, file, { upsert: false });
       if (up) throw up;
-      const { error } = await supabase.rpc("fn_contabil_documento_despesa_guardar", { p_competencia: competencia, p_tipo_id: tipo ?? undefined, p_pasta: pasta, p_storage_path: path, p_nome: file.name, p_sha256: hash, p_bytes: file.size, p_descricao: descricao });
+      const { error } = await dbSemTipos.rpc("fn_contabil_documento_despesa_guardar", { p_competencia: competencia, p_tipo_id: tipo ?? undefined, p_pasta: pasta, p_storage_path: path, p_nome: file.name, p_sha256: hash, p_bytes: file.size, p_descricao: descricao });
       if (error) throw new Error(`Arquivo guardado, mas registro falhou: ${error.message}`);
     },
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ["contabil-documentos-despesa"] }); setAvulso(null); toast.success("Documento guardado"); },
