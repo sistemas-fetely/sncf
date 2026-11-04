@@ -25,6 +25,7 @@ type Esteira = { tipo: Tipo; esteira: string; rotulo: string; permitido: boolean
 type Momento = {
   ok: boolean; erro?: string; pedido_id: string; id_externo: string; origem: string; canal_devolucao: "b2b" | "b2c" | "site_sp";
   estagio: string; momento: string; momento_rotulo: string;
+  shopify_id?: string | null;
   nf: { id: string; numero: string } | null;
   devolucao_aberta: { numero: string; status: string } | null;
   esteiras: Esteira[];
@@ -97,6 +98,18 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
     },
   });
   const m = momentoQ.data;
+
+  const blingNumeroQ = useQuery({
+    queryKey: ["devolucao", "bling-pedido-numero", m?.shopify_id],
+    enabled: open && !!m?.shopify_id && m?.canal_devolucao === "b2c",
+    queryFn: async () => {
+      if (!m?.shopify_id) return null;
+      const { data, error } = await supabase.from("bling_pedido_fila_b2c")
+        .select("bling_pedido_numero").eq("shopify_pedido_id", String(m.shopify_id)).maybeSingle();
+      if (error) throw new Error(error.message);
+      return data?.bling_pedido_numero ?? null;
+    },
+  });
 
   const itensQ = useQuery({
     queryKey: ["nf_itens_json", m?.nf?.id],
@@ -310,8 +323,10 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
               <span className="text-sm">{CANAL[m.canal_devolucao] ?? m.canal_devolucao}</span>
               <Badge variant="secondary">{m.momento_rotulo}</Badge>
               {m.nf?.numero && <span className="text-sm text-muted-foreground">NF nº {m.nf.numero}</span>}
+              {m.canal_devolucao === "b2c" && blingNumeroQ.data && <span className="text-sm text-muted-foreground">Bling nº {blingNumeroQ.data}</span>}
               {!pedidoId && <Button variant="link" size="sm" className="ml-auto h-auto p-0" onClick={() => { reset(); setSelId(null); }}>Trocar pedido</Button>}
             </div>
+            {blingNumeroQ.isError && <p className="text-xs text-destructive">{blingNumeroQ.error.message}</p>}
 
             {m.devolucao_aberta ? (
               <Alert>

@@ -133,6 +133,31 @@ function FunilSteps({ d, etapas }: { d: Funil; etapas: Etapa[] }) {
   );
 }
 
+function PedidoBlingNumero({ numero }: { numero: string | null | undefined }) {
+  async function copiar() {
+    if (!numero) return;
+    try {
+      await navigator.clipboard.writeText(numero);
+      toast.success("Copiado");
+    } catch (error) {
+      toast.error(formatError(error));
+    }
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+      <span>Pedido Bling nº {numero ?? "—"}</span>
+      {numero && <TooltipProvider><Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" aria-label="Copiar número do pedido Bling" onClick={() => void copiar()}>
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Copiar número do pedido Bling</TooltipContent>
+      </Tooltip></TooltipProvider>}
+    </div>
+  );
+}
+
 export default function RetornoDevolucao() {
   const qc = useQueryClient();
   const funilQ = useQuery({
@@ -300,6 +325,17 @@ export default function RetornoDevolucao() {
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const paginaItens = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
+  const blingIds = [...new Set([...paginaItens.map((d) => d.id), ...(reversa ? [reversa.id] : [])])].sort();
+  const blingNumerosQ = useQuery({
+    queryKey: [...QK_FUNIL, "bling-pedido-numero", blingIds],
+    enabled: blingIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("devolucao")
+        .select("id,bling_pedido_numero").in("id", blingIds);
+      if (error) throw error;
+      return new Map((data ?? []).map((d) => [d.id, d.bling_pedido_numero]));
+    },
+  });
 
   const abertas = devolucoes.filter(ehAberta);
   const paradas = abertas.filter((d) => (d.dias_desde ?? 0) > 30).length;
@@ -383,8 +419,8 @@ export default function RetornoDevolucao() {
           <span className="text-xs text-muted-foreground ml-auto">{formatNum(abertas.length)} em andamento · {formatNum(devolucoes.length - abertas.length)} finalizados</span>
         </div>
 
-        {(funilQ.isError || etapasQ.isError || pendQ.isError) && (
-          <Alert variant="destructive" className="mb-4"><AlertDescription>{formatError(funilQ.error ?? etapasQ.error ?? pendQ.error)}</AlertDescription></Alert>
+        {(funilQ.isError || etapasQ.isError || pendQ.isError || blingNumerosQ.isError) && (
+          <Alert variant="destructive" className="mb-4"><AlertDescription>{formatError(funilQ.error ?? etapasQ.error ?? pendQ.error ?? blingNumerosQ.error)}</AlertDescription></Alert>
         )}
 
         <div className="rounded-md border bg-card">
@@ -466,7 +502,7 @@ export default function RetornoDevolucao() {
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
                           {d.canal === "b2c" && <IconeDivergenciaLoja devolucaoId={d.id} />}
                         </div>
-                        <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}{d.canal === "b2c" && blingNumerosQ.data?.get(d.id) && <span> · Bling nº {blingNumerosQ.data.get(d.id)}</span>}</div>
                       </TableCell>
                       <TableCell className="text-sm max-w-[220px] truncate">{d.cliente ?? "—"}</TableCell>
                       <TableCell className="text-sm max-w-[180px] truncate">{d.motivo_exibicao ?? "—"}</TableCell>
@@ -506,6 +542,7 @@ export default function RetornoDevolucao() {
                           <div className="grid gap-4 p-2 md:grid-cols-2 xl:grid-cols-4 text-sm">
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Logística reversa</div>
+                              <PedidoBlingNumero numero={blingNumerosQ.data?.get(d.id)} />
                               {d.rastreio_efetivo ? (
                                 <>
                                   <div className="font-mono">{d.rastreio_efetivo}</div>
@@ -682,7 +719,7 @@ export default function RetornoDevolucao() {
       <EditarDeclaracaoDialog devolucao={editarDecl ? { id: editarDecl.d.id, numero: editarDecl.d.numero } : null}
         preenchido={editarDecl?.preenchido ?? null} onFechar={() => setEditarDecl(null)} />
       <ReceberDialog d={receber} onFechar={() => setReceber(null)} onOk={invalidar} />
-      <ReversaDialog d={reversa} onFechar={() => setReversa(null)} onOk={invalidar} />
+      <ReversaDialog d={reversa} blingNumero={reversa ? blingNumerosQ.data?.get(reversa.id) : null} onFechar={() => setReversa(null)} onOk={invalidar} />
       <DecidirDesfechoDialog alvo={decidir} onFechar={() => setDecidir(null)} onOk={invalidar} />
       <EstornarDialog d={estornar} onFechar={() => setEstornar(null)} onOk={invalidar} />
       <VincularTransferenciaDialog d={vincular} onFechar={() => setVincular(null)} onOk={invalidar} />
@@ -764,7 +801,7 @@ function ReceberDialog({ d, onFechar, onOk }: DlgProps) {
   );
 }
 
-function ReversaDialog({ d, onFechar, onOk }: DlgProps) {
+function ReversaDialog({ d, blingNumero, onFechar, onOk }: DlgProps & { blingNumero: string | null | undefined }) {
   const [rastreio, setRastreio] = useState("");
   const [origem, setOrigem] = useState("correios");
   const [obs, setObs] = useState("");
@@ -774,6 +811,7 @@ function ReversaDialog({ d, onFechar, onOk }: DlgProps) {
     <Dialog open={!!d} onOpenChange={(o) => { if (!o && !rodando) onFechar(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Etiqueta reversa — {d?.numero ?? ""}</DialogTitle><DialogDescription>Registre o rastreio da logística reversa.</DialogDescription></DialogHeader>
+        <PedidoBlingNumero numero={blingNumero} />
         <div className="space-y-3">
           <div className="space-y-1"><Label>Rastreio *</Label><Input value={rastreio} onChange={(e) => setRastreio(e.target.value)} /></div>
           <div className="space-y-1"><Label>Origem</Label>

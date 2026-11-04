@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Exibir número Bling no modal, lista, detalhe e etiqueta reversa; SHP-1467/823, DEV-B2C-1522/919 e cópia 851 conferidos no preview; 11 testes passaram, sem banco/publicação.
 - [x] Pacote etapa 2 fase 1: aplicada, funções publicadas, 38 PDFs de NFS-e gerados, dry-run 10/2026 conferido. Aguardando o Flávio confirmar os pagamentos de 7915/7916.
 - [x] Numeração compartilhada corrigida pela chave e deduplicada entre saídas/entradas próprias/devoluções; outubro conferido na tela e manifesto simulado: 8 buracos, 3 canceladas, 0 inutilizadas. NFs 697/732/921 como entrada própria; 5 testes passaram (3 reais). Sem remessa/publicação.
 - [x] Casa 22 na DRE: aluguel/comissão como despesas por competência ligadas à CPR; MDR mensal só na 2.4, fora das despesas duplicadas. Outubro: 2.4 R$798,73→818,96; 7.3 R$0→87,62; 9.2 R$0→219,14. Refresh, reexecução igual e tela conferidos; 15 testes passaram, integridade sem novo alerta. Seletor de meses reparado (view inexistente). Snapshot sucessor aditivo, legado preservado. Zero/alerta e classificação posterior preservados no fluxo, sem teste destrutivo real; sem publicar.

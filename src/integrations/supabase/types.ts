@@ -29029,6 +29029,7 @@ export type Database = {
       }
       devolucao: {
         Row: {
+          bling_pedido_numero: string | null
           canal: string
           cancelado_em: string | null
           cancelado_motivo: string | null
@@ -29075,6 +29076,7 @@ export type Database = {
           valor_credito: number | null
         }
         Insert: {
+          bling_pedido_numero?: string | null
           canal: string
           cancelado_em?: string | null
           cancelado_motivo?: string | null
@@ -29121,6 +29123,7 @@ export type Database = {
           valor_credito?: number | null
         }
         Update: {
+          bling_pedido_numero?: string | null
           canal?: string
           cancelado_em?: string | null
           cancelado_motivo?: string | null
