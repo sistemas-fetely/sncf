@@ -17,6 +17,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/lib/format-currency";
+import { Switch } from "@/components/ui/switch";
+import { interpretarListaColada, type ResultadoColagem } from "@/lib/devolucao/colarListaItens";
 import { normalizarNumeroPedido } from "@/lib/devolucao/normalizarNumeroPedido";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -65,6 +67,11 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
   const [selId, setSelId] = useState<string | null>(pedidoId ?? null);
   const [tipo, setTipo] = useState<Tipo>("total");
   const [qtds, setQtds] = useState<Record<string, number>>({});
+  const [colarAberto, setColarAberto] = useState(false);
+  const [textoColado, setTextoColado] = useState("");
+  const [resultadoColagem, setResultadoColagem] = useState<ResultadoColagem | null>(null);
+  const [soVoltam, setSoVoltam] = useState(false);
+  const [filtroItem, setFiltroItem] = useState("");
   const [motivoCodigo, setMotivoCodigo] = useState<string>("");
   const [motivo, setMotivo] = useState("");
   const [desfecho, setDesfecho] = useState<string>("");
@@ -79,6 +86,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
 
   function reset() {
     setBusca(""); setOpcoes(null); setSelId(pedidoId ?? null); setTipo("total"); setQtds({});
+    setColarAberto(false); setTextoColado(""); setResultadoColagem(null); setSoVoltam(false); setFiltroItem("");
     setMotivoCodigo(""); setMotivo(""); setDesfecho(""); setPrevia(null); setPreviaErro(null); setPreviaIniciada(false); setErroExec(null); setErroXpm(null);
   }
 
@@ -144,6 +152,20 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
   const esteira = (t: Tipo) => m?.esteiras?.find((e) => e.tipo === t);
   const esteiraAtual = esteira(tipo);
   const itens = useMemo(() => Object.entries(qtds).filter(([, q]) => q > 0).map(([sku, quantidade]) => ({ sku, quantidade })), [qtds]);
+  const itensVisiveis = useMemo(() => {
+    const f = filtroItem.trim().toLowerCase();
+    return (itensQ.data ?? []).filter((it) =>
+      (!soVoltam || (qtds[it.codigo] ?? 0) > 0) &&
+      (!f || it.codigo.toLowerCase().includes(f) || (it.descricao ?? "").toLowerCase().includes(f)));
+  }, [itensQ.data, soVoltam, filtroItem, qtds]);
+  const resumoParcial = useMemo(() => {
+    let unidades = 0, valor = 0, n = 0;
+    for (const it of itensQ.data ?? []) {
+      const q = qtds[it.codigo] ?? 0;
+      if (q > 0) { n++; unidades += q; valor += q * Number(it.valor ?? 0); }
+    }
+    return { itens: n, unidades, valor };
+  }, [itensQ.data, qtds]);
   const mostrarDesfecho = m?.canal_devolucao === "b2b" && (
     ["entregue", "nf_nao_expedida"].includes(m.momento) ||
     (previa?.pendencias ?? []).some((p: string) => /desfecho/i.test(p))
@@ -365,25 +387,70 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                       : itensQ.isError ? <Alert variant="destructive"><AlertDescription>{(itensQ.error as Error).message}</AlertDescription></Alert>
                       : !m.nf ? <div className="p-3 text-sm text-muted-foreground">Pedido sem NF.</div>
                       : (
+                        <div>
+                        <div className="flex flex-wrap items-center gap-2 border-b p-2">
+                          <Button type="button" size="sm" variant="outline" onClick={() => setColarAberto((v) => !v)}>Colar lista</Button>
+                          <Input placeholder="Buscar código ou descrição" value={filtroItem} onChange={(e) => setFiltroItem(e.target.value)} className="h-8 w-56" />
+                          <div className="flex items-center gap-2 text-sm">
+                            <Switch id="so-voltam" checked={soVoltam} onCheckedChange={setSoVoltam} />
+                            <Label htmlFor="so-voltam" className="font-normal">Mostrar só itens que voltam</Label>
+                          </div>
+                        </div>
+                        {colarAberto && (
+                          <div className="space-y-2 border-b p-2">
+                            <Textarea rows={5} value={textoColado} onChange={(e) => setTextoColado(e.target.value)}
+                              placeholder={"Cole do Excel: uma linha por item, CÓDIGO e QTD (TAB, ; ou espaço). Sem qtd = qtd cheia da NF."} className="font-mono text-xs" />
+                            <div className="flex gap-2">
+                              <Button type="button" size="sm" disabled={!textoColado.trim()} onClick={() => {
+                                const r = interpretarListaColada(textoColado, itensQ.data ?? []);
+                                setQtds((q) => ({ ...q, ...r.casados }));
+                                setResultadoColagem(r);
+                                setSoVoltam(true);
+                              }}>Aplicar</Button>
+                              <Button type="button" size="sm" variant="ghost" onClick={() => { setColarAberto(false); setTextoColado(""); }}>Fechar</Button>
+                            </div>
+                            {resultadoColagem && (
+                              <div className="space-y-1 text-sm">
+                                <p>{Object.keys(resultadoColagem.casados).length} itens casados · {resultadoColagem.naoEncontrados.length} não encontrados · {resultadoColagem.acimaNf.length} com qtd acima da NF</p>
+                                {resultadoColagem.naoEncontrados.length > 0 && (
+                                  <p className="text-destructive">Não encontrados na NF (não aplicados): {resultadoColagem.naoEncontrados.join(", ")}</p>
+                                )}
+                                {resultadoColagem.acimaNf.length > 0 && (
+                                  <p className="text-destructive">Qtd acima da NF (não aplicados): {resultadoColagem.acimaNf.map((a) => `${a.codigo} (${a.qtd} > ${a.qtdNf})`).join(", ")}</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="max-h-[50vh] overflow-auto">
                         <Table>
-                          <TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Qtd na NF</TableHead><TableHead className="w-28">Qtd que volta</TableHead></TableRow></TableHeader>
+                          <TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Qtd na NF</TableHead><TableHead className="w-40">Qtd que volta <button type="button" className="ml-1 text-xs font-normal text-primary underline" onClick={() => setQtds({})}>zerar todos</button></TableHead></TableRow></TableHeader>
                           <TableBody>
-                            {(itensQ.data ?? []).map((it) => (
+                            {itensVisiveis.map((it) => (
                               <TableRow key={it.codigo}>
                                 <TableCell className="font-mono text-xs">{it.codigo}</TableCell>
                                 <TableCell className="text-sm">{it.descricao}</TableCell>
                                 <TableCell className="text-right">{it.quantidade}</TableCell>
                                 <TableCell>
-                                  <Input type="number" min={0} max={it.quantidade} value={qtds[it.codigo] ?? 0} className="h-8"
+                                  <div className="flex items-center">
+                                  <Input type="number" min={0} max={it.quantidade} value={qtds[it.codigo] ?? 0} className="h-8 w-20"
                                     onChange={(e) => {
                                       const n = Math.max(0, Math.min(Number(it.quantidade), Math.floor(Number(e.target.value) || 0)));
                                       setQtds((q) => ({ ...q, [it.codigo]: n }));
                                     }} />
+                                  <button type="button" className="ml-2 text-xs text-primary underline"
+                                    onClick={() => setQtds((q) => ({ ...q, [it.codigo]: Number(it.quantidade) }))}>tudo</button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
                         </Table>
+                        </div>
+                        <div className="sticky bottom-0 border-t bg-muted p-2 text-sm">
+                          {resumoParcial.itens} itens marcados · {resumoParcial.unidades} unidades · valor pela NF <strong>{formatBRL(resumoParcial.valor)}</strong>
+                        </div>
+                        </div>
                       )}
                   </div>
                 )}
