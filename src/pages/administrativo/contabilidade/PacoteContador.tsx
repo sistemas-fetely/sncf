@@ -11,6 +11,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
+import { PosseCentros } from "@/components/contabil/PosseCentros";
+import { NumeracaoNfs } from "@/components/contabil/NumeracaoNfs";
+import { CABECALHO_BLOCO_K, linhaBlocoK, type LinhaBlocoK } from "@/lib/contabil/numeracaoNf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FileSpreadsheet, Download, Package, AlertTriangle } from "lucide-react";
@@ -211,6 +214,20 @@ export default function PacoteContador() {
         const { data, error } = await supabase.rpc("fn_contabil_posicao", { p_competencia: selecionada! }).range(de, de + 999);
         if (error) throw error;
         out.push(...((data ?? []) as unknown as LinhaPosicao[]));
+        if (!data || data.length < 1000) return out;
+      }
+    },
+  });
+
+  const blocoK = useQuery({
+    queryKey: ["contabil-bloco-k", selecionada],
+    enabled: !!selecionada,
+    queryFn: async () => {
+      const out: (LinhaBlocoK & { sem_ncm: boolean; sem_unidade: boolean; posse: string | null })[] = [];
+      for (let de = 0; ; de += 1000) {
+        const { data, error } = await (supabase as any).rpc("fn_contabil_bloco_k", { p_competencia: selecionada! }).range(de, de + 999);
+        if (error) throw error;
+        out.push(...(data ?? []));
         if (!data || data.length < 1000) return out;
       }
     },
@@ -419,6 +436,9 @@ export default function PacoteContador() {
       XLSX.utils.book_append_sheet(wb, wsPrevia, "PRÉVIA");
     }
     XLSX.utils.book_append_sheet(wb, wsPosicao, "Posição de Estoque");
+    const wsBlocoK = XLSX.utils.aoa_to_sheet([CABECALHO_BLOCO_K, ...(blocoK.data ?? []).map(linhaBlocoK)]);
+    wsBlocoK["!cols"] = [{ wch: 14 }, { wch: 46 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 30 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, wsBlocoK, "Bloco K");
     XLSX.utils.book_append_sheet(wb, wsVendas, "Vendas do Período");
     XLSX.utils.book_append_sheet(wb, wsNfs, "NFs do Período");
 
@@ -516,8 +536,8 @@ export default function PacoteContador() {
     return lista;
   }, [historico, buscaHist, sort]);
 
-  const carregandoPrevia = posicao.isLoading || vendas.isLoading || nfs.isLoading;
-  const erroPrevia = posicao.error || vendas.error || nfs.error;
+  const carregandoPrevia = posicao.isLoading || blocoK.isLoading || vendas.isLoading || nfs.isLoading;
+  const erroPrevia = posicao.error || blocoK.error || vendas.error || nfs.error;
 
   const Bloco = ({
     titulo,
@@ -652,6 +672,8 @@ export default function PacoteContador() {
 
       {/* ZONA 4 — geração (barra de ações sob a prévia) */}
       {selecionada && <ExtratosMensais competencia={selecionada} />}
+      {selecionada && <NumeracaoNfs competencia={selecionada} />}
+      {selecionada && <PosseCentros />}
       <AlertDialog open={confirmarSemExtratos} onOpenChange={setConfirmarSemExtratos}>
         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Extratos do mês pendentes</AlertDialogTitle><AlertDialogDescription>Faltam {faltamExtratos.length} extratos do mês: {faltamExtratos.map(c=>c.nome_exibicao).join(", ")}.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={()=>gerar.mutate()}>Gerar mesmo assim</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>

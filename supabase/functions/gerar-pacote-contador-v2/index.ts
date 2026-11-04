@@ -264,6 +264,16 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
   }
   entradas.push({ zip: nomeUnico("01_relatorios/resumo.pdf"), path: resumoPath }); conta("01_relatorios");
 
+  // Bloco K (posse por centro, NCM/unidade) e numeração das NFs (canceladas, inutilizadas, buracos)
+  const blocoK = resumoBlocoK(await todas(userDb.rpc("fn_contabil_bloco_k", { p_competencia: rem.competencia })));
+  const numeracao = resumoNumeracao(await todas(userDb.rpc("fn_contabil_nf_numeracao", { p_competencia: rem.competencia })));
+  const numPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/canceladas_inutilizadas.csv`;
+  if (!simular) {
+    const up = await admin.storage.from(BUCKET).upload(numPath, new Blob([csvNumeracao(numeracao.itens)], { type: "text/csv" }), { contentType: "text/csv", upsert: true });
+    if (up.error) throw new Error(`Falha ao gravar Canceladas e inutilizadas: ${up.error.message}`);
+  }
+  entradas.push({ zip: nomeUnico(`01_relatorios/Canceladas_e_inutilizadas_${ini.slice(5, 7)}-${ini.slice(0, 4)}.csv`), path: numPath }); conta("01_relatorios");
+
   // 02_nfs_saida
   const nfs = await todas(admin.from("nfs_emitidas").select("id,numero,serie,situacao,valor_nota,xml_storage_path,pdf_storage_path,pdf_origem,arquivos_erro")
     .eq("tipo", "saida").gte("data_emissao", ini).lte("data_emissao", `${fimP}T23:59:59`).order("numero"));
@@ -384,8 +394,44 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     faltantes: faltantesTipados,
     avisos_extratos_mensais: avisosMensais,
     arquivos_apoio_sem_original: {total:semArq.length,itens:semArq.map(descImp)},
+    bloco_k: blocoK, numeracao_nf: { ...numeracao, itens: undefined, detalhe: numeracao.itens },
   };
   return { entradas, manifesto };
+}
+
+const DOC = (c: string | null) => c && c.length === 14 ? `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}` : (c ?? "não identificado");
+
+function resumoBlocoK(linhas: any[]) {
+  const porPosse: Record<string, { linhas: number; unidades: number; valor: number }> = {};
+  const semCad = new Map<string, { sku: string; codigo: string; produto: string; sem_ncm: boolean; sem_unidade: boolean }>();
+  const aConfirmar = new Set<string>(), semCnpj = new Set<string>();
+  for (const l of linhas) {
+    const k = l.posse_rotulo ?? "a confirmar";
+    porPosse[k] ??= { linhas: 0, unidades: 0, valor: 0 };
+    porPosse[k].linhas++; porPosse[k].unidades += Number(l.quantidade ?? 0); porPosse[k].valor = Math.round((porPosse[k].valor + Number(l.valor_total ?? 0)) * 100) / 100;
+    if (l.sem_ncm || l.sem_unidade) semCad.set(l.sku, { sku: l.sku, codigo: l.codigo_produto, produto: l.produto, sem_ncm: !!l.sem_ncm, sem_unidade: !!l.sem_unidade });
+    if (!l.posse) aConfirmar.add(l.centro);
+    if (l.posse && l.posse !== "proprio" && !l.participante_cnpj) semCnpj.add(l.centro);
+  }
+  const sem = [...semCad.values()];
+  return { linhas: linhas.length, por_posse: porPosse,
+    produtos_sem_cadastro: { total: sem.length, sem_ncm: sem.filter((s) => s.sem_ncm).length, sem_unidade: sem.filter((s) => s.sem_unidade).length, itens: sem },
+    centros_posse_a_confirmar: [...aConfirmar], centros_sem_cnpj_participante: [...semCnpj] };
+}
+
+function resumoNumeracao(itens: any[]) {
+  const c = (o: string) => itens.filter((i) => i.ocorrencia === o).length;
+  const pend = itens.filter((i) => (i.ocorrencia === "buraco" || i.ocorrencia === "nao_autorizada") && i.dentro_prazo);
+  return { canceladas: c("cancelada"), inutilizadas: c("inutilizada"), nao_autorizadas: c("nao_autorizada"), buracos: c("buraco"),
+    pendentes_no_prazo: pend.length, prazo_inutilizacao: itens.find((i) => i.prazo_inutilizacao)?.prazo_inutilizacao ?? null, itens };
+}
+
+const ROT_OCORRENCIA: Record<string, string> = { cancelada: "Cancelada", inutilizada: "Inutilizada", nao_autorizada: "Não autorizada", buraco: "Não identificada" };
+function csvNumeracao(itens: any[]): string {
+  const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const L = [["Emitente (CNPJ)", "Série", "Número", "Ocorrência", "Data", "Detalhe", "Prazo de inutilização"].map(q).join(";")];
+  for (const i of itens) L.push([DOC(i.emitente_cnpj), i.serie, i.numero, ROT_OCORRENCIA[i.ocorrencia] ?? i.ocorrencia, i.data_emissao ?? "", i.detalhe, i.prazo_inutilizacao ?? ""].map(q).join(";"));
+  return "\uFEFF" + L.join("\r\n") + "\r\n";
 }
 
 async function todas(q: any): Promise<any[]> {
@@ -453,6 +499,21 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
   for(const a of m.avisos_extratos_mensais??[]) L.push(`  AVISO ${a.conta}: ${a.avisos.join("; ")}`);
   L.push("",`ARQUIVOS DE APOIO SEM ORIGINAL (${m.arquivos_apoio_sem_original?.total??0}) — informativo`);
   for (const [k, v] of Object.entries(m.bancos ?? {}) as [string, any][]) L.push(`  ${k}: ${v.importacoes} importação(ões), ${v.com_arquivo} com arquivo, ${v.linhas ?? 0} linhas, saldo inicial ${brl(v.saldo_inicial)}, final ${brl(v.saldo_final)}, ${v.nao_conciliadas ?? 0} não conciliadas`);
+  if (m.bloco_k) {
+    const b = m.bloco_k;
+    L.push("", `BLOCO K (${b.linhas} linhas)`);
+    for (const [k, v] of Object.entries(b.por_posse ?? {}) as [string, any][]) L.push(`  ${k}: ${v.linhas} linhas, ${v.unidades} un, ${brl(v.valor)}`);
+    for (const c of b.centros_posse_a_confirmar ?? []) L.push(`  AVISO: centro ${c} com "estoque em poder de" a confirmar`);
+    for (const c of b.centros_sem_cnpj_participante ?? []) L.push(`  AVISO: centro ${c} em poder de terceiros sem CNPJ do participante`);
+    L.push(`  Produtos sem NCM/unidade: ${b.produtos_sem_cadastro.total} (sem NCM ${b.produtos_sem_cadastro.sem_ncm}, sem unidade ${b.produtos_sem_cadastro.sem_unidade})`);
+    for (const p of b.produtos_sem_cadastro.itens ?? []) L.push(`    ${p.codigo} ${p.produto}: ${[p.sem_ncm ? "sem NCM" : "", p.sem_unidade ? "sem unidade" : ""].filter(Boolean).join(", ")}`);
+  }
+  if (m.numeracao_nf) {
+    const n = m.numeracao_nf;
+    L.push("", `NUMERAÇÃO DAS NFs — canceladas ${n.canceladas}, inutilizadas ${n.inutilizadas}, não autorizadas ${n.nao_autorizadas}, não identificadas ${n.buracos}`);
+    if (n.pendentes_no_prazo) L.push(`  ALERTA: ${n.pendentes_no_prazo} número(s) sem NF autorizada — inutilizar até ${n.prazo_inutilizacao}`);
+    for (const i of (n.detalhe ?? []).filter((x: any) => x.ocorrencia !== "cancelada")) L.push(`  ${DOC(i.emitente_cnpj)} série ${i.serie} nº ${i.numero}: ${i.detalhe}`);
+  }
   L.push("", `NFs CANCELADAS (${(m.eventos_nf ?? []).length}) - evento de cancelamento/CC-e indisponível na origem`);
   for (const e of m.eventos_nf ?? []) L.push(`  NF ${e.numero}`);
   if (m.cobertas_reimportacao?.total) {

@@ -13811,7 +13811,9 @@ export type Database = {
           numero: string | null
           ordem: number
           parceiro_id: string | null
+          participante_cnpj: string | null
           poder_de_terceiro: boolean
+          posse: string | null
           prazo_contagem_dias: number | null
           razao_remetente: string | null
           rota_recebimento_compra: string | null
@@ -13841,7 +13843,9 @@ export type Database = {
           numero?: string | null
           ordem?: number
           parceiro_id?: string | null
+          participante_cnpj?: string | null
           poder_de_terceiro?: boolean
+          posse?: string | null
           prazo_contagem_dias?: number | null
           razao_remetente?: string | null
           rota_recebimento_compra?: string | null
@@ -13871,7 +13875,9 @@ export type Database = {
           numero?: string | null
           ordem?: number
           parceiro_id?: string | null
+          participante_cnpj?: string | null
           poder_de_terceiro?: boolean
+          posse?: string | null
           prazo_contagem_dias?: number | null
           razao_remetente?: string | null
           rota_recebimento_compra?: string | null
@@ -14007,6 +14013,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_venda_direta_gestao"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "centro_distribuicao_posse_fkey"
+            columns: ["posse"]
+            isOneToOne: false
+            referencedRelation: "estoque_posse_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -32125,6 +32138,24 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_posse_dim: {
+        Row: {
+          codigo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       estoque_prontidao: {
         Row: {
           atendido: boolean
@@ -48205,6 +48236,45 @@ export type Database = {
           exige_apuracao?: boolean
           ordem?: number
           rotulo?: string
+        }
+        Relationships: []
+      }
+      nf_inutilizacao: {
+        Row: {
+          data_inutilizacao: string
+          emitente_cnpj: string
+          id: string
+          justificativa: string
+          numero_final: number
+          numero_inicial: number
+          protocolo: string | null
+          registrado_em: string
+          registrado_por: string | null
+          serie: string
+        }
+        Insert: {
+          data_inutilizacao: string
+          emitente_cnpj: string
+          id?: string
+          justificativa: string
+          numero_final: number
+          numero_inicial: number
+          protocolo?: string | null
+          registrado_em?: string
+          registrado_por?: string | null
+          serie: string
+        }
+        Update: {
+          data_inutilizacao?: string
+          emitente_cnpj?: string
+          id?: string
+          justificativa?: string
+          numero_final?: number
+          numero_inicial?: number
+          protocolo?: string | null
+          registrado_em?: string
+          registrado_por?: string | null
+          serie?: string
         }
         Relationships: []
       }
@@ -132115,14 +132185,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -148079,14 +148149,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -157152,6 +157222,35 @@ export type Database = {
           valor_alocado: number
         }[]
       }
+      fn_contabil_bloco_k: {
+        Args: { p_competencia: string }
+        Returns: {
+          centro: string
+          codigo_produto: string
+          fonte: string
+          ncm: string
+          participante_cnpj: string
+          participante_nome: string
+          posse: string
+          posse_rotulo: string
+          produto: string
+          quantidade: number
+          sem_ncm: boolean
+          sem_unidade: boolean
+          sku: string
+          unidade: string
+          valor_total: number
+          valor_unitario: number
+        }[]
+      }
+      fn_contabil_centro_posse_salvar: {
+        Args: {
+          p_centro_id: string
+          p_participante_cnpj: string
+          p_posse: string
+        }
+        Returns: undefined
+      }
       fn_contabil_evolucao_mensal: {
         Args: never
         Returns: {
@@ -157222,6 +157321,19 @@ export type Database = {
           gate: string
           quantidade: number
           severidade: string
+        }[]
+      }
+      fn_contabil_nf_numeracao: {
+        Args: { p_competencia: string }
+        Returns: {
+          data_emissao: string
+          dentro_prazo: boolean
+          detalhe: string
+          emitente_cnpj: string
+          numero: number
+          ocorrencia: string
+          prazo_inutilizacao: string
+          serie: string
         }[]
       }
       fn_contabil_posicao: {
@@ -158416,6 +158528,18 @@ export type Database = {
       fn_nf_gerar_titulos_lote: {
         Args: { p_dry_run?: boolean; p_nf_ids?: string[] }
         Returns: Json
+      }
+      fn_nf_inutilizacao_registrar: {
+        Args: {
+          p_data: string
+          p_emitente_cnpj: string
+          p_final: number
+          p_inicial: number
+          p_justificativa: string
+          p_protocolo: string
+          p_serie: string
+        }
+        Returns: string
       }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }

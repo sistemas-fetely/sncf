@@ -498,6 +498,13 @@
       "when": 1793751418100,
       "tag": "0070_dre_meses_fonte_resultado",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793785552746,
+      "tag": "0071_contabil_bloco_k_e_numeracao_nf",
+      "breakpoints": true
     }
   ]
 }
