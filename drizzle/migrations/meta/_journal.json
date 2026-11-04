@@ -533,6 +533,13 @@
       "when": 1793835227086,
       "tag": "0075_devolucao_troca_credito_so_pago",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793836195456,
+      "tag": "0076_devolucao_troca_fora_da_trava_credito",
+      "breakpoints": true
     }
   ]
 }
