@@ -25,8 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import {
-  BUCKET_DOCUMENTO, ORDEM_ETAPA, TIPO_DOCUMENTO, competenciaCorrente, competenciasRecentes,
-  datasDaCompetencia, lerCiclo, type LinhaCiclo,
+  BUCKET_DOCUMENTO, ORDEM_ETAPA, ORIGEM_DOCUMENTO, TIPO_DOCUMENTO, competenciaCorrente, competenciasRecentes,
+  datasDaCompetencia, lerCiclo, lerNfsSemExtrato, type LinhaCiclo, type NfSemExtrato,
 } from "./cicloMensal";
 
 type Res = Record<string, any>;
@@ -268,6 +268,15 @@ export function AbaCicloMensal() {
     if (q.error) toast.error(`Falha ao carregar o ciclo: ${formatError(q.error)}`);
   }, [q.error]);
 
+  const nfSemExtratoQ = useQuery({
+    queryKey: ["comissao-nf-sem-extrato"],
+    queryFn: lerNfsSemExtrato,
+  });
+  useEffect(() => {
+    if (nfSemExtratoQ.error) toast.error(`Falha ao carregar NFs sem extrato: ${formatError(nfSemExtratoQ.error)}`);
+  }, [nfSemExtratoQ.error]);
+  const nfsSemExtrato = nfSemExtratoQ.data ?? [];
+
   const linhas = q.data ?? [];
 
   // Pré-seleção: quem está em "1_fechado" com valor > 0.
@@ -324,6 +333,7 @@ export function AbaCicloMensal() {
       qc.invalidateQueries({ queryKey: ["comissao-ciclo"] }),
       qc.invalidateQueries({ queryKey: ["comissao-extratos-fechados"] }),
       qc.invalidateQueries({ queryKey: ["comissao-extrato"] }),
+      qc.invalidateQueries({ queryKey: ["comissao-nf-sem-extrato"] }),
     ]);
   }
 
@@ -465,6 +475,16 @@ export function AbaCicloMensal() {
                             {TIPO_DOCUMENTO[l.tipo_documento ?? ""] ?? l.tipo_documento} {l.documento_numero}
                             {" · "}<span className="tabular-nums">{fmtBRL(l.documento_valor)}</span>
                           </div>
+                          {l.documento_origem && (
+                            <Badge variant="outline" className={cn(
+                              "whitespace-nowrap",
+                              l.documento_origem === "nf_stage"
+                                ? "bg-info/15 text-info border-info/30"
+                                : "bg-muted text-muted-foreground border-border",
+                            )}>
+                              {ORIGEM_DOCUMENTO[l.documento_origem] ?? l.documento_origem}
+                            </Badge>
+                          )}
                           {l.documento_arquivo && (
                             <button type="button" className="inline-flex items-center gap-1 underline"
                               onClick={() => abrirArquivo(l.documento_arquivo as string)}>
@@ -507,6 +527,47 @@ export function AbaCicloMensal() {
           </Table>
         )}
       </CardContent></Card>
+
+      {/* NF de representante capturada da Qive que não casou com nenhum extrato aberto */}
+      {nfsSemExtrato.length > 0 && (
+        <Card><CardContent className="p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-medium">NF de representante sem extrato</h3>
+            <p className="text-xs text-muted-foreground">
+              NF-e capturada automaticamente que não casou com nenhum extrato aberto — o ciclo não paga enquanto não houver extrato.
+            </p>
+          </div>
+          {nfSemExtratoQ.isLoading ? (
+            <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Representante</TableHead>
+                <TableHead>PJ emissora</TableHead>
+                <TableHead>Nº NF</TableHead>
+                <TableHead>Emissão</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Capturada em</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {nfsSemExtrato.map((n) => (
+                  <TableRow key={n.nfs_stage_id ?? `${n.nf_numero}-${n.capturada_em}`}>
+                    <TableCell className="font-medium">
+                      {n.representante ?? "—"}
+                      {n.cnpj && <div className="text-xs text-muted-foreground">{n.cnpj}</div>}
+                    </TableCell>
+                    <TableCell className="text-xs">{n.pj ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{n.nf_numero ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{fmtData(n.nf_data_emissao)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtBRL(n.valor)}</TableCell>
+                    <TableCell className="text-xs">{fmtData(n.capturada_em)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent></Card>
+      )}
 
       {/* confirmação do envio em lote */}
       <Dialog open={confirmarEnvio} onOpenChange={(o) => !o && !enviando && setConfirmarEnvio(false)}>

@@ -39,6 +39,13 @@ export const TIPO_DOCUMENTO: Record<string, string> = {
   rpa: "RPA",
 };
 
+/** Selos de origem do documento fiscal do extrato — rótulos fixos, não são permissão. */
+export const ORIGEM_DOCUMENTO: Record<string, string> = {
+  nf_stage: "Capturada automaticamente",
+  portal: "Enviada pelo portal",
+  interno: "Registrada internamente",
+};
+
 /** Ordem das etapas do ciclo — usada para contadores e para liberar ações. */
 export const ORDEM_ETAPA: Record<string, number> = {
   "0_zerado": -1,
@@ -84,4 +91,30 @@ export async function lerCiclo(competencia: string): Promise<LinhaCiclo[]> {
     .order("valor_total", { ascending: false });
   if (error) throw error;
   return (data ?? []) as LinhaCiclo[];
+}
+
+export interface NfSemExtrato {
+  nfs_stage_id: string | null;
+  vendedor_id: string | null;
+  representante: string | null;
+  pj: string | null;
+  cnpj: string | null;
+  nf_numero: string | null;
+  nf_data_emissao: string | null;
+  valor: number | null;
+  descricao: string | null;
+  capturada_em: string | null;
+}
+
+/**
+ * NF-e de representante capturada da Qive que não casou com nenhum extrato aberto
+ * (`vw_comissao_nf_sem_extrato`). Fila global — não depende da competência selecionada.
+ */
+export async function lerNfsSemExtrato(): Promise<NfSemExtrato[]> {
+  const { data, error } = await (supabase as any)
+    .from("vw_comissao_nf_sem_extrato")
+    .select("*")
+    .order("capturada_em", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as NfSemExtrato[];
 }
