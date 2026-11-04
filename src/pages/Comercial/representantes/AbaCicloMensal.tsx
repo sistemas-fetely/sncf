@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FileText, Loader2, Mail, Paperclip, Send } from "lucide-react";
+import { Download, FileText, Loader2, Mail, Paperclip, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,39 @@ function seloEtapa(l: LinhaCiclo) {
   if (e === "7_transportado") return { txt: `Transportado para ${mmAaaa(l.transportado_para_competencia)}`, cls: "bg-muted text-muted-foreground border-border" };
   if (e === "6_pago") return { txt: `Pago em ${fmtData(l.pago_em)}`, cls: "bg-success/15 text-success border-success/30" };
   return { txt: e || "—", cls: "bg-muted text-muted-foreground border-border" };
+}
+
+/* ---------------- exportar CSV da competência (base extrato) ---------------- */
+async function exportarCsvCiclo(competencia: string, linhas: LinhaCiclo[]) {
+  try {
+    const ids = linhas.map((l) => l.extrato_id);
+    const nfsPorExtrato = new Map<string, string>();
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await (supabase as any).from("comissao_extrato").select("id,detalhe").in("id", ids.slice(i, i + 200));
+      if (error) throw error;
+      for (const e of data ?? []) {
+        const itens = Array.isArray(e.detalhe) ? e.detalhe : [];
+        const nfs = [...new Set(itens.filter((d: any) => d?.tipo === "liberacao" && d?.nf).map((d: any) => String(d.nf)))];
+        nfsPorExtrato.set(e.id, nfs.join(", "));
+      }
+    }
+    const esc = (v: unknown) => { const s = v == null ? "" : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const dec = (v: number | null) => (v == null ? "" : Number(v).toFixed(2).replace(".", ","));
+    const cab = ["competencia", "representante", "email", "valor_total", "saldo_anterior", "pagar_ate", "etapa", "documento", "titulo", "pendencia", "nfs_incluidas"];
+    const corpo = linhas.map((l) => {
+      const doc = l.documento_id ? [TIPO_DOCUMENTO[l.tipo_documento ?? ""] ?? l.tipo_documento, l.documento_numero, l.documento_status].filter(Boolean).join(" · ") : "";
+      return [String(l.competencia ?? "").slice(0, 7), l.representante, l.email_contato, dec(l.valor_total), dec(l.saldo_anterior),
+        l.pagar_ate ?? "", seloEtapa(l).txt, doc, l.cpr_status ?? "", l.pendencia ?? "", nfsPorExtrato.get(l.extrato_id) ?? ""].map(esc).join(";");
+    });
+    const blob = new Blob(["\uFEFF" + [cab.join(";"), ...corpo].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `ciclo-comissao-${competencia}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`CSV de ${fmtCompetencia(`${competencia}-01`)} exportado (${linhas.length} linha${linhas.length === 1 ? "" : "s"}).`);
+  } catch (e) {
+    toast.error(`Falha ao exportar: ${formatError(e)}`);
+  }
 }
 
 /* ---------------- abrir o arquivo do documento ---------------- */
@@ -415,6 +448,10 @@ export function AbaCicloMensal() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex gap-2">
+        <Button variant="outline" disabled={linhas.length === 0} onClick={() => exportarCsvCiclo(competencia, linhas)}>
+          <Download className="h-4 w-4" />Exportar CSV
+        </Button>
         <Button
           className="bg-gold text-background hover:bg-gold/90"
           disabled={sel.size === 0 || enviando}
@@ -422,6 +459,7 @@ export function AbaCicloMensal() {
         >
           <Send className="h-4 w-4" />Enviar extratos{sel.size > 0 ? ` (${sel.size})` : ""}
         </Button>
+        </div>
       </div>
 
       <Card><CardContent className="flex flex-wrap items-center gap-x-2 gap-y-1 p-4 text-sm">
