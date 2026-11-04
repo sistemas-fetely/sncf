@@ -13,6 +13,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { PosseCentros } from "@/components/contabil/PosseCentros";
 import { NumeracaoNfs } from "@/components/contabil/NumeracaoNfs";
+import { RetencoesNfse } from "@/components/contabil/RetencoesNfse";
+import { DocumentosDespesaMes, useDocumentosDespesa } from "@/components/contabil/DocumentosDespesaMes";
+import { faltantesDespesa } from "@/lib/contabil/documentosDespesa";
 import { CABECALHO_BLOCO_K, linhaBlocoK, type LinhaBlocoK } from "@/lib/contabil/numeracaoNf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -176,6 +179,8 @@ export default function PacoteContador() {
   const [selecionada, setSelecionada] = useState<string | null>(null);
   const extratosMensais = useExtratosMensais(selecionada);
   const faltamExtratos = extratosMensais.data?.filter(c => !c.extrato) ?? [];
+  const documentosDespesa = useDocumentosDespesa(selecionada);
+  const faltamDespesa = faltantesDespesa(documentosDespesa.data?.tipos ?? []);
   const [confirmarSemExtratos, setConfirmarSemExtratos] = useState(false);
   const [buscaHist, setBuscaHist] = useState("");
   const [sort, setSort] = useState<SortState<"competencia" | "versao" | "gerado_em"> | null>(null);
@@ -672,10 +677,12 @@ export default function PacoteContador() {
 
       {/* ZONA 4 — geração (barra de ações sob a prévia) */}
       {selecionada && <ExtratosMensais competencia={selecionada} />}
+      {selecionada && <RetencoesNfse competencia={selecionada} />}
+      {selecionada && <DocumentosDespesaMes competencia={selecionada} />}
       {selecionada && <NumeracaoNfs competencia={selecionada} />}
       {selecionada && <PosseCentros />}
       <AlertDialog open={confirmarSemExtratos} onOpenChange={setConfirmarSemExtratos}>
-        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Extratos do mês pendentes</AlertDialogTitle><AlertDialogDescription>Faltam {faltamExtratos.length} extratos do mês: {faltamExtratos.map(c=>c.nome_exibicao).join(", ")}.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={()=>gerar.mutate()}>Gerar mesmo assim</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Documentos do mês pendentes</AlertDialogTitle><AlertDialogDescription>{faltamExtratos.length > 0 && <>Faltam {faltamExtratos.length} extratos do mês: {faltamExtratos.map(c=>c.nome_exibicao).join(", ")}. </>}{faltamDespesa.length > 0 && <>Faltam {faltamDespesa.length} documentos de despesa: {faltamDespesa.map(t=>t.nome).join(", ")}.</>}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={()=>gerar.mutate()}>Gerar mesmo assim</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
       {comp && temNivel(3) && (
         <section className="rounded-lg border bg-card p-4 shadow-sm">
@@ -683,8 +690,8 @@ export default function PacoteContador() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              disabled={!podeGerar || carregandoPrevia || gerar.isPending || extratosMensais.isLoading || !!extratosMensais.error}
-              onClick={() => faltamExtratos.length ? setConfirmarSemExtratos(true) : gerar.mutate()}
+              disabled={!podeGerar || carregandoPrevia || gerar.isPending || extratosMensais.isLoading || !!extratosMensais.error || documentosDespesa.isLoading || !!documentosDespesa.error}
+              onClick={() => faltamExtratos.length || faltamDespesa.length ? setConfirmarSemExtratos(true) : gerar.mutate()}
             >
               <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
               {gerar.isPending ? "Gerando…" : preFechada ? "Gerar prévia" : "Gerar pacote"}

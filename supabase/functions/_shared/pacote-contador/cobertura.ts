@@ -62,7 +62,7 @@ export function separarCobertas(semArquivo: ImportacaoBanco[], comArquivo: Impor
   return { cobertas, faltantes };
 }
 
-export type TipoFaltante = "bancario" | "mercado_pago" | "xml_entrada" | "nf_cancelada" | "devolucao" | "outros";
+export type TipoFaltante = "bancario" | "mercado_pago" | "xml_entrada" | "nf_cancelada" | "devolucao" | "despesa" | "outros";
 
 /** Tipo do faltante pela pasta (e fonte, para separar Mercado Pago dos bancos). */
 export function tipoFaltante(pasta: string, fonteTipo?: string | null): TipoFaltante {
@@ -70,6 +70,7 @@ export function tipoFaltante(pasta: string, fonteTipo?: string | null): TipoFalt
   if (pasta.startsWith("03_nfs_entrada")) return "xml_entrada";
   if (pasta.startsWith("02_nfs_saida/canceladas")) return "nf_cancelada";
   if (pasta.startsWith("02_nfs_saida/devolucoes")) return "devolucao";
+  if (pasta.startsWith("05_despesas")) return "despesa";
   return "outros";
 }
 

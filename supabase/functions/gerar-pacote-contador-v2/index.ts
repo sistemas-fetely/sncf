@@ -8,6 +8,7 @@ import { Zip, ZipDeflate, ZipPassThrough } from "npm:fflate@0.8.2";
 import { PDFDocument, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { causaXmlEntrada, separarCobertas, tipoFaltante } from "../_shared/pacote-contador/cobertura.ts";
 import { assinarPartes, BUCKET, enviarEmailRemessa, type Parte } from "../_shared/pacote-contador/remessa.ts";
+import { montarRetencoes, xlsxRetencoes } from "../_shared/pacote-contador/retencoes.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
 const HEARTBEAT_VIVO_MS = 90_000;
@@ -32,6 +33,13 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, erro: "JSON inválido" }, 400); }
+  if (body?.retencoes === true) {
+    const comp = String(body.competencia ?? "");
+    if (!/^\d{4}-\d{2}-01$/.test(comp)) return json({ ok: false, erro: "Competência inválida" }, 400);
+    const [a, m] = comp.split("-").map(Number);
+    const fimMes = new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10);
+    try { return json({ ok: true, ...(await montarRetencoes(createClient(url, service), userDb, comp, fimMes)) }); } catch (e) { return json({ ok: false, erro: msg(e) }, 500); }
+  }
   if (body?.simular === true) {
     const comp = String(body.competencia ?? "");
     if (!/^\d{4}-\d{2}-01$/.test(comp)) return json({ok:false,erro:"Competência inválida"},400);
@@ -274,6 +282,38 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
   }
   entradas.push({ zip: nomeUnico(`01_relatorios/Canceladas_e_inutilizadas_${ini.slice(5, 7)}-${ini.slice(0, 4)}.csv`), path: numPath }); conta("01_relatorios");
 
+  // Retenções de NFS-e tomadas (planilha do escritório) + 05_despesas
+  const ret = await montarRetencoes(admin, userDb, ini, fimP);
+  const retPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/retencoes_nfse.xlsx`;
+  if (!simular) {
+    const up = await admin.storage.from(BUCKET).upload(retPath, xlsxRetencoes(ret.itens, `${ini.slice(5, 7)}/${ini.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
+    if (up.error) throw new Error(`Falha ao gravar planilha de retenções: ${up.error.message}`);
+  }
+  entradas.push({ zip: nomeUnico(`01_relatorios/Pagamentos_NFS-e_Servicos_Tomados_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: retPath }); conta("01_relatorios");
+  for (const e of ret.erros_leitura) faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${e.numero ?? "?"}`, motivo: e.erro });
+  pastas["05_despesas/nfse"] ??= { arquivos: 0 };
+  for (const n of ret.nfse) {
+    if (!n.resumo_pdf_storage_path) { faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${n.numero ?? "?"} · ${n.prestador ?? "?"}`, motivo: "PDF (resumo do XML) não gerado — rode 'Gerar PDFs das NFS-e'" }); continue; }
+    entradas.push({ zip: nomeUnico(`05_despesas/nfse/${seguro(`${n.numero ?? "sn"} - ${n.prestador ?? ""}`).slice(0, 80)}.pdf`), path: n.resumo_pdf_storage_path }); conta("05_despesas/nfse");
+  }
+  const tiposDesp = await todas(admin.from("contabil_documento_despesa_tipo").select("id,nome,pasta,periodicidade,local").eq("ativo", true));
+  const docsDesp = await todas(admin.from("contabil_documento_despesa").select("id,competencia,tipo_id,pasta,storage_path,nome_arquivo").eq("vigente", true).lte("competencia", rem.competencia));
+  const docsMes = docsDesp.filter((d: any) => d.competencia === rem.competencia);
+  for (const d of docsMes) { entradas.push({ zip: nomeUnico(`05_despesas/${d.pasta}/${seguro(d.nome_arquivo)}`), path: d.storage_path }); conta(`05_despesas/${d.pasta}`); }
+  const despesaFaltam: string[] = [];
+  for (const t of tiposDesp) {
+    const tem = t.periodicidade === "contrato_vigente" ? docsDesp.some((d: any) => d.tipo_id === t.id) : docsMes.some((d: any) => d.tipo_id === t.id);
+    if (t.periodicidade === "contrato_vigente" && tem && !docsMes.some((d: any) => d.tipo_id === t.id)) {
+      const d = docsDesp.filter((x: any) => x.tipo_id === t.id).sort((a: any, b: any) => String(b.competencia).localeCompare(String(a.competencia)))[0];
+      entradas.push({ zip: nomeUnico(`05_despesas/${d.pasta}/${seguro(d.nome_arquivo)}`), path: d.storage_path }); conta(`05_despesas/${d.pasta}`);
+    }
+    if (!tem) { despesaFaltam.push(t.nome); faltantes.push({ pasta: `05_despesas/${t.pasta}`, referencia: t.nome + (t.local ? ` · ${t.local}` : ""), motivo: `Documento de ${ini.slice(5, 7)}/${ini.slice(0, 4)} não enviado` }); }
+  }
+  const retencoesManifesto = { total_nfse: ret.total_nfse, lidas: ret.lidas, erros_leitura: ret.erros_leitura, com_retencao: ret.com_retencao, totais: ret.totais,
+    pagamento_nao_confirmado: ret.nao_localizados, pdf: ret.pdf,
+    itens: ret.itens.map((i: any) => ({ numero: i.numero, emissao: i.emissao, prestador: i.prestador, bruto: i.bruto, ir: i.ir, pis: i.pis, cofins: i.cofins, csll: i.csll, inss: i.inss, liquido: i.liquido, situacao: i.situacao, pagamento: i.pagamento ? { data: i.pagamento.data, valor: i.pagamento.valor, descricao: i.pagamento.descricao } : null, observacoes: i.observacoes })) };
+  const despesasManifesto = { tipos_esperados: tiposDesp.length, enviados_no_mes: docsMes.length, faltam: despesaFaltam };
+
   // 02_nfs_saida
   const nfs = await todas(admin.from("nfs_emitidas").select("id,numero,serie,situacao,valor_nota,xml_storage_path,pdf_storage_path,pdf_origem,arquivos_erro")
     .eq("tipo", "saida").gte("data_emissao", ini).lte("data_emissao", `${fimP}T23:59:59`).order("numero"));
@@ -382,7 +422,7 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
   }
 
   const faltantesTipados = faltantes.map(({ fonte, ...f }) => ({ ...f, tipo: tipoFaltante(f.pasta, fonte) }));
-  const porTipo: Record<string, number> = { bancario: 0, xml_entrada: 0, mercado_pago: 0, nf_cancelada: 0, devolucao: 0, outros: 0 };
+  const porTipo: Record<string, number> = { bancario: 0, xml_entrada: 0, mercado_pago: 0, nf_cancelada: 0, devolucao: 0, despesa: 0, outros: 0 };
   for (const f of faltantesTipados) porTipo[f.tipo]++;
   const manifesto = {
     competencia: rem.competencia, versao: rem.versao, gerado_por: rem.gerado_por,
@@ -395,6 +435,7 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     avisos_extratos_mensais: avisosMensais,
     arquivos_apoio_sem_original: {total:semArq.length,itens:semArq.map(descImp)},
     bloco_k: blocoK, numeracao_nf: { ...numeracao, itens: undefined, detalhe: numeracao.itens },
+    retencoes_nfse: retencoesManifesto, documentos_despesa: despesasManifesto,
   };
   return { entradas, manifesto };
 }
@@ -471,9 +512,19 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
   const L: string[] = [...(m.natureza === "previa" ? [CABECALHO_PREVIA, ""] : []), `Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, ""];
   if (m.faltantes_por_tipo) {
     const t = m.faltantes_por_tipo;
-    L.push(`FALTANTES: ${(m.faltantes ?? []).length} — bancário ${t.bancario}, XML de entrada ${t.xml_entrada}, Mercado Pago ${t.mercado_pago}, NF cancelada ${t.nf_cancelada}, devolução ${t.devolucao}${t.outros ? `, outros ${t.outros}` : ""}`);
+    L.push(`FALTANTES: ${(m.faltantes ?? []).length} — bancário ${t.bancario}, XML de entrada ${t.xml_entrada}, Mercado Pago ${t.mercado_pago}, NF cancelada ${t.nf_cancelada}, devolução ${t.devolucao}, despesa ${t.despesa ?? 0}${t.outros ? `, outros ${t.outros}` : ""}`);
     if (m.cobertas_reimportacao) L.push(`Importações sem original cobertas por reimportação: ${m.cobertas_reimportacao.total}`);
     L.push("");
+  }
+  if (m.retencoes_nfse) {
+    const r = m.retencoes_nfse;
+    L.push(`RETENÇÕES DE NFS-e TOMADAS: ${r.com_retencao} nota(s) com retenção de ${r.total_nfse} · IR ${brl(r.totais.ir)} · PIS ${brl(r.totais.pis)} · COFINS ${brl(r.totais.cofins)} · CSLL ${brl(r.totais.csll)} · INSS ${brl(r.totais.inss)}`);
+    for (const i of r.itens) L.push(`  NFS-e ${i.numero} · ${i.prestador} · bruto ${brl(i.bruto)} · líquido ${brl(i.liquido)} · ${i.situacao === "vinculado" ? `pago ${i.pagamento?.data} ${brl(i.pagamento?.valor)}` : "pagamento não confirmado"}`);
+    L.push(`  PDFs de NFS-e: ${r.pdf.com_pdf} com PDF, ${r.pdf.sem_pdf} sem PDF`, "");
+  }
+  if (m.documentos_despesa) {
+    const d = m.documentos_despesa;
+    L.push(d.tipos_esperados ? `DOCUMENTOS DE DESPESA: ${d.enviados_no_mes} enviado(s); faltam ${d.faltam.length}${d.faltam.length ? `: ${d.faltam.join(", ")}` : ""}` : "DOCUMENTOS DE DESPESA: nenhum documento esperado cadastrado", "");
   }
   L.push("PASTAS");
   for (const [k, v] of Object.entries(m.pastas ?? {}) as [string, any][]) L.push(`  ${k}: ${v.arquivos} arquivo(s)${v.nfs != null ? `, ${v.nfs} NF(s)` : ""}${v.valor_total != null ? `, ${brl(v.valor_total)}` : ""}`);

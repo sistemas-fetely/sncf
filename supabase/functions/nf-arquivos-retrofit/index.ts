@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { cachearNfSaida, cachearNfEntradaXml, type NfCacheRow } from "../_shared/nf-cache-storage.ts";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { gerarResumoNfsePdf } from "../_shared/nfse-resumo-pdf.ts";
 import { corsHeaders as cors } from "npm:@supabase/supabase-js@2/cors";
 
 const json = (b: unknown, s = 200) =>
@@ -44,6 +45,7 @@ Deno.serve(async (req) => {
 
     if (body.tipo === "entrada_bling") return json(await retrofitEntradaBling(admin, ini, fim));
     if (body.tipo === "entrada_qive") return json(await retrofitEntradaQive(admin, ini, fim, body.incluir_falhas === true));
+    if (body.tipo === "nfse_resumo") return json(await retrofitNfseResumo(admin, ini, fim, body.refazer === true));
 
     const base = () => {
       let query = admin.from("nfs_emitidas")
@@ -88,6 +90,41 @@ Deno.serve(async (req) => {
     return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
+
+// NFS-e tomadas: gera o Resumo NFS-e (PDF) do XML guardado e grava resumo_pdf_storage_path.
+// deno-lint-ignore no-explicit-any
+async function retrofitNfseResumo(admin: any, ini: string, fim: string, refazer: boolean) {
+  let q = admin.from("nfs_stage").select("id, nf_numero, nf_chave_acesso, nf_data_emissao, xml_storage_path")
+    .eq("tipo_documento", "nfse").not("xml_storage_path", "is", null).gte("nf_data_emissao", ini).lt("nf_data_emissao", fim)
+    .not("status", "in", "(descartada,duplicada)");
+  if (!refazer) q = q.is("resumo_pdf_storage_path", null);
+  const { data, error } = await q.limit(60);
+  if (error) return { ok: false, erro: error.message };
+  const erros: { numero: string | null; erro: string }[] = [];
+  let geradas = 0;
+  for (const n of data ?? []) {
+    try {
+      let xml = "", ultimo = "";
+      for (let t = 0; t < 3 && !xml; t++) {
+        const { data: b, error: e } = await admin.storage.from("contabil").download(n.xml_storage_path);
+        if (b && !e) xml = await b.text(); else { ultimo = e?.message ?? "vazio"; await new Promise((r) => setTimeout(r, 400 * (t + 1))); }
+      }
+      if (!xml) throw new Error(`XML não lido: ${ultimo}`);
+      const pdf = await gerarResumoNfsePdf(xml);
+      const path = n.xml_storage_path.replace(/\.xml$/i, "") + ".pdf";
+      const up = await admin.storage.from("contabil").upload(path, pdf, { contentType: "application/pdf", upsert: true });
+      if (up.error) throw new Error(`upload do PDF: ${up.error.message}`);
+      const { error: eu } = await admin.from("nfs_stage").update({ resumo_pdf_storage_path: path, resumo_pdf_gerado_em: new Date().toISOString(), resumo_pdf_pendente: false }).eq("id", n.id);
+      if (eu) throw new Error(eu.message);
+      geradas++;
+    } catch (e) { erros.push({ numero: n.nf_numero, erro: e instanceof Error ? e.message : String(e) }); }
+  }
+  const { count: restantes, error: er } = await admin.from("nfs_stage").select("id", { count: "exact", head: true })
+    .eq("tipo_documento", "nfse").not("xml_storage_path", "is", null).is("resumo_pdf_storage_path", null)
+    .gte("nf_data_emissao", ini).lt("nf_data_emissao", fim).not("status", "in", "(descartada,duplicada)");
+  if (er) return { ok: false, erro: er.message };
+  return { ok: true, tipo: "nfse_resumo", processadas: (data ?? []).length, geradas, erros, restantes };
+}
 
 // NFs de entrada do Bling (nfs_stage.fonte='bling_entrada') sem XML guardado: o stage
 // não guarda o id do Bling, então lista as entradas do mês e casa pela chave.
