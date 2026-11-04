@@ -63,4 +63,4 @@
 - Entry-NF XML retrofit outcomes live in `nf_entrada_arquivo_tentativa` (per access key; `indisponivel_na_origem` vs real error), read by the accountant manifest through `causaXmlEntrada`, so "Qive ainda não capturou" is only claimed when Qive itself lacks the document.
 - Qive NFS-e keys come only from `_shared/nfse-xml.ts` (ADN Id "NFS…" or NFSE-<cnpj>-<numero>-<data>), the same convention as the manual xml_nfse upload, so the same note never gets two keys.
 - Manual MP-receivable decisions live only in `recebivel_b2c_decisao` (via fn_recebivel_b2c_vincular/classificar) and enter `vw_recebivel_b2c_pedido` as the 3rd rule after token and number, so automatic attribution is never overwritten; `shopify-pagamento-sync` stores every SUCCESS SALE/CAPTURE Mercado Pago token per order in a dated, resumable window logged in `shopify_pagamento_sync_execucao`.
-- Bloco K posse: only `centro_distribuicao.posse`; NF gaps: only `fn_contabil_nf_numeracao` (Bling API lacks inutilizations).
+- Bloco K: `centro_distribuicao.posse`; gaps: RPC uses keys across output/own input/returns, deduplicated per issuer/series/number.

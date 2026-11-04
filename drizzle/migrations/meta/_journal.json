@@ -505,6 +505,13 @@
       "when": 1793785552746,
       "tag": "0071_contabil_bloco_k_e_numeracao_nf",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793787249730,
+      "tag": "0072_contabil_nf_numeracao_entradas_proprias",
+      "breakpoints": true
     }
   ]
 }

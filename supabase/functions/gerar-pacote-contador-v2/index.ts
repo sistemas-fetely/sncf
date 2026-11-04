@@ -426,7 +426,7 @@ function resumoNumeracao(itens: any[]) {
     pendentes_no_prazo: pend.length, prazo_inutilizacao: itens.find((i) => i.prazo_inutilizacao)?.prazo_inutilizacao ?? null, itens };
 }
 
-const ROT_OCORRENCIA: Record<string, string> = { cancelada: "Cancelada", inutilizada: "Inutilizada", nao_autorizada: "Não autorizada", buraco: "Não identificada" };
+const ROT_OCORRENCIA: Record<string, string> = { cancelada: "Cancelada", inutilizada: "Inutilizada", nao_autorizada: "Não autorizada", buraco: "Não identificada", entrada_propria: "NF de entrada própria" };
 function csvNumeracao(itens: any[]): string {
   const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const L = [["Emitente (CNPJ)", "Série", "Número", "Ocorrência", "Data", "Detalhe", "Prazo de inutilização"].map(q).join(";")];

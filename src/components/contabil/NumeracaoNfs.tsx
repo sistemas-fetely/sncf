@@ -15,7 +15,7 @@ import { resumirNumeracao, type LinhaNumeracao } from "@/lib/contabil/numeracaoN
 
 const cnpjFmt = (c: string | null) => c && c.length === 14 ? `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}` : "não identificado";
 const dataBr = (d: string | null) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—";
-const ROTULO: Record<string, string> = { cancelada: "Cancelada", inutilizada: "Inutilizada", nao_autorizada: "Não autorizada", buraco: "Não identificada" };
+const ROTULO: Record<string, string> = { cancelada: "Cancelada", inutilizada: "Inutilizada", nao_autorizada: "Não autorizada", buraco: "Não identificada", entrada_propria: "NF de entrada própria" };
 
 export function useNumeracaoNfs(competencia: string | null) {
   return useQuery({
