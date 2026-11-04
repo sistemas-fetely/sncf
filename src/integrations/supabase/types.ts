@@ -28118,6 +28118,7 @@ export type Database = {
           plano_contas_id: string | null
           updated_at: string
           valor: number
+          venda_fora_cpr_id: string | null
         }
         Insert: {
           centro_custo_id?: string | null
@@ -28139,6 +28140,7 @@ export type Database = {
           plano_contas_id?: string | null
           updated_at?: string
           valor: number
+          venda_fora_cpr_id?: string | null
         }
         Update: {
           centro_custo_id?: string | null
@@ -28160,6 +28162,7 @@ export type Database = {
           plano_contas_id?: string | null
           updated_at?: string
           valor?: number
+          venda_fora_cpr_id?: string | null
         }
         Relationships: [
           {
@@ -28455,6 +28458,97 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_baixa_extrato_inequivoca"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_indevida_alvo"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_baixa_extrato"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "despesas_venda_fora_cpr_id_fkey"
+            columns: ["venda_fora_cpr_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_pagar_acoes"
+            referencedColumns: ["cpr_id"]
           },
         ]
       }
@@ -114114,6 +114208,12 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dre_meses: {
+        Row: {
+          mes: string | null
+        }
+        Relationships: []
+      }
       vw_email_autorizacao_sombra: {
         Row: {
           autorizacao: string | null
@@ -147843,14 +147943,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -159287,6 +159387,15 @@ export type Database = {
           p_parceiro_id: string
         }
         Returns: Json
+      }
+      fn_venda_fora_sincronizar_despesa: {
+        Args: {
+          p_competencia: string
+          p_cpr: string
+          p_parceiro: string
+          p_plano: string
+        }
+        Returns: undefined
       }
       fn_vendedor_nome: { Args: { p_vendedor_id: string }; Returns: string }
       fn_vendedor_sincronizar_fop: { Args: { p_linhas: Json }; Returns: Json }

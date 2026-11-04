@@ -470,6 +470,34 @@
       "when": 1793750168505,
       "tag": "0066_mp_mensal_fechar_rpc_auto",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793751038263,
+      "tag": "0067_venda_fora_despesa_ligacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793751189030,
+      "tag": "0068_venda_fora_dre_mdr",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793751244887,
+      "tag": "0069_venda_fora_dre_fonte_unica",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1793751418100,
+      "tag": "0070_dre_meses_fonte_resultado",
+      "breakpoints": true
     }
   ]
 }
