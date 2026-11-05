@@ -168,3 +168,6 @@ additional_redirect_urls = ["https://sncf.lovable.app/**", "https://id-preview--
 
 [functions.enviar-extrato-comissao]
   verify_jwt = true
+
+[functions.nf-entrada-xml-anexar]
+verify_jwt = false

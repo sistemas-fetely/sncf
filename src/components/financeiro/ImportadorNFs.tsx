@@ -31,6 +31,12 @@ import { moverParaStage, type StageResult } from "@/lib/financeiro/stage-handler
 import { limparCnpj, parseDataBR, parseValorBR } from "@/lib/financeiro/parsers";
 import type { NFParsed } from "@/lib/financeiro/types";
 import { PreviewNFsImportSimples } from "./PreviewNFsImportSimples";
+import {
+  anexarXmls,
+  ehXmlComChave,
+  relatorioVazio,
+  type RelatorioArquivo,
+} from "@/lib/financeiro/anexarXmlEntrada";
 
 interface Props {
   onImported?: (result: StageResult) => void;
@@ -281,6 +287,7 @@ export function ImportadorNFs({ onImported }: Props) {
   const [preview, setPreview] = useState<NFParsed[]>([]);
   const [zipProgress, setZipProgress] = useState<{ atual: number; total: number } | null>(null);
   const [zipReport, setZipReport] = useState<ZipReport | null>(null);
+  const [relArquivo, setRelArquivo] = useState<RelatorioArquivo | null>(null);
 
   async function processarZip(file: File): Promise<NFParsed[]> {
     const cnpjs = await fetchCnpjsFetely();
@@ -396,7 +403,30 @@ export function ImportadorNFs({ onImported }: Props) {
         _selecionada: !n._duplicata && !n._ambigua,
       }));
 
-      const todas = [...jaProcessadas, ...processadas];
+      let todas = [...jaProcessadas, ...processadas];
+
+      // XML cuja chave já está no repositório: só anexa o original (se faltar),
+      // nunca duplica nem altera a nota. Sai da prévia.
+      const comXml = todas.filter(ehXmlComChave);
+      if (comXml.length > 0) {
+        const rel = relatorioVazio();
+        let res: Awaited<ReturnType<typeof anexarXmls>> = [];
+        try {
+          res = await anexarXmls(comXml);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : String(err), { duration: 15000, closeButton: true });
+        }
+        const tratadas = new Set<string>();
+        for (const r of res) {
+          if (r.resultado === "anexado") rel.anexadas++;
+          else if (r.resultado === "ja_tinha") rel.jaTinham++;
+          else if (r.resultado === "erro") rel.erros.push({ arquivo: r.arquivo ?? r.chave, motivo: r.motivo ?? "erro" });
+          if (r.resultado !== "nao_existe") tratadas.add(r.chave);
+        }
+        todas = todas.filter((n) => !(ehXmlComChave(n) && tratadas.has(String(n.nf_chave_acesso))));
+        if (rel.anexadas + rel.jaTinham + rel.erros.length > 0) setRelArquivo(rel);
+      }
+
       if (todas.length > 0) {
         setPreview((prev) => [...prev, ...todas]);
         toast.success(
@@ -424,6 +454,23 @@ export function ImportadorNFs({ onImported }: Props) {
         .map((nf) => ({ nf, arquivo: nf._arquivo as File }));
 
       const result = await moverParaStage(selecionadas, arquivosOrigem);
+
+      // Guarda o XML original das notas novas no mesmo padrão da Qive.
+      const novasXml = selecionadas.filter(ehXmlComChave);
+      if (novasXml.length > 0) {
+        const rel = relatorioVazio();
+        try {
+          for (const r of await anexarXmls(novasXml)) {
+            if (r.resultado === "anexado") rel.novas++;
+            else if (r.resultado === "ja_tinha") rel.jaTinham++;
+            else if (r.resultado === "nao_existe") rel.erros.push({ arquivo: r.arquivo ?? r.chave, motivo: "nota não entrou no repositório" });
+            else rel.erros.push({ arquivo: r.arquivo ?? r.chave, motivo: r.motivo ?? "erro" });
+          }
+        } catch (err) {
+          rel.erros.push({ arquivo: `${novasXml.length} XMLs`, motivo: err instanceof Error ? err.message : String(err) });
+        }
+        setRelArquivo(rel);
+      }
 
       const resumo: string[] = [];
       if (result.sucesso > 0) resumo.push(`${result.sucesso} NFs no stage`);
@@ -580,6 +627,35 @@ export function ImportadorNFs({ onImported }: Props) {
           )}
           <DialogFooter>
             <Button onClick={() => setZipReport(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!relArquivo} onOpenChange={(open) => !open && setRelArquivo(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Arquivos XML guardados</DialogTitle>
+            <DialogDescription>
+              Cópia do XML original para o pacote do contador. Notas que já existiam não foram alteradas.
+            </DialogDescription>
+          </DialogHeader>
+          {relArquivo && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Novas</span><span className="font-medium">{relArquivo.novas}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Arquivo anexado a nota existente</span><span className="font-medium">{relArquivo.anexadas}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Já tinham arquivo</span><span className="font-medium">{relArquivo.jaTinham}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Erro</span><span className="font-medium text-destructive">{relArquivo.erros.length}</span></div>
+              {relArquivo.erros.length > 0 && (
+                <ul className="max-h-48 overflow-auto rounded border p-2 text-xs text-destructive space-y-1">
+                  {relArquivo.erros.map((e, i) => (
+                    <li key={i}><span className="font-medium">{e.arquivo}</span>: {e.motivo}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setRelArquivo(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
