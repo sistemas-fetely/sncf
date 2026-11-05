@@ -1,4 +1,4 @@
-import { mmAaaa, saldosAnterioresDoExtrato } from "./extratoMensal";
+import { competenciaApurada, mmAaaa, saldosAnterioresDoExtrato } from "./extratoMensal";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 import { useParams, useSearchParams, Link } from "react-router-dom";
@@ -316,12 +316,12 @@ function Pagamentos({ pags }: { pags: Linha[] }) {
     <Card><CardContent className="p-0">
       <Table>
         <TableHeader><TableRow>
-          <TableHead>Competência</TableHead><TableHead>Valor total</TableHead><TableHead>Pagar até</TableHead><TableHead>Título a pagar</TableHead>
+          <TableHead>Competência</TableHead><TableHead>Valor total</TableHead><TableHead>Pagamento até</TableHead><TableHead>Título a pagar</TableHead>
         </TableRow></TableHeader>
         <TableBody>
           {pags.map((p) => (
             <TableRow key={p.id}>
-              <TableCell>{fmtCompetencia(p.competencia)}</TableCell>
+              <TableCell>{fmtCompetencia(p.competencia_apuracao)}</TableCell>
               <TableCell className="tabular-nums">
                 {fmtBRL(p.valor_total)}
                 {saldosAnterioresDoExtrato(Array.isArray(p.detalhe) ? p.detalhe : []).map((sa) => (
@@ -330,7 +330,7 @@ function Pagamentos({ pags }: { pags: Linha[] }) {
               </TableCell>
               <TableCell>{fmtData(p.pagar_ate)}</TableCell>
               <TableCell>{p.transportado_para_extrato_id
-                ? <Badge variant="outline" className="bg-muted text-muted-foreground">Transportado para {mmAaaa(pags.find((x) => x.id === p.transportado_para_extrato_id)?.competencia)}</Badge>
+                ? <Badge variant="outline" className="bg-muted text-muted-foreground">Transportado para {mmAaaa(pags.find((x) => x.id === p.transportado_para_extrato_id)?.competencia_apuracao)}</Badge>
                 : p.cpr_id
                 ? <Badge variant="outline" className="bg-success/15 text-success border-success/30">Gerado</Badge>
                 : <Badge variant="outline" className="bg-muted text-muted-foreground">Sem título</Badge>}</TableCell>
@@ -430,7 +430,7 @@ export default function RepresentanteFicha() {
           onChange={(e) => setSp((p) => { p.set("competencia", e.target.value); return p; }, { replace: true })}
         >
           {opcoes.map((c) => (
-            <option key={c} value={c}>{fmtCompetencia(`${c}-01`)}</option>
+            <option key={c} value={c}>{fmtCompetencia(competenciaApurada(c))}</option>
           ))}
         </select>
         <Button asChild size="sm" variant="outline">

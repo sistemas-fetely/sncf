@@ -24,7 +24,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
-import { mmAaaa } from "./extratoMensal";
+import { competenciaApurada, mmAaaa, saldosAnterioresDoExtrato } from "./extratoMensal";
 import {
   BUCKET_DOCUMENTO, ORDEM_ETAPA, ORIGEM_DOCUMENTO, TIPO_DOCUMENTO, competenciaCorrente, competenciasRecentes,
   datasDaCompetencia, lerAnterioresEmAberto, lerCiclo, lerNfsSemExtrato, type AnteriorAberto, type LinhaCiclo, type NfSemExtrato,
@@ -52,13 +52,14 @@ function seloEtapa(l: LinhaCiclo) {
   if (e === "3b_documento_divergente") return { txt: "NF divergente", cls: "bg-warning/15 text-warning border-warning/30" };
   if (e === "4_documento_conferido") return { txt: "NF conferida", cls: "bg-success/15 text-success border-success/30" };
   if (e === "5_titulo_gerado") return { txt: "Título gerado", cls: "bg-success/15 text-success border-success/30" };
-  if (e === "7_transportado") return { txt: `Transportado para ${mmAaaa(l.transportado_para_competencia)}`, cls: "bg-muted text-muted-foreground border-border" };
+  if (e === "7_transportado") return { txt: `Transportado para ${mmAaaa(l.transportado_para_competencia_apuracao)}`, cls: "bg-muted text-muted-foreground border-border" };
   if (e === "6_pago") return { txt: `Pago em ${fmtData(l.pago_em)}`, cls: "bg-success/15 text-success border-success/30" };
   return { txt: e || "—", cls: "bg-muted text-muted-foreground border-border" };
 }
 
 /* ---------------- exportar CSV da competência (base extrato) ---------------- */
 async function exportarCsvCiclo(competencia: string, linhas: LinhaCiclo[]) {
+  const apurada = competenciaApurada(competencia).slice(0, 7);
   try {
     const ids = linhas.map((l) => l.extrato_id);
     const nfsPorExtrato = new Map<string, string>();
@@ -73,18 +74,18 @@ async function exportarCsvCiclo(competencia: string, linhas: LinhaCiclo[]) {
     }
     const esc = (v: unknown) => { const s = v == null ? "" : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const dec = (v: number | null) => (v == null ? "" : Number(v).toFixed(2).replace(".", ","));
-    const cab = ["competencia", "representante", "email", "valor_total", "saldo_anterior", "pagar_ate", "etapa", "documento", "titulo", "pendencia", "nfs_incluidas"];
+    const cab = ["competencia", "representante", "email", "valor_total", "saldo_anterior", "pagamento_ate", "etapa", "documento", "titulo", "pendencia", "nfs_incluidas"];
     const corpo = linhas.map((l) => {
       const doc = l.documento_id ? [TIPO_DOCUMENTO[l.tipo_documento ?? ""] ?? l.tipo_documento, l.documento_numero, l.documento_status].filter(Boolean).join(" · ") : "";
-      return [String(l.competencia ?? "").slice(0, 7), l.representante, l.email_contato, dec(l.valor_total), dec(l.saldo_anterior),
+      return [String(l.competencia_apuracao ?? "").slice(0, 7), l.representante, l.email_contato, dec(l.valor_total), dec(l.saldo_anterior),
         l.pagar_ate ?? "", seloEtapa(l).txt, doc, l.cpr_status ?? "", l.pendencia ?? "", nfsPorExtrato.get(l.extrato_id) ?? ""].map(esc).join(";");
     });
     const blob = new Blob(["\uFEFF" + [cab.join(";"), ...corpo].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `ciclo-comissao-${competencia}.csv`; a.click();
+    a.href = url; a.download = `ciclo-comissao-${apurada}.csv`; a.click();
     URL.revokeObjectURL(url);
-    toast.success(`CSV de ${fmtCompetencia(`${competencia}-01`)} exportado (${linhas.length} linha${linhas.length === 1 ? "" : "s"}).`);
+    toast.success(`CSV de ${fmtCompetencia(`${apurada}-01`)} exportado (${linhas.length} linha${linhas.length === 1 ? "" : "s"}).`);
   } catch (e) {
     toast.error(`Falha ao exportar: ${formatError(e)}`);
   }
@@ -172,7 +173,7 @@ function RegistrarNfDialog({ alvo, onFechar, onFeito }: { alvo: LinhaCiclo | nul
         <DialogHeader>
           <DialogTitle>Registrar nota fiscal</DialogTitle>
           <DialogDescription>
-            {alvo && `${alvo.representante} · ${fmtCompetencia(alvo.competencia)} · extrato de ${fmtBRL(alvo.valor_total)}`}
+            {alvo && `${alvo.representante} · ${fmtCompetencia(alvo.competencia_apuracao)} · extrato de ${fmtBRL(alvo.valor_total)}`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -253,7 +254,7 @@ function DecidirDialog({ alvo, decisao, onFechar, onFeito }: {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{decisao === "aceitar" ? "Aceitar a nota divergente?" : "Recusar a nota divergente?"}</DialogTitle>
-          <DialogDescription>{alvo?.representante} · {fmtCompetencia(alvo?.competencia)}</DialogDescription>
+          <DialogDescription>{alvo?.representante} · {fmtCompetencia(alvo?.competencia_apuracao)}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-3 rounded-md border p-3 text-sm">
           <div><div className="text-xs text-muted-foreground">Valor informado</div><div className="tabular-nums font-medium">{fmtBRL(informado)}</div></div>
@@ -322,6 +323,23 @@ export function AbaCicloMensal() {
   useEffect(() => {
     if (anterioresQ.error) toast.error(`Falha ao carregar valores anteriores em aberto: ${formatError(anterioresQ.error)}`);
   }, [anterioresQ.error]);
+  // Origem (mês apurado) do saldo em aberto somado — lida do detalhe congelado do extrato.
+  const idsComSaldo = linhas.filter((l) => num(l.saldo_anterior) !== 0).map((l) => l.extrato_id);
+  const saldosQ = useQuery({
+    queryKey: ["comissao-ciclo-saldos", competencia, idsComSaldo.join(",")],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("comissao_extrato").select("id,detalhe").in("id", idsComSaldo);
+      if (error) throw error;
+      return (data ?? []) as { id: string; detalhe: unknown }[];
+    },
+    enabled: idsComSaldo.length > 0,
+  });
+  useEffect(() => {
+    if (saldosQ.error) toast.error(`Falha ao carregar a origem do saldo em aberto: ${formatError(saldosQ.error)}`);
+  }, [saldosQ.error]);
+  const saldosPorExtrato = useMemo(() => new Map((saldosQ.data ?? []).map((e) =>
+    [e.id, saldosAnterioresDoExtrato(Array.isArray(e.detalhe) ? e.detalhe : [])])), [saldosQ.data]);
+
   const anterioresPorExtrato = useMemo(() => {
     const m = new Map<string, AnteriorAberto[]>();
     for (const a of anterioresQ.data ?? []) m.set(a.extrato_id, [...(m.get(a.extrato_id) ?? []), a]);
@@ -349,7 +367,7 @@ export function AbaCicloMensal() {
     { rot: "Fechamento", data: datas.fechamento },
     { rot: "Envio até", data: datas.enviar_ate },
     { rot: "NF até", data: datas.documento_ate },
-    { rot: "Pagamento", data: datas.pagar_ate },
+    { rot: "Pagamento até", data: datas.pagar_ate },
   ];
   const idxAtual = Math.max(0, etapas.findIndex((e) => e.data >= hoje));
   const etapaAtual = etapas.findIndex((e) => e.data >= hoje) === -1 ? etapas.length - 1 : idxAtual;
@@ -443,7 +461,7 @@ export function AbaCicloMensal() {
             <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {competenciasRecentes().map((c) => (
-                <SelectItem key={c} value={c}>{fmtCompetencia(`${c}-01`)}</SelectItem>
+                <SelectItem key={c} value={c}>{fmtCompetencia(competenciaApurada(c))}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -463,11 +481,12 @@ export function AbaCicloMensal() {
       </div>
 
       <Card><CardContent className="flex flex-wrap items-center gap-x-2 gap-y-1 p-4 text-sm">
+        <span className="font-medium">Competência {fmtCompetencia(linhas[0]?.competencia_apuracao ?? competenciaApurada(competencia))}</span>
         {etapas.map((e, i) => (
           <span key={e.rot} className="flex items-center gap-2">
-            {i > 0 && <span className="text-muted-foreground">·</span>}
+            <span className="text-muted-foreground">·</span>
             <span className={cn("tabular-nums", i === etapaAtual ? "font-medium text-gold" : "text-muted-foreground")}>
-              {e.rot} {fmtData(e.data)}
+              {e.rot} {i === etapas.length - 1 ? fmtData(e.data) : fmtData(e.data).slice(0, 5)}
             </span>
           </span>
         ))}
@@ -487,7 +506,7 @@ export function AbaCicloMensal() {
           <div className="flex justify-center p-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : linhas.length === 0 ? (
           <p className="p-10 text-center text-sm text-muted-foreground">
-            Nenhum extrato fechado em {fmtCompetencia(`${competencia}-01`)}. O fechamento acontece automaticamente no dia 1.
+            Nenhum extrato fechado para a competência {fmtCompetencia(competenciaApurada(competencia))}. O fechamento acontece automaticamente no dia 1.
           </p>
         ) : (
           <Table>
@@ -522,13 +541,17 @@ export function AbaCicloMensal() {
                     <TableCell className="text-right font-medium tabular-nums">
                       {fmtBRL(l.valor_total)}
                       {num(l.saldo_anterior) !== 0 && (
-                        <div className="text-xs font-normal text-muted-foreground">inclui saldo em aberto de {fmtBRL(l.saldo_anterior)}</div>
+                        <div className="text-xs font-normal text-muted-foreground">
+                          {(saldosPorExtrato.get(l.extrato_id) ?? []).length
+                            ? (saldosPorExtrato.get(l.extrato_id) ?? []).map((sa) => <div key={sa.k}>inclui {sa.rotulo.replace("Saldo", "saldo")} · {fmtBRL(sa.valor)}</div>)
+                            : <>inclui saldo em aberto de {fmtBRL(l.saldo_anterior)}</>}
+                        </div>
                       )}
                       {antes.length > 0 && (
                         <div className="mt-1 text-xs font-normal text-muted-foreground">
                           <div>Valores anteriores em aberto (não somados):</div>
                           {antes.map((a) => (
-                            <div key={a.anterior_extrato_id ?? a.anterior_competencia}>{mmAaaa(a.anterior_competencia)} · {fmtBRL(a.valor)} · {a.situacao ?? "—"}</div>
+                            <div key={a.anterior_extrato_id ?? a.anterior_competencia}>{mmAaaa(a.anterior_competencia_apuracao)} · {fmtBRL(a.valor)} · {a.situacao ?? "—"}</div>
                           ))}
                         </div>
                       )}
@@ -643,7 +666,7 @@ export function AbaCicloMensal() {
           <DialogHeader>
             <DialogTitle>Enviar {selecionadas.length} extrato(s) por e-mail?</DialogTitle>
             <DialogDescription>
-              Cada representante recebe o extrato de {fmtCompetencia(`${competencia}-01`)} e o pedido da nota fiscal.
+              Cada representante recebe o extrato de {fmtCompetencia(competenciaApurada(competencia))} e o pedido da nota fiscal.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-64 space-y-1 overflow-y-auto text-sm">
@@ -698,7 +721,7 @@ export function AbaCicloMensal() {
           <DialogHeader>
             <DialogTitle>Gerar título a pagar?</DialogTitle>
             <DialogDescription>
-              {gerar && `${gerar.representante} · ${fmtCompetencia(gerar.competencia)} · ${fmtBRL(gerar.valor_total)} · pagar até ${fmtData(gerar.pagar_ate)}. O lançamento entra em contas a pagar.`}
+              {gerar && `${gerar.representante} · ${fmtCompetencia(gerar.competencia_apuracao)} · ${fmtBRL(gerar.valor_total)} · pagar até ${fmtData(gerar.pagar_ate)}. O lançamento entra em contas a pagar.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

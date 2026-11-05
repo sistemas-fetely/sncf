@@ -14,12 +14,13 @@ export interface ExtratoFechadoDoRepresentante {
   pagar_ate: string | null;
   detalhe: Record<string, any>[] | null;
   transportado_para_extrato_id: string | null;
+  competencia_apuracao?: string | null;
 }
 
 export async function lerExtratosDoRepresentante(vendedorId: string): Promise<ExtratoFechadoDoRepresentante[]> {
   const { data, error } = await (supabase as any)
     .from("comissao_extrato")
-    .select("id,competencia,valor_total,fechado_em,pagar_ate,detalhe,transportado_para_extrato_id")
+    .select("id,competencia,competencia_apuracao,valor_total,fechado_em,pagar_ate,detalhe,transportado_para_extrato_id")
     .eq("vendedor_id", vendedorId)
     .order("competencia", { ascending: false });
   if (error) throw error;

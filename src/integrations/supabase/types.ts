@@ -17659,6 +17659,7 @@ export type Database = {
       comissao_extrato: {
         Row: {
           competencia: string
+          competencia_apuracao: string | null
           cpr_em: string | null
           cpr_id: string | null
           detalhe: Json
@@ -17679,6 +17680,7 @@ export type Database = {
         }
         Insert: {
           competencia: string
+          competencia_apuracao?: string | null
           cpr_em?: string | null
           cpr_id?: string | null
           detalhe: Json
@@ -17699,6 +17701,7 @@ export type Database = {
         }
         Update: {
           competencia?: string
+          competencia_apuracao?: string | null
           cpr_em?: string | null
           cpr_id?: string | null
           detalhe?: Json
@@ -107089,6 +107092,7 @@ export type Database = {
       vw_comissao_extrato_anterior_aberto: {
         Row: {
           anterior_competencia: string | null
+          anterior_competencia_apuracao: string | null
           anterior_extrato_id: string | null
           anterior_sequencia: number | null
           cpr_status: string | null
@@ -107104,6 +107108,7 @@ export type Database = {
       vw_comissao_extrato_ciclo: {
         Row: {
           competencia: string | null
+          competencia_apuracao: string | null
           cpr_id: string | null
           cpr_status: string | null
           documento_arquivo: string | null
@@ -107128,6 +107133,7 @@ export type Database = {
           tem_contraparte: boolean | null
           tipo_documento: string | null
           transportado_para_competencia: string | null
+          transportado_para_competencia_apuracao: string | null
           transportado_para_extrato_id: string | null
           valor_total: number | null
           vendedor_id: string | null
@@ -107319,6 +107325,7 @@ export type Database = {
       }
       vw_comissao_extrato_mensal: {
         Row: {
+          competencia_apuracao: string | null
           competencia_pagamento: string | null
           email_contato: string | null
           extratos_fechados: number | null
@@ -131434,14 +131441,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -148538,14 +148545,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]

@@ -18,7 +18,7 @@ const TOMADOR = "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA";
 const CNPJ = "63.591.078/0001-48";
 
 function descricaoSugerida(competencia: string) {
-  return `Serviços de representação comercial — comissão do mês de referência ${fmtCompetencia(competencia)}`;
+  return `Serviços de representação comercial — comissão da competência ${fmtCompetencia(competencia)}`;
 }
 
 function Copiar({ texto, rotulo }: { texto: string; rotulo: string }) {
@@ -104,8 +104,8 @@ function FormularioNota({ sessao, extrato, onEnviado }: { sessao: string; extrat
             <Copiar texto={CNPJ} rotulo="CNPJ" />
           </p>
           <p className="flex flex-wrap items-center gap-1">
-            Descrição sugerida: <span className="text-foreground">{descricaoSugerida(extrato.competencia)}</span>
-            <Copiar texto={descricaoSugerida(extrato.competencia)} rotulo="descrição" />
+            Descrição sugerida: <span className="text-foreground">{descricaoSugerida(extrato.competencia_apuracao)}</span>
+            <Copiar texto={descricaoSugerida(extrato.competencia_apuracao)} rotulo="descrição" />
           </p>
         </div>
       </div>
@@ -232,7 +232,7 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium">
-                      Mês de referência {fmtCompetencia(e.competencia)}
+                      Competência {fmtCompetencia(e.competencia_apuracao)}
                       {Number(e.sequencia ?? 1) > 1 && (
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
                           complementar nº {e.sequencia}
@@ -240,10 +240,10 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Nota até {fmtData(e.prazo_documento)} · pagamento {fmtData(e.pagar_ate)}
+                      Nota até {fmtData(e.prazo_documento)} · Pagamento até {fmtData(e.pagar_ate)}
                     </p>
                     {transportado ? (
-                      <p className="text-xs text-muted-foreground">Valor transportado para o extrato de {mmAaaa(e.transportado_para_competencia)}</p>
+                      <p className="text-xs text-muted-foreground">Valor transportado para o extrato de {mmAaaa(e.transportado_para_competencia_apuracao)}</p>
                     ) : <p className={`text-xs ${st.cls}`}>{st.txt}</p>}
                     {e.documento && (
                       <p className="text-xs text-muted-foreground">
@@ -279,7 +279,7 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
                     <p className="font-medium text-muted-foreground">Valores anteriores em aberto (não somados)</p>
                     {anteriores.map((a, i) => (
                       <p key={i} className="flex justify-between gap-2 text-muted-foreground">
-                        <span>{mmAaaa(a.competencia)} · {a.situacao ?? "—"}</span><span className="tabular-nums">{fmtBRL(a.valor)}</span>
+                        <span>{mmAaaa(a.competencia_apuracao)} · {a.situacao ?? "—"}</span><span className="tabular-nums">{fmtBRL(a.valor)}</span>
                       </p>
                     ))}
                   </div>

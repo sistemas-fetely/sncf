@@ -10,6 +10,8 @@ export interface LinhaCiclo {
   representante: string | null;
   email_contato: string | null;
   competencia: string | null;
+  /** Mês apurado (competência − 1 mês), coluna do banco. */
+  competencia_apuracao: string | null;
   valor_total: number | null;
   pagar_ate: string | null;
   enviar_ate: string | null;
@@ -32,6 +34,7 @@ export interface LinhaCiclo {
   pendencia: string | null;
   transportado_para_extrato_id: string | null;
   transportado_para_competencia: string | null;
+  transportado_para_competencia_apuracao: string | null;
   saldo_anterior: number | null;
 }
 
@@ -128,6 +131,7 @@ export interface AnteriorAberto {
   extrato_id: string;
   anterior_extrato_id: string | null;
   anterior_competencia: string | null;
+  anterior_competencia_apuracao: string | null;
   anterior_sequencia: number | null;
   valor: number | null;
   situacao: string | null;
@@ -138,7 +142,7 @@ export async function lerAnterioresEmAberto(extratoIds: string[]): Promise<Anter
   if (!extratoIds.length) return [];
   const { data, error } = await (supabase as any)
     .from("vw_comissao_extrato_anterior_aberto")
-    .select("extrato_id,anterior_extrato_id,anterior_competencia,anterior_sequencia,valor,situacao")
+    .select("extrato_id,anterior_extrato_id,anterior_competencia,anterior_competencia_apuracao,anterior_sequencia,valor,situacao")
     .in("extrato_id", extratoIds)
     .order("anterior_competencia", { ascending: true });
   if (error) throw error;

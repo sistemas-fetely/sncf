@@ -5,8 +5,9 @@ import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, type Linha } from "./dados";
-import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, vendasDoMes, totaisVendas, taxaDaNota, rotuloTaxas, saldosAnterioresDoExtrato, mmAaaa, somarMeses } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, vendasDoMes, totaisVendas, taxaDaNota, rotuloTaxas, saldosAnterioresDoExtrato, mmAaaa, somarMeses, competenciaApurada } from "./extratoMensal";
 import type { ExtratoFechadoDoRepresentante } from "./extratoCompetencias";
+import { datasDaCompetencia } from "./cicloMensal";
 import {
   competenciaFechada, dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
 } from "./extratoCompetencias";
@@ -14,8 +15,9 @@ import {
 const EMPRESA = "Fetély Comércio Importação e Exportação Ltda · CNPJ 63.591.078/0001-48";
 const RE_COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/** Rótulo do seletor: a chave é a competência de pagamento; o texto é o mês apurado. */
 function rotuloCompetencia(competencia: string) {
-  return fmtCompetencia(`${competencia}-01`);
+  return fmtCompetencia(competenciaApurada(competencia));
 }
 
 function numero(v: unknown) {
@@ -29,7 +31,6 @@ function RodapeMensal() {
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const mesNome = (ym: string) => MESES[Number(ym.slice(5, 7)) - 1] ?? "";
-const mesAno = (ym: string) => `${mesNome(ym)}/${ym.slice(0, 4)}`;
 const mesCurto = (ym: string) => `${mesNome(ym).slice(0, 3)}/${ym.slice(2, 4)}`;
 const ddmm = (d: unknown) => d ? `${String(d).slice(8, 10)}/${String(d).slice(5, 7)}` : "—";
 const pct = (v: number) => `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(v)}%`;
@@ -47,7 +48,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
 }) {
   const saldos = saldosAnterioresDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
   const transportadoPara = extrato?.transportado_para_extrato_id
-    ? extratos.find(e => e.id === extrato.transportado_para_extrato_id)?.competencia ?? null : null;
+    ? extratos.find(e => e.id === extrato.transportado_para_extrato_id)?.competencia_apuracao ?? null : null;
   const fechadaSemExtrato = !extrato && competenciaFechada(competencia);
   const ajustes = ajustesDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
   const clientePorPedido = new Map(parcelas.map(p => [String(p.pedido), p.cliente]));
@@ -69,7 +70,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
       <div>
         <div className="font-display text-[20pt] font-medium leading-none text-gold">FETÉLY</div>
         <h1 className="mt-3 text-[22pt] font-medium leading-tight">{representante.representante}</h1>
-        <p className="mt-1 text-[9pt] text-muted-foreground">Extrato de comissão · {mesAno(competencia)}</p>
+        <p className="mt-1 text-[9pt] text-muted-foreground">Extrato de comissão · Competência {mmAaaa(extrato?.competencia_apuracao ?? competenciaApurada(competencia))} · Pagamento até {fmtData(extrato?.pagar_ate ?? datasDaCompetencia(competencia).pagar_ate)}</p>
       </div>
       <div className="text-right">
         <div className="text-[8pt] text-muted-foreground">Comissão a receber em {mesNome(competencia)}</div>
@@ -114,7 +115,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
     {extrato && anteriores.length > 0 && <section className="bloco-mensal mt-4">
       <h3 className="text-[9pt] font-medium text-muted-foreground">Valores anteriores em aberto (não somados)</h3>
       <table className="tabela-mensal mt-1 w-full border-collapse text-[8pt]">
-        <tbody>{anteriores.map((a, i) => <tr key={String(a.anterior_extrato_id ?? i)}><td>{mmAaaa(a.anterior_competencia)}{numero(a.anterior_sequencia) > 1 ? ` (nº ${a.anterior_sequencia})` : ""}</td><td>{a.situacao ?? "—"}</td><td className="text-right tabular-nums">{fmtBRL(numero(a.valor))}</td></tr>)}</tbody>
+        <tbody>{anteriores.map((a, i) => <tr key={String(a.anterior_extrato_id ?? i)}><td>{mmAaaa(a.anterior_competencia_apuracao)}{numero(a.anterior_sequencia) > 1 ? ` (nº ${a.anterior_sequencia})` : ""}</td><td>{a.situacao ?? "—"}</td><td className="text-right tabular-nums">{fmtBRL(numero(a.valor))}</td></tr>)}</tbody>
       </table>
     </section>}
     {agenda.length > 0 && <section className="bloco-mensal mt-6">

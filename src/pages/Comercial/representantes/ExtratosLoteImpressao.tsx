@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { listarRepresentantesDoLote } from "./loteRepresentantes";
 import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { formatError } from "@/lib/format-error";
-import { fmtCompetencia } from "../comissoes/fmt";
+import { fmtCompetencia, fmtData } from "../comissoes/fmt";
+import { competenciaApurada } from "./extratoMensal";
+import { datasDaCompetencia } from "./cicloMensal";
 import { EstilosExtrato, ExtratoRepresentanteDocumento } from "./ExtratoRepresentanteDocumento";
 
 const RE_COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -13,7 +15,6 @@ export default function ExtratosLoteImpressao() {
   const [params] = useSearchParams();
   const competencia = params.get("competencia") ?? "";
   const valida = RE_COMPETENCIA.test(competencia);
-  const dia = `${competencia}-01`;
 
   const q = useQuery({
     queryKey: ["extratos-lote-representantes", competencia],
@@ -31,7 +32,7 @@ export default function ExtratosLoteImpressao() {
       <EstilosExtrato />
       <BarraImpressao />
       <p className="tela-apenas mx-auto mb-4 w-[210mm] max-w-full text-sm font-medium">
-        Extratos de pagamento {fmtCompetencia(dia)} · {lista.length} {lista.length === 1 ? "representante" : "representantes"}
+        Extratos de comissão · Competência {fmtCompetencia(competenciaApurada(competencia))} · Pagamento até {fmtData(datasDaCompetencia(competencia).pagar_ate)} · {lista.length} {lista.length === 1 ? "representante" : "representantes"}
       </p>
       {lista.length === 0 ? (
         <p className="text-center text-muted-foreground">Nenhum extrato neste mês.</p>

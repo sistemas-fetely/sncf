@@ -155,6 +155,15 @@ export function parcelasEmAtraso(parcelas: Linha[]): Linha[] {
     .sort((a, b) => String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")) || String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR"));
 }
 
+/**
+ * Competência apurada (mês que o representante, a NF e o contador chamam de competência)
+ * a partir da competência de pagamento do extrato. "2026-11-01" → "2026-10-01".
+ * Use só quando a tela recebe apenas `competencia`; quando o banco traz `competencia_apuracao`, use o campo.
+ */
+export function competenciaApurada(competenciaPagamento: string): string {
+  return `${somarMeses(competenciaPagamento, -1)}-01`;
+}
+
 /** "2026-10-01" → "10/2026". */
 export function mmAaaa(competencia: unknown): string {
   const s = String(competencia ?? "");
@@ -165,7 +174,7 @@ export function mmAaaa(competencia: unknown): string {
 export function saldosAnterioresDoExtrato(itens: Linha[]): { k: string; rotulo: string; valor: number; motivo: string | null }[] {
   return itens.filter(i => i.tipo === "saldo_anterior").map((i, n) => ({
     k: String(i.extrato_origem_id ?? n),
-    rotulo: `Saldo em aberto de ${mmAaaa(i.competencia_origem)}${valorNumero(i.sequencia_origem) > 1 ? ` (nº ${i.sequencia_origem})` : ""}`,
+    rotulo: `Saldo em aberto de ${i.competencia_origem ? mmAaaa(competenciaApurada(String(i.competencia_origem))) : "—"}${valorNumero(i.sequencia_origem) > 1 ? ` (nº ${i.sequencia_origem})` : ""}`,
     valor: valorNumero(i.valor),
     motivo: i.motivo ?? null,
   }));

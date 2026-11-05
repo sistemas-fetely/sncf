@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatError } from "@/lib/format-error";
 import { EstilosExtrato, ExtratoRepresentanteDocumento } from "./ExtratoRepresentanteDocumento";
 import { listarRepresentantesDoLote } from "./loteRepresentantes";
+import { competenciaApurada } from "./extratoMensal";
 import { nomeArquivoExtrato, nomeZipExtratos, pontosDeCorte, type BlocoCorte } from "./pdfSeparados";
 
 const MARGEM_MM = 15;
@@ -66,6 +67,8 @@ interface Atual { id: string; resolver: (erro: string | null) => void }
 
 /** Botão "Baixar PDFs separados": renderiza cada extrato do lote na própria página, um por vez. */
 export function BotaoPdfsSeparados({ competencia }: { competencia: string }) {
+  // Arquivos nomeados pela competência apurada; `competencia` (pagamento) segue como chave.
+  const apurada = competenciaApurada(competencia).slice(0, 7);
   const [prog, setProg] = useState<string | null>(null);
   const [atual, setAtual] = useState<Atual | null>(null);
   const caixa = useRef<HTMLDivElement>(null);
@@ -106,8 +109,8 @@ export function BotaoPdfsSeparados({ competencia }: { competencia: string }) {
         try {
           const sec = await renderizar(id);
           if (!sec) throw new Error("sem extrato nesta competência");
-          let arquivo = nomeArquivoExtrato(competencia, nome);
-          for (let n = 2; usados.has(arquivo); n++) arquivo = nomeArquivoExtrato(competencia, `${nome} ${n}`);
+          let arquivo = nomeArquivoExtrato(apurada, nome);
+          for (let n = 2; usados.has(arquivo); n++) arquivo = nomeArquivoExtrato(apurada, `${nome} ${n}`);
           usados.add(arquivo);
           zip.file(arquivo, await pdfDaSecao(sec));
         } catch (e) {
@@ -119,7 +122,7 @@ export function BotaoPdfsSeparados({ competencia }: { competencia: string }) {
       }
       const gerados = lista.length - falhas.length;
       if (!gerados) throw new Error(`nenhum PDF gerado. ${falhas.join("; ")}`);
-      const nomeZip = nomeZipExtratos(competencia);
+      const nomeZip = nomeZipExtratos(apurada);
       const url = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
       baixar(url, nomeZip);
       setTimeout(() => URL.revokeObjectURL(url), 10 * 60_000);
