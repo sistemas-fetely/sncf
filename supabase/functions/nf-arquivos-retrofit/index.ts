@@ -36,6 +36,8 @@ Deno.serve(async (req) => {
     if (ep) return json({ ok: false, erro: "Falha ao validar permissão: " + ep.message }, 500);
     if (!pode) return json({ ok: false, erro: "Sem permissão para o pacote do contador" }, 403);
 
+    if (body.tipo === "entrada_copia_interna") return json(await retrofitCopiaInterna(admin, Math.min(Math.max(Number(body.lote) || 40, 1), 80), typeof body.apos === "string" ? body.apos : null));
+
     const comp = String(body.competencia ?? "");
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(comp)) return json({ ok: false, erro: "Competência inválida (AAAA-MM)" }, 400);
     const lote = Math.min(Math.max(Number(body.lote) || 15, 1), 40);
@@ -272,4 +274,36 @@ async function retrofitEntradaQive(admin: any, ini: string, fim: string, incluir
     await new Promise((r) => setTimeout(r, 1200));
   }
   return { ok: true, tipo: "entrada_qive", pendentes_antes: total, processadas, guardadas, erros, restantes: total - processadas };
+}
+
+// Cópia interna do upload manual (nfs_stage_documentos tipo xml, bucket nfs-stage) → padrão contabil.
+// Só preenche xml_storage_path (via cachearNfEntradaXml); nenhum outro dado da nota muda.
+// Cursor `apos` (id) faz o lote avançar mesmo quando alguma nota falha.
+async function retrofitCopiaInterna(admin: any, lote: number, apos: string | null) {
+  let q = admin.from("nfs_stage")
+    .select("id, nf_chave_acesso, nf_data_emissao, tipo_documento, nf_numero, nfs_stage_documentos!inner(storage_path, tipo)")
+    .is("xml_storage_path", null).not("nf_chave_acesso", "is", null)
+    .eq("nfs_stage_documentos.tipo", "xml").order("id").limit(2000);
+  if (apos) q = q.gt("id", apos);
+  const { data: pend, error } = await q;
+  if (error) throw new Error(`Leitura das pendentes: ${error.message}`);
+  const todas = pend ?? [];
+  const copiadas: Record<string, number> = {};
+  const erros: { tipo: string; numero: string | null; chave: string; erro: string }[] = [];
+  let processadas = 0, ultimo: string | null = null;
+  for (const r of todas) {
+    if (processadas >= lote) break;
+    processadas++; ultimo = r.id;
+    const tipo = String(r.tipo_documento ?? "?");
+    try {
+      const doc = (r.nfs_stage_documentos ?? [])[0];
+      const dl = await admin.storage.from("nfs-stage").download(doc.storage_path);
+      if (dl.error) throw new Error(`download da cópia interna: ${dl.error.message}`);
+      await cachearNfEntradaXml(admin, r.nf_chave_acesso, r.nf_data_emissao, await dl.data.text());
+      copiadas[tipo] = (copiadas[tipo] ?? 0) + 1;
+    } catch (e) {
+      erros.push({ tipo, numero: r.nf_numero ?? null, chave: r.nf_chave_acesso, erro: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  return { ok: true, tipo: "entrada_copia_interna", pendentes_antes: todas.length, processadas, copiadas, erros, restantes: todas.length - processadas, ultimo_id: ultimo };
 }

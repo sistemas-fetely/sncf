@@ -178,8 +178,10 @@ export async function baixarPdfValidado(
 
 /** Confirma que o conteúdo é XML de NF-e. Lança com trecho do corpo se não for. */
 export function validarXmlNf(conteudo: string, ctx: Record<string, unknown> = {}): string {
-  const texto = (conteudo ?? "").trim();
-  const ehXml =
+  const texto = (conteudo ?? "").replace(/^\uFEFF/, "").trim();
+  // NFS-e (ADN nacional e layouts municipais/ABRASF) vale pela estrutura, mesmo sem a linha <?xml ?>.
+  const ehNfse = texto.startsWith("<") && /<(?:[\w-]+:)?(?:NFSe|Nfse|CompNfse|InfNfse|infNFSe|ListaNfse|ConsultarNfse\w*|DPS)\b/.test(texto);
+  const ehXml = ehNfse ||
     texto.startsWith("<?xml") || texto.includes("<nfeProc") || texto.includes("<NFe") || texto.includes("<cteProc") || texto.includes("<CTe");
   if (!ehXml) {
     throw new NfAnexoError(
