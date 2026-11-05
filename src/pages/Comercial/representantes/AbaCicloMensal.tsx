@@ -29,6 +29,7 @@ import {
   BUCKET_DOCUMENTO, ORDEM_ETAPA, ORIGEM_DOCUMENTO, TIPO_DOCUMENTO, competenciaCorrente, competenciasRecentes,
   datasDaCompetencia, lerAnterioresEmAberto, lerCiclo, lerNfsSemExtrato, type AnteriorAberto, type LinhaCiclo, type NfSemExtrato,
 } from "./cicloMensal";
+import { quemRecebePosicao, type EnvioPosicao, type PosicaoViva } from "./posicaoSemExtrato";
 
 type Res = Record<string, any>;
 
@@ -277,6 +278,12 @@ function DecidirDialog({ alvo, decisao, onFechar, onFeito }: {
 }
 
 /* ---------------- aba ---------------- */
+type ResultadoPosicao = {
+  enviados: number;
+  falhas: { vendedor_id: string; representante: string | null; erro: string }[];
+  ignorados: { vendedor_id: string; representante: string | null; motivo: string }[];
+};
+
 type ResultadoEnvio = {
   enviados: number;
   falhas: { extrato_id: string; representante: string | null; erro: string }[];
@@ -346,6 +353,33 @@ export function AbaCicloMensal() {
     return m;
   }, [anterioresQ.data]);
 
+  // POSIÇÃO-SEM-EXTRATO: carteira viva menos quem tem extrato com valor nesta competência.
+  const compDia1 = `${String(competencia).slice(0, 7)}-01`;
+  const posicoesQ = useQuery({
+    queryKey: ["comissao-posicoes", competencia],
+    queryFn: async () => {
+      const [v, e] = await Promise.all([
+        supabase.from("vw_comissao_posicao_viva").select("vendedor_id,representante,email_contato,carteira_total,em_atraso,em_atraso_qtd"),
+        supabase.from("comissao_posicao_envio").select("vendedor_id,enviado_em").eq("competencia", compDia1),
+      ]);
+      if (v.error) throw v.error;
+      if (e.error) throw e.error;
+      return { vivas: (v.data ?? []) as PosicaoViva[], envios: (e.data ?? []) as EnvioPosicao[] };
+    },
+  });
+  useEffect(() => {
+    if (posicoesQ.error) toast.error(`Falha ao carregar posições: ${formatError(posicoesQ.error)}`);
+  }, [posicoesQ.error]);
+  const posicoes = useMemo(() => quemRecebePosicao(posicoesQ.data?.vivas ?? [], linhas, posicoesQ.data?.envios ?? []),
+    [posicoesQ.data, q.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [selPos, setSelPos] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setSelPos(new Set(posicoes.filter((p) => !p.enviado_em).map((p) => p.vendedor_id)));
+  }, [posicoes]);
+  const posSelecionadas = posicoes.filter((p) => selPos.has(p.vendedor_id));
+  const totalPosSel = posSelecionadas.reduce((s, p) => s + num(p.carteira_total), 0);
+  const [resultadoPos, setResultadoPos] = useState<ResultadoPosicao | null>(null);
+
   // Pré-seleção: quem está em "1_fechado" com valor > 0.
   useEffect(() => {
     setSel(new Set(linhas.filter((l) => l.etapa === "1_fechado" && num(l.valor_total) > 0).map((l) => l.extrato_id)));
@@ -381,8 +415,9 @@ export function AbaCicloMensal() {
       ["NF conferida", linhas.filter((l) => ord(l) >= 4).length],
       ["Título gerado", linhas.filter((l) => l.cpr_id).length],
       ["Pagos", linhas.filter((l) => l.pago_em).length],
+      ["Posições enviadas", `${posicoes.filter((p) => p.enviado_em).length} de ${posicoes.length}`],
     ] as const;
-  }, [linhas]);
+  }, [linhas, posicoes]);
 
   const selecionadas = linhas.filter((l) => sel.has(l.extrato_id));
   const totalSel = selecionadas.reduce((s, l) => s + num(l.valor_total), 0);
@@ -401,19 +436,58 @@ export function AbaCicloMensal() {
       qc.invalidateQueries({ queryKey: ["comissao-extratos-fechados"] }),
       qc.invalidateQueries({ queryKey: ["comissao-extrato"] }),
       qc.invalidateQueries({ queryKey: ["comissao-nf-sem-extrato"] }),
+      qc.invalidateQueries({ queryKey: ["comissao-posicoes"] }),
     ]);
+  }
+
+  async function invocar<T>(nome: string, body: unknown): Promise<T> {
+    const { data, error } = await supabase.functions.invoke(nome, { body });
+    if (error) {
+      let det = formatError(error);
+      try { const t = await (error as any).context?.text?.(); if (t) det = JSON.parse(t).error ?? t; } catch { /* mantém */ }
+      throw new Error(det);
+    }
+    return (data ?? {}) as T;
+  }
+
+  async function enviarTudo() {
+    setEnviando(true);
+    try {
+      const [rx, rp] = await Promise.allSettled([
+        selecionadas.length ? invocar<ResultadoEnvio>("enviar-extrato-comissao", { extrato_ids: selecionadas.map((l) => l.extrato_id) }) : Promise.resolve(null),
+        posSelecionadas.length ? invocar<ResultadoPosicao>("enviar-posicao-comissao", { vendedor_ids: posSelecionadas.map((p) => p.vendedor_id), competencia: compDia1 }) : Promise.resolve(null),
+      ]);
+      const vazio = { enviados: 0, falhas: [], ignorados: [] };
+      setResultado(rx.status === "fulfilled" ? (rx.value ?? vazio)
+        : { ...vazio, falhas: [{ extrato_id: "lote", representante: "Envio de extratos", erro: formatError(rx.reason) }] });
+      setResultadoPos(rp.status === "fulfilled" ? (rp.value ?? vazio)
+        : { ...vazio, falhas: [{ vendedor_id: "lote", representante: "Envio de posições", erro: formatError(rp.reason) }] });
+      setConfirmarEnvio(false);
+      await invalidar();
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function reenviarPosicao(vendedorId: string) {
+    setEnviando(true);
+    try {
+      const r = await invocar<ResultadoPosicao>("enviar-posicao-comissao", { vendedor_ids: [vendedorId], competencia: compDia1, force: true });
+      if (r.falhas?.length) throw new Error(r.falhas[0].erro);
+      if (r.ignorados?.length) throw new Error(r.ignorados[0].motivo);
+      toast.success("Posição reenviada.");
+      await invalidar();
+    } catch (e) {
+      toast.error(`Falha ao reenviar posição: ${formatError(e)}`);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   async function enviar(ids: string[], silencioso = false) {
     setEnviando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("enviar-extrato-comissao", { body: { extrato_ids: ids } });
-      if (error) {
-        let det = formatError(error);
-        try { const t = await (error as any).context?.text?.(); if (t) det = JSON.parse(t).error ?? t; } catch { /* mantém */ }
-        throw new Error(det);
-      }
-      const r = (data ?? {}) as ResultadoEnvio;
+      const r = await invocar<ResultadoEnvio>("enviar-extrato-comissao", { extrato_ids: ids });
       if (silencioso) {
         if (r.falhas?.length) throw new Error(r.falhas[0].erro);
         toast.success("E-mail reenviado.");
@@ -472,10 +546,10 @@ export function AbaCicloMensal() {
         </Button>
         <Button
           className="bg-gold text-background hover:bg-gold/90"
-          disabled={sel.size === 0 || enviando}
+          disabled={selecionadas.length + posSelecionadas.length === 0 || enviando}
           onClick={() => setConfirmarEnvio(true)}
         >
-          <Send className="h-4 w-4" />Enviar extratos{sel.size > 0 ? ` (${sel.size})` : ""}
+          <Send className="h-4 w-4" />Enviar{selecionadas.length + posSelecionadas.length > 0 ? ` (${selecionadas.length + posSelecionadas.length})` : ""}
         </Button>
         </div>
       </div>
@@ -492,7 +566,7 @@ export function AbaCicloMensal() {
         ))}
       </CardContent></Card>
 
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
         {contadores.map(([rot, v]) => (
           <Card key={rot}><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{rot}</div>
@@ -619,6 +693,56 @@ export function AbaCicloMensal() {
         )}
       </CardContent></Card>
 
+      {/* POSIÇÃO-SEM-EXTRATO */}
+      {posicoes.length > 0 && (
+        <Card><CardContent className="p-0">
+          <div className="border-b bg-muted/40 px-4 py-3 text-sm font-medium">
+            Sem valor a pagar nesta competência — posição de acompanhamento
+          </div>
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead className="w-8" />
+              <TableHead>Representante</TableHead>
+              <TableHead className="text-right">Carteira a receber</TableHead>
+              <TableHead className="text-right">Em atraso</TableHead>
+              <TableHead>Etapa</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {posicoes.map((p) => (
+                <TableRow key={p.vendedor_id}>
+                  <TableCell>
+                    <Checkbox checked={selPos.has(p.vendedor_id)} onCheckedChange={() => setSelPos((s) => {
+                      const n = new Set(s); if (n.has(p.vendedor_id)) n.delete(p.vendedor_id); else n.add(p.vendedor_id); return n;
+                    })} />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {p.representante ?? "—"}
+                    <div className="text-xs text-muted-foreground">{p.email_contato ?? "sem e-mail"}</div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtBRL(p.carteira_total)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", num(p.em_atraso) > 0 && "text-destructive")}>
+                    {num(p.em_atraso) > 0 ? `${fmtBRL(p.em_atraso)} (${num(p.em_atraso_qtd)})` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={p.enviado_em ? "bg-info/15 text-info border-info/30" : "bg-muted text-foreground border-border"}>
+                      {p.enviado_em ? `Posição enviada em ${fmtData(p.enviado_em).slice(0, 5)}` : "A enviar"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {p.enviado_em && (
+                      <Button variant="ghost" size="sm" disabled={enviando} onClick={() => reenviarPosicao(p.vendedor_id)}>
+                        <Mail className="h-4 w-4" />Reenviar posição
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent></Card>
+      )}
+
       {/* NF de representante capturada da Qive que não casou com nenhum extrato aberto */}
       {nfsSemExtrato.length > 0 && (
         <Card><CardContent className="p-4">
@@ -664,24 +788,41 @@ export function AbaCicloMensal() {
       <Dialog open={confirmarEnvio} onOpenChange={(o) => !o && !enviando && setConfirmarEnvio(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enviar {selecionadas.length} extrato(s) por e-mail?</DialogTitle>
+            <DialogTitle>Enviar {selecionadas.length + posSelecionadas.length} e-mail(s)?</DialogTitle>
             <DialogDescription>
-              Cada representante recebe o extrato de {fmtCompetencia(competenciaApurada(competencia))} e o pedido da nota fiscal.
+              Competência {fmtCompetencia(competenciaApurada(competencia))}.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-64 space-y-1 overflow-y-auto text-sm">
-            {selecionadas.map((l) => (
-              <div key={l.extrato_id} className="flex justify-between gap-3 border-b py-1 last:border-b-0">
-                <span>{l.representante}</span>
-                <span className="tabular-nums">{fmtBRL(l.valor_total)}</span>
+          <div className="max-h-80 space-y-4 overflow-y-auto text-sm">
+            {selecionadas.length > 0 && (
+              <div>
+                <p className="font-medium">Extratos — pedem NF ({selecionadas.length})</p>
+                {selecionadas.map((l) => (
+                  <div key={l.extrato_id} className="flex justify-between gap-3 border-b py-1 last:border-b-0">
+                    <span>{l.representante}</span>
+                    <span className="tabular-nums">{fmtBRL(l.valor_total)}</span>
+                  </div>
+                ))}
+                <p className="mt-1 font-medium">Total: <span className="tabular-nums">{fmtBRL(totalSel)}</span></p>
               </div>
-            ))}
+            )}
+            {posSelecionadas.length > 0 && (
+              <div>
+                <p className="font-medium">Posições — só acompanhamento ({posSelecionadas.length})</p>
+                {posSelecionadas.map((p) => (
+                  <div key={p.vendedor_id} className="flex justify-between gap-3 border-b py-1 last:border-b-0">
+                    <span>{p.representante}</span>
+                    <span className="tabular-nums">{fmtBRL(p.carteira_total)}</span>
+                  </div>
+                ))}
+                <p className="mt-1 font-medium">Carteira total: <span className="tabular-nums">{fmtBRL(totalPosSel)}</span></p>
+              </div>
+            )}
           </div>
-          <p className="text-sm font-medium">Total: <span className="tabular-nums">{fmtBRL(totalSel)}</span></p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmarEnvio(false)} disabled={enviando}>Cancelar</Button>
             <Button className="bg-gold text-background hover:bg-gold/90" disabled={enviando}
-              onClick={() => enviar(selecionadas.map((l) => l.extrato_id))}>
+              onClick={enviarTudo}>
               {enviando && <Loader2 className="h-4 w-4 animate-spin" />}Enviar
             </Button>
           </DialogFooter>
@@ -689,10 +830,11 @@ export function AbaCicloMensal() {
       </Dialog>
 
       {/* resultado do envio */}
-      <Dialog open={!!resultado} onOpenChange={(o) => !o && setResultado(null)}>
+      <Dialog open={!!resultado || !!resultadoPos} onOpenChange={(o) => { if (!o) { setResultado(null); setResultadoPos(null); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Resultado do envio</DialogTitle></DialogHeader>
-          <div className="space-y-3 text-sm">
+          <div className="max-h-[70vh] space-y-3 overflow-y-auto text-sm">
+            <p className="font-medium">Extratos</p>
             <p>{resultado?.enviados ?? 0} extrato(s) enviado(s).</p>
             {(resultado?.ignorados ?? []).length > 0 && (
               <div>
@@ -710,8 +852,26 @@ export function AbaCicloMensal() {
                 ))}
               </div>
             )}
+            <p className="border-t pt-3 font-medium">Posições</p>
+            <p>{resultadoPos?.enviados ?? 0} posição(ões) enviada(s).</p>
+            {(resultadoPos?.ignorados ?? []).length > 0 && (
+              <div>
+                <p className="font-medium">Ignorados ({resultadoPos?.ignorados.length})</p>
+                {resultadoPos?.ignorados.map((i) => (
+                  <p key={i.vendedor_id} className="text-muted-foreground">{i.representante ?? i.vendedor_id}: {i.motivo}</p>
+                ))}
+              </div>
+            )}
+            {(resultadoPos?.falhas ?? []).length > 0 && (
+              <div>
+                <p className="font-medium text-destructive">Falhas ({resultadoPos?.falhas.length})</p>
+                {resultadoPos?.falhas.map((f) => (
+                  <p key={f.vendedor_id} className="text-destructive">{f.representante ?? f.vendedor_id}: {f.erro}</p>
+                ))}
+              </div>
+            )}
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setResultado(null)}>Fechar</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => { setResultado(null); setResultadoPos(null); }}>Fechar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
