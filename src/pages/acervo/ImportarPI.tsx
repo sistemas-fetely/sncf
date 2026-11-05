@@ -569,6 +569,25 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
         setRegistroResultado([...acumulado]);
       }
       toast.success(`${acumulado.length} item(ns) enviados ao FOP`);
+      const concluido =
+        acumulado.length > 0 &&
+        acumulado.every((it) => {
+          const st = textoCelula(it.status);
+          if (st === "registrado") return true;
+          return st === "bloqueado" && textoCelula(it.motivo).toUpperCase().includes("JA EXISTE NO FOP");
+        });
+      if (concluido && loteId) {
+        const { error: errMarca } = await supabase.rpc("fn_pi_lote_marcar_registrado", {
+          p_lote_id: loteId,
+          p_motivo: "passo 6 da tela",
+        });
+        if (errMarca) throw new Error(errMarca.message);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["pi-import-lotes-retomaveis"] }),
+          queryClient.invalidateQueries({ queryKey: ["pi-import-lote", loteId] }),
+        ]);
+        toast.success("Lote concluído — saiu da lista de retomada");
+      }
     } catch (e) {
       toast.error(msgErro(e));
     } finally {

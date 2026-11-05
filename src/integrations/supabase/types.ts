@@ -159223,6 +159223,10 @@ export type Database = {
         Returns: Json
       }
       fn_pi_lote_itens_fop: { Args: { p_lote_id: string }; Returns: Json }
+      fn_pi_lote_marcar_registrado: {
+        Args: { p_lote_id: string; p_motivo: string }
+        Returns: Json
+      }
       fn_pix_brcode: {
         Args: {
           p_chave: string

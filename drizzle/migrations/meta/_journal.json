@@ -547,6 +547,13 @@
       "when": 1793838279667,
       "tag": "0077_fn_pi_lote_itens_fop",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793876210045,
+      "tag": "0078_pi_lote_marcar_registrado",
+      "breakpoints": true
     }
   ]
 }
