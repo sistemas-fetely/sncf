@@ -31,9 +31,7 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 const mesNome = (ym: string) => MESES[Number(ym.slice(5, 7)) - 1] ?? "";
 const mesAno = (ym: string) => `${mesNome(ym)}/${ym.slice(0, 4)}`;
 const mesCurto = (ym: string) => `${mesNome(ym).slice(0, 3)}/${ym.slice(2, 4)}`;
-const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const ddmm = (d: unknown) => d ? `${String(d).slice(8, 10)}/${String(d).slice(5, 7)}` : "—";
-const brl0 = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0, minimumFractionDigits: 0 }).format(v);
 const pct = (v: number) => `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(v)}%`;
 
 function Cartao({ rotulo, valor, sub, alerta }: { rotulo: string; valor: string; sub?: string; alerta?: boolean }) {
@@ -83,12 +81,12 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
     </header>
     <section className="bloco-mensal mt-5">
       <div className="grid grid-cols-4 gap-2">
-        <Cartao rotulo={`Vendido em ${mesNome(mesVendas)}`} valor={brl0(totalVendas.base)} sub={`${numero(kMes.pedidos)} pedidos · ${numero(kMes.clientes)} clientes`}/>
-        <Cartao rotulo="Comissão gerada" valor={brl0(totalVendas.comissao)} sub={`taxa média ${pct(numero(kMes.taxa_media_pct))}`}/>
+        <Cartao rotulo={`Vendido em ${mesNome(mesVendas)}`} valor={fmtBRL(totalVendas.base)} sub={`${numero(kMes.pedidos)} pedidos · ${numero(kMes.clientes)} clientes`}/>
+        <Cartao rotulo="Comissão gerada" valor={fmtBRL(totalVendas.comissao)} sub={`taxa média ${pct(numero(kMes.taxa_media_pct))}`}/>
         <Cartao rotulo="Desconto médio" valor={pct(numero(kMes.desconto_medio_pct))} sub={numero(kMes.desconto_medio_pct) < 5 ? "sem redução de taxa" : ""}/>
         <Cartao rotulo="A receber" valor={fmtBRL(totalAgenda)} sub={agenda.length ? `${mesCurto(agenda[0].mes)} a ${mesCurto(agenda[agenda.length - 1].mes)}` : ""}/>
       </div>
-      <p className="mt-2 text-[7pt] text-muted-foreground">Acumulado {mesVendas.slice(0, 4)} · vendido {brl0(soma("vendido"))} · comissão {brl0(soma("comissao_gerada"))} · {soma("pedidos")} pedidos</p>
+      <p className="mt-2 text-[7pt] text-muted-foreground">Acumulado {mesVendas.slice(0, 4)} · vendido {fmtBRL(soma("vendido"))} · comissão {fmtBRL(soma("comissao_gerada"))} · {soma("pedidos")} pedidos</p>
       <p className="mt-1 text-[7pt] text-muted-foreground">Comissão gerada é apurada na emissão da NF e vira pagamento conforme o cliente liquida cada parcela.</p>
     </section>
     {vendas.length > 0 && <section className="bloco-mensal mt-6">
@@ -125,7 +123,7 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
         <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
         <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Vencimento do cliente</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
         {agenda.map(m => <tbody key={m.mes} className="mes-agenda">
-          <tr className="cabecalho-mes"><td colSpan={6}>{capital(mesAno(m.mes))} · até {ddmm(m.pagarAte)}</td><td className="text-right tabular-nums">{fmtBRL(m.total)}</td></tr>
+          <tr className="cabecalho-mes"><td colSpan={6}>Pagamento em {mesNome(m.mes)}/{m.mes.slice(0, 4)} (até {ddmm(m.pagarAte)}) · títulos liquidados em {mesNome(somarMeses(m.mes, -1))}</td><td className="text-right tabular-nums">{fmtBRL(m.total)}</td></tr>
           {m.itens.map((it, i) => <tr key={i}><td className="truncate" title={it.cliente || undefined}>{it.cliente || "—"}</td><td className="whitespace-nowrap">{it.pedido || "—"}</td><td className="tabular-nums">{it.parcela}</td><td className="tabular-nums">{it.parcela === "complemento" ? "—" : it.pago ? `pago ${ddmm(it.vencimento)}` : ddmm(it.vencimento)}</td><td className="text-right tabular-nums">{it.base === null ? "—" : fmtBRL(it.base)}</td><td className="text-right tabular-nums">{rotuloTaxas(it.taxas)}</td><td className="text-right tabular-nums">{fmtBRL(it.comissao)}</td></tr>)}
         </tbody>)}
         <tfoot><tr><td colSpan={6}>Total previsto</td><td className="text-right tabular-nums">{fmtBRL(totalAgenda)}</td></tr></tfoot>
