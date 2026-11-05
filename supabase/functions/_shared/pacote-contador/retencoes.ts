@@ -4,6 +4,7 @@
 import * as XLSX from "npm:xlsx@0.18.5";
 import { parseNfseXml } from "../nfse-xml.ts";
 import { retencoesDoXml, type RetencoesNfse } from "../nfse-retencoes.ts";
+import { obsPagaNoMes, recuarMeses, type GrupoRetencao } from "./retencoesGrupos.ts";
 
 export const BUCKET = "contabil";
 export type Situacao = "vinculado" | "candidato" | "multiplos" | "nao_localizado";
@@ -29,31 +30,56 @@ async function baixarTexto(admin: any, path: string): Promise<string> {
   throw new Error(ultimo);
 }
 
-export async function montarRetencoes(admin: any, userDb: any, ini: string, fim: string) {
-  const nfs = await todas(admin.from("nfs_stage").select("id,nf_numero,nf_data_emissao,fornecedor_razao_social,fornecedor_cnpj,valor,xml_storage_path,resumo_pdf_storage_path,status")
-    .eq("tipo_documento", "nfse").gte("nf_data_emissao", ini).lte("nf_data_emissao", fim).not("status", "in", "(descartada,duplicada)").order("nf_data_emissao"));
-  const erros: { nfs_stage_id: string; numero: string | null; erro: string }[] = [];
+const SEL_NFS = "id,nf_numero,nf_data_emissao,fornecedor_razao_social,fornecedor_cnpj,valor,xml_storage_path,resumo_pdf_storage_path,status";
+const SEL_VINC = "nfs_stage_id,movimentacao_id,confirmado_em,confirmado_por,movimentacoes_bancarias!inner(data_transacao,valor,descricao)";
+
+async function lerXmls(admin: any, nfs: any[], grupo: GrupoRetencao, erros: any[]) {
   const lidas: { n: any; r: RetencoesNfse; prestador: string | null }[] = [];
-  for (let i = 0; i < nfs.length; i += 6) {
-    await Promise.all(nfs.slice(i, i + 6).map(async (n: any) => {
-      if (!n.xml_storage_path) { erros.push({ nfs_stage_id: n.id, numero: n.nf_numero, erro: "XML não guardado" }); return; }
+  for (let i = 0; i < nfs.length; i += 8) {
+    await Promise.all(nfs.slice(i, i + 8).map(async (n: any) => {
+      const g = grupo === "emitida" ? "" : ` (${grupo === "paga_no_mes" ? "paga neste mês" : "em aberto"})`;
+      if (!n.xml_storage_path) { erros.push({ nfs_stage_id: n.id, numero: n.nf_numero, grupo, erro: `XML não guardado${g}` }); return; }
       try {
         const xml = await baixarTexto(admin, n.xml_storage_path);
         lidas.push({ n, r: retencoesDoXml(xml), prestador: parseNfseXml(xml).prestador_razao });
-      } catch (e) { erros.push({ nfs_stage_id: n.id, numero: n.nf_numero, erro: `XML não lido: ${e instanceof Error ? e.message : String(e)}` }); }
+      } catch (e) { erros.push({ nfs_stage_id: n.id, numero: n.nf_numero, grupo, erro: `XML não lido${g}: ${e instanceof Error ? e.message : String(e)}` }); }
     }));
   }
-  const com = lidas.filter((l) => l.r.tem_retencao).sort((a, b) => String(a.n.nf_data_emissao).localeCompare(String(b.n.nf_data_emissao)) || String(a.n.nf_numero).localeCompare(String(b.n.nf_numero)));
-  const ids = com.map((l) => l.n.id);
-  const vinc = ids.length ? await todas(admin.from("contabil_nfse_pagamento").select("nfs_stage_id,movimentacao_id,confirmado_em,confirmado_por,movimentacoes_bancarias(data_transacao,valor,descricao)").in("nfs_stage_id", ids).eq("vigente", true)) : [];
-  const itens = [];
-  for (const { n, r, prestador } of com) {
-    const v = vinc.find((x: any) => x.nfs_stage_id === n.id);
+  return lidas.filter((l) => l.r.tem_retencao)
+    .sort((a, b) => String(a.n.nf_data_emissao).localeCompare(String(b.n.nf_data_emissao)) || String(a.n.nf_numero).localeCompare(String(b.n.nf_numero)));
+}
+
+export async function montarRetencoes(admin: any, userDb: any, ini: string, fim: string) {
+  const naoDesc = (q: any) => q.eq("tipo_documento", "nfse").not("status", "in", "(descartada,duplicada)");
+  const erros: { nfs_stage_id: string; numero: string | null; grupo: GrupoRetencao; erro: string }[] = [];
+  // (a) emitidas em M
+  const nfs = await todas(naoDesc(admin.from("nfs_stage").select(SEL_NFS)).gte("nf_data_emissao", ini).lte("nf_data_emissao", fim).order("nf_data_emissao"));
+  const comA = await lerXmls(admin, nfs, "emitida", erros);
+  const lidasA = nfs.length - erros.length;
+  // (b) emitidas antes de M, pagamento confirmado com movimentação em M
+  const pagosNoMes = await todas(admin.from("contabil_nfse_pagamento").select(SEL_VINC).eq("vigente", true)
+    .gte("movimentacoes_bancarias.data_transacao", ini).lte("movimentacoes_bancarias.data_transacao", fim));
+  const idsB = [...new Set(pagosNoMes.map((v: any) => v.nfs_stage_id))];
+  const nfsB = idsB.length ? await todas(naoDesc(admin.from("nfs_stage").select(SEL_NFS)).in("id", idsB).lt("nf_data_emissao", ini)) : [];
+  const comB = await lerXmls(admin, nfsB, "paga_no_mes", erros);
+  // (c) emitidas nos 12 meses antes de M, sem pagamento confirmado
+  const antes = await todas(naoDesc(admin.from("nfs_stage").select(SEL_NFS)).gte("nf_data_emissao", recuarMeses(ini, 12)).lt("nf_data_emissao", ini).order("nf_data_emissao"));
+  const vincAntes = new Set<string>();
+  for (let i = 0; i < antes.length; i += 300) {
+    const ids = antes.slice(i, i + 300).map((n: any) => n.id);
+    const { data, error } = await admin.from("contabil_nfse_pagamento").select("nfs_stage_id").eq("vigente", true).in("nfs_stage_id", ids);
+    if (error) throw error;
+    for (const v of data ?? []) vincAntes.add(v.nfs_stage_id);
+  }
+  const comC = await lerXmls(admin, antes.filter((n: any) => !vincAntes.has(n.id)), "em_aberto", erros);
+
+  const idsA = comA.map((l) => l.n.id);
+  const vincA = idsA.length ? await todas(admin.from("contabil_nfse_pagamento").select(SEL_VINC).in("nfs_stage_id", idsA).eq("vigente", true)) : [];
+  const pag = (v: any) => ({ movimentacao_id: v.movimentacao_id, data: v.movimentacoes_bancarias?.data_transacao, valor: Math.abs(Number(v.movimentacoes_bancarias?.valor ?? 0)), descricao: v.movimentacoes_bancarias?.descricao, confirmado_em: v.confirmado_em });
+  const montar = async ({ n, r, prestador }: { n: any; r: RetencoesNfse; prestador: string | null }, grupo: GrupoRetencao, v: any) => {
     let situacao: Situacao; let pagamento: any = null; let candidatos: any[] = [];
-    if (v) {
-      situacao = "vinculado";
-      pagamento = { movimentacao_id: v.movimentacao_id, data: v.movimentacoes_bancarias?.data_transacao, valor: Math.abs(Number(v.movimentacoes_bancarias?.valor ?? 0)), descricao: v.movimentacoes_bancarias?.descricao, confirmado_em: v.confirmado_em };
-    } else {
+    if (v) { situacao = "vinculado"; pagamento = pag(v); }
+    else {
       const { data, error } = await userDb.rpc("fn_contabil_nfse_pagamento_candidatos", { p_nfs_stage_id: n.id, p_valor_liquido: r.liquido });
       if (error) throw new Error(`Candidatos de pagamento da NFS-e ${n.nf_numero}: ${error.message}`);
       candidatos = data ?? [];
@@ -63,17 +89,24 @@ export async function montarRetencoes(admin: any, userDb: any, ini: string, fim:
       situacao = escolhidos.length === 1 ? "candidato" : escolhidos.length > 1 ? "multiplos" : "nao_localizado";
       if (escolhidos.length === 1) pagamento = { ...escolhidos[0], data: escolhidos[0].data_transacao };
     }
-    itens.push({ nfs_stage_id: n.id, numero: n.nf_numero, emissao: n.nf_data_emissao, prestador: prestador ?? n.fornecedor_razao_social, cnpj: n.fornecedor_cnpj,
-      ...r, situacao, pagamento, candidatos });
-  }
-  const t = (k: keyof RetencoesNfse) => Math.round(com.reduce((a, l) => a + Number(l.r[k] ?? 0), 0) * 100) / 100;
+    return { nfs_stage_id: n.id, numero: n.nf_numero, emissao: n.nf_data_emissao, prestador: prestador ?? n.fornecedor_razao_social, cnpj: n.fornecedor_cnpj,
+      ...r, grupo, situacao, pagamento, candidatos };
+  };
+  const itens = [];
+  for (const l of comA) itens.push(await montar(l, "emitida", vincA.find((x: any) => x.nfs_stage_id === l.n.id)));
+  const pagas = [];
+  for (const l of comB) pagas.push(await montar(l, "paga_no_mes", pagosNoMes.find((x: any) => x.nfs_stage_id === l.n.id)));
+  const em_aberto = [];
+  for (const l of comC) em_aberto.push(await montar(l, "em_aberto", null));
+  const itens_planilha = [...itens, ...pagas];
+  const t = (k: keyof RetencoesNfse) => Math.round(itens_planilha.reduce((a, i: any) => a + Number(i[k] ?? 0), 0) * 100) / 100;
   return {
-    total_nfse: nfs.length, lidas: lidas.length, erros_leitura: erros,
+    total_nfse: nfs.length, lidas: lidasA, erros_leitura: erros,
     pdf: { com_pdf: nfs.filter((n: any) => n.resumo_pdf_storage_path).length, sem_pdf: nfs.filter((n: any) => !n.resumo_pdf_storage_path).length },
-    com_retencao: itens.length,
+    com_retencao: itens_planilha.length,
     totais: { bruto: t("bruto"), ir: t("ir"), pis: t("pis"), cofins: t("cofins"), csll: t("csll"), inss: t("inss"), liquido: t("liquido") },
     nao_localizados: itens.filter((i) => i.situacao !== "vinculado").length,
-    itens,
+    itens, pagas_no_mes: pagas, em_aberto, itens_planilha,
     nfse: nfs.map((n: any) => ({ id: n.id, numero: n.nf_numero, prestador: n.fornecedor_razao_social, resumo_pdf_storage_path: n.resumo_pdf_storage_path })),
   };
 }
@@ -90,6 +123,7 @@ export function linhaRetencao(i: any): (string | number)[] {
   const pago = i.situacao === "vinculado";
   if (!pago) obs.push(i.situacao === "multiplos" ? "mais de um candidato — escolher" : i.situacao === "candidato" ? "pagamento não confirmado (candidato encontrado)" : "pagamento não localizado");
   if (pago && Math.abs(Number(i.pagamento.valor) - Number(i.liquido)) > 0.01) obs.push(`valor pago difere do líquido calculado (R$ ${Number(i.liquido).toFixed(2).replace(".", ",")})`);
+  if (i.grupo === "paga_no_mes" && pago) obs.unshift(obsPagaNoMes(String(i.emissao), String(i.pagamento.data)));
   obs.unshift(`Prestador: ${i.prestador ?? "?"}`);
   return [i.numero ?? "", dBr(i.emissao), i.bruto, sn(i.ir > 0), i.ir, sn(i.pis + i.cofins + i.csll > 0), i.pis, i.cofins, i.csll,
     sn(i.inss > 0), i.inss_aliquota != null ? `${String(i.inss_aliquota).replace(".", ",")}%` : "", i.inss,

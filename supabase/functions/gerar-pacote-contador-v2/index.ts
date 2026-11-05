@@ -286,11 +286,11 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
   const ret = await montarRetencoes(admin, userDb, ini, fimP);
   const retPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/retencoes_nfse.xlsx`;
   if (!simular) {
-    const up = await admin.storage.from(BUCKET).upload(retPath, xlsxRetencoes(ret.itens, `${ini.slice(5, 7)}/${ini.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
+    const up = await admin.storage.from(BUCKET).upload(retPath, xlsxRetencoes(ret.itens_planilha, `${ini.slice(5, 7)}/${ini.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
     if (up.error) throw new Error(`Falha ao gravar planilha de retenções: ${up.error.message}`);
   }
   entradas.push({ zip: nomeUnico(`01_relatorios/Pagamentos_NFS-e_Servicos_Tomados_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: retPath }); conta("01_relatorios");
-  for (const e of ret.erros_leitura) faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${e.numero ?? "?"}`, motivo: e.erro });
+  for (const e of ret.erros_leitura.filter((x: any) => x.grupo !== "em_aberto")) faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${e.numero ?? "?"}`, motivo: e.erro });
   pastas["05_despesas/nfse"] ??= { arquivos: 0 };
   for (const n of ret.nfse) {
     if (!n.resumo_pdf_storage_path) { faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${n.numero ?? "?"} · ${n.prestador ?? "?"}`, motivo: "PDF (resumo do XML) não gerado — rode 'Gerar PDFs das NFS-e'" }); continue; }
@@ -311,7 +311,9 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
   }
   const retencoesManifesto = { total_nfse: ret.total_nfse, lidas: ret.lidas, erros_leitura: ret.erros_leitura, com_retencao: ret.com_retencao, totais: ret.totais,
     pagamento_nao_confirmado: ret.nao_localizados, pdf: ret.pdf,
-    itens: ret.itens.map((i: any) => ({ numero: i.numero, emissao: i.emissao, prestador: i.prestador, bruto: i.bruto, ir: i.ir, pis: i.pis, cofins: i.cofins, csll: i.csll, inss: i.inss, liquido: i.liquido, situacao: i.situacao, pagamento: i.pagamento ? { data: i.pagamento.data, valor: i.pagamento.valor, descricao: i.pagamento.descricao } : null, observacoes: i.observacoes })) };
+    pagas_no_mes_emitidas_antes: ret.pagas_no_mes.length,
+    em_aberto_meses_anteriores: ret.em_aberto.map((i: any) => ({ numero: i.numero, emissao: i.emissao, prestador: i.prestador, liquido: i.liquido })),
+    itens: ret.itens_planilha.map((i: any) => ({ grupo: i.grupo, numero: i.numero, emissao: i.emissao, prestador: i.prestador, bruto: i.bruto, ir: i.ir, pis: i.pis, cofins: i.cofins, csll: i.csll, inss: i.inss, liquido: i.liquido, situacao: i.situacao, pagamento: i.pagamento ? { data: i.pagamento.data, valor: i.pagamento.valor, descricao: i.pagamento.descricao } : null, observacoes: i.observacoes })) };
   const despesasManifesto = { tipos_esperados: tiposDesp.length, enviados_no_mes: docsMes.length, faltam: despesaFaltam };
 
   // 02_nfs_saida
@@ -519,7 +521,9 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
   if (m.retencoes_nfse) {
     const r = m.retencoes_nfse;
     L.push(`RETENÇÕES DE NFS-e TOMADAS: ${r.com_retencao} nota(s) com retenção de ${r.total_nfse} · IR ${brl(r.totais.ir)} · PIS ${brl(r.totais.pis)} · COFINS ${brl(r.totais.cofins)} · CSLL ${brl(r.totais.csll)} · INSS ${brl(r.totais.inss)}`);
-    for (const i of r.itens) L.push(`  NFS-e ${i.numero} · ${i.prestador} · bruto ${brl(i.bruto)} · líquido ${brl(i.liquido)} · ${i.situacao === "vinculado" ? `pago ${i.pagamento?.data} ${brl(i.pagamento?.valor)}` : "pagamento não confirmado"}`);
+    for (const i of r.itens) L.push(`  NFS-e ${i.numero} · ${i.prestador} · bruto ${brl(i.bruto)} · líquido ${brl(i.liquido)} · ${i.situacao === "vinculado" ? `pago ${i.pagamento?.data} ${brl(i.pagamento?.valor)}` : "pagamento não confirmado"}${i.grupo === "paga_no_mes" ? ` · emitida em ${String(i.emissao).slice(5, 7)}/${String(i.emissao).slice(0, 4)}, paga neste mês` : ""}`);
+    if (r.pagas_no_mes_emitidas_antes != null) L.push(`  Pagas neste mês (emitidas antes): ${r.pagas_no_mes_emitidas_antes}`);
+    if (r.em_aberto_meses_anteriores?.length) L.push(`  Em aberto de meses anteriores (informativo, entram no mês do pagamento): ${r.em_aberto_meses_anteriores.map((i: any) => `NFS-e ${i.numero} (${String(i.emissao).slice(5, 7)}/${String(i.emissao).slice(0, 4)})`).join(", ")}`);
     L.push(`  PDFs de NFS-e: ${r.pdf.com_pdf} com PDF, ${r.pdf.sem_pdf} sem PDF`, "");
   }
   if (m.documentos_despesa) {

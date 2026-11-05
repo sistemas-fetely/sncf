@@ -12,10 +12,10 @@ import { rawMessage } from "@/lib/format-error";
 type Candidato = { movimentacao_id: string; data_transacao: string; valor: number; descricao: string; contraparte_nome: string | null; conta: string | null; exato: boolean; mesmo_favorecido: boolean };
 type Item = {
   nfs_stage_id: string; numero: string | null; emissao: string; prestador: string | null; bruto: number; ir: number; pis: number; cofins: number; csll: number; inss: number;
-  liquido: number; observacoes: string[]; situacao: "vinculado" | "candidato" | "multiplos" | "nao_localizado";
+  liquido: number; observacoes: string[]; grupo?: "emitida" | "paga_no_mes" | "em_aberto"; situacao: "vinculado" | "candidato" | "multiplos" | "nao_localizado";
   pagamento: { movimentacao_id: string; data: string; valor: number; descricao: string } | null; candidatos: Candidato[];
 };
-type Resposta = { total_nfse: number; lidas: number; com_retencao: number; erros_leitura: { numero: string | null; erro: string }[]; pdf: { com_pdf: number; sem_pdf: number }; itens: Item[] };
+type Resposta = { total_nfse: number; lidas: number; com_retencao: number; erros_leitura: { numero: string | null; erro: string }[]; pdf: { com_pdf: number; sem_pdf: number }; itens: Item[]; pagas_no_mes?: Item[]; em_aberto?: Item[] };
 
 async function erroDaEdge(error: unknown): Promise<never> {
   const ctx = (error as { context?: Response }).context;
@@ -37,6 +37,7 @@ export function useRetencoesNfse(competencia: string | null) {
 
 const brl = (n: number | null | undefined) => n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dBr = (d?: string | null) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—";
+const mm = (d: string) => `${d.slice(5, 7)}/${d.slice(0, 4)}`;
 const rotulo = { vinculado: "Pago (confirmado)", candidato: "Candidato encontrado", multiplos: "Mais de um candidato — escolher", nao_localizado: "Pagamento não localizado" } as const;
 
 export function RetencoesNfse({ competencia }: { competencia: string }) {
@@ -79,19 +80,30 @@ export function RetencoesNfse({ competencia }: { competencia: string }) {
       </div>
       {q.error ? <p className="text-sm text-destructive">{rawMessage(q.error)}</p> : q.isLoading ? <p className="text-sm text-muted-foreground">Lendo NFS-e do mês…</p> : q.data && (
         <div className="rounded-lg border bg-card p-4 shadow-sm">
-          {q.data.erros_leitura.length > 0 && <div className="mb-3 space-y-1">{q.data.erros_leitura.map((e) => <p key={`${e.numero}-${e.erro}`} className="text-xs text-warning">NFS-e {e.numero ?? "?"}: {e.erro}</p>)}</div>}
-          {!q.data.itens.length ? <p className="text-sm text-muted-foreground">Nenhuma NFS-e com retenção em {q.data.lidas} lidas.</p> : (
-            <div className="overflow-x-auto">
+          {q.data.erros_leitura.some((e) => (e as { grupo?: string }).grupo === "em_aberto") && <p className="mb-2 text-xs text-warning">{q.data.erros_leitura.filter((e) => (e as { grupo?: string }).grupo === "em_aberto").length} NFS-e dos 12 meses anteriores sem XML lido — não foi possível saber se têm retenção em aberto.</p>}
+          {q.data.erros_leitura.length > 0 && <div className="mb-3 space-y-1">{q.data.erros_leitura.filter((e) => (e as { grupo?: string }).grupo !== "em_aberto").map((e) => <p key={`${e.numero}-${e.erro}`} className="text-xs text-warning">NFS-e {e.numero ?? "?"}: {e.erro}</p>)}</div>}
+          {[
+            { titulo: "Emitidas neste mês", itens: q.data.itens, vazio: `Nenhuma NFS-e com retenção em ${q.data.lidas} lidas.` },
+            { titulo: "Emitidas antes · pagas neste mês", itens: q.data.pagas_no_mes ?? [], vazio: null },
+            { titulo: "Em aberto de meses anteriores (entram no mês do pagamento)", itens: q.data.em_aberto ?? [], vazio: null },
+          ].filter((g) => g.itens.length || g.vazio).map((g) => (
+            <div key={g.titulo} className="mb-4 last:mb-0">
+              <h3 className="mb-2 text-xs font-medium text-muted-foreground">{g.titulo}</h3>
+              {!g.itens.length ? <p className="text-sm text-muted-foreground">{g.vazio}</p> : (
+            <div className="overflow-x-auto rounded-md border bg-background">
               <table className="w-full text-xs">
                 <thead className="bg-muted/50 text-muted-foreground"><tr>
                   {["NFS-e", "Prestador", "Emissão", "Bruto", "IR", "PIS", "COFINS", "CSLL", "INSS", "Líquido", "Pagamento"].map((h) => <th key={h} className={`px-2 py-1.5 font-normal ${["NFS-e", "Prestador", "Emissão", "Pagamento"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>)}
                 </tr></thead>
-                <tbody>{q.data.itens.map((i) => {
+                <tbody>{g.itens.map((i) => {
                   const opcoes = i.situacao === "candidato" ? [] : i.candidatos;
                   const sel = escolha[i.nfs_stage_id];
                   return (
                     <tr key={i.nfs_stage_id} className="border-t align-top">
-                      <td className="px-2 py-2">{i.numero}</td>
+                      <td className="px-2 py-2">{i.numero}
+                        {i.grupo === "paga_no_mes" && <div className="mt-1"><Selo estado="info">Emitida em {mm(i.emissao)} · paga neste mês</Selo></div>}
+                        {i.grupo === "em_aberto" && <div className="mt-1"><Selo estado="warning">Em aberto desde {mm(i.emissao)}</Selo></div>}
+                      </td>
                       <td className="px-2 py-2 max-w-[180px]">{i.prestador}{i.observacoes.map((o) => <p key={o} className="mt-1 text-[11px] text-muted-foreground">{o}</p>)}</td>
                       <td className="px-2 py-2">{dBr(i.emissao)}</td>
                       {[i.bruto, i.ir, i.pis, i.cofins, i.csll, i.inss, i.liquido].map((v, k) => <td key={k} className="px-2 py-2 text-right tabular-nums">{brl(v)}</td>)}
@@ -108,14 +120,16 @@ export function RetencoesNfse({ competencia }: { competencia: string }) {
                             <Button size="sm" variant="outline" disabled={!sel || !permitido || confirmar.isPending} onClick={() => sel && confirmar.mutate({ item: i, mov: sel })}>Confirmar pagamento</Button>
                           </div>
                         )}
-                        {i.situacao === "nao_localizado" && !opcoes.length && <p className="mt-1 text-muted-foreground">Nenhum débito próximo de {brl(i.liquido)} entre 5 dias antes e 45 depois da emissão.</p>}
+                        {i.situacao === "nao_localizado" && !opcoes.length && <p className="mt-1 text-muted-foreground">Nenhum débito próximo de {brl(i.liquido)} desde 5 dias antes da emissão até hoje.</p>}
                       </td>
                     </tr>
                   );
                 })}</tbody>
               </table>
             </div>
-          )}
+              )}
+            </div>
+          ))}
         </div>
       )}
     </section>
