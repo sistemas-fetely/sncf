@@ -15,11 +15,13 @@ describe("e-mail do extrato", () => {
   const e = { competencia: "2026-11-01", competencia_apuracao: "2026-10-01" };
   it("prazo da NF é dia 10 do mês de pagamento", () => expect(prazoNf(e.competencia)).toBe("10/11"));
   it("assunto usa a competência apurada", () => expect(assunto(e)).toBe("Fetély · Extrato de comissão 10/2026 — emitir NF até 10/11"));
-  it("saldo_anterior aparece com mês apurado, nº e motivo padrão", () => {
-    const h = linhaDoItem({ tipo: "saldo_anterior", competencia_origem: "2026-10-01", sequencia_origem: 2, valor: 100 });
+  it("saldo_anterior aparece com mês apurado, nº e frase derivada da origem", () => {
+    const h = linhaDoItem({ tipo: "saldo_anterior", competencia_origem: "2026-10-01", sequencia_origem: 2, valor: 100, motivo: "Saldo em aberto de 10/2026 (sem documento fiscal)" });
     expect(h).toContain("Saldo em aberto de 09/2026");
     expect(h).toContain("(nº 2)");
-    expect(h).toContain("Valor fechado no mês anterior e ainda não pago");
+    // `motivo` congelado é ignorado; a frase vem da competência de origem.
+    expect(h).toContain("Competência 09/2026 fechada sem nota fiscal — segue neste extrato");
+    expect(h).not.toContain("sem documento fiscal)");
     expect(h).toContain('colspan="4"');
   });
   it("complemento em célula única com NF e pedido", () => {

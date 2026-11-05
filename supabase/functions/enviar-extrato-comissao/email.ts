@@ -51,7 +51,10 @@ const VALOR = `${TD};text-align:right;white-space:nowrap`
 export function linhaDoItem(i: any): string {
   if (i?.tipo === 'saldo_anterior') {
     const seq = Number(i.sequencia_origem ?? 0) > 1 ? ` (nº ${esc(i.sequencia_origem)})` : ''
-    const motivo = i.motivo ? String(i.motivo) : 'Valor fechado no mês anterior e ainda não pago — entra neste extrato.'
+    // COMPETÊNCIA-APURAÇÃO: `motivo` é congelado no fechamento; a frase é derivada da origem.
+    const motivo = i.competencia_origem
+      ? `Competência ${compAnterior(i.competencia_origem)} fechada sem nota fiscal — segue neste extrato`
+      : 'Valor fechado no mês anterior e ainda não pago — entra neste extrato.'
     return `<tr style="background:${CREME}"><td style="${TD}" colspan="4"><strong>Saldo em aberto de ${esc(compAnterior(i.competencia_origem))}</strong>${seq}<br><span style="color:#666;font-size:12px">${esc(motivo)}</span></td><td style="${VALOR}">${brl(i.valor)}</td></tr>`
   }
   if (i?.tipo === 'estorno') {

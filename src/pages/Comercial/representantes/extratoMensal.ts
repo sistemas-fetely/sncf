@@ -176,6 +176,10 @@ export function saldosAnterioresDoExtrato(itens: Linha[]): { k: string; rotulo: 
     k: String(i.extrato_origem_id ?? n),
     rotulo: `Saldo em aberto de ${i.competencia_origem ? mmAaaa(competenciaApurada(String(i.competencia_origem))) : "—"}${valorNumero(i.sequencia_origem) > 1 ? ` (nº ${i.sequencia_origem})` : ""}`,
     valor: valorNumero(i.valor),
-    motivo: i.motivo ?? null,
+    // COMPETÊNCIA-APURAÇÃO: `motivo` é texto congelado no fechamento e nos extratos antigos
+    // fala do mês de PAGAMENTO — a frase é sempre derivada da origem, nunca do campo gravado.
+    motivo: i.competencia_origem
+      ? `Competência ${mmAaaa(competenciaApurada(String(i.competencia_origem)))} fechada sem nota fiscal — segue neste extrato`
+      : null,
   }));
 }
