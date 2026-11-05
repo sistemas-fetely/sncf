@@ -171,6 +171,10 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
   const [gravando, setGravando] = useState(false);
   const [loteId, setLoteId] = useState<string | null>(null);
   const [gravadas, setGravadas] = useState<number>(0);
+  // PI-RETOMAR-NASCER-FOP: lote veio do card "Lotes efetivados", não da sessão atual.
+  // Passos 1–5 (que dependem do arquivo/da conferência) ficam ocultos; só o 6 aparece.
+  const [retomou, setRetomou] = useState(false);
+  const [retomando, setRetomando] = useState<string | null>(null);
 
   // passo 4
   const [conferindo, setConferindo] = useState(false);
@@ -225,6 +229,7 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
     setMapeamento(det?.mapeamentoSugerido ?? {});
     setLinhaManual(det ? String(det.linhaCabecalho) : "");
     setLoteId(null);
+    setRetomou(false);
     if (det) {
       toast.success(
         `Cabeçalho na linha ${det.linhaCabecalho} — ${det.camposCasados} de ${det.colunas.length} colunas reconhecidas`,
@@ -414,6 +419,53 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
   const lote = loteQuery.data ?? null;
   const loteEfetivado = lote?.estado === "efetivado" || efetivado !== null;
 
+  // ---------- RETOMAR NASCIMENTO NO FOP ----------
+  // PI-RETOMAR-NASCER-FOP: lotes efetivados fora desta sessão (ou com a página
+  // recarregada entre os passos 5 e 6) ficam presos — o passo 5 recusa lote já
+  // efetivado e o passo 6 dependia do estado React da sessão. O card do topo lista
+  // esses lotes e devolve ao passo 6 o mesmo payload que fn_pi_efetivar_lote entrega.
+  const lotesRetomaveisQuery = useQuery({
+    queryKey: ["pi-import-lotes-retomaveis"],
+    queryFn: async (): Promise<LotePI[]> => {
+      const { data, error } = await supabase
+        .from("pi_import_lote")
+        .select("id, fornecedor, pi_numero, estado, total_linhas, atualizado_em")
+        .in("estado", ["efetivado", "efetivado_parcial"])
+        .order("atualizado_em", { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as LotePI[];
+    },
+  });
+
+  async function retomarNascimento(l: LotePI) {
+    if (retomando) return;
+    setRetomando(l.id);
+    try {
+      const { data, error } = await supabase.rpc("fn_pi_lote_itens_fop", { p_lote_id: l.id });
+      if (error) throw new Error(error.message);
+      const r = (data ?? {}) as { ok?: boolean; produtos?: ProdutoEfetivar[] };
+      const produtos = r.produtos ?? [];
+      if (!r.ok || produtos.length === 0) {
+        toast.error("Lote sem itens efetivados");
+        return;
+      }
+      setLoteId(l.id);
+      setRetomou(true);
+      setEfetivado({ ok: true, lote: l.id, produtos });
+      setPrevia(null);
+      setRegistroResultado(null);
+      setErro401(false);
+      await queryClient.invalidateQueries({ queryKey: ["pi-import-lote", l.id] });
+      toast.success(`Lote retomado — ${produtos.length} produto(s) prontos para nascer no FOP`);
+      setTimeout(() => {
+        document.getElementById("passo-fop")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setRetomando(null);
+    }
+  }
 
   const linhasStage = stageQuery.data ?? [];
   const linhasConferencia = paginaDe(linhasStage, paginaConferencia, tamanhoConferencia);
@@ -622,6 +674,66 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
             A máscara de termos sigilosos não pôde ser carregada. As linhas da planilha não serão exibidas nem gravadas.
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* RETOMAR NASCIMENTO NO FOP — lotes efetivados fora desta sessão */}
+      {lotesRetomaveisQuery.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Falha ao carregar os lotes efetivados: {formatError(lotesRetomaveisQuery.error)}
+          </AlertDescription>
+        </Alert>
+      )}
+      {(lotesRetomaveisQuery.data?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Lotes efetivados — retomar nascimento no FOP</CardTitle>
+            <CardDescription>
+              Efetivados no cartório em outra sessão (ou com a tela recarregada entre a efetivação e
+              o nascimento). Retomar abre o passo 6 com os itens efetivados; o FOP bloqueia o que já existe.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-auto rounded-md border">
+              <Table containerClassName="overflow-visible">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>PI nº</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead className="text-right">Linhas</TableHead>
+                    <TableHead>Efetivado em</TableHead>
+                    <TableHead className="w-28" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(lotesRetomaveisQuery.data ?? []).map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-medium">{l.pi_numero || "—"}</TableCell>
+                      <TableCell>{l.fornecedor || "—"}</TableCell>
+                      <TableCell className="text-right">{l.total_linhas ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {l.atualizado_em
+                          ? new Date(l.atualizado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={retomando !== null}
+                          onClick={() => retomarNascimento(l)}
+                        >
+                          {retomando === l.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Retomar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* PASSO 1 */}
@@ -878,8 +990,8 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
         </Card>
       )}
 
-      {/* PASSO 4 — CONFERIR */}
-      {loteId && (
+      {/* PASSO 4 — CONFERIR (oculto em lote retomado: a conferência já foi feita fora desta sessão) */}
+      {loteId && !retomou && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">4. Conferir</CardTitle>
@@ -1139,7 +1251,7 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
 
       {/* PASSO 6 — ETAPA 2: NASCER NO FOP */}
       {loteId && (
-        <Card>
+        <Card id="passo-fop">
           <CardHeader>
             <CardTitle className="text-base">6. Nascer no FOP</CardTitle>
             <CardDescription>
