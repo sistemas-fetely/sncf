@@ -10,7 +10,6 @@ import ExpedicoesXpm from "./ExpedicoesXpm";
 import PainelXpm from "./PainelXpm";
 import { ImportarFasesXpm } from "./ImportarFasesXpm";
 import { ComparativoFontesXpm } from "./ComparativoFontesXpm";
-import FaturamentoXpm from "./FaturamentoXpm";
 import OperacaoXpm from "./OperacaoXpm";
 import ProjecaoCustoXpm from "./ProjecaoCustoXpm";
 
@@ -24,8 +23,7 @@ const TABS = [
   { value: "estoque", slug: "tela.wms_estoque", label: "Estoque XPM", component: <EstoqueXpm /> },
   { value: "importar-fases", slug: "tela.wms_expedicoes", label: "Importar fases", component: <ImportarFasesXpm /> },
   { value: "funil", slug: "tela.wms_expedicoes", label: "Funil API × Arquivo", component: <ComparativoFontesXpm /> },
-  { value: "faturamento", slug: "tela.wms_faturamento", label: "Faturamento", component: <FaturamentoXpm /> },
-  { value: "projecao", slug: "tela.wms_projecao", label: "Projeção de custo", component: <ProjecaoCustoXpm /> },
+  { value: "faturamento", slug: "tela.wms_faturamento", label: "Faturamento", component: <ProjecaoCustoXpm /> },
 ] as const;
 type AbaXpm = (typeof TABS)[number]["value"];
 
@@ -46,7 +44,6 @@ export default function XpmIndex() {
   const permEstoque = usePodeVerAba("tela.wms_estoque");
   const permFaturamento = usePodeVerAba("tela.wms_faturamento");
   const permOperacao = usePodeVerAba("tela.wms_operacao");
-  const permProjecao = usePodeVerAba("tela.wms_projecao");
 
   const permissoes: Record<AbaXpm, { podeVer: boolean; carregando: boolean }> = {
     operacao: permOperacao,
@@ -57,8 +54,12 @@ export default function XpmIndex() {
     "importar-fases": permExpedicoes,
     funil: permExpedicoes,
     faturamento: permFaturamento,
-    projecao: permProjecao,
   };
+
+  // Link antigo ?aba=projecao → aba única Faturamento.
+  useEffect(() => {
+    if (tab === "projecao") setTab("faturamento");
+  }, [tab, setTab]);
 
   const carregandoPermissoes = TABS.some((t) => permissoes[t.value].carregando);
   const primeiraPermitida = TABS.find((t) => permissoes[t.value].podeVer)?.value;

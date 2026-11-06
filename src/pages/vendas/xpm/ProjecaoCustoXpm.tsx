@@ -1,7 +1,8 @@
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { FaturaCompletaSheet, ImportarFaturaBotao, useFaturaXpm } from "./components/FaturaXpm";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -118,7 +119,10 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
   const giro = giroPct(primeiraProjetada?.giro_mensal);
   return (
     <section className="space-y-3">
-      <h2 className="text-base font-semibold">Quanto a XPM vai custar nos próximos meses</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold">Quanto a XPM vai custar nos próximos meses</h2>
+        <ImportarFaturaBotao />
+      </div>
       {q.isLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : q.error ? <Erro e={q.error} /> : (
         <>
           <div className="h-[340px] w-full rounded-md border bg-card p-2">
@@ -208,19 +212,15 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                         <tr className="bg-muted/20">
                           <td />
                           <td colSpan={7} className="px-2 py-2 space-y-2">
-                            <div>
+                            {!real && <div>
                               <div className="font-medium text-muted-foreground">Mensal</div>
                               {decomp ? (
                                 <div>Armazenagem {brl(decomp.arm)} · Seguro {brl(decomp.seguro)} · Endereço virtual {brl(decomp.end_virtual)}
                                   {!real && giroPct(decomp.giro ?? r.giro_mensal) ? ` · giro ${giroPct(decomp.giro ?? r.giro_mensal)}` : ""}</div>
                               ) : <div className="text-muted-foreground">—</div>}
-                            </div>
+                            </div>}
                             {real ? (
-                              <div>
-                                <div className="font-medium text-muted-foreground">Fatura</div>
-                                <div>NFS-e {decomp?.nfs ?? "—"} · versão {decomp?.versao ?? "—"} · {decomp?.status ?? "—"}
-                                  {r.desconto != null && Number(r.desconto) !== 0 ? ` · desconto ${brl(r.desconto)}` : ""}</div>
-                              </div>
+                              <DetalheFaturaReal mes={r.mes} desconto={r.desconto} />
                             ) : (
                               <div>
                                 <div className="font-medium text-muted-foreground">Lotes</div>
@@ -253,6 +253,115 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
         </>
       )}
     </section>
+  );
+}
+
+type LinhaNat = {
+  fatura_id: string; versao: number | null; fatura_status: string | null; valor_faturar: number | null;
+  natureza: string | null; ordem: number | null; processo: string | null; descricao: string | null; uom: string | null;
+  qtde_cobrada: number | null; preco_cobrado: number | null; valor_cobrado: number | null;
+  qtde_medida: number | null; fonte_medida: string | null; divergencia_qtde: number | null; divergencia_valor: number | null;
+  status: string | null; nota: string | null;
+  pedidos_expedidos: number | null; unidades_expedidas: number | null; pedidos_b2c: number | null; pedidos_b2b: number | null;
+  unidades_b2c: number | null; unidades_b2b: number | null; caixas_expedicao: number | null;
+  unidades_recebidas: number | null; nfs_recebidas: number | null; volumes_descarga: number | null;
+  custo_venda_por_pedido: number | null; custo_venda_por_unidade: number | null;
+};
+const brl2 = (v: number | null | undefined) =>
+  v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return <span className="inline-flex items-center rounded-full border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">{children}</span>;
+}
+
+function DetalheFaturaReal({ mes, desconto }: { mes: string; desconto: number | null }) {
+  const [verCompleta, setVerCompleta] = useState(false);
+  const q = useQuery({
+    queryKey: ["xpm-fatura-natureza", mes],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("vw_xpm_fatura_natureza").select("*")
+        .eq("competencia", mes.slice(0, 10)).order("ordem");
+      if (error) throw error;
+      return (data ?? []) as LinhaNat[];
+    },
+  });
+  const primeira = q.data?.[0];
+  const fat = useFaturaXpm(primeira?.fatura_id);
+  if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+  if (q.error) return <Erro e={q.error} />;
+  if (!primeira) return <div className="text-muted-foreground">Nenhuma fatura importada para este mês.</div>;
+  const p = primeira;
+  const de = (n: string) => (q.data ?? []).filter((l) => l.natureza === n);
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline">versão {p.versao ?? "—"} · {p.fatura_status ?? "—"}</Badge>
+        <Badge variant="secondary">A faturar {brl2(p.valor_faturar)}</Badge>
+        {desconto != null && Number(desconto) !== 0 && <Chip>desconto {brl2(desconto)}</Chip>}
+        <button className="text-xs underline text-primary" onClick={(e) => { e.stopPropagation(); setVerCompleta(true); }}>ver fatura completa</button>
+      </div>
+      {fat.error && <Erro e={fat.error} />}
+      {fat.data?.observacao && (
+        <div className="flex gap-2 rounded-md border border-warning/40 px-2 py-1.5 text-warning">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /><span className="break-words">{fat.data.observacao}</span>
+        </div>
+      )}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <BlocoNatureza titulo="Mensal" linhas={de("mensal")} />
+        <BlocoNatureza titulo="Entrada" linhas={de("entrada")} chips={[
+          `${num(p.unidades_recebidas)} unidades recebidas · ${num(p.nfs_recebidas)} NFs · ${num(p.volumes_descarga)} volumes`,
+        ]} />
+        <BlocoNatureza titulo="Venda" linhas={de("venda")} destaque chips={[
+          `${num(p.pedidos_expedidos)} pedidos (${num(p.pedidos_b2c)} B2C · ${num(p.pedidos_b2b)} B2B) · ${num(p.unidades_expedidas)} unidades (${num(p.unidades_b2c)} B2C · ${num(p.unidades_b2b)} B2B) · ${num(p.caixas_expedicao)} caixas`,
+          `${brl2(p.custo_venda_por_pedido)} por pedido · ${brl2(p.custo_venda_por_unidade)} por unidade`,
+        ]} />
+      </div>
+      <FaturaCompletaSheet faturaId={p.fatura_id} open={verCompleta} onOpenChange={setVerCompleta} />
+    </div>
+  );
+}
+
+function BlocoNatureza({ titulo, linhas, chips, destaque }: { titulo: string; linhas: LinhaNat[]; chips?: string[]; destaque?: boolean }) {
+  const visiveis = linhas.filter((l) => Number(l.valor_cobrado ?? 0) !== 0);
+  const subtotal = linhas.reduce((a, l) => a + Number(l.valor_cobrado ?? 0), 0);
+  return (
+    <div className={`rounded-md border bg-card p-2 space-y-1.5 ${destaque ? "border-primary/40" : ""}`}>
+      <div className="flex items-baseline justify-between">
+        <span className="font-semibold">{titulo}</span>
+        <span className="font-bold tabular-nums">{brl2(subtotal)}</span>
+      </div>
+      {chips?.length ? <div className="flex flex-wrap gap-1">{chips.map((c) => <Chip key={c}>{c}</Chip>)}</div> : null}
+      {visiveis.length === 0 ? <div className="text-muted-foreground">Sem cobrança.</div> : (
+        <ul className="divide-y">
+          {visiveis.map((l, i) => {
+            const div = Number(l.divergencia_valor ?? 0) !== 0 || Number(l.divergencia_qtde ?? 0) !== 0;
+            return (
+              <li key={i} className="py-1">
+                <div className="flex justify-between gap-2">
+                  <span className="min-w-0 truncate" title={`${l.processo ?? ""} · ${l.descricao ?? ""}`}>
+                    <span className="text-muted-foreground">{l.processo} · </span>{l.descricao}
+                  </span>
+                  <span className="tabular-nums whitespace-nowrap">{brl2(l.valor_cobrado)}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                  <span>{num(l.qtde_cobrada, 2)} {l.uom ?? ""} × {brl2(l.preco_cobrado)}</span>
+                  {div && (
+                    <UiTooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="destructive" className="px-1 py-0 text-[10px]">
+                          divergente {l.divergencia_qtde != null ? `${num(l.divergencia_qtde, 2)} un` : ""}{l.divergencia_valor != null ? ` · ${brl2(l.divergencia_valor)}` : ""}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>Medido SNCF {num(l.qtde_medida, 2)} · fonte: {l.fonte_medida ?? "—"}{l.nota ? ` · ${l.nota}` : ""}</TooltipContent>
+                    </UiTooltip>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
