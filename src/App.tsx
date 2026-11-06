@@ -213,6 +213,7 @@ const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
 const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
+const CentralEstoque = lazy(() => import("@/pages/Comercial/CentralEstoque"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const InteligenciaComercial = lazy(() => import("@/pages/Comercial/inteligencia/InteligenciaComercial"));
@@ -511,6 +512,7 @@ const App = () => (
                 } />
                 <Route element={<ProdutoEstoqueLayout />}>
                   
+                  <Route path="/vendas/produto/estoque/central" element={<CentralEstoque />} />
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/entradas" element={<EntradasEstoque />} />
