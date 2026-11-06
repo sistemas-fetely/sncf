@@ -29,7 +29,7 @@ import {
   BUCKET_DOCUMENTO, ORDEM_ETAPA, ORIGEM_DOCUMENTO, TIPO_DOCUMENTO, competenciaCorrente, competenciasRecentes,
   datasDaCompetencia, lerAnterioresEmAberto, lerCiclo, lerNfsSemExtrato, type AnteriorAberto, type LinhaCiclo, type NfSemExtrato,
 } from "./cicloMensal";
-import { quemRecebePosicao, type EnvioPosicao, type PosicaoViva } from "./posicaoSemExtrato";
+import { acaoEmailPosicao, quemRecebePosicao, type EnvioPosicao, type PosicaoViva } from "./posicaoSemExtrato";
 
 type Res = Record<string, any>;
 
@@ -469,16 +469,21 @@ export function AbaCicloMensal() {
     }
   }
 
-  async function reenviarPosicao(vendedorId: string) {
+  async function enviarPosicao(vendedorId: string, enviado_em: string | null) {
+    const acao = acaoEmailPosicao(enviado_em);
     setEnviando(true);
     try {
-      const r = await invocar<ResultadoPosicao>("enviar-posicao-comissao", { vendedor_ids: [vendedorId], competencia: compDia1, force: true });
+      const r = await invocar<ResultadoPosicao>("enviar-posicao-comissao", {
+        vendedor_ids: [vendedorId],
+        competencia: compDia1,
+        ...(acao.force ? { force: true } : {}),
+      });
       if (r.falhas?.length) throw new Error(r.falhas[0].erro);
       if (r.ignorados?.length) throw new Error(r.ignorados[0].motivo);
-      toast.success("Posição reenviada.");
+      toast.success(acao.toast);
       await invalidar();
     } catch (e) {
-      toast.error(`Falha ao reenviar posição: ${formatError(e)}`);
+      toast.error(`Falha ao enviar: ${formatError(e)}`);
     } finally {
       setEnviando(false);
     }
@@ -730,11 +735,9 @@ export function AbaCicloMensal() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {p.enviado_em && (
-                      <Button variant="ghost" size="sm" disabled={enviando} onClick={() => reenviarPosicao(p.vendedor_id)}>
-                        <Mail className="h-4 w-4" />Reenviar posição
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="sm" disabled={enviando} onClick={() => enviarPosicao(p.vendedor_id, p.enviado_em)}>
+                      <Mail className="h-4 w-4" />{acaoEmailPosicao(p.enviado_em).rotulo}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

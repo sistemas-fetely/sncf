@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quemRecebePosicao } from "./posicaoSemExtrato";
+import { acaoEmailPosicao, quemRecebePosicao } from "./posicaoSemExtrato";
 import { assuntoPosicao, linhasPosicao, montarHtmlPosicao } from "../../../../supabase/functions/enviar-posicao-comissao/email";
 
 const viva = (id: string, nome: string) => ({ vendedor_id: id, representante: nome, email_contato: "a@b.c", carteira_total: 100, em_atraso: 0, em_atraso_qtd: 0 });
@@ -12,6 +12,15 @@ describe("quem recebe posição", () => {
     expect(r.map((x) => x.vendedor_id)).toEqual(["2", "3"]);
     expect(r[1].enviado_em).toBe("2026-11-05T10:00:00Z");
     expect(r[0].enviado_em).toBeNull();
+  });
+});
+
+describe("ação de e-mail da posição", () => {
+  it("sem envio na competência: enviar sem force", () => {
+    expect(acaoEmailPosicao(null)).toEqual({ rotulo: "Enviar e-mail", force: false, toast: "E-mail enviado." });
+  });
+  it("com envio na competência: reenviar com force", () => {
+    expect(acaoEmailPosicao("2026-11-05T10:00:00Z")).toEqual({ rotulo: "Reenviar e-mail", force: true, toast: "E-mail reenviado." });
   });
 });
 

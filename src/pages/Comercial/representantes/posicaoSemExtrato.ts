@@ -22,3 +22,10 @@ export function quemRecebePosicao(
     .map((v) => ({ ...v, enviado_em: enviado.get(v.vendedor_id) ?? null }))
     .sort((a, b) => (a.representante ?? "").localeCompare(b.representante ?? "", "pt-BR"));
 }
+
+/** Ação de e-mail da posição: rótulo, force e toast conforme já ter havido envio na competência. */
+export function acaoEmailPosicao(enviado_em: string | null): { rotulo: string; force: boolean; toast: string } {
+  return enviado_em
+    ? { rotulo: "Reenviar e-mail", force: true, toast: "E-mail reenviado." }
+    : { rotulo: "Enviar e-mail", force: false, toast: "E-mail enviado." };
+}
