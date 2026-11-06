@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { QUERY_KEY_MESA_SP_STATUS } from "@/hooks/pedidos/useMesaSpStatus";
+import { useCoberturaPorCd } from "@/hooks/estoque/useCoberturaPorCd";
+import { CdCoberturaTag } from "@/components/estoque/CdCoberturaTag";
 
 type Cd = "XPM-SC" | "SITE-SP";
 
@@ -84,6 +86,18 @@ export function ExpedirPorB2B({ pedido_id }: { pedido_id: string }) {
     },
   });
 
+  // Tag de cobertura por CD (canal B2B) — informação, não trava.
+  const itensQ = useQuery({
+    queryKey: ["pedido-itens-cobertura", pedido_id],
+    enabled: !!cdQ.data?.ehB2B,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedido_itens").select("sku, quantidade").eq("pedido_id", pedido_id);
+      if (error) throw error;
+      return (data ?? []).map((i) => ({ sku: i.sku ?? "", qtd: Number(i.quantidade ?? 0) }));
+    },
+  });
+  const cobertura = useCoberturaPorCd(itensQ.data ?? [], "B2B", { enabled: !!cdQ.data?.ehB2B });
+
   const trocar = useMutation({
     mutationFn: async (cd: Cd) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,11 +152,12 @@ export function ExpedirPorB2B({ pedido_id }: { pedido_id: string }) {
         {s?.sugerido === cd && <span className="ml-1 text-[10px] opacity-75">(sugerido)</span>}
       </button>
     );
-    if (!desab) return btn;
+    const tag = <CdCoberturaTag cobertura={cobertura.porCodigo.get(cd)} className="ml-1" />;
+    if (!desab) return <span className="flex flex-1 items-center">{btn}{tag}</span>;
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="flex-1 flex">{btn}</span>
+          <span className="flex-1 flex items-center">{btn}{tag}</span>
         </TooltipTrigger>
         <TooltipContent>Aguardando validação fiscal (venda B2B saindo da matriz SP)</TooltipContent>
       </Tooltip>
@@ -156,6 +171,9 @@ export function ExpedirPorB2B({ pedido_id }: { pedido_id: string }) {
         {opcao("XPM-SC")}
         {opcao("SITE-SP")}
       </div>
+      {(itensQ.isError || cobertura.isError) && (
+        <p className="text-xs text-destructive">Falha na cobertura por CD: {((itensQ.error ?? cobertura.error) as Error).message}</p>
+      )}
       {sugQ.isError ? (
         <p className="text-xs text-destructive">Falha na sugestão: {(sugQ.error as Error).message}</p>
       ) : s ? (

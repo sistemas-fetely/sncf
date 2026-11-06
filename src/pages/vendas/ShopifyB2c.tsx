@@ -26,9 +26,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Checkbox } from "@/components/ui/checkbox";
 import { PipelineB2c, type ContagemEstagio } from "@/components/vendas/PipelineB2c";
 import {
-  BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c,
+  BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c, useCoberturaPedidoB2c,
   abreviarCd, nomeCurtoCd, type SugestaoCdB2c,
 } from "@/components/vendas/EscolhaCdB2c";
+import { CdCoberturaTag } from "@/components/estoque/CdCoberturaTag";
 import { cn } from "@/lib/utils";
 import { divergeDaSugestao, podeTrocarCd, trocaCdValida } from "@/lib/b2c-cd";
 import { useOciosidade } from "@/hooks/useOciosidade";
@@ -319,6 +320,7 @@ export default function ShopifyB2c() {
     avisoSemSaldo: string | null;
   } | null>(null);
   const [trocaCd, setTrocaCd] = useState<PedidoB2cRow | null>(null);
+  const coberturaTroca = useCoberturaPedidoB2c(trocaCd?.shopify_id);
   const [novoCd, setNovoCd] = useState("");
   const [motivoTrocaCd, setMotivoTrocaCd] = useState("");
   const [trocandoCd, setTrocandoCd] = useState(false);
@@ -1748,7 +1750,9 @@ export default function ShopifyB2c() {
                 <SelectTrigger id="novo-cd-b2c"><SelectValue placeholder="Selecione o CD" /></SelectTrigger>
                 <SelectContent>
                   {centros.filter((c) => c.codigo !== trocaCd?.cd_escolhido_codigo).map((c) => (
-                    <SelectItem key={c.codigo} value={c.codigo}>{nomeCurtoCd(c)}</SelectItem>
+                    <SelectItem key={c.codigo} value={c.codigo}>
+                      <span className="flex items-center gap-2">{nomeCurtoCd(c)}<CdCoberturaTag cobertura={coberturaTroca.porCodigo.get(c.codigo)} /></span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

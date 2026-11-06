@@ -155746,6 +155746,16 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
+      abrir_correcao_nf_core: {
+        Args: {
+          p_com_chamado?: boolean
+          p_dry_run?: boolean
+          p_motivo: string
+          p_pedido_id: string
+          p_por: string
+        }
+        Returns: Json
+      }
       abrir_devolucao_nf_nao_expedida: {
         Args: { p_motivo: string; p_nf_id: string }
         Returns: Json
@@ -157663,6 +157673,10 @@ export type Database = {
       fn_cnpj_cpf_valido: { Args: { p_doc: string }; Returns: boolean }
       fn_cnpj_lido_e_da_casa: { Args: { p_lido: string }; Returns: boolean }
       fn_cnpj_valido: { Args: { p_cnpj: string }; Returns: boolean }
+      fn_cobertura_por_cd: {
+        Args: { p_canal: string; p_itens: Json }
+        Returns: Json
+      }
       fn_cobertura_refresh: { Args: never; Returns: number }
       fn_cobranca_mover_raia: {
         Args: {
@@ -158113,6 +158127,16 @@ export type Database = {
       }
       fn_contabil_reabrir: {
         Args: { p_competencia: string; p_motivo: string }
+        Returns: Json
+      }
+      fn_contagem_aplicar: {
+        Args: {
+          p_centro_codigo: string
+          p_documento: string
+          p_dry_run?: boolean
+          p_obs?: string
+          p_skus: string[]
+        }
         Returns: Json
       }
       fn_converter_initplan: {
@@ -159283,6 +159307,7 @@ export type Database = {
         Returns: string
       }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
+      fn_nf_natureza_divergente: { Args: { p_nf_id: string }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
       fn_nf_vinculada_processo: { Args: { p_nf_id: string }; Returns: string }
       fn_nfe_reconferir_fila: {

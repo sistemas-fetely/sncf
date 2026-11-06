@@ -28,6 +28,10 @@ import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { formatError } from "@/lib/format-error";
 import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components/acervo/NotasSemBaixaDialog";
 import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmazemDialog";
+import { AplicarContagemDialog } from "@/components/estoque/AplicarContagemDialog";
+
+const REGRA_FURO_CONTAGEM = "estoque_furo_fiscal_fisico";
+const temFuroContagem = (c: { causas: { regra: string }[] | null }) => (c.causas ?? []).some(x => x.regra === REGRA_FURO_CONTAGEM);
 
 function BotaoNotasSemBaixa() {
   const notas = useNotasSemBaixa();
@@ -183,6 +187,16 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   const [ordem, setOrdem] = useState<{ coluna: "fiscal" | "real" | "delta"; dir: "asc" | "desc" }>({ coluna: "delta", dir: "desc" });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [ajusteAberto, setAjusteAberto] = useState(false);
+  // Aplicar contagem: seleção por centro (um centro por vez).
+  const [contagemSel, setContagemSel] = useState<{ centro: string; nome: string | null; skus: Set<string> } | null>(null);
+  const [contagemAberto, setContagemAberto] = useState(false);
+  function alternarContagem(c: { centro: string; centro_nome: string | null; sku: string }) {
+    setContagemSel(prev => {
+      const base = prev && prev.centro === c.centro ? new Set(prev.skus) : new Set<string>();
+      if (base.has(c.sku)) base.delete(c.sku); else base.add(c.sku);
+      return base.size ? { centro: c.centro, nome: c.centro_nome, skus: base } : null;
+    });
+  }
   const [notasAberto, setNotasAberto] = useState(false);
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
@@ -342,6 +356,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   }
 
   function Correcao({ c }: { c: Centro }) {
+    if (temFuroContagem(c) && isSuperAdmin) return <label className="flex items-center gap-2 text-xs"><Checkbox checked={contagemSel?.centro === c.centro && contagemSel.skus.has(c.sku)} onCheckedChange={() => alternarContagem(c)} />Aplicar contagem</label>;
     if (c.correcao === "notas_sem_baixa") return <div className="space-y-1"><p className="text-xs">Resolver a nota antes</p><Button variant="outline" size="sm" className="h-7" onClick={() => setNotasAberto(true)}><FileWarning className="mr-1 h-3.5 w-3.5" />Notas sem baixa</Button></div>;
     if (c.correcao === "ajustar_armazem") return isSuperAdmin
       ? <label className="flex items-center gap-2 text-xs"><Checkbox checked={selecionados.has(c.sku)} onCheckedChange={() => alternar(c.sku)} />Ajustar pelo armazém</label>
@@ -359,6 +374,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
       acoes={<>
         <BotaoNotasSemBaixa />
         {isSuperAdmin && <Button variant="outline" size="sm" disabled={selecionados.size === 0} onClick={() => setAjusteAberto(true)}>Ajustar pelo armazém ({selecionados.size})</Button>}
+        {isSuperAdmin && <Button variant="outline" size="sm" disabled={!contagemSel} onClick={() => setContagemAberto(true)}>Aplicar contagem{contagemSel ? ` · ${contagemSel.nome ?? contagemSel.centro}` : ""} ({contagemSel?.skus.size ?? 0})</Button>}
         <Button variant="outline" size="sm" onClick={exportar} disabled={carregando || !!erro}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         <Button size="sm" onClick={refetch} disabled={atualizando}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
@@ -476,5 +492,6 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
 
     <NotasSemBaixaDialog open={notasAberto} onOpenChange={setNotasAberto} />
     <AjustarPeloArmazemDialog aberto={ajusteAberto} onFechar={() => setAjusteAberto(false)} skus={[...selecionados]} onAjustado={() => { setSelecionados(new Set()); refetch(); }} />
+    <AplicarContagemDialog aberto={contagemAberto} onFechar={() => setContagemAberto(false)} centro={contagemSel?.centro ?? null} centroNome={contagemSel?.nome} skus={[...(contagemSel?.skus ?? [])]} onAplicado={() => { setContagemSel(null); refetch(); }} />
   </PageShell></TooltipProvider>;
 }

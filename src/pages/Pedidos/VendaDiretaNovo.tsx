@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { useCoberturaPorCd } from "@/hooks/estoque/useCoberturaPorCd";
+import { CdCoberturaTag } from "@/components/estoque/CdCoberturaTag";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
@@ -167,6 +169,9 @@ export default function VendaDiretaNovo() {
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   // CD que atende o pedido (centro_canal canal VD). Padrão: Site SP.
   const [cdCodigo, setCdCodigo] = useState<string>("SITE-SP");
+  // Tag de cobertura por CD (informação, não trava): itens do carrinho, debounce 300 ms.
+  const itensCobertura = useMemo(() => itens.map((i) => ({ sku: i.sku, qtd: i.quantidade })), [itens]);
+  const coberturaCd = useCoberturaPorCd(itensCobertura, "VD", { debounceMs: 300, enabled: !edicao });
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
@@ -716,10 +721,15 @@ export default function VendaDiretaNovo() {
                   <SelectValue placeholder="CD" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cdsQ.data!.map((c) => <SelectItem key={c.codigo} value={c.codigo}>{c.rotulo}</SelectItem>)}
+                  {cdsQ.data!.map((c) => (
+                    <SelectItem key={c.codigo} value={c.codigo}>
+                      <span className="flex items-center gap-2">{c.rotulo}<CdCoberturaTag cobertura={coberturaCd.porCodigo.get(c.codigo)} /></span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
+            {coberturaCd.isError && <p className="mt-1 text-xs text-destructive">Cobertura por CD indisponível: {rawMessage(coberturaCd.error)}</p>}
           </CardContent>
         </Card>
       )}

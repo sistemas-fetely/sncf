@@ -12,7 +12,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { CentroB2c, PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { useItensB2c, type CentroB2c, type PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { useCoberturaPorCd } from "@/hooks/estoque/useCoberturaPorCd";
+import { CdCoberturaTag } from "@/components/estoque/CdCoberturaTag";
+
+/** Cobertura por CD dos itens Shopify do pedido (canal B2C). Informação, não trava. */
+export function useCoberturaPedidoB2c(shopifyId: string | null | undefined) {
+  const itensQ = useItensB2c(shopifyId ?? null);
+  const itens = (itensQ.data ?? []).map((i) => ({ sku: i.sku ?? "", qtd: Number(i.current_quantity ?? i.quantity ?? 0) }));
+  return useCoberturaPorCd(itens, "B2C", { enabled: !!shopifyId });
+}
 
 /**
  * ENTRADA-B2C-POR-FASES — SISTEMA SUGERE / HUMANO DECIDE.
@@ -82,6 +91,7 @@ export function EscolhaCdCelula({ pedido, centros, processando, sugestao, onEsco
   const sugeridoCentro = centros.find((c) => c.codigo === sugerido);
   const siglaSugerido = abreviarCd(sugerido, sugeridoCentro?.nome);
   const tag = tagDoPedido(pedido);
+  const cobertura = useCoberturaPedidoB2c(pedido.shopify_id);
 
   return (
     <div className="space-y-1">
@@ -103,13 +113,16 @@ export function EscolhaCdCelula({ pedido, centros, processando, sugestao, onEsco
         <div className="text-[11px] text-warning">{sugestao.motivo_troca}</div>
       )}
       <div className="flex flex-wrap items-center gap-1">
+        {cobertura.isError && (
+          <span className="text-[11px] text-destructive" title={(cobertura.error as Error)?.message}>cobertura indisponível</span>
+        )}
         {centros.map((c) => {
           const ehSugerido = c.codigo === sugerido;
           const saldoCd = sugestao?.saldo_por_cd?.[c.codigo];
           const semSaldo = Number(saldoCd?.sem_saldo ?? 0);
           return (
+            <span key={c.codigo} className="inline-flex items-center gap-1">
             <Button
-              key={c.codigo}
               type="button"
               size="sm"
               variant={ehSugerido ? "default" : "outline"}
@@ -129,6 +142,8 @@ export function EscolhaCdCelula({ pedido, centros, processando, sugestao, onEsco
                 </span>
               )}
             </Button>
+            <CdCoberturaTag cobertura={cobertura.porCodigo.get(c.codigo)} />
+            </span>
           );
         })}
       </div>

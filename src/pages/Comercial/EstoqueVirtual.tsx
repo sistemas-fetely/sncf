@@ -48,6 +48,8 @@ interface LinhaCockpit {
   a_caminho: number | null;
   virtual: number | null;
   reservado: number | null;
+  fisico: number | null;
+  real_centro: number | null;
   custo_unitario: number | null;
   valor_custo: number | null;
   vendas_janela: number | null;
@@ -63,7 +65,7 @@ interface LinhaCockpit {
 }
 
 const COLS =
-  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fiscal_sadio,a_caminho,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
+  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fiscal_sadio,a_caminho,virtual,reservado,fisico,real_centro,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
 
 /** Linha exibida: produto (Centro = Todos) ou produto no centro escolhido. */
 interface LinhaTabela {
@@ -96,6 +98,26 @@ interface LinhaTabela {
   detalhe: DetalheQtd;
   /** Sadio/a caminho/bloqueado por centro (código → detalhe). */
   por_centro_detalhe: Record<string, DetalheQtd>;
+  /** Disponível (venda) e detalhe por centro. */
+  por_centro_disp: Record<string, DispCentro>;
+}
+
+interface DispCentro { disp: number; contabil: number; reservado: number; a_caminho: number; real: number | null }
+function dispDe(l: LinhaCockpit): DispCentro {
+  return {
+    disp: Number(l.virtual ?? 0), contabil: Number(l.contabil ?? 0), reservado: Number(l.reservado ?? 0),
+    a_caminho: Number(l.a_caminho ?? 0), real: l.real_centro ?? l.fisico ?? null,
+  };
+}
+function somarDisp(a: DispCentro | undefined, b: DispCentro): DispCentro {
+  if (!a) return { ...b };
+  return {
+    disp: a.disp + b.disp, contabil: a.contabil + b.contabil, reservado: a.reservado + b.reservado,
+    a_caminho: a.a_caminho + b.a_caminho, real: a.real == null && b.real == null ? null : (a.real ?? 0) + (b.real ?? 0),
+  };
+}
+function totalDisp(p: LinhaTabela) {
+  return Object.values(p.por_centro_disp).reduce((s, v) => s + v.disp, 0);
 }
 
 interface CentroAtivo {
@@ -455,6 +477,7 @@ export default function EstoqueVirtual() {
         por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
         detalhe: detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho),
         por_centro_detalhe: l.centro ? { [l.centro]: detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho) } : {},
+        por_centro_disp: l.centro ? { [l.centro]: dispDe(l) } : {},
       }));
     }
     const fonte = visao === "centros" ? recorteSemCentro : recorte;
@@ -476,12 +499,14 @@ export default function EstoqueVirtual() {
           por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
           detalhe: d,
           por_centro_detalhe: l.centro ? { [l.centro]: d } : {},
+          por_centro_disp: l.centro ? { [l.centro]: dispDe(l) } : {},
         });
       } else {
         if (l.centro) {
           a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
           a.por_centro_vendas[l.centro] = (a.por_centro_vendas[l.centro] ?? 0) + n(l.vendas_janela);
           a.por_centro_detalhe[l.centro] = somarDetalhe(a.por_centro_detalhe[l.centro] ?? DETALHE_ZERO, d);
+          a.por_centro_disp[l.centro] = somarDisp(a.por_centro_disp[l.centro], dispDe(l));
         }
         a.detalhe = somarDetalhe(a.detalhe, d);
         a.contabil += n(l.contabil);
@@ -505,7 +530,7 @@ export default function EstoqueVirtual() {
       if (a.contabil > 0) a.ticket = a.valor_venda / a.contabil;
     }
     if (visao === "centros" && centroFiltro !== "todos") {
-      out = out.filter((a) => (a.por_centro[centroFiltro] ?? 0) !== 0);
+      out = out.filter((a) => (a.por_centro[centroFiltro] ?? 0) !== 0 || (a.por_centro_disp[centroFiltro]?.disp ?? 0) !== 0);
     }
     return out;
   }, [recorte, recorteSemCentro, centroFiltro, visao]);
@@ -539,11 +564,11 @@ export default function EstoqueVirtual() {
     if (col && (col === "total" || col === "giro_total" || col.startsWith("c:") || col.startsWith("g:"))) {
       const val =
         col === "total"
-          ? (p: LinhaTabela) => totalCentros(p)
+          ? (p: LinhaTabela) => totalDisp(p)
           : col === "giro_total"
             ? (p: LinhaTabela) => giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias) ?? -1
             : col.startsWith("c:")
-              ? (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0
+              ? (p: LinhaTabela) => p.por_centro_disp[col.slice(2)]?.disp ?? 0
               : (p: LinhaTabela) => giroAnual(p.por_centro_vendas[col.slice(2)] ?? 0, p.por_centro[col.slice(2)] ?? 0, p.janela_dias) ?? -1;
       const f = sort!.direction === "asc" ? 1 : -1;
       return [...tabela].sort((a, b) => (val(a) - val(b)) * f);
@@ -925,11 +950,11 @@ export default function EstoqueVirtual() {
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
-                  {cabecalho("total", "Qtd", "!px-1.5 border-l border-border/60", true)}
+                  {cabecalho("total", "Disp.", "!px-1.5 border-l border-border/60", true)}
                   {cabecalho("giro_total", "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                   {centros.map((c) => (
                     <Fragment key={c.codigo}>
-                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 border-l border-border/60", true)}
+                      {cabecalho(`c:${c.codigo}`, "Disp.", "!px-1.5 border-l border-border/60", true)}
                       {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
@@ -1049,24 +1074,34 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
                 </>}
                 {visao === "centros" && <>
-                  <TableCell className="!px-1.5 text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className={cn("!px-1.5 text-right tabular-nums font-medium border-l border-border/60", totalDisp(p) < 0 && "text-destructive")}>{formatNum(totalDisp(p))}</TableCell>
                   <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                     {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
                   </TableCell>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
-                    const d = p.por_centro_detalhe[c.codigo] ?? DETALHE_ZERO;
+                    const dc = p.por_centro_disp[c.codigo];
                     const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
                       <Fragment key={c.codigo}>
                         <TableCell
-                          className="!px-1.5 text-right tabular-nums border-l border-border/60"
-                          title={temDesvio(d) ? tooltipDetalhe(d) : undefined}
+                          className={cn("!px-1.5 text-right tabular-nums border-l border-border/60", dc && dc.disp < 0 && "font-semibold text-destructive")}
                         >
-                          {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
-                          {temDesvio(d) && detalhePartes(d, true).map((t) => (
-                            <div key={t} className="whitespace-nowrap text-[9px] font-normal leading-tight text-muted-foreground">{t}</div>
-                          ))}
+                          {!dc || (dc.disp === 0 && dc.contabil === 0 && dc.reservado === 0 && dc.a_caminho === 0) ? <span className="text-muted-foreground">—</span> : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help" tabIndex={0} onClick={(e) => e.stopPropagation()}>{formatNum(dc.disp)}</span>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs tabular-nums">
+                                <div className="grid grid-cols-[auto_auto] gap-x-3">
+                                  <span className="text-muted-foreground">Contábil</span><span className="text-right">{formatNum(dc.contabil)}</span>
+                                  <span className="text-muted-foreground">Reservado</span><span className="text-right">{formatNum(dc.reservado)}</span>
+                                  <span className="text-muted-foreground">A caminho</span><span className="text-right">{formatNum(dc.a_caminho)}</span>
+                                  <span className="text-muted-foreground">Real</span><span className="text-right">{dc.real == null ? "—" : formatNum(dc.real)}</span>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </TableCell>
                         <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                           {formatGiro(g)}

@@ -33,6 +33,7 @@ interface Linha {
   colecao: string | null;
   contabil: number | null;
   fisico: number | null;
+  virtual?: number | null;
   achado?: boolean;
 }
 interface Divergencia { sku: string; contabil: number; contado: number; diferenca: number }
@@ -72,11 +73,28 @@ export function ContagemCentroPainel() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_estoque_cockpit")
-        .select("cod_cadastro,sku,nome_comercial,cor_nome,colecao,contabil,fisico")
+        .select("cod_cadastro,sku,nome_comercial,cor_nome,colecao,contabil,fisico,virtual")
         .eq("centro", centro)
         .limit(5000);
       if (error) throw error;
       return ((data ?? []) as Linha[]).filter((l) => (l.contabil ?? 0) !== 0 || l.fisico != null);
+    },
+  });
+
+  // Última contagem registrada por SKU no centro (qtd + data); sem contagem → "—".
+  const ultimaQ = useQuery({
+    queryKey: ["vw_estoque_centro", "ultima_contagem", centro],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_estoque_centro")
+        .select("sku,fisico_total,contagem_em")
+        .eq("centro", centro)
+        .not("contagem_em", "is", null)
+        .limit(5000);
+      if (error) throw error;
+      const m = new Map<string, { qtd: number; em: string }>();
+      (data ?? []).forEach((r) => { if (r.sku && r.contagem_em) m.set(r.sku, { qtd: Number(r.fisico_total ?? 0), em: r.contagem_em }); });
+      return m;
     },
   });
 
@@ -230,6 +248,7 @@ export function ContagemCentroPainel() {
       </div>
 
       {centrosQ.isError && <p className="text-sm text-destructive">Falha ao carregar centros: {formatError(centrosQ.error)}</p>}
+      {ultimaQ.isError && <p className="text-sm text-destructive">Falha ao carregar últimas contagens: {formatError(ultimaQ.error)}</p>}
       {linhasQ.isError && <p className="text-sm text-destructive">Falha ao carregar produtos: {formatError(linhasQ.error)}</p>}
 
       {resultado && (
@@ -288,6 +307,7 @@ export function ContagemCentroPainel() {
               <TableHead className="w-[150px]">Código</TableHead>
               <TableHead>Produto</TableHead>
               <TableHead className="w-[90px] text-right">Contábil</TableHead>
+              <TableHead className="w-[90px] text-right">Disponível</TableHead>
               <TableHead className="w-[130px] text-right">Última contagem</TableHead>
               <TableHead className="w-[120px] text-right">Contado</TableHead>
               <TableHead className="w-[100px] text-right">Diferença</TableHead>
@@ -309,7 +329,14 @@ export function ContagemCentroPainel() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{l.contabil ?? 0}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.fisico ?? "—"}</TableCell>
+                    <TableCell className={cn("text-right tabular-nums font-medium", (l.virtual ?? 0) < 0 && "text-destructive")}>{l.virtual ?? 0}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {(() => {
+                        const u = ultimaQ.data?.get(l.sku);
+                        if (!u) return <span className="text-muted-foreground">—</span>;
+                        return <>{u.qtd}<div className="text-[10px] text-muted-foreground">{fmtData(u.em)}</div></>;
+                      })()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Input
                         type="number" min={0} step={1} inputMode="numeric" value={v}
