@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -52,10 +54,13 @@ const mesBr = (d: string | null) => {
 };
 
 const SERIES = [
-  { key: "mensal", label: "Mensal", cor: "hsl(var(--chart-1))" },
-  { key: "entrada", label: "Entrada", cor: "hsl(var(--chart-3))" },
-  { key: "venda", label: "Venda", cor: "hsl(var(--chart-2))" },
+  { key: "mensal", label: "Mensal", cor: "hsl(var(--chart-1))", classe: "bg-chart-1" },
+  { key: "entrada", label: "Entrada", cor: "hsl(var(--chart-3))", classe: "bg-chart-3" },
+  { key: "venda", label: "Venda", cor: "hsl(var(--chart-2))", classe: "bg-chart-2" },
 ] as const;
+
+// cor da série do gráfico, em classe Tailwind, para uso nos blocos do detalhe
+const corDaSerie = (k: (typeof SERIES)[number]["key"]) => SERIES.find((s) => s.key === k)?.classe ?? "bg-muted";
 
 const giroPct = (g: number | null | undefined) => {
   if (g == null) return null;
@@ -125,7 +130,7 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
       </div>
       {q.isLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : q.error ? <Erro e={q.error} /> : (
         <>
-          <div className="h-[340px] w-full rounded-md border bg-card p-2">
+          <Card className="h-[340px] w-full p-2">
             <ResponsiveContainer>
               <BarChart data={dados} margin={{ top: 24, right: 12, left: 12 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -151,53 +156,61 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                 )}
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </Card>
           <div className="grid gap-3 sm:grid-cols-3 text-xs">
-            <div className="rounded-md border bg-card p-2">
+            <div className="rounded-md border bg-card p-2.5 shadow-sm">
               <div className="font-semibold">Mensal</div>
               <div className="text-muted-foreground">Custo de ter estoque: armazenagem + seguro + endereço virtual. Nos meses projetados cai pelo giro medido{giro ? ` (giro ${giro})` : ""}.</div>
             </div>
-            <div className="rounded-md border bg-card p-2">
+            <div className="rounded-md border bg-card p-2.5 shadow-sm">
               <div className="font-semibold">Entrada</div>
               <div className="text-muted-foreground">Esporádico: recebimento, containers, descarga, adequação, HE. Só nos meses em que um lote entra na XPM.</div>
             </div>
-            <div className="rounded-md border bg-card p-2">
+            <div className="rounded-md border bg-card p-2.5 shadow-sm">
               <div className="font-semibold">Venda</div>
               <div className="text-muted-foreground">Atrelado à saída: expedição + caixas (insumos) + pedidos emergenciais. Projetado pela média dos 3 últimos meses reais.</div>
             </div>
           </div>
           <TooltipProvider>
-          <div className="overflow-auto rounded-md border">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0 overflow-auto">
             <table className="w-full text-xs">
-              <thead className="bg-muted/50 text-muted-foreground">
-                <tr>
+              <thead className="bg-muted text-foreground dark:bg-background/70">
+                <tr className="border-l-2 border-l-transparent border-b border-border">
                   <th className="w-6" />
-                  <th className="px-2 py-1.5 text-left">Mês</th>
-                  <th className="px-2 py-1.5 text-left">Tipo</th>
-                  <th className="px-2 py-1.5 text-right font-semibold">Mensal</th>
-                  <th className="px-2 py-1.5 text-right font-semibold">Entrada</th>
-                  <th className="px-2 py-1.5 text-right font-semibold">Venda</th>
-                  <th className="px-2 py-1.5 text-right border-l">= Total</th>
-                  <th className="px-2 py-1.5 text-right font-normal">Piso contratual (referência)</th>
+                  <th className="px-2 py-2 text-left font-semibold">Mês</th>
+                  <th className="px-2 py-2 text-left font-semibold">Tipo</th>
+                  <th className="px-2 py-2 text-right font-semibold tabular-nums">Mensal</th>
+                  <th className="px-2 py-2 text-right font-semibold tabular-nums">Entrada</th>
+                  <th className="px-2 py-2 text-right font-semibold tabular-nums">Venda</th>
+                  <th className="px-2 py-2 text-right font-semibold tabular-nums border-l">= Total</th>
+                  <th className="px-2 py-2 text-right font-medium tabular-nums">Piso contratual (referência)</th>
                 </tr>
               </thead>
               <tbody>
-                {(q.data ?? []).map((r) => {
+                {(q.data ?? []).map((r, i) => {
                   const ab = aberto.has(r.mes);
                   const real = r.tipo === "realizado";
                   const { decomp, lotes } = lerDetalhe(r);
                   return (
                     <Fragment key={r.mes}>
-                      <tr className={`border-t cursor-pointer hover:bg-muted/40 ${real ? "bg-muted/30" : ""}`} onClick={() => tog(r.mes)}>
-                        <td className="px-1">{ab ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</td>
-                        <td className="px-2 py-1">{mesBr(r.mes)}</td>
-                        <td className="px-2 py-1">
+                      <tr
+                        className={cn(
+                          "border-t bg-card cursor-pointer hover:bg-muted/40 border-l-2 border-l-transparent dark:hover:bg-accent",
+                          i % 2 === 1 && "bg-muted/20 dark:bg-background/35",
+                          real && "border-l-primary",
+                        )}
+                        onClick={() => tog(r.mes)}
+                      >
+                        <td className="px-1 py-1.5">{ab ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</td>
+                        <td className="px-2 py-1.5 font-medium whitespace-nowrap">{mesBr(r.mes)}</td>
+                        <td className="px-2 py-1.5">
                           <Badge variant={real ? "outline" : "secondary"}>{real ? "real" : "proj."}</Badge>
                         </td>
-                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.mensal)}</td>
-                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.entrada)}</td>
-                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.venda)}</td>
-                        <td className="px-2 py-1 text-right tabular-nums font-bold border-l whitespace-nowrap">
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">{brl(r.mensal)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">{brl(r.entrada)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">{brl(r.venda)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums font-bold border-l bg-muted/30 dark:bg-background/60 whitespace-nowrap">
                           {r.piso_aplicado && (
                             <UiTooltip>
                               <TooltipTrigger asChild><Badge variant="outline" className="mr-1 px-1 py-0 text-[10px]">piso</Badge></TooltipTrigger>
@@ -206,24 +219,29 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                           )}
                           {brl(r.total)}
                         </td>
-                        <td className="px-2 py-1 text-right tabular-nums text-muted-foreground">{brl(r.minimo)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap text-muted-foreground">{brl(r.minimo)}</td>
                       </tr>
                       {ab && (
-                        <tr className="bg-muted/20">
-                          <td />
-                          <td colSpan={7} className="px-2 py-2 space-y-2">
-                            {!real && <div>
-                              <div className="font-medium text-muted-foreground">Mensal</div>
-                              {decomp ? (
-                                <div>Armazenagem {brl(decomp.arm)} · Seguro {brl(decomp.seguro)} · Endereço virtual {brl(decomp.end_virtual)}
-                                  {!real && giroPct(decomp.giro ?? r.giro_mensal) ? ` · giro ${giroPct(decomp.giro ?? r.giro_mensal)}` : ""}</div>
-                              ) : <div className="text-muted-foreground">—</div>}
-                            </div>}
+                        <tr className="bg-muted/40 border-y dark:bg-background/70">
+                          <td className={cn(real && "border-l-2 border-l-primary")} />
+                          <td colSpan={7} className="px-3 py-3 space-y-2">
+                            {!real && (
+                              <div className="overflow-hidden rounded-md border bg-card shadow-sm">
+                                <div className={cn("h-1", corDaSerie("mensal"))} />
+                                <div className="p-2.5 space-y-1">
+                                  <div className="font-semibold">Mensal</div>
+                                  {decomp ? (
+                                    <div>Armazenagem {brl(decomp.arm)} · Seguro {brl(decomp.seguro)} · Endereço virtual {brl(decomp.end_virtual)}
+                                      {!real && giroPct(decomp.giro ?? r.giro_mensal) ? ` · giro ${giroPct(decomp.giro ?? r.giro_mensal)}` : ""}</div>
+                                  ) : <div className="text-muted-foreground">—</div>}
+                                </div>
+                              </div>
+                            )}
                             {real ? (
                               <DetalheFaturaReal mes={r.mes} desconto={r.desconto} />
                             ) : (
-                              <div>
-                                <div className="font-medium text-muted-foreground">Lotes</div>
+                              <div className="rounded-md border bg-card p-2.5 shadow-sm space-y-1">
+                                <div className="font-semibold">Lotes</div>
                                 {lotes.length === 0 ? <div className="text-muted-foreground">Nenhum lote.</div> : (
                                   <ul className="space-y-0.5">
                                     {lotes.map((l, i) => (
@@ -241,14 +259,15 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                 })}
               </tbody>
               <tfoot>
-                <tr>
-                  <td colSpan={8} className="px-2 py-1.5 italic text-muted-foreground">
+                <tr className="border-t">
+                  <td colSpan={8} className="px-3 py-2 italic text-muted-foreground">
                     Mensal + Entrada + Venda = Total. O piso contratual só vale quando a soma fica abaixo dele.
                   </td>
                 </tr>
               </tfoot>
             </table>
-          </div>
+            </CardContent>
+          </Card>
           </TooltipProvider>
         </>
       )}
@@ -271,7 +290,7 @@ const brl2 = (v: number | null | undefined) =>
   v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center rounded-full border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">{children}</span>;
+  return <span className="inline-flex items-center rounded-full border bg-muted px-2 py-0.5 text-[11px] text-foreground">{children}</span>;
 }
 
 function DetalheFaturaReal({ mes, desconto }: { mes: string; desconto: number | null }) {
@@ -307,11 +326,11 @@ function DetalheFaturaReal({ mes, desconto }: { mes: string; desconto: number | 
         </div>
       )}
       <div className="grid gap-3 lg:grid-cols-3">
-        <BlocoNatureza titulo="Mensal" linhas={de("mensal")} />
-        <BlocoNatureza titulo="Entrada" linhas={de("entrada")} chips={[
+        <BlocoNatureza titulo="Mensal" linhas={de("mensal")} cor={corDaSerie("mensal")} />
+        <BlocoNatureza titulo="Entrada" linhas={de("entrada")} cor={corDaSerie("entrada")} chips={[
           `${num(p.unidades_recebidas)} unidades recebidas · ${num(p.nfs_recebidas)} NFs · ${num(p.volumes_descarga)} volumes`,
         ]} />
-        <BlocoNatureza titulo="Venda" linhas={de("venda")} destaque chips={[
+        <BlocoNatureza titulo="Venda" linhas={de("venda")} cor={corDaSerie("venda")} destaque chips={[
           `${num(p.pedidos_expedidos)} pedidos (${num(p.pedidos_b2c)} B2C · ${num(p.pedidos_b2b)} B2B) · ${num(p.unidades_expedidas)} unidades (${num(p.unidades_b2c)} B2C · ${num(p.unidades_b2b)} B2B) · ${num(p.caixas_expedicao)} caixas`,
           `${brl2(p.custo_venda_por_pedido)} por pedido · ${brl2(p.custo_venda_por_unidade)} por unidade`,
         ]} />
@@ -321,14 +340,16 @@ function DetalheFaturaReal({ mes, desconto }: { mes: string; desconto: number | 
   );
 }
 
-function BlocoNatureza({ titulo, linhas, chips, destaque }: { titulo: string; linhas: LinhaNat[]; chips?: string[]; destaque?: boolean }) {
+function BlocoNatureza({ titulo, linhas, chips, destaque, cor }: { titulo: string; linhas: LinhaNat[]; chips?: string[]; destaque?: boolean; cor: string }) {
   const visiveis = linhas.filter((l) => Number(l.valor_cobrado ?? 0) !== 0);
   const subtotal = linhas.reduce((a, l) => a + Number(l.valor_cobrado ?? 0), 0);
   return (
-    <div className={`rounded-md border bg-card p-2 space-y-1.5 ${destaque ? "border-primary/40" : ""}`}>
-      <div className="flex items-baseline justify-between">
-        <span className="font-semibold">{titulo}</span>
-        <span className="font-bold tabular-nums">{brl2(subtotal)}</span>
+    <div className={cn("overflow-hidden rounded-md border bg-card shadow-sm", destaque && "border-primary/40")}>
+      <div className={cn("h-1", cor)} />
+      <div className="p-2.5 space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="flex items-center gap-1.5 font-semibold"><span className={cn("h-2 w-2 shrink-0 rounded-full", cor)} />{titulo}</span>
+        <span className="text-base font-bold tabular-nums whitespace-nowrap">{brl2(subtotal)}</span>
       </div>
       {chips?.length ? <div className="flex flex-wrap gap-1">{chips.map((c) => <Chip key={c}>{c}</Chip>)}</div> : null}
       {visiveis.length === 0 ? <div className="text-muted-foreground">Sem cobrança.</div> : (
@@ -361,6 +382,7 @@ function BlocoNatureza({ titulo, linhas, chips, destaque }: { titulo: string; li
           })}
         </ul>
       )}
+      </div>
     </div>
   );
 }
