@@ -414,8 +414,13 @@ export default function Parametros() {
   const setSearchTerm = (v: any) => __setNav({ searchTerm: resolverAcao(v, __nav.searchTerm as any) } as any);
 
   const handleModuloChange = (value: string) => {
-    setSearchParams({ aba: value });
-    setSearchTerm("");
+    setSearchParams((p) => {
+      const n = new URLSearchParams(p);
+      n.set("aba", value);
+      n.delete("modulo");
+      n.delete("searchTerm");
+      return n;
+    });
   };
 
   const config = MODULO_MAP[modulo] || MODULO_MAP.geral;
