@@ -20,12 +20,13 @@ import { formatBRL } from "@/lib/format-currency";
 import { Switch } from "@/components/ui/switch";
 import { interpretarListaColada, type ResultadoColagem } from "@/lib/devolucao/colarListaItens";
 import { normalizarNumeroPedido } from "@/lib/devolucao/normalizarNumeroPedido";
+import { textoMotivoCancelamento, usaMotivosTransferencia } from "@/lib/devolucao/motivoCancelamento";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Tipo = "total" | "parcial";
 type Esteira = { tipo: Tipo; esteira: string; rotulo: string; permitido: boolean; implementado: boolean; rpc_alvo: string | null; o_que_acontece: string | null; lacuna: string | null };
 type Momento = {
-  ok: boolean; erro?: string; pedido_id: string; id_externo: string; origem: string; canal_devolucao: "b2b" | "b2c" | "site_sp";
+  ok: boolean; erro?: string; pedido_id: string; id_externo: string; origem: string; canal?: string; canal_devolucao: "b2b" | "b2c" | "site_sp" | "interno";
   estagio: string; momento: string; momento_rotulo: string;
   shopify_id?: string | null;
   nf: { id: string; numero: string } | null;
@@ -106,6 +107,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
     },
   });
   const m = momentoQ.data;
+  const interno = usaMotivosTransferencia(m);
 
   const blingNumeroQ = useQuery({
     queryKey: ["devolucao", "bling-pedido-numero", m?.shopify_id],
@@ -131,7 +133,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
 
   const motivosQ = useQuery({
     queryKey: ["parametros", "devolucao_motivo"],
-    enabled: open,
+    enabled: open && !!m && !interno,
     queryFn: async () => {
       const { data, error } = await supabase.from("parametros").select("valor,label,pai_valor,ordem")
         .eq("categoria", "devolucao_motivo").eq("ativo", true).order("ordem");
@@ -139,6 +141,18 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
       return (data ?? []) as { valor: string; label: string; pai_valor: string | null }[];
     },
   });
+  const motivosTransferenciaQ = useQuery({
+    queryKey: ["transferencia_motivo_cancelamento"],
+    enabled: open && interno,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("transferencia_motivo_cancelamento")
+        .select("codigo,rotulo,descricao,ordem,ativo").eq("ativo", true).order("ordem");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+  const motivoTexto = textoMotivoCancelamento(interno,
+    motivosTransferenciaQ.data?.find((x) => x.codigo === motivoCodigo)?.rotulo, motivo);
   const motivosAgrupados = useMemo(() => {
     const g = new Map<string, { valor: string; label: string }[]>();
     for (const x of motivosQ.data ?? []) {
@@ -204,7 +218,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
 
   function args(dry: boolean) {
     return {
-      p_pedido_id: selId, p_tipo: tipo, p_motivo: motivo.trim(),
+      p_pedido_id: selId, p_tipo: tipo, p_motivo: motivoTexto,
       p_itens: tipo === "parcial" ? itens : null,
       p_desfecho: mostrarDesfecho && desfecho ? desfecho : null,
       p_motivo_codigo: motivoCodigo || null, p_dry_run: dry,
@@ -460,7 +474,9 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                   <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
                     <SelectTrigger><SelectValue placeholder="Escolha o motivo (recomendado)" /></SelectTrigger>
                     <SelectContent>
-                      {motivosAgrupados.map(([g, lst]) => (
+                      {interno ? motivosTransferenciaQ.data?.map((x) => (
+                        <SelectItem key={x.codigo} value={x.codigo}>{x.rotulo}</SelectItem>
+                      )) : motivosAgrupados.map(([g, lst]) => (
                         <SelectGroup key={g || "_"}>
                           {g && <SelectLabel>{GRUPO[g] ?? g}</SelectLabel>}
                           {lst.map((x) => <SelectItem key={x.valor} value={x.valor}>{x.label}</SelectItem>)}
@@ -468,6 +484,8 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                       ))}
                     </SelectContent>
                   </Select>
+                  {interno && motivosTransferenciaQ.isLoading && <p className="text-xs text-muted-foreground">Carregando motivos…</p>}
+                  {interno && motivosTransferenciaQ.isError && <p className="text-xs text-destructive">{motivosTransferenciaQ.error.message}</p>}
                   <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva o que aconteceu (mínimo 5 caracteres)" rows={3} />
                 </div>
 

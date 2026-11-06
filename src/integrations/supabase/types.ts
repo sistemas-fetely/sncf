@@ -85996,6 +85996,33 @@ export type Database = {
         }
         Relationships: []
       }
+      transferencia_motivo_cancelamento: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          descricao: string | null
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       transferencia_remessa_vinculo: {
         Row: {
           criado_em: string
