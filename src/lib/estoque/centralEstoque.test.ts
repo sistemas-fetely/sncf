@@ -35,4 +35,8 @@ describe("central de estoque", () => {
     expect(contarFila(produtos).sem_contagem).toBe(1);
     expect(filtrar(produtos, { q: "", colecao: "", fase: "", card: "sem_contagem", comSaldo: false }).map((p) => p.sku)).toEqual(["OK"]);
   });
+  it("sem contagem só conta CD com disponível > 0", () => {
+    const r = agrupar([base({ sku: "Z", centro: "FET-SP-SR", papel: "complemento", disponivel: 0 })]);
+    expect(contarFila(r.produtos).sem_contagem).toBe(0);
+  });
 });

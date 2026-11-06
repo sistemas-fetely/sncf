@@ -1,6 +1,6 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { CodProduto } from "@/components/produto/CodProduto";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -378,6 +378,26 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
     defaultValues: { ...VAZIO },
   });
   const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
+
+  // ?sku= vindo da Central de Estoque: pré-inclui o item com a qtd sugerida (ou 1).
+  const [searchParams] = useSearchParams();
+  const skuUrl = remessa ? null : searchParams.get("sku");
+  const skuAplicado = useRef<string | null>(null);
+  useEffect(() => {
+    if (!skuUrl || skuAplicado.current === skuUrl) return;
+    skuAplicado.current = skuUrl;
+    (async () => {
+      const [prod, sug] = await Promise.all([
+        supabase.from("sncf_produtos").select("sku, nome_completo").eq("sku", skuUrl).maybeSingle(),
+        supabase.from("vw_reposicao_sugerida").select("qtd_sugerida").eq("sku", skuUrl),
+      ]);
+      if (prod.error) { toast.error(formatError(prod.error)); return; }
+      if (sug.error) { toast.error(formatError(sug.error)); return; }
+      if (!prod.data) { toast.error(`Produto ${skuUrl} não encontrado no catálogo.`); return; }
+      const qtd = Math.max(0, ...(sug.data ?? []).map((r) => Number(r.qtd_sugerida ?? 0)));
+      replace([{ sku: prod.data.sku, nome: prod.data.nome_completo ?? "", quantidade: qtd > 0 ? qtd : 1 }]);
+    })();
+  }, [skuUrl, replace]);
 
   const [modo, setModo] = useState<"item" | "colar" | "sugestao">("item");
   const [textoColado, setTextoColado] = useState("");

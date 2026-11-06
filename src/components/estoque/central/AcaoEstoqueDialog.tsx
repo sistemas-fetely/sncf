@@ -17,7 +17,7 @@ import { formatError } from "@/lib/format-error";
 import { invalidarEstoque } from "@/hooks/estoque/useCentralEstoque";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
+const sb = supabase;
 
 export type ModoAcao = "contar" | "reclassificar" | "movimento" | "transferencia";
 const TITULO: Record<ModoAcao, string> = {

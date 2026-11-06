@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Lock } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -62,31 +63,40 @@ export function GavetaProdutoEstoque({ produto, onFechar }: { produto: ProdutoCe
           <SheetDescription>{[produto.cor, produto.colecao, produto.fase].filter(Boolean).join(" · ")}</SheetDescription>
         </SheetHeader>
 
-        <section className="rounded-md border bg-card shadow-sm overflow-x-auto">
+        <section className="rounded-md border bg-card shadow-sm overflow-hidden">
           <Table className="text-xs">
             <TableHeader className="bg-muted">
               <TableRow>
-                {["CD", "Disp.", "Contábil", "Vendável", "Bloq.", "Reserv.", "A caminho", "Real", "Dem./dia", "Cobert.", "Piso", "Status"].map((h) => <TableHead key={h} className="text-right first:text-left whitespace-nowrap">{h}</TableHead>)}
+                {["CD", "Disp.", "Contábil", "Vendável", "Bloq.", "Reserv.", "A caminho", "Real", "Dem./dia"].map((h) => <TableHead key={h} className="text-right first:text-left whitespace-nowrap px-2">{h}</TableHead>)}
               </TableRow>
             </TableHeader>
             <TableBody>
               {todos.map((l) => (
-                <TableRow key={l.centro} className={l.papel === "terceiro" ? "text-muted-foreground" : ""}>
-                  <TableCell className="whitespace-nowrap"><span className="font-medium">{l.centro_rotulo}</span> <span className="text-muted-foreground">· {l.papel_rotulo}</span></TableCell>
-                  <TableCell className="text-right tabular-nums font-bold text-sm">{fmt(l.disponivel)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.contabil)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.vendavel)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.bloqueado)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.reservado)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.a_caminho)}</TableCell>
-                  <TableCell className="text-right tabular-nums whitespace-nowrap" title={l.papel === "mae" ? "Foto da API do armazém" : "Última contagem"}>
-                    {fmt(l.real_centro)}{l.papel !== "mae" && <span className="block text-[10px] text-muted-foreground">{l.contagem_em ? fmtData(l.contagem_em) : "sem contagem"}</span>}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.demanda_dia)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{l.cobertura_dias == null ? "—" : `${fmt(l.cobertura_dias)} d`}</TableCell>
-                  <TableCell className="text-right tabular-nums whitespace-nowrap">{fmt(l.piso_un)} un{l.piso_dias != null ? ` / ${fmt(l.piso_dias)} d` : ""}</TableCell>
-                  <TableCell className="text-right"><Badge variant="outline" className={classeStatus(l)}>{l.status === "retido" && <Lock className="h-3 w-3 mr-1" />}{rotuloStatus(l)}</Badge></TableCell>
-                </TableRow>
+                <Fragment key={l.centro}>
+                  <TableRow className={cn("border-b-0", l.papel === "terceiro" && "text-muted-foreground")}>
+                    <TableCell className="px-2"><span className="font-medium">{l.centro_rotulo}</span> <span className="text-muted-foreground">· {l.papel_rotulo}</span></TableCell>
+                    <TableCell className="px-2 text-right tabular-nums font-bold text-sm">{fmt(l.disponivel)}</TableCell>
+                    <TableCell className="px-2 text-right tabular-nums">{fmt(l.contabil)}</TableCell>
+                    <TableCell className="px-2 text-right tabular-nums">{fmt(l.vendavel)}</TableCell>
+                    <TableCell className="px-2 text-right tabular-nums">{fmt(l.bloqueado)}</TableCell>
+                    <TableCell className="px-2 text-right tabular-nums">{fmt(l.reservado)}</TableCell>
+                    <TableCell className="px-2 text-right tabular-nums">{fmt(l.a_caminho)}</TableCell>
+                    <TableCell className="px-2 text-right tabular-nums whitespace-nowrap" title={l.papel === "mae" ? "Foto da API do armazém" : "Última contagem"}>
+                      {fmt(l.real_centro)}{l.papel !== "mae" && <span className="block text-[10px] text-muted-foreground">{l.contagem_em ? fmtData(l.contagem_em) : "sem contagem"}</span>}
+                    </TableCell>
+                    <TableCell className="px-2 text-right tabular-nums">{fmt(l.demanda_dia)}</TableCell>
+                  </TableRow>
+                  <TableRow className={cn("hover:bg-transparent", l.papel === "terceiro" && "text-muted-foreground")}>
+                    <TableCell colSpan={9} className="px-2 pt-0 pb-2">
+                      <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
+                        <span>Cobertura {l.cobertura_dias == null ? "—" : `${fmt(l.cobertura_dias)} d`}</span>
+                        <span>·</span>
+                        <span>Piso {fmt(l.piso_un)} un{l.piso_dias != null ? ` / ${fmt(l.piso_dias)} d` : ""}</span>
+                        <Badge variant="outline" className={classeStatus(l)}>{l.status === "retido" && <Lock className="h-3 w-3 mr-1" />}{rotuloStatus(l)}</Badge>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </Fragment>
               ))}
             </TableBody>
           </Table>
@@ -154,7 +164,7 @@ export function GavetaProdutoEstoque({ produto, onFechar }: { produto: ProdutoCe
               {(c?.reposicao ?? []).length === 0 ? <div className="text-muted-foreground">Sem sugestão de reposição.</div> : c!.reposicao.map((r, i) => (
                 <div key={i} className="tabular-nums">{r.origem ?? "—"} → {r.centro ?? "—"}: <b>{fmt(r.qtd_sugerida)}</b> un · {r.situacao ?? "—"}{r.proxima_carga ? ` · próxima carga ${fmtData(r.proxima_carga)}` : ""}</div>
               ))}
-              <Link className="text-primary underline" to="/pedidos/transferencias?aba=nova">Criar transferência</Link>
+              <Link className="text-primary underline" to={`/pedidos/transferencias?aba=nova&sku=${encodeURIComponent(produto.sku)}`}>Criar transferência</Link>
             </div>
           )}
         </section>

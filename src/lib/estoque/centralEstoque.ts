@@ -52,7 +52,7 @@ export function noCard(l: LinhaCentral, card: CardFila): boolean {
     case "zerado_venda": return l.status === "zerado" && n(l.demanda_dia) > 0;
     case "retido": return l.status === "retido";
     case "diverge": return l.diverge_real === true;
-    case "sem_contagem": return l.papel !== "mae" && (l.contagem_em == null || n(l.dias_desde_contagem) > 90);
+    case "sem_contagem": return n(l.disponivel) > 0 && l.papel !== "mae" && (l.contagem_em == null || n(l.dias_desde_contagem) > 90);
     case "a_caminho": return n(l.a_caminho) > 0;
   }
 }

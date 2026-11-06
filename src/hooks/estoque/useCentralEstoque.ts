@@ -5,9 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { agrupar, type LinhaCentral } from "@/lib/estoque/centralEstoque";
 
-// vw_central_estoque / estoque_retencao_canal ainda não estão no types gerado
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
+const sb = supabase;
 
 /** Chaves de estoque/conciliação que a Central também derruba depois de qualquer ação. */
 export async function invalidarEstoque(qc: QueryClient) {
@@ -27,7 +25,7 @@ export function useCentralEstoque() {
         const { data, error } = await sb.from("vw_central_estoque").select("*")
           .order("sku").order("centro").range(de, de + 999);
         if (error) throw error;
-        out.push(...((data ?? []) as LinhaCentral[]));
+        out.push(...((data ?? []) as unknown as LinhaCentral[]));
         if (!data || data.length < 1000) break;
       }
       return out;
@@ -52,15 +50,15 @@ export function useCanaisProduto(sku: string | null) {
     enabled: !!sku,
     queryFn: async (): Promise<CanaisProduto> => {
       const [b, s, f, r1, r2, rp] = await Promise.all([
-        sb.from("vw_estoque_bling_sync").select("centro, bling_atual, sncf_disponivel, diff").eq("sku", sku),
-        sb.from("vw_estoque_shopify_sync").select("centro, shopify_atual, sncf_virtual, diff").eq("sku", sku),
-        sb.from("vw_fop_status_estoque").select("estoque_fop, status_rotulo").eq("sku", sku).maybeSingle(),
-        sb.from("shopify_estoque_retencao").select("id, motivo, retido_em").eq("sku", sku).is("liberado_em", null).maybeSingle(),
-        sb.from("estoque_retencao_canal").select("id, canal, centro_codigo, motivo, retido_em").eq("sku", sku).is("liberado_em", null),
-        sb.from("vw_reposicao_sugerida").select("centro, origem, qtd_sugerida, situacao, proxima_carga").eq("sku", sku),
+        sb.from("vw_estoque_bling_sync").select("centro, bling_atual, sncf_disponivel, diff").eq("sku", sku!),
+        sb.from("vw_estoque_shopify_sync").select("centro, shopify_atual, sncf_virtual, diff").eq("sku", sku!),
+        sb.from("vw_fop_status_estoque").select("estoque_fop, status_rotulo").eq("sku", sku!).maybeSingle(),
+        sb.from("shopify_estoque_retencao").select("id, motivo, retido_em").eq("sku", sku!).is("liberado_em", null).maybeSingle(),
+        sb.from("estoque_retencao_canal").select("id, canal, centro_codigo, motivo, retido_em").eq("sku", sku!).is("liberado_em", null),
+        sb.from("vw_reposicao_sugerida").select("centro, origem, qtd_sugerida, situacao, proxima_carga").eq("sku", sku!),
       ]);
       for (const r of [b, s, f, r1, r2, rp]) if (r.error) throw r.error;
-      return { bling: b.data ?? [], shopify: s.data ?? [], fop: f.data ?? null, retB2c: r1.data ?? null, retCanal: r2.data ?? [], reposicao: rp.data ?? [] };
+      return { bling: b.data ?? [], shopify: s.data ?? [], fop: f.data ?? null, retB2c: r1.data ?? null, retCanal: r2.data ?? [], reposicao: rp.data ?? [] } as CanaisProduto;
     },
   });
 }
@@ -91,7 +89,7 @@ export function useRetencaoCanal() {
       const { data: u } = await supabase.auth.getUser();
       const { data, error } = await sb.from("estoque_retencao_canal")
         .update({ liberado_em: new Date().toISOString(), liberado_por: u.user?.id ?? null })
-        .eq("id", id).is("liberado_em", null).select("id");
+        .eq("id", id!).is("liberado_em", null).select("id");
       if (error) throw error;
       if (!data?.length) throw new Error("Nenhuma retenção aberta foi encerrada (sem permissão ou já liberada).");
     },
