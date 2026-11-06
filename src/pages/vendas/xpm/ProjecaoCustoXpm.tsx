@@ -11,13 +11,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Mensal = {
-  mes: string; competencia_base: string | null;
-  base_estoque_fixo: number | null; base_expedicao: number | null;
-  incremento_estoque: number | null; custo_entrada: number | null;
-  minimo: number | null; total_projetado: number | null; piso_aplicado: boolean | null;
-  tipo: 'realizado' | 'projetado'; desconto: number | null;
+  mes: string; tipo: 'realizado' | 'projetado';
+  mensal: number | null; entrada: number | null; venda: number | null; total: number | null;
+  minimo: number | null; piso_aplicado: boolean | null; giro_mensal: number | null; desconto: number | null;
   detalhe: unknown;
 };
+type Lote = { pedido?: string | null; caixas?: number | null; unidades?: number | null; entrada?: number | null; armazenagem_mes?: number | null; mes_entrada?: string | null };
+type Decomp = { arm?: number | null; seguro?: number | null; end_virtual?: number | null; giro?: number | null; nfs?: string | null; versao?: number | string | null; status?: string | null };
 type Entrada = {
   id: number; numero_pedido: string | null; processo_ref: string | null; status: string | null;
   chegou: boolean | null; em_transito: boolean | null;
@@ -51,19 +51,28 @@ const mesBr = (d: string | null) => {
 };
 
 const SERIES = [
-  { key: "base_estoque_fixo", label: "Estoque", cor: "hsl(var(--chart-1))" },
-  { key: "base_expedicao", label: "Expedição", cor: "hsl(var(--chart-2))" },
-  { key: "incremento_estoque", label: "Lotes novos", cor: "hsl(var(--chart-3))" },
-  { key: "custo_entrada", label: "Entrada", cor: "hsl(var(--chart-5))" },
+  { key: "mensal", label: "Mensal", cor: "hsl(var(--chart-1))" },
+  { key: "entrada", label: "Entrada", cor: "hsl(var(--chart-3))" },
+  { key: "venda", label: "Venda", cor: "hsl(var(--chart-2))" },
 ] as const;
 
-// Tooltip dos cabeçalhos de parcela da tabela mensal (chave → explicação curta).
-const TOOLTIP_PARCELA: Record<string, string> = {
-  base_estoque_fixo: "armazenagem (pallets + bins) + seguro + endereço virtual + insumos — congelado no último mês real para os projetados",
-  base_expedicao: "unidades expedidas × preço (projetado: parâmetro unidades_expedidas_mes)",
-  incremento_estoque: "incremento mensal dos lotes que chegaram após o último mês real, caindo 1/meses de venda por mês",
-  custo_entrada: "recebimento, descarga, adequação, contêiner extra, HE — uma vez, no mês de chegada",
+const giroPct = (g: number | null | undefined) => {
+  if (g == null) return null;
+  const n = Number(g); const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%/mês";
 };
+const mesAno = (d: string | null | undefined) => (d ? `${d.slice(5, 7)}/${d.slice(0, 4)}` : "—");
+
+function lerDetalhe(r: Mensal): { decomp: Decomp | null; lotes: Lote[] } {
+  const d = r.detalhe as any;
+  if (Array.isArray(d)) {
+    const ult = d.length ? d[d.length - 1] : null;
+    const temDecomp = ult && ("arm" in ult || "seguro" in ult || "end_virtual" in ult);
+    return { decomp: temDecomp ? ult : null, lotes: (temDecomp ? d.slice(0, -1) : d) as Lote[] };
+  }
+  if (d && typeof d === "object") return { decomp: d as Decomp, lotes: [] };
+  return { decomp: null, lotes: [] };
+}
 
 export default function ProjecaoCustoXpm() {
   const mensal = useQuery({
@@ -100,20 +109,13 @@ function Erro({ e }: { e: unknown }) {
 }
 
 function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
+  const [aberto, setAberto] = useState<Set<string>>(new Set());
+  const tog = (k: string) => setAberto((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const dados = useMemo(() => (q.data ?? []).map((r) => ({ ...r, rotulo: mesBr(r.mes),
     ...Object.fromEntries(SERIES.map((s) => [s.key, Number(r[s.key] ?? 0)])) })), [q.data]);
-  // competencia_base vem da primeira linha projetada (nas realizadas também vem igual, mas por segurança).
   const primeiraProjetada = q.data?.find((r) => r.tipo === "projetado");
-  const base = primeiraProjetada?.competencia_base ?? null;
   const temRealizado = (q.data ?? []).some((r) => r.tipo === "realizado");
-  const paramQ = useQuery({
-    queryKey: ["xpm-projecao-param", "meses_venda_padrao"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("xpm_projecao_param").select("valor").eq("chave", "meses_venda_padrao").maybeSingle();
-      if (error) throw error;
-      return data as { valor: number | null } | null;
-    },
-  });
+  const giro = giroPct(primeiraProjetada?.giro_mensal);
   return (
     <section className="space-y-3">
       <h2 className="text-base font-semibold">Quanto a XPM vai custar nos próximos meses</h2>
@@ -134,7 +136,7 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                       <Cell key={d.mes} fill={s.cor} fillOpacity={d.tipo === "realizado" ? 0.45 : 1} />
                     ))}
                     {i === SERIES.length - 1 && (
-                      <LabelList dataKey="total_projetado" position="top"
+                      <LabelList dataKey="total" position="top"
                         formatter={(v: number) => brl(v)} style={{ fontSize: 10, fill: "hsl(var(--foreground))" }} />
                     )}
                   </Bar>
@@ -146,75 +148,108 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <div className="grid gap-3 sm:grid-cols-3 text-xs">
+            <div className="rounded-md border bg-card p-2">
+              <div className="font-semibold">Mensal</div>
+              <div className="text-muted-foreground">Custo de ter estoque: armazenagem + seguro + endereço virtual. Nos meses projetados cai pelo giro medido{giro ? ` (giro ${giro})` : ""}.</div>
+            </div>
+            <div className="rounded-md border bg-card p-2">
+              <div className="font-semibold">Entrada</div>
+              <div className="text-muted-foreground">Esporádico: recebimento, containers, descarga, adequação, HE. Só nos meses em que um lote entra na XPM.</div>
+            </div>
+            <div className="rounded-md border bg-card p-2">
+              <div className="font-semibold">Venda</div>
+              <div className="text-muted-foreground">Atrelado à saída: expedição + caixas (insumos) + pedidos emergenciais. Projetado pela média dos 3 últimos meses reais.</div>
+            </div>
+          </div>
           <TooltipProvider>
           <div className="overflow-auto rounded-md border">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th rowSpan={2} className="px-2 py-1.5 text-left align-bottom">Mês</th>
-                  <th rowSpan={2} className="px-2 py-1.5 text-left align-bottom">Tipo</th>
-                  <th colSpan={5} className="px-2 py-1.5 text-center border-b">Parcelas (somam o total)</th>
-                  <th rowSpan={2} className="px-2 py-1.5 text-right align-bottom border-l">= Total</th>
-                  <th rowSpan={2} className="px-2 py-1.5 text-right align-bottom font-normal">Piso contratual (referência, não soma)</th>
-                </tr>
-                <tr>
-                  {SERIES.map((s) => (
-                    <th key={s.key} className="px-2 py-1.5 text-right">
-                      <UiTooltip>
-                        <TooltipTrigger asChild><span className="underline decoration-dotted">{s.label}</span></TooltipTrigger>
-                        <TooltipContent className="max-w-64">{TOOLTIP_PARCELA[s.key]}</TooltipContent>
-                      </UiTooltip>
-                    </th>
-                  ))}
-                  <th className="px-2 py-1.5 text-right">
-                    <UiTooltip>
-                      <TooltipTrigger asChild><span className="underline decoration-dotted">Desconto</span></TooltipTrigger>
-                      <TooltipContent>abatimento concedido pela XPM na fatura</TooltipContent>
-                    </UiTooltip>
-                  </th>
+                  <th className="w-6" />
+                  <th className="px-2 py-1.5 text-left">Mês</th>
+                  <th className="px-2 py-1.5 text-left">Tipo</th>
+                  <th className="px-2 py-1.5 text-right font-semibold">Mensal</th>
+                  <th className="px-2 py-1.5 text-right font-semibold">Entrada</th>
+                  <th className="px-2 py-1.5 text-right font-semibold">Venda</th>
+                  <th className="px-2 py-1.5 text-right border-l">= Total</th>
+                  <th className="px-2 py-1.5 text-right font-normal">Piso contratual (referência)</th>
                 </tr>
               </thead>
               <tbody>
-                {(q.data ?? []).map((r) => (
-                  <tr key={r.mes} className={`border-t ${r.tipo === "realizado" ? "bg-muted/20" : ""}`}>
-                    <td className="px-2 py-1">{mesBr(r.mes)}</td>
-                    <td className="px-2 py-1">
-                      <Badge variant={r.tipo === "realizado" ? "outline" : "secondary"}>{r.tipo === "realizado" ? "real" : "proj."}</Badge>
-                    </td>
-                    {SERIES.map((s) => (
-                      <td key={s.key} className="px-2 py-1 text-right tabular-nums">{brl(Number(r[s.key] ?? 0))}</td>
-                    ))}
-                    <td className="px-2 py-1 text-right tabular-nums">
-                      {r.desconto == null ? "—" : (
-                        <span className={Number(r.desconto) < 0 ? "text-destructive" : undefined}>{brl(r.desconto)}</span>
+                {(q.data ?? []).map((r) => {
+                  const ab = aberto.has(r.mes);
+                  const real = r.tipo === "realizado";
+                  const { decomp, lotes } = lerDetalhe(r);
+                  return (
+                    <Fragment key={r.mes}>
+                      <tr className={`border-t cursor-pointer hover:bg-muted/40 ${real ? "bg-muted/30" : ""}`} onClick={() => tog(r.mes)}>
+                        <td className="px-1">{ab ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</td>
+                        <td className="px-2 py-1">{mesBr(r.mes)}</td>
+                        <td className="px-2 py-1">
+                          <Badge variant={real ? "outline" : "secondary"}>{real ? "real" : "proj."}</Badge>
+                        </td>
+                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.mensal)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.entrada)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums">{brl(r.venda)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums font-bold border-l whitespace-nowrap">
+                          {r.piso_aplicado && (
+                            <UiTooltip>
+                              <TooltipTrigger asChild><Badge variant="outline" className="mr-1 px-1 py-0 text-[10px]">piso</Badge></TooltipTrigger>
+                              <TooltipContent>Soma ficou abaixo do mínimo contratual; cobra o mínimo</TooltipContent>
+                            </UiTooltip>
+                          )}
+                          {brl(r.total)}
+                        </td>
+                        <td className="px-2 py-1 text-right tabular-nums text-muted-foreground">{brl(r.minimo)}</td>
+                      </tr>
+                      {ab && (
+                        <tr className="bg-muted/20">
+                          <td />
+                          <td colSpan={7} className="px-2 py-2 space-y-2">
+                            <div>
+                              <div className="font-medium text-muted-foreground">Mensal</div>
+                              {decomp ? (
+                                <div>Armazenagem {brl(decomp.arm)} · Seguro {brl(decomp.seguro)} · Endereço virtual {brl(decomp.end_virtual)}
+                                  {!real && giroPct(decomp.giro ?? r.giro_mensal) ? ` · giro ${giroPct(decomp.giro ?? r.giro_mensal)}` : ""}</div>
+                              ) : <div className="text-muted-foreground">—</div>}
+                            </div>
+                            {real ? (
+                              <div>
+                                <div className="font-medium text-muted-foreground">Fatura</div>
+                                <div>NFS-e {decomp?.nfs ?? "—"} · versão {decomp?.versao ?? "—"} · {decomp?.status ?? "—"}
+                                  {r.desconto != null && Number(r.desconto) !== 0 ? ` · desconto ${brl(r.desconto)}` : ""}</div>
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="font-medium text-muted-foreground">Lotes</div>
+                                {lotes.length === 0 ? <div className="text-muted-foreground">Nenhum lote.</div> : (
+                                  <ul className="space-y-0.5">
+                                    {lotes.map((l, i) => (
+                                      <li key={i}><span className="font-medium">{l.pedido ?? "—"}</span>: entrou em {mesAno(l.mes_entrada)} · {num(l.caixas)} caixas · {num(l.unidades)} unidades · entrada {brl(l.entrada)} · armazenagem {brl(l.armazenagem_mes)}/mês</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-2 py-1 text-right tabular-nums font-semibold border-l whitespace-nowrap">
-                      {r.piso_aplicado && (
-                        <UiTooltip>
-                          <TooltipTrigger asChild><Badge variant="outline" className="mr-1 px-1 py-0 text-[10px]">piso</Badge></TooltipTrigger>
-                          <TooltipContent>Soma ficou abaixo do mínimo contratual; cobra o mínimo</TooltipContent>
-                        </UiTooltip>
-                      )}
-                      {brl(r.total_projetado)}
-                    </td>
-                    <td className="px-2 py-1 text-right tabular-nums text-muted-foreground">{brl(r.minimo)}</td>
-                  </tr>
-                ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={9} className="px-2 py-1.5 italic text-muted-foreground">
-                    Soma das 5 parcelas = Total, em todos os meses. O piso contratual só vale quando a soma fica abaixo dele.
+                  <td colSpan={8} className="px-2 py-1.5 italic text-muted-foreground">
+                    Mensal + Entrada + Venda = Total. O piso contratual só vale quando a soma fica abaixo dele.
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
           </TooltipProvider>
-          <p className="text-xs text-muted-foreground">
-            Realizado = faturas conferidas. Projeção congela estoque e expedição no último mês real ({mesBr(base ?? null)}) e soma os lotes chegando, caindo 1/{num(paramQ.data?.valor)} por mês. Se a soma ficar abaixo do mínimo contratual, cobra-se o mínimo.
-          </p>
         </>
       )}
     </section>
