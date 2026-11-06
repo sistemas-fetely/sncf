@@ -18,6 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CodProduto } from "@/components/produto/CodProduto";
 import { cn } from "@/lib/utils";
 import { EntradaXpm } from "./components/EntradaXpm";
+import { EstoqueDifereSecao } from "./components/EstoqueDifereSecao";
+
+const TIPO_DIFERE = "estoque_difere";
 
 // XPM v2 · F1 (29/10/2026): só problemas da XPM, cada linha com saída (vw_xpm_pendencia.saidas).
 interface Pendencia {
@@ -69,13 +72,14 @@ export default function OperacaoXpm() {
   const tipos = tiposQ.data ?? [];
   const contagem = useMemo(() => {
     const m = new Map<string, number>();
-    for (const p of todas) m.set(p.tipo, (m.get(p.tipo) ?? 0) + 1);
+    for (const p of todas) m.set(p.tipo, p.tipo === TIPO_DIFERE ? 1 : (m.get(p.tipo) ?? 0) + 1);
     return m;
   }, [todas]);
+  const totalItens = useMemo(() => [...contagem.values()].reduce((a, b) => a + b, 0), [contagem]);
   const filtradas = useMemo(() => {
     const t = estado.busca.trim().toLowerCase();
     return todas.filter((p) => (!estado.tipo || p.tipo === estado.tipo) && (!t ||
-      [p.pedido_sncf, p.referencia, p.codigo, p.cliente, p.nf_numero].some((v) => v?.toLowerCase().includes(t))));
+      [p.pedido_sncf, p.referencia, p.codigo, p.cliente, p.nf_numero, p.estagio_codigo].some((v) => v?.toLowerCase().includes(t))));
   }, [todas, estado.tipo, estado.busca]);
   const grupos = useMemo(() => {
     const ordem = new Map(tipos.map((t, i) => [t.chave, i]));
@@ -135,7 +139,7 @@ export default function OperacaoXpm() {
         <CardHeader className="space-y-3 pb-3">
           <CardTitle className="text-base">O que precisa de ação na XPM</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant={!estado.tipo ? "default" : "outline"} className="h-7" onClick={() => setEstado({ tipo: "" })}>Todas · {todas.length}</Button>
+            <Button size="sm" variant={!estado.tipo ? "default" : "outline"} className="h-7" onClick={() => setEstado({ tipo: "" })}>Todas · {totalItens}</Button>
             {tipos.map((t) => {
               const n = contagem.get(t.chave) ?? 0;
               return (
@@ -160,7 +164,10 @@ export default function OperacaoXpm() {
             <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">{((pendQ.error ?? tiposQ.error) as Error).message}</p>
           ) : grupos.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Nada pendente na XPM agora.</p>
-          ) : grupos.map((g) => (
+          ) : grupos.map((g) => g.tipo === TIPO_DIFERE ? (
+            <EstoqueDifereSecao key={g.tipo} rotulo={g.rotulo} linhas={g.linhas}
+              onFeito={async () => { await qc.invalidateQueries({ queryKey: ["xpm-pendencias"] }); }} />
+          ) : (
             <section key={g.tipo} className="space-y-2">
               <div>
                 <h3 className="text-sm font-semibold">{g.rotulo} <span className="font-normal text-muted-foreground">· {g.linhas.length}</span></h3>
