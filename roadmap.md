@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Reposição SP v2: Central/motor compartilhado, pré-carga e gaveta migradas; fretes via APIs existentes; 15 testes, painel 30 urgentes/286 carga, edição/pré-carga e PAC/SEDEX reais conferidos. Parâmetros sem seção de estoque (não criada). Sem SQL/publicação/TRS real; gravação do frete não executada.
 - [x] Reformar documento externo do representante: vendas por NF, comissão a receber e previsão sem atrasos; 19 testes passaram, Carine/Lucia/Everson 10/2026 e impressão A4 conferidos, sem banco/publicação.
 - [x] Exibir número Bling no modal, lista, detalhe e etiqueta reversa; SHP-1467/823, DEV-B2C-1522/919 e cópia 851 conferidos no preview; 11 testes passaram, sem banco/publicação.
 - [x] Pacote etapa 2 fase 1: aplicada, funções publicadas, 38 PDFs de NFS-e gerados, dry-run 10/2026 conferido. Aguardando o Flávio confirmar os pagamentos de 7915/7916.

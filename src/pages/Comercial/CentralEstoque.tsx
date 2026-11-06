@@ -3,7 +3,7 @@
  * DISPONÍVEL é o número da venda; o resto é detalhe. Fonte única: vw_central_estoque.
  */
 import { useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Boxes, Lock } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -23,6 +23,10 @@ import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { GavetaProdutoEstoque } from "@/components/estoque/central/GavetaProdutoEstoque";
 import { corNumero } from "@/components/estoque/central/statusVisual";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useReposicaoSp } from "@/hooks/estoque/useReposicaoSp";
+import { PainelReposicaoSp } from "@/components/estoque/central/PainelReposicaoSp";
 
 const ROTULO_FILA: Record<CardFila, string> = {
   acabando: "Acabando", zerado_venda: "Zerado com venda", retido: "Retido em canal",
@@ -38,7 +42,11 @@ const ABAS = [
 ];
 
 export default function CentralEstoque() {
-  const [f, setF] = useEstadoTela({ q: "", colecao: "", fase: "", card: "", saldo: false, pagina: 1, tamanho: DEFAULT_PAGE_SIZE as number }, { replaceKeys: ["q"] });
+  const [f, setF] = useEstadoTela({ q: "", colecao: "", fase: "", card: "", painel: "", reposicao: "urgente", saldo: false, pagina: 1, tamanho: DEFAULT_PAGE_SIZE as number }, { replaceKeys: ["q"] });
+  const navigate = useNavigate();
+  const reposicao = useReposicaoSp();
+  const urgente = (reposicao.data ?? []).filter(l => l.ritmo === "urgente").length;
+  const carga = (reposicao.data ?? []).filter(l => l.ritmo === "carga").length;
   const [params, setParams] = useSearchParams();
   const foco = params.get("foco");
   const { produtos, colunas, isLoading, error } = useCentralEstoque();
@@ -79,16 +87,21 @@ export default function CentralEstoque() {
         ))}
       </nav>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
         {FILA.map((c) => (
-          <button key={c} type="button" onClick={() => setF({ card: f.card === c ? "" : c, pagina: 1 })}
-            className={cn("rounded-md border bg-card p-3 text-left shadow-sm hover:bg-muted/40", f.card === c && "ring-2 ring-primary")}>
+          <Button key={c} type="button" variant="outline" onClick={() => setF({ card: f.card === c ? "" : c, painel: "", pagina: 1 })}
+            className={cn("h-auto block rounded-md border bg-card p-3 text-left shadow-sm hover:bg-muted/40", f.card === c && !f.painel && "ring-2 ring-primary")}>
             <div className="text-xs text-muted-foreground">{ROTULO_FILA[c]}</div>
             <div className="text-2xl font-bold tabular-nums">{isLoading ? "…" : contagem[c]}</div>
-          </button>
+          </Button>
         ))}
+        <Button type="button" variant="outline" className={cn("h-auto block bg-card p-3 text-left shadow-sm", f.painel === "repor" && "ring-2 ring-primary")} onClick={() => setF({ painel: f.painel === "repor" ? "" : "repor", card: "" })}>
+          <div className="text-xs text-muted-foreground">Repor SP</div><div className="text-2xl font-bold tabular-nums">{reposicao.isLoading ? "…" : reposicao.error ? "—" : urgente + carga}</div><Badge variant="outline" className="text-[10px] whitespace-normal">{urgente} urgente · {carga} carga</Badge>
+        </Button>
       </div>
 
+      {reposicao.error && <Alert variant="destructive"><AlertDescription>{formatError(reposicao.error)}</AlertDescription></Alert>}
+      {f.painel === "repor" ? <PainelReposicaoSp aba={f.reposicao === "carga" ? "carga" : "urgente"} onAba={v => setF({ reposicao: v })} onUsar={reposicaoSp => navigate("/pedidos/transferencias?aba=nova", { state: { reposicaoSp } })} /> : <>
       <div className="flex flex-wrap items-center gap-2">
         <FilterInput value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: 1 })} placeholder="Código, SKU ou nome" className="w-64" />
         <Select value={f.colecao || TODAS} onValueChange={(v) => setF({ colecao: v === TODAS ? "" : v, pagina: 1 })}>
@@ -148,6 +161,7 @@ export default function CentralEstoque() {
           </div>
         </TooltipProvider>
       )}
+      </>}
 
       <GavetaProdutoEstoque produto={aberto} onFechar={() => abrir(null)} />
     </PageShell>

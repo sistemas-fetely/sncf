@@ -161,8 +161,8 @@ export function GavetaProdutoEstoque({ produto, onFechar }: { produto: ProdutoCe
           </div>
           {repor && (
             <div className="rounded-md border bg-card p-3 text-xs shadow-sm space-y-1">
-              {(c?.reposicao ?? []).length === 0 ? <div className="text-muted-foreground">Sem sugestão de reposição.</div> : c!.reposicao.map((r, i) => (
-                <div key={i} className="tabular-nums">{r.origem ?? "—"} → {r.centro ?? "—"}: <b>{fmt(r.qtd_sugerida)}</b> un · {r.situacao ?? "—"}{r.proxima_carga ? ` · próxima carga ${fmtData(r.proxima_carga)}` : ""}</div>
+              {canais.error ? <p className="text-destructive">{formatError(canais.error)}</p> : canais.isLoading ? <p>Carregando…</p> : (c?.reposicao ?? []).length === 0 ? <div className="text-muted-foreground">Sem sugestão de reposição.</div> : c?.reposicao.map((r, i) => (
+                <div key={i} className="tabular-nums space-y-1"><div>{r.classe_rotulo ?? r.classe} · mín/teto {fmt(r.minimo)}/{fmt(r.teto)} · posição {fmt(r.posicao)}</div><div><b>{fmt(r.qtd_sugerida)} kits</b> · {r.situacao ?? "—"} · {r.ritmo ?? "—"}</div></div>
               ))}
               <Link className="text-primary underline" to={`/pedidos/transferencias?aba=nova&sku=${encodeURIComponent(produto.sku)}`}>Criar transferência</Link>
             </div>

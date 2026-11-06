@@ -4,13 +4,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { agrupar, type LinhaCentral } from "@/lib/estoque/centralEstoque";
+import type { ReposicaoSp } from "@/lib/estoque/reposicaoSp";
 
 const sb = supabase;
 
 /** Chaves de estoque/conciliação que a Central também derruba depois de qualquer ação. */
 export async function invalidarEstoque(qc: QueryClient) {
   await Promise.all(
-    ["central-estoque", "central-estoque-canais", "estoque-cockpit", "vw_estoque_cockpit", "conciliacao-estoque", "estoque-centro", "shopify-estoque-retido"]
+    ["central-estoque", "central-estoque-canais", "reposicao-sp", "estoque-cockpit", "vw_estoque_cockpit", "conciliacao-estoque", "estoque-centro", "shopify-estoque-retido"]
       .map((k) => qc.invalidateQueries({ queryKey: [k] })),
   );
 }
@@ -41,7 +42,7 @@ export interface CanaisProduto {
   fop: { estoque_fop: number | null; status_rotulo: string | null } | null;
   retB2c: { id: string; motivo: string; retido_em: string } | null;
   retCanal: { id: string; canal: string; centro_codigo: string | null; motivo: string; retido_em: string }[];
-  reposicao: { centro: string | null; origem: string | null; qtd_sugerida: number | null; situacao: string | null; proxima_carga: string | null }[];
+  reposicao: Omit<ReposicaoSp, "peso_g">[];
 }
 
 export function useCanaisProduto(sku: string | null) {
@@ -49,13 +50,14 @@ export function useCanaisProduto(sku: string | null) {
     queryKey: ["central-estoque-canais", sku],
     enabled: !!sku,
     queryFn: async (): Promise<CanaisProduto> => {
+      if (!sku) throw new Error("Produto não informado.");
       const [b, s, f, r1, r2, rp] = await Promise.all([
-        sb.from("vw_estoque_bling_sync").select("centro, bling_atual, sncf_disponivel, diff").eq("sku", sku!),
-        sb.from("vw_estoque_shopify_sync").select("centro, shopify_atual, sncf_virtual, diff").eq("sku", sku!),
-        sb.from("vw_fop_status_estoque").select("estoque_fop, status_rotulo").eq("sku", sku!).maybeSingle(),
-        sb.from("shopify_estoque_retencao").select("id, motivo, retido_em").eq("sku", sku!).is("liberado_em", null).maybeSingle(),
-        sb.from("estoque_retencao_canal").select("id, canal, centro_codigo, motivo, retido_em").eq("sku", sku!).is("liberado_em", null),
-        sb.from("vw_reposicao_sugerida").select("centro, origem, qtd_sugerida, situacao, proxima_carga").eq("sku", sku!),
+        sb.from("vw_estoque_bling_sync").select("centro, bling_atual, sncf_disponivel, diff").eq("sku", sku),
+        sb.from("vw_estoque_shopify_sync").select("centro, shopify_atual, sncf_virtual, diff").eq("sku", sku),
+        sb.from("vw_fop_status_estoque").select("estoque_fop, status_rotulo").eq("sku", sku).maybeSingle(),
+        sb.from("shopify_estoque_retencao").select("id, motivo, retido_em").eq("sku", sku).is("liberado_em", null).maybeSingle(),
+        sb.from("estoque_retencao_canal").select("id, canal, centro_codigo, motivo, retido_em").eq("sku", sku).is("liberado_em", null),
+        sb.from("vw_reposicao_sp").select("*").eq("sku", sku),
       ]);
       for (const r of [b, s, f, r1, r2, rp]) if (r.error) throw r.error;
       return { bling: b.data ?? [], shopify: s.data ?? [], fop: f.data ?? null, retB2c: r1.data ?? null, retCanal: r2.data ?? [], reposicao: rp.data ?? [] } as CanaisProduto;

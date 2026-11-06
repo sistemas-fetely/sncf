@@ -1,6 +1,6 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { CodProduto } from "@/components/produto/CodProduto";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -55,6 +55,10 @@ import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { PainelReposicaoSp } from "@/components/estoque/central/PainelReposicaoSp";
+import { lerCargaReposicao, type AbaReposicao, type CargaReposicao, type FreteReposicao } from "@/lib/estoque/reposicaoSp";
+import { invalidarEstoque } from "@/hooks/estoque/useCentralEstoque";
+import { ComoVaiReposicao } from "@/components/transferencias/ComoVaiReposicao";
 
 
 interface CentroDestino {
@@ -280,49 +284,6 @@ export function parsearColagem(texto: string): { sku: string; qtdTexto: string }
     .filter((p) => p.sku.length > 0);
 }
 
-interface LinhaSugestao {
-  sku: string;
-  nome_comercial: string | null;
-  situacao: string;
-  v90: number | null;
-  demanda_dia: number | null;
-  disp_destino: number | null;
-  em_transito: number | null;
-  disp_origem: number | null;
-  minimo: number | null;
-  oportunidade: number | null;
-  teto: number | null;
-  multiplo: number | null;
-  cauda: boolean | null;
-  qtd_sugerida: number | null;
-  proxima_carga: string | null;
-  origem: string | null;
-}
-
-const SITUACAO_LABEL: Record<string, string> = {
-  dispara: "Dispara",
-  carona: "Carona",
-  ok: "OK",
-  sem_origem: "Sem saldo na origem",
-};
-
-function situacaoBadge(s: string) {
-  if (s === "dispara") return <Badge variant="destructive">Dispara</Badge>;
-  if (s === "carona") return <Badge variant="default">Carona</Badge>;
-  if (s === "sem_origem") return <Badge variant="outline">Sem saldo na origem</Badge>;
-  return <Badge variant="secondary">{SITUACAO_LABEL[s] ?? s}</Badge>;
-}
-
-/** dd/MM + dia da semana curto, ex.: "03/10 (sex)". */
-function fmtCarga(v: string | null): string {
-  const d = parseDataPura(v);
-  if (!d) return "—";
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const sem = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
-  return `${dd}/${mm} (${sem})`;
-}
-
 /** Destinos válidos para transferência interna: armazéns e showrooms ativos. */
 function useCentrosDestino() {
   return useQuery({
@@ -351,6 +312,11 @@ const schemaRemessa = schema.extend({ destino: z.string() });
 
 export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCriada }: { onCriado: () => void; onCancelar: () => void; remessa?: ModoRemessa; onBaixaCriada?: () => void }) {
   const qc = useQueryClient();
+  const location = useLocation();
+  const cargaNav = lerCargaReposicao(location.state);
+  const cargaAplicada = useRef<string | null>(null);
+  const [preferenciaFrete, setPreferenciaFrete] = useState<AbaReposicao>(cargaNav?.aba ?? "carga");
+  const [freteEscolhido, setFreteEscolhido] = useState<FreteReposicao | null>(null);
 
   // Regras dinâmicas (regularização / finalidade) lidas por ref no resolver.
   const regrasRef = useRef<{ regularizacao: boolean; finalidades: FinalidadeTransferencia[] }>({
@@ -389,7 +355,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
     (async () => {
       const [prod, sug] = await Promise.all([
         supabase.from("sncf_produtos").select("sku, nome_completo").eq("sku", skuUrl).maybeSingle(),
-        supabase.from("vw_reposicao_sugerida").select("qtd_sugerida").eq("sku", skuUrl),
+        supabase.from("vw_reposicao_sp").select("qtd_sugerida").eq("sku", skuUrl),
       ]);
       if (prod.error) { toast.error(formatError(prod.error)); return; }
       if (sug.error) { toast.error(formatError(sug.error)); return; }
@@ -433,8 +399,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
     !remessa && !regularizacao && !!(finalidadesQ.data ?? []).find((f) => f.codigo === finalidadeAtual)?.exige_descricao;
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
-  const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
-  const [sugMostrarTodos, setSugMostrarTodos] = useState(false);
+  const [sugNav, setSugNav] = useEstadoTela({ reposicao: "urgente" });
 
   const limparColagem = () => {
     setTextoColado("");
@@ -445,8 +410,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
   };
 
   const limparSugestao = () => {
-    setSugSelecao({});
-    setSugMostrarTodos(false);
+    setFreteEscolhido(null);
   };
 
   const trocarModo = (novo: string) => {
@@ -476,72 +440,19 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
     limparSugestao();
   }, [destinoAtual]);
 
-  const sugestaoQ = useQuery({
-    queryKey: ["reposicao-sugerida", destinoAtual],
-    enabled: modo === "sugestao" && !!destinoAtual,
-    queryFn: async (): Promise<LinhaSugestao[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_reposicao_sugerida")
-        .select(
-          "sku, nome_comercial, situacao, v90, demanda_dia, disp_destino, em_transito, disp_origem, minimo, oportunidade, teto, multiplo, cauda, qtd_sugerida, proxima_carga, origem"
-        )
-        .eq("centro", destinoAtual)
-        .order("situacao")
-        .order("qtd_sugerida", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as LinhaSugestao[];
-    },
-  });
-
-  // Inicializa a seleção quando chegam linhas novas (marcadas as com sugestão > 0).
-  const linhasSug = sugestaoQ.data ?? [];
-  const chaveSug = linhasSug.map((l) => l.sku).join("|");
-  useEffect(() => {
-    if (!sugestaoQ.data) return;
-    const ini: Record<string, { marcado: boolean; qtd: number }> = {};
-    for (const l of sugestaoQ.data) {
-      const q = l.qtd_sugerida ?? 0;
-      ini[l.sku] = { marcado: q > 0, qtd: q };
-    }
-    setSugSelecao(ini);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chaveSug]);
-
-  // FAIL-LOUD: erro da query vira toast (uma vez por erro).
-  useEffect(() => {
-    if (sugestaoQ.isError) toast.error(formatError(sugestaoQ.error));
-  }, [sugestaoQ.isError, sugestaoQ.error]);
-
-  const linhasVisiveis = sugMostrarTodos ? linhasSug : linhasSug.filter((l) => (l.qtd_sugerida ?? 0) > 0);
-  const marcadas = linhasSug.filter((l) => sugSelecao[l.sku]?.marcado && (sugSelecao[l.sku]?.qtd ?? 0) > 0);
-  const totalPecasSug = linhasSug.reduce((acc, l) => acc + (l.qtd_sugerida ?? 0), 0);
-  const resumo = {
-    dispara: linhasSug.filter((l) => l.situacao === "dispara").length,
-    carona: linhasSug.filter((l) => l.situacao === "carona").length,
-    semOrigem: linhasSug.filter((l) => l.situacao === "sem_origem").length,
-    pecas: totalPecasSug,
-    proximaCarga: linhasSug.find((l) => l.proxima_carga)?.proxima_carga ?? null,
-    origem: linhasSug.find((l) => l.origem)?.origem ?? null,
-  };
-
-  const usarSugestao = () => {
-    if (marcadas.length === 0) return;
-    if (!form.getValues("finalidade")) form.setValue("finalidade", "reposicao_site_sp", { shouldValidate: true });
-    replace(
-      marcadas.map((l) => ({
-        sku: l.sku,
-        nome: l.nome_comercial ?? "",
-        quantidade: sugSelecao[l.sku].qtd,
-      }))
-    );
+  const usarSugestao = (carga: CargaReposicao) => {
+    form.setValue("destino", "SITE-SP", { shouldValidate: true });
+    form.setValue("finalidade", "reposicao_site_sp", { shouldValidate: true });
+    replace(carga.itens);
+    setPreferenciaFrete(carga.aba);
+    setModo("item");
     form.clearErrors("itens");
-    if (!form.getValues("observacao").trim()) {
-      form.setValue(
-        "observacao",
-        `Reposição sugerida pelo motor — carga de ${fmtCarga(resumo.proximaCarga)}`
-      );
-    }
   };
+  useEffect(() => {
+    if (remessa || !cargaNav || cargaAplicada.current === location.key) return;
+    cargaAplicada.current = location.key;
+    usarSugestao(cargaNav);
+  }, [location.key, remessa, replace]);
 
   const processarColagem = async () => {
     setErroPrevia(null);
@@ -623,7 +534,25 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
   useEffect(() => {
     if (centrosQ.isError) toast.error(formatError(centrosQ.error));
   }, [centrosQ.isError, centrosQ.error]);
+  useEffect(() => {
+    if (!cargaNav || remessa || !centrosQ.data?.length || !finalidadesQ.data?.length) return;
+    form.setValue("destino", "SITE-SP", { shouldValidate: true });
+    form.setValue("finalidade", "reposicao_site_sp", { shouldValidate: true });
+  }, [centrosQ.data, finalidadesQ.data, location.key, remessa]);
 
+  const salvarFrete = async (pedidoId: string) => {
+    if (!freteEscolhido || regularizacao || remessa) return;
+    const { data, error } = await supabase.rpc("atualizar_frete_pedido", {
+      p_pedido_id: pedidoId, p_transportadora_id: freteEscolhido.transportadoraId,
+      p_frete_tipo: "CIF_ABSORVIDO", p_valor_frete: freteEscolhido.valor,
+      p_estimativa_valor: freteEscolhido.valor,
+      p_estimativa_json: { origem_cotacao: "reposicao_sp", transportadora_id: freteEscolhido.transportadoraId, servico: freteEscolhido.servico ?? null, servico_codigo: freteEscolhido.codigo ?? null, valor_estimado: freteEscolhido.valor, prazo_dias: freteEscolhido.prazo, ritmo: preferenciaFrete },
+    });
+    if (error) throw error;
+    if (!(data as { ok?: boolean })?.ok) throw new Error("Frete não salvo.");
+  };
+
+  const pedidoCriadoRef = useRef<{ ok: boolean; pedido_id: string; id_externo: string; valor_bruto: number } | null>(null);
   const criar = useMutation({
     mutationFn: async (valores: FormValues) => {
       if (remessa) {
@@ -635,6 +564,10 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
         if (error) throw error;
         return data as { ok: boolean; id_externo: string; valor_bruto: number };
       }
+      if (pedidoCriadoRef.current) {
+        await salvarFrete(pedidoCriadoRef.current.pedido_id);
+        return pedidoCriadoRef.current;
+      }
       const { data, error } = await supabase.rpc("criar_pedido_transferencia", {
         p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
         p_destino_codigo: valores.destino,
@@ -643,9 +576,14 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
         p_finalidade_codigo: regularizacao ? undefined : valores.finalidade,
       });
       if (error) throw error;
-      return data as { ok: boolean; id_externo: string; valor_bruto: number };
+      const res = data as { ok: boolean; pedido_id: string; id_externo: string; valor_bruto: number };
+      if (!res?.ok || !res.pedido_id) throw new Error("A transferência não foi criada.");
+      pedidoCriadoRef.current = res;
+      try { await salvarFrete(res.pedido_id); }
+      catch (e) { throw new Error(`${res.id_externo} criada, mas o frete não foi salvo: ${formatError(e)}. Tente novamente para salvar o frete, sem criar outra TRS.`); }
+      return res;
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       // FAIL-LOUD: a RPC devolve ok=false sem exceção → trata como erro.
       if (!res?.ok) {
         toast.error(remessa ? "A remessa não foi criada. Tente novamente." : "A transferência não foi criada. Tente novamente.");
@@ -663,7 +601,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
           ? `${res.id_externo} criado — regularização, em Pré-faturamento.`
           : `${res.id_externo} criado — pedido entrou em Pré-Separação.`
       );
-      void qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
+      await Promise.all([qc.invalidateQueries({ queryKey: ["transferencias-internas"] }), invalidarEstoque(qc)]);
       onCriado();
     },
     onError: (err: Error) => {
@@ -854,177 +792,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
               </div>
 
               {modo === "sugestao" ? (
-                <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    Sugestão calculada pela venda dos últimos 90 dias na região do destino (peso
-                    maior nos 30 dias mais recentes). Dispara = abaixo do mínimo; Carona = cabe na
-                    mesma carga. Você revisa e ajusta antes de criar.
-                  </p>
-                  {!destinoAtual ? (
-                    <p className="text-sm text-muted-foreground">
-                      Escolha o destino para ver a sugestão de reposição.
-                    </p>
-                  ) : sugestaoQ.isLoading ? (
-                    <div className="flex justify-center p-6">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : sugestaoQ.isError ? (
-                    <p className="text-sm text-destructive">
-                      Falha ao carregar a sugestão: {formatError(sugestaoQ.error)}
-                    </p>
-                  ) : linhasSug.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhuma sugestão para este destino (sem parâmetros de reposição ou sem demanda
-                      nos últimos 90 dias).
-                    </p>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                        {[
-                          { rotulo: "SKUs a disparar", valor: resumo.dispara },
-                          { rotulo: "SKUs de carona", valor: resumo.carona },
-                          { rotulo: "Sem saldo na origem", valor: resumo.semOrigem },
-                          { rotulo: "Peças sugeridas", valor: resumo.pecas },
-                          { rotulo: "Próxima carga", valor: fmtCarga(resumo.proximaCarga) },
-                          { rotulo: "Origem", valor: resumo.origem ?? "—" },
-                        ].map((c) => (
-                          <div key={c.rotulo} className="rounded-md border p-2">
-                            <p className="text-[11px] text-muted-foreground">{c.rotulo}</p>
-                            <p className="text-sm font-medium tabular-nums">{c.valor}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="flex items-center gap-2 text-sm">
-                          <Switch
-                            checked={sugMostrarTodos}
-                            onCheckedChange={setSugMostrarTodos}
-                            aria-label="Mostrar também os que estão ok"
-                          />
-                          Mostrar também os que estão ok
-                        </label>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={usarSugestao}
-                          disabled={marcadas.length === 0}
-                        >
-                          Usar na transferência ({marcadas.length}{" "}
-                          {marcadas.length === 1 ? "item" : "itens"} ·{" "}
-                          {marcadas.reduce((acc, l) => acc + (sugSelecao[l.sku]?.qtd ?? 0), 0)} peças)
-                        </Button>
-                      </div>
-                      <div className="max-h-[420px] overflow-auto rounded-md border">
-                        <Table>
-                          <TableHeader className="sticky top-0 z-10 bg-background">
-                            <TableRow>
-                              <TableHead className="w-8" />
-                              <TableHead>Código</TableHead>
-                              <TableHead>Nome</TableHead>
-                              <TableHead>Situação</TableHead>
-                              <TableHead className="text-right">Vendas 90d</TableHead>
-                              <TableHead className="text-right">Demanda/dia</TableHead>
-                              <TableHead className="text-right">No destino</TableHead>
-                              <TableHead className="text-right">Em trânsito</TableHead>
-                              <TableHead className="text-right">Disp. origem</TableHead>
-                              <TableHead className="text-right">Mínimo</TableHead>
-                              <TableHead className="text-right">Teto</TableHead>
-                              <TableHead className="w-24 text-right">Quantidade</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {linhasVisiveis.map((l) => {
-                              const sel = sugSelecao[l.sku] ?? { marcado: false, qtd: 0 };
-                              const excedeOrigem =
-                                l.disp_origem != null && sel.qtd > l.disp_origem;
-                              const excedeTeto = l.teto != null && sel.qtd > l.teto;
-                              return (
-                                <TableRow key={l.sku}>
-                                  <TableCell>
-                                    <Checkbox
-                                      checked={sel.marcado}
-                                      onCheckedChange={(v) =>
-                                        setSugSelecao((s) => ({
-                                          ...s,
-                                          [l.sku]: { ...sel, marcado: v === true },
-                                        }))
-                                      }
-                                      aria-label={`Selecionar ${l.sku}`}
-                                    />
-                                  </TableCell>
-                                  <TableCell className="font-mono text-xs tabular-nums">
-                                    <CodProduto chave={l.sku} variant="compacto" />
-                                    {l.cauda && (
-                                      <Badge variant="outline" className="ml-1 text-[10px]">
-                                        cauda
-                                      </Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="max-w-[220px] truncate text-sm">
-                                    {l.nome_comercial ?? "—"}
-                                  </TableCell>
-                                  <TableCell>{situacaoBadge(l.situacao)}</TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.v90 ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.demanda_dia != null ? l.demanda_dia.toFixed(2) : "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.disp_destino ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.em_transito ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.disp_origem ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.minimo ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums text-sm">
-                                    {l.teto ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      value={sel.qtd}
-                                      onChange={(e) =>
-                                        setSugSelecao((s) => ({
-                                          ...s,
-                                          [l.sku]: {
-                                            ...sel,
-                                            qtd: Math.max(0, Number(e.target.value) || 0),
-                                          },
-                                        }))
-                                      }
-                                      className={cn(
-                                        "h-8 w-20 text-right tabular-nums",
-                                        (excedeOrigem || excedeTeto) && "border-warning"
-                                      )}
-                                      aria-label={`Quantidade de ${l.sku}`}
-                                    />
-                                    {excedeOrigem && (
-                                      <p className="mt-0.5 text-[10px] text-warning">
-                                        Acima do disponível na origem
-                                      </p>
-                                    )}
-                                    {!excedeOrigem && excedeTeto && (
-                                      <p className="mt-0.5 text-[10px] text-warning">
-                                        Acima do teto
-                                      </p>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <PainelReposicaoSp aba={sugNav.reposicao === "carga" ? "carga" : "urgente"} onAba={v => setSugNav({ reposicao: v })} onUsar={usarSugestao} rotulo="Usar na transferência" />
               ) : modo === "item" ? (
                 <>
                   <div className="space-y-2">
@@ -1190,6 +958,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
               )}
             </div>
 
+            {!remessa && !regularizacao && itensComSku.length > 0 && destinoAtual && <ComoVaiReposicao itens={itensComSku.map(i => ({ sku: i.sku, nome: i.nome ?? "", quantidade: Number(i.quantidade) || 0 }))} destino={destinoAtual} aba={preferenciaFrete} onEscolher={setFreteEscolhido} />}
             <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
               <div className="text-sm text-muted-foreground">
                 {regularizacao && (
@@ -1200,7 +969,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                 {!remessa && !destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
                 <span className="font-medium text-foreground">
                   {itensComSku.length} {itensComSku.length === 1 ? "SKU" : "SKUs"} · {totalPecasForm}{" "}
-                  {totalPecasForm === 1 ? "peça" : "peças"}
+                  {totalPecasForm === 1 ? "kit" : "kits"}
                 </span>
                 {previaValida && <span> · Total a custo {formatBRL(totalPrevia)}</span>}
               </div>
