@@ -46,6 +46,12 @@ const brl = (v: number | null | undefined) =>
   v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const num = (v: number | null | undefined, d = 0) =>
   v == null ? "—" : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: d });
+// variação % com sinal e vírgula: +12,3% / −8,1%
+const pctVar = (v: number) =>
+  `${v > 0 ? "+" : v < 0 ? "−" : ""}${(Math.abs(v) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+// diferença em R$ com sinal: +R$ 9.439 / −R$ 9.439
+const brlVar = (v: number | null) =>
+  v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${brl(Math.abs(v))}`;
 const dataBr = (d: string | null) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "—");
 const mesBr = (d: string | null) => {
   if (!d) return "—";
@@ -122,6 +128,7 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
   const primeiraProjetada = q.data?.find((r) => r.tipo === "projetado");
   const temRealizado = (q.data ?? []).some((r) => r.tipo === "realizado");
   const giro = giroPct(primeiraProjetada?.giro_mensal);
+  const linhas = q.data ?? [];
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -184,14 +191,28 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                   <th className="px-2 py-2 text-right font-semibold tabular-nums">Entrada</th>
                   <th className="px-2 py-2 text-right font-semibold tabular-nums">Venda</th>
                   <th className="px-2 py-2 text-right font-semibold tabular-nums border-l">= Total</th>
-                  <th className="px-2 py-2 text-right font-medium tabular-nums">Piso contratual (referência)</th>
+                  <th className="px-2 py-2 text-right font-semibold tabular-nums">vs. mês anterior</th>
                 </tr>
               </thead>
               <tbody>
-                {(q.data ?? []).map((r, i) => {
+                {linhas.map((r, i) => {
                   const ab = aberto.has(r.mes);
                   const real = r.tipo === "realizado";
                   const { decomp, lotes } = lerDetalhe(r);
+                  const anterior = linhas[i - 1];
+                  const tot = Number(r.total ?? 0);
+                  const totAnt = anterior ? Number(anterior.total ?? 0) : null;
+                  const variacao = totAnt ? (tot - totAnt) / totAnt : null;
+                  const dif = totAnt == null ? null : tot - totAnt;
+                  const vsUltimoReal = !!anterior && anterior.tipo === "realizado" && !real;
+                  const celVar = variacao == null ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <div className={cn("font-medium", variacao > 0 ? "text-destructive" : variacao < 0 ? "text-success" : "text-muted-foreground")}>
+                      <div>{pctVar(variacao)}</div>
+                      <div className="text-[10px] font-normal opacity-80">{brlVar(dif)}</div>
+                    </div>
+                  );
                   return (
                     <Fragment key={r.mes}>
                       <tr
@@ -214,12 +235,19 @@ function BlocoMensal({ q }: { q: ReturnType<typeof useQuery<Mensal[]>> }) {
                           {r.piso_aplicado && (
                             <UiTooltip>
                               <TooltipTrigger asChild><Badge variant="outline" className="mr-1 px-1 py-0 text-[10px]">piso</Badge></TooltipTrigger>
-                              <TooltipContent>Soma ficou abaixo do mínimo contratual; cobra o mínimo</TooltipContent>
+                              <TooltipContent>Mínimo contratual {brl(r.minimo)} — a soma ficou abaixo dele, então cobra o mínimo</TooltipContent>
                             </UiTooltip>
                           )}
                           {brl(r.total)}
                         </td>
-                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap text-muted-foreground">{brl(r.minimo)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
+                          {vsUltimoReal ? (
+                            <UiTooltip>
+                              <TooltipTrigger asChild>{celVar}</TooltipTrigger>
+                              <TooltipContent>vs. último mês real ({mesBr(anterior?.mes ?? null)})</TooltipContent>
+                            </UiTooltip>
+                          ) : celVar}
+                        </td>
                       </tr>
                       {ab && (
                         <tr className="bg-muted/40 border-y dark:bg-background/70">
