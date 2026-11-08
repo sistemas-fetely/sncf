@@ -19,29 +19,26 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { useEstadoTela, useRestaurarScroll } from "@/lib/navegacao";
 import { useCentralEstoque } from "@/hooks/estoque/useCentralEstoque";
-import { contarFila, filtrar, FILA, type CardFila, type ProdutoCentral } from "@/lib/estoque/centralEstoque";
+import { filtrar, type ProdutoCentral } from "@/lib/estoque/centralEstoque";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { GavetaProdutoEstoque } from "@/components/estoque/central/GavetaProdutoEstoque";
 import { corNumero } from "@/components/estoque/central/statusVisual";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useReposicaoSp } from "@/hooks/estoque/useReposicaoSp";
+import { FilaOperacionalEstoque } from "@/components/estoque/FilaOperacionalEstoque";
+import { AcoesAlertasEstoque } from "@/components/estoque/AcoesAlertasEstoque";
+import { useFilaOperacionalEstoque } from "@/hooks/estoque/useFilaOperacionalEstoque";
+import { skusDoCard } from "@/lib/estoque/filaOperacionalEstoque";
 import { PainelReposicaoSp } from "@/components/estoque/central/PainelReposicaoSp";
 
-const ROTULO_FILA: Record<CardFila, string> = {
-  acabando: "Acabando", zerado_venda: "Zerado com venda", retido: "Retido em canal",
-  diverge: "Diverge do real", sem_contagem: "Sem contagem", a_caminho: "A caminho",
-};
 const fmt = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 const TODAS = "__todas";
 
 export default function CentralEstoque() {
   const [f, setF] = useEstadoTela({ q: "", colecao: "", fase: "", card: "", painel: "", reposicao: "urgente", saldo: false, pagina: 1, tamanho: DEFAULT_PAGE_SIZE as number }, { replaceKeys: ["q"] });
   const navigate = useNavigate();
-  const reposicao = useReposicaoSp();
-  const urgente = (reposicao.data ?? []).filter(l => l.ritmo === "urgente").length;
-  const carga = (reposicao.data ?? []).filter(l => l.ritmo === "carga").length;
+  const fila = useFilaOperacionalEstoque();
+  const cardAtivo = f.card || (f.painel === "repor" ? "repor" : "");
+  const skusCard = skusDoCard(fila, cardAtivo);
   const [params, setParams] = useSearchParams();
   const foco = params.get("foco");
   const { produtos, colunas, isLoading, error } = useCentralEstoque();
@@ -49,8 +46,8 @@ export default function CentralEstoque() {
 
   const colecoes = useMemo(() => [...new Set(produtos.map((p) => p.colecao).filter(Boolean) as string[])].sort(), [produtos]);
   const fases = useMemo(() => [...new Set(produtos.map((p) => p.fase).filter(Boolean) as string[])].sort(), [produtos]);
-  const contagem = useMemo(() => contarFila(produtos), [produtos]);
-  const visiveis = useMemo(() => filtrar(produtos, { q: f.q, colecao: f.colecao, fase: f.fase, card: f.card, comSaldo: f.saldo }), [produtos, f.q, f.colecao, f.fase, f.card, f.saldo]);
+  const visiveis = useMemo(() => filtrar(produtos, { q: f.q, colecao: f.colecao, fase: f.fase, card: "", comSaldo: f.saldo }).filter(p => !skusCard || skusCard.has(p.sku)), [produtos, f.q, f.colecao, f.fase, f.saldo, skusCard]);
+  const skusVisiveis = new Set(visiveis.map(p => p.sku));
   const pagina = visiveis.slice((f.pagina - 1) * f.tamanho, f.pagina * f.tamanho);
   const aberto = foco ? produtos.find((p) => p.sku === foco) ?? null : null;
 
@@ -78,21 +75,8 @@ export default function CentralEstoque() {
       <PageHeader titulo="Central de Estoque" icone={Boxes} />
       <EstoqueAbas />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
-        {FILA.map((c) => (
-          <Button key={c} type="button" variant="outline" onClick={() => setF({ card: f.card === c ? "" : c, painel: "", pagina: 1 })}
-            className={cn("h-auto block rounded-md border bg-card p-3 text-left shadow-sm hover:bg-muted/40", f.card === c && !f.painel && "ring-2 ring-primary")}>
-            <div className="text-xs text-muted-foreground">{ROTULO_FILA[c]}</div>
-            <div className="text-2xl font-bold tabular-nums">{isLoading ? "…" : contagem[c]}</div>
-          </Button>
-        ))}
-        <Button type="button" variant="outline" className={cn("h-auto block bg-card p-3 text-left shadow-sm", f.painel === "repor" && "ring-2 ring-primary")} onClick={() => setF({ painel: f.painel === "repor" ? "" : "repor", card: "" })}>
-          <div className="text-xs text-muted-foreground">Repor SP</div><div className="text-2xl font-bold tabular-nums">{reposicao.isLoading ? "…" : reposicao.error ? "—" : urgente + carga}</div><Badge variant="outline" className="text-[10px] whitespace-normal">{urgente} urgente · {carga} carga</Badge>
-        </Button>
-      </div>
-
-      {reposicao.error && <Alert variant="destructive"><AlertDescription>{formatError(reposicao.error)}</AlertDescription></Alert>}
-      {f.painel === "repor" ? <PainelReposicaoSp aba={f.reposicao === "carga" ? "carga" : "urgente"} onAba={v => setF({ reposicao: v })} onUsar={reposicaoSp => navigate("/pedidos/transferencias?aba=nova", { state: { reposicaoSp } })} /> : <>
+      <FilaOperacionalEstoque fila={fila} ativo={cardAtivo} onCard={card => setF({ card, painel: "", pagina: 1 })} />
+      {cardAtivo === "repor" ? <PainelReposicaoSp aba={f.reposicao === "carga" ? "carga" : "urgente"} onAba={v => setF({ reposicao: v })} onUsar={reposicaoSp => navigate("/pedidos/transferencias?aba=nova", { state: { reposicaoSp } })} /> : <>
       <div className="flex flex-wrap items-center gap-2">
         <FilterInput value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: 1 })} placeholder="Código, SKU ou nome" className="w-64" />
         <Select value={f.colecao || TODAS} onValueChange={(v) => setF({ colecao: v === TODAS ? "" : v, pagina: 1 })}>
@@ -104,6 +88,7 @@ export default function CentralEstoque() {
           <SelectContent><SelectItem value={TODAS}>Todas as fases</SelectItem>{fases.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
         </Select>
         <div className="flex items-center gap-2"><Switch id="so-saldo" checked={f.saldo} onCheckedChange={(v) => setF({ saldo: v, pagina: 1 })} /><Label htmlFor="so-saldo" className="text-sm">Só com saldo</Label></div>
+        <AcoesAlertasEstoque card={cardAtivo} alertas={fila.alertas.filter(a => a.sku && skusVisiveis.has(a.sku))} />
       </div>
 
       {error ? (
@@ -154,7 +139,7 @@ export default function CentralEstoque() {
       )}
       </>}
 
-      <GavetaProdutoEstoque produto={aberto} onFechar={() => abrir(null)} />
+      <GavetaProdutoEstoque produto={aberto} alerta={fila.alertas.find(a => a.sku === aberto?.sku)} onFechar={() => abrir(null)} />
     </PageShell>
   );
 }

@@ -19,6 +19,9 @@ import { fmtData } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { AcaoEstoqueDialog, type ModoAcao } from "./AcaoEstoqueDialog";
 import { classeStatus, rotuloStatus } from "./statusVisual";
+import { AcoesAlertasEstoque } from "@/components/estoque/AcoesAlertasEstoque";
+import type { AlertaProduto } from "@/lib/estoque/filaOperacionalEstoque";
+import { formatBRL } from "@/lib/format-currency";
 
 const fmt = (v: number | null | undefined) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 }));
 const CANAIS = [
@@ -27,7 +30,7 @@ const CANAIS = [
   { canal: "VD", rotulo: "VD · Bling" },
 ] as const;
 
-export function GavetaProdutoEstoque({ produto, onFechar }: { produto: ProdutoCentral | null; onFechar: () => void }) {
+export function GavetaProdutoEstoque({ produto, alerta, onFechar }: { produto: ProdutoCentral | null; alerta?: AlertaProduto; onFechar: () => void }) {
   const sku = produto?.sku ?? null;
   const canais = useCanaisProduto(sku);
   const { reter, liberar } = useRetencaoCanal();
@@ -101,6 +104,19 @@ export function GavetaProdutoEstoque({ produto, onFechar }: { produto: ProdutoCe
             </TableBody>
           </Table>
         </section>
+
+        {alerta && (alerta.parado_xpm || alerta.devolucao_alta || alerta.sem_giro) && <section className="space-y-2">
+          <h3 className="text-sm font-semibold">Alertas</h3>
+          {alerta.parado_xpm && <div className="flex flex-wrap items-center justify-between gap-2 border-b py-2 text-xs">
+            <div><b>Parado na XPM</b><div className="text-muted-foreground tabular-nums">Saldo {fmt(alerta.saldo_xpm)} · disponível {fmt(alerta.disp_xpm)} · reservado {fmt(alerta.res_xpm)} · teto SP {fmt(alerta.teto_sp)}<br />{formatBRL(Number(alerta.custo_posicao_mes ?? 0))}/mês em posição</div></div>
+            <AcoesAlertasEstoque card="parado_xpm" alertas={[alerta]} />
+          </div>}
+          {alerta.devolucao_alta && <div className="flex flex-wrap items-center justify-between gap-2 border-b py-2 text-xs">
+            <div><b>Devolução alta</b><div className="text-muted-foreground tabular-nums">{fmt(alerta.devolucoes_janela)} devoluções · {fmt(alerta.un_devolvidas_janela)} un devolvidas / {fmt(alerta.un_vendidas_janela)} vendidas · {fmt(alerta.taxa_devolucao_pct)}%</div></div>
+            <AcoesAlertasEstoque card="devolucao_alta" alertas={[alerta]} />
+          </div>}
+          {alerta.sem_giro && <div className="border-b py-2 text-xs"><b>Sem giro</b><div className="text-muted-foreground tabular-nums">{fmt(alerta.saldo_rede)} un paradas · {fmt(alerta.dias_sem_venda)} dias sem venda · última venda {alerta.ultima_venda ? fmtData(alerta.ultima_venda) : "—"}</div></div>}
+        </section>}
 
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Canais</h3>
