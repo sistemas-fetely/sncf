@@ -7,6 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { gravarBlingIdConfirmado } from "./gravar-bling-id.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -188,17 +189,28 @@ async function syncOne(supabase: any, client: any, p: any, origem: string, acion
     sucesso = false;
   }
 
-  await supabase.from("bling_contatos_log").insert({
+  // Sucesso só existe depois de o bling_id estar confirmado no SNCF.
+  let conflito: any = null;
+  if (sucesso && blingId) {
+    const g = await gravarBlingIdConfirmado(supabase, p.id, blingId);
+    if (!g.ok) {
+      sucesso = false;
+      erroMsg = g.erro;
+      conflito = g.conflito ?? null;
+    }
+  }
+
+  const { error: eLog } = await supabase.from("bling_contatos_log").insert({
     parceiro_id: p.id, acionado_por: acionadoPor, origem,
     payload_enviado: payload, resposta_status: respStatus, resposta_body: respBody,
     bling_id_retornado: blingId, sucesso, erro_msg: erroMsg, duracao_ms: Date.now() - t0,
   });
+  if (eLog) console.error("[sync-contato-bling] falha ao gravar bling_contatos_log:", eLog.message);
 
   if (sucesso && blingId) {
-    await supabase.from("parceiros_comerciais").update({ bling_id: blingId }).eq("id", p.id);
     return { parceiro_id: p.id, sucesso: true, bling_id: blingId, acao };
   }
-  return { parceiro_id: p.id, sucesso: false, erro: erroMsg };
+  return { parceiro_id: p.id, sucesso: false, erro: erroMsg, bling_id_retornado: blingId, conflito };
 }
 
 serve(async (req) => {
