@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { FiltroColecao } from "@/components/acervo/BlingCardPainel";
@@ -301,9 +302,9 @@ export function ContagemCentroPainel() {
       ) : visiveis.length === 0 ? (
         <div className="py-8 text-center text-sm text-muted-foreground">Nenhum produto neste recorte</div>
       ) : (
-        <div className="rounded-md border" ref={tabelaRef}>
+        <div className="overflow-hidden rounded-md border bg-card" ref={tabelaRef} style={{ ["--fila-topo-colado" as string]: "0px" }}>
           <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[20rem]">
-            <TableHeader className="sticky top-0 z-10 bg-card"><TableRow>
+            <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>
               <TableHead className="w-[150px]">Código</TableHead>
               <TableHead>Produto</TableHead>
               <TableHead className="w-[90px] text-right">Contábil</TableHead>
