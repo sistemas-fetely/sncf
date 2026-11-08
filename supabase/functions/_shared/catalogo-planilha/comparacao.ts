@@ -11,12 +11,37 @@ export function normalizarCodigo(v: unknown): string {
   return /^\d{1,5}$/.test(s) ? s.padStart(5, "0") : s;
 }
 export function vazio(v: unknown) { return v == null || (typeof v === "string" && !v.trim()); }
-export function normalizarValor(v: unknown): string | null {
-  if (vazio(v)) return null;
-  return String(v).trim();
+export type ColunaProduto = { type?: string; format?: string };
+export function tiposColunasProduto(schema: { definitions?: Record<string, { properties?: Record<string, ColunaProduto> }> }): Record<string, string> {
+  const propriedades = schema.definitions?.sncf_produtos?.properties;
+  if (!propriedades || !Object.keys(propriedades).length) throw new Error("Metadados dos tipos de sncf_produtos indisponíveis.");
+  return Object.fromEntries(Object.entries(propriedades).map(([campo, coluna]) => [campo, coluna.format ?? coluna.type ?? "text"]));
 }
-export function compararCelula(base: unknown, planilha: unknown, sistema: unknown): TipoComparacao | null {
-  const p = normalizarValor(planilha), b = normalizarValor(base), s = normalizarValor(sistema);
+export function normalizarValor(v: unknown, tipoColuna = "text"): string | null {
+  if (vazio(v)) return null;
+  const texto = String(v).trim().replace(/\s+/g, " ");
+  if (["boolean", "bool"].includes(tipoColuna)) {
+    const booleano = texto.toLocaleLowerCase("pt-BR");
+    if (["sim", "s", "true", "1", "verdadeiro"].includes(booleano)) return "true";
+    if (["não", "nao", "n", "false", "0", "falso"].includes(booleano)) return "false";
+    throw new Error(`Valor booleano inválido: ${texto}.`);
+  }
+  if (["numeric", "decimal", "integer", "smallint", "bigint", "int2", "int4", "int8", "number", "real", "double precision"].includes(tipoColuna)) {
+    const partes = /^([+-]?)(\d+)(?:[.,](\d*))?(?:e([+-]?\d+))?$/i.exec(texto);
+    if (!partes) throw new Error(`Valor numérico inválido: ${texto}.`);
+    const expoente = Number(partes[4] ?? 0);
+    if (!Number.isSafeInteger(expoente) || Math.abs(expoente) > 1000) throw new Error(`Expoente numérico inválido: ${texto}.`);
+    const digitos = partes[2] + (partes[3] ?? "");
+    const ponto = partes[2].length + expoente;
+    const inteiro = (ponto <= 0 ? "0" : digitos.slice(0, ponto).padEnd(ponto, "0")).replace(/^0+(?=\d)/, "");
+    const fracao = (ponto < 0 ? "0".repeat(-ponto) + digitos : digitos.slice(ponto)).replace(/0+$/, "");
+    const valor = inteiro + (fracao ? `.${fracao}` : "");
+    return partes[1] === "-" && valor !== "0" ? `-${valor}` : valor;
+  }
+  return texto;
+}
+export function compararCelula(base: unknown, planilha: unknown, sistema: unknown, tipoColuna = "text"): TipoComparacao | null {
+  const p = normalizarValor(planilha, tipoColuna), b = normalizarValor(base, tipoColuna), s = normalizarValor(sistema, tipoColuna);
   if (p == null || p === b) return null;
   if (s === p) return "ja_igual";
   return s === b ? "mudanca" : "conflito";
