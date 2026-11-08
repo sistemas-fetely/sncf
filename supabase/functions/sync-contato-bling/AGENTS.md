@@ -1,0 +1,1 @@
+- `sync-contato-bling` reports success only after `gravarBlingIdConfirmado` reads back the persisted `bling_id` (a `ux_parceiros_bling_id` conflict names the other partner and never merges), and logs to `bling_contatos_log` after that check, because a Bling 200 was logged as success while the SNCF update silently failed.

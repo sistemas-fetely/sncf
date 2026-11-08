@@ -32,9 +32,10 @@ describe("gravarBlingIdConfirmado", () => {
     );
     const r = await gravarBlingIdConfirmado(sb, "p1", "18193608916");
     expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.conflito).toEqual({ parceiro_id: "p-antigo", razao_social: "GABRIELA MARKUS", documento: "01426091028" });
-      expect(r.erro).toContain("p-antigo");
+    const falha = r as Extract<typeof r, { ok: false }>;
+    {
+      expect(falha.conflito).toEqual({ parceiro_id: "p-antigo", razao_social: "GABRIELA MARKUS", documento: "01426091028" });
+      expect(falha.erro).toContain("p-antigo");
     }
   });
 
