@@ -46,6 +46,23 @@ export function compararCelula(base: unknown, planilha: unknown, sistema: unknow
   if (s === p) return "ja_igual";
   return s === b ? "mudanca" : "conflito";
 }
+// Only normalization/comparison belongs in this boundary; database failures must propagate.
+export function analisarCelula(base: unknown, planilha: unknown, sistema: unknown, tipoColuna = "text") {
+  try {
+    const valor_base = normalizarValor(base, tipoColuna);
+    const valor_planilha = normalizarValor(planilha, tipoColuna);
+    const valor_sistema = normalizarValor(sistema, tipoColuna);
+    return { valor_base, valor_planilha, valor_sistema, tipo: compararCelula(valor_base, valor_planilha, valor_sistema, tipoColuna), erro: null };
+  } catch (e) {
+    return {
+      valor_base: base ?? null,
+      valor_planilha: planilha ?? null,
+      valor_sistema: sistema ?? null,
+      tipo: "erro" as const,
+      erro: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
 export function donoCampo(campo: CampoCatalogo): "operacoes" | "produto" {
   // The four fiscal fields are routed by the current field matrix. Other SNCF fields
   // (identity, quantities etc.) must not silently become Operations' remit.

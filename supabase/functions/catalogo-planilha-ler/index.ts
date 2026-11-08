@@ -5,7 +5,7 @@ import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
 import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts";
-import { compararCelula, donoCampo, normalizarCodigo, normalizarValor, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
+import { analisarCelula, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
 const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -109,17 +109,22 @@ Deno.serve(async req => {
         const sistema = fake && "sistema" in fake ? fake.sistema : produto[campo.campo];
         const base = fake && "base" in fake ? fake.base : bases.has(key) ? bases.get(key) : sistema;
         const tipoColuna = tiposProduto[campo.campo] ?? "text";
-        if (!bases.has(key)) baseInicial.push({ cod_cadastro: linha.cod, campo: campo.campo, valor: normalizarValor(sistema, tipoColuna) });
-        const planilha = normalizarValor(linha.valores[campo.campo], tipoColuna);
-        const tipo = compararCelula(base, planilha, sistema, tipoColuna);
+        const celula = analisarCelula(base, linha.valores[campo.campo], sistema, tipoColuna);
+        if (celula.tipo === "erro") {
+          mudancas.push({ cod_cadastro: linha.cod, campo: campo.campo, dono: donoCampo(campo), ...celula });
+          continue;
+        }
+        if (!bases.has(key)) baseInicial.push({ cod_cadastro: linha.cod, campo: campo.campo, valor: celula.valor_sistema });
+        const planilha = celula.valor_planilha;
+        const tipo = celula.tipo;
         if (tipo) {
           let erroCelula: string | null = null;
           if (donoCampo(campo) === "operacoes") {
             const validar = await sb.rpc("fn_produto_formato_validar_patch", { p_cod_cadastro: linha.cod, p_campos: { [campo.campo]: planilha } });
-            if (validar.error) erroCelula = validar.error.message;
+            if (validar.error) throw validar.error;
             else if (validar.data?.length) erroCelula = validar.data.map((v: { motivo: string }) => v.motivo).join("; ");
           }
-          mudancas.push({ cod_cadastro: linha.cod, campo: campo.campo, dono: donoCampo(campo), valor_base: normalizarValor(base, tipoColuna), valor_planilha: planilha, valor_sistema: normalizarValor(sistema, tipoColuna), tipo: erroCelula ? "erro" : tipo, erro: erroCelula });
+          mudancas.push({ cod_cadastro: linha.cod, campo: campo.campo, dono: donoCampo(campo), ...celula, tipo: erroCelula ? "erro" : tipo, erro: erroCelula });
         }
       }
     }

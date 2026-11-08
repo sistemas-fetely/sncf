@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { compararCelula, validarSlugs, normalizarCodigo, normalizarValor, donoCampo, somenteLeitura, tiposColunasProduto } from "../../../supabase/functions/_shared/catalogo-planilha/comparacao";
+import { analisarCelula, compararCelula, validarSlugs, normalizarCodigo, normalizarValor, donoCampo, somenteLeitura, tiposColunasProduto } from "../../../supabase/functions/_shared/catalogo-planilha/comparacao";
 const cabecalhoOficial = "cod_cadastro, sku, ean, dun, inner_qtd, marca, fase, _fase_sncf, _ativo, canal_venda, departamento, categoria, linha, familia, grupo, tipo, colecao, sub_colecao, sub_colecao2, cor_nome, cor, estampa, tamanho_numero, tamanho_ref, is_vela_numerica, numero_vela, nome_comercial, nome_completo, nome_operacional, _tem_descricao, _tem_meta_descricao, multiplos, qtd_kit, material_descritivo, material, tipo_embalagem, peso_g, altura_cm, largura_cm, profundidade_cm, ncm, cest, origem_fisc, origem_prod, grupo_tributario_bling".split(", ");
 const fichaOficial = cabecalhoOficial.filter(c => !c.startsWith("_") && c !== "grupo_tributario_bling").map(campo => ({ campo, importavel_planilha: true }));
 describe("catálogo diário — comparação de três vias", () => {
+  it.each([["boolean", " talvez ", false], ["numeric", "seis", 6]])("erro %s fica na célula e não interrompe outras válidas da linha", (tipo, bruto, sistema) => {
+    const linha = [
+      { campo: "invalido", base: sistema, planilha: bruto, sistema, tipo },
+      { campo: "quantidade", base: 6, planilha: "7,0", sistema: 6, tipo: "integer" },
+      { campo: "booleano", base: true, planilha: "Sim", sistema: true, tipo: "boolean" },
+      { campo: "nome", base: "A", planilha: "B", sistema: "B", tipo: "text" },
+    ].map(c => ({ campo: c.campo, ...analisarCelula(c.base, c.planilha, c.sistema, c.tipo) }));
+    expect(linha.map(c => c.tipo)).toEqual(["erro", "mudanca", null, "ja_igual"]);
+    expect(linha[0].valor_planilha).toBe(bruto);
+    expect(linha[0].erro).toContain(tipo === "boolean" ? "booleano inválido" : "numérico inválido");
+    expect(linha[1].valor_planilha).toBe("7");
+    expect(linha[2].valor_planilha).toBe("true");
+  });
   it.each(["Sim", "S", "true", "1", "verdadeiro", " SIM ", "TrUe"])("booleano verdadeiro equivalente: %s", valor => {
     expect(compararCelula("true", valor, true, "boolean")).toBeNull();
     expect(normalizarValor(valor, "boolean")).toBe("true");
