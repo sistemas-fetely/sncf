@@ -3,10 +3,11 @@
  * DISPONÍVEL é o número da venda; o resto é detalhe. Fonte única: vw_central_estoque.
  */
 import { useMemo } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Boxes, Lock } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EstoqueAbas } from "@/components/estoque/EstoqueAbas";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -34,12 +35,6 @@ const ROTULO_FILA: Record<CardFila, string> = {
 };
 const fmt = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 const TODAS = "__todas";
-
-const ABAS = [
-  { rotulo: "Central", to: "/vendas/produto/estoque/central" },
-  { rotulo: "Cockpit", to: "/vendas/produto/estoque/virtual" },
-  { rotulo: "Conciliação", to: "/vendas/produto/estoque/conciliacao" },
-];
 
 export default function CentralEstoque() {
   const [f, setF] = useEstadoTela({ q: "", colecao: "", fase: "", card: "", painel: "", reposicao: "urgente", saldo: false, pagina: 1, tamanho: DEFAULT_PAGE_SIZE as number }, { replaceKeys: ["q"] });
@@ -81,11 +76,7 @@ export default function CentralEstoque() {
   return (
     <PageShell variant="dados">
       <PageHeader titulo="Central de Estoque" icone={Boxes} />
-      <nav className="flex gap-1 border-b">
-        {ABAS.map((a) => (
-          <Link key={a.to} to={a.to} className={cn("px-3 py-1.5 text-sm border-b-2 -mb-px", a.rotulo === "Central" ? "border-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground")}>{a.rotulo}</Link>
-        ))}
-      </nav>
+      <EstoqueAbas />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
         {FILA.map((c) => (

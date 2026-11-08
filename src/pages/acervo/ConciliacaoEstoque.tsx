@@ -11,6 +11,7 @@ import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Che
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EstoqueAbas } from "@/components/estoque/EstoqueAbas";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -171,6 +172,7 @@ export default function ConciliacaoEstoque() {
   const barra = <BarraAbas ativa={aba} onTrocar={trocar} />;
   if (aba === "xpm") return <PageShell variant="dados">
     <PageHeader titulo="Conciliação de Estoque" icone={Warehouse} />
+    <EstoqueAbas />
     {barra}
     <AbaConciliacaoXpm />
   </PageShell>;
@@ -379,6 +381,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
         <Button size="sm" onClick={refetch} disabled={atualizando}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
+    <EstoqueAbas />
     {barra}
 
     {erro && <Alert variant="destructive" className="mb-4"><AlertTriangle className="h-4 w-4" /><AlertDescription>Erro ao carregar a conciliação: {formatError(erro)}</AlertDescription></Alert>}

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EstoqueAbas } from "@/components/estoque/EstoqueAbas";
 import { FilterInput } from "@/components/ui/filter-input";
 import { FilterSelectTrigger } from "@/components/ui/filter-select-trigger";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
@@ -719,6 +720,8 @@ export default function EstoqueVirtual() {
           </Button>
         }
       />
+
+      <EstoqueAbas />
 
       {onb && !onb.seguro_desligar_bling && (
         <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
