@@ -5,7 +5,7 @@ import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
 import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts";
-import { compararCelula, donoCampo, normalizarCodigo, normalizarValor, SOMENTE_LEITURA, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
+import { compararCelula, donoCampo, normalizarCodigo, normalizarValor, somenteLeitura, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
 const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -66,11 +66,15 @@ Deno.serve(async req => {
     const fichaQ = await sb.from("produto_ficha_nascimento").select("campo,importavel_planilha,onde_resolver,contexto_planilha");
     if (fichaQ.error) throw fichaQ.error;
     const ficha = fichaQ.data as CampoCatalogo[];
+    const colunasQ = await sb.from("sncf_produtos").select("*").limit(1);
+    if (colunasQ.error) throw colunasQ.error;
+    const colunasProduto = Object.keys(colunasQ.data?.[0] ?? {});
     statusErro = "layout_quebrado";
     const wb = XLSX.read(arquivo.bytes, { type: "array" });
     const ws = wb.Sheets[arquivo.aba]; if (!ws) throw new Error(`Layout quebrado: aba ${arquivo.aba} inexistente.`);
     const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null });
-    const slugs = (rows[2] ?? []).map(v => String(v ?? "").trim()); validarSlugs(slugs, ficha);
+    const slugs = (rows[2] ?? []).map(v => String(v ?? "").trim());
+    const layout = validarSlugs(slugs, ficha, colunasProduto);
     statusErro = "erro";
     const codCol = slugs.indexOf("cod_cadastro");
     const linhas = rows.slice(4).map((r, i) => ({ linha: i + 5, cod: normalizarCodigo(r[codCol]), valores: Object.fromEntries(slugs.map((s, j) => [s, r[j]]).filter(([s]) => !!s)) })).filter(r => r.cod || Object.values(r.valores).some(v => !vazio(v)));
@@ -95,7 +99,7 @@ Deno.serve(async req => {
       const produto = produtos.get(linha.cod);
       if (!produto) { mudancas.push({ cod_cadastro: linha.cod || `(linha ${linha.linha})`, campo: "cod_cadastro", dono: "operacoes", tipo: "sem_cadastro", erro: "Código não existe no SNCF; encaminhar à Importação de PI." }); continue; }
       for (const campo of ficha) {
-        if (SOMENTE_LEITURA.has(campo.campo) || !campo.importavel_planilha || vazio(linha.valores[campo.campo])) continue;
+        if (somenteLeitura(campo.campo) || !campo.importavel_planilha || vazio(linha.valores[campo.campo])) continue;
         const key = `${linha.cod}|${campo.campo}`;
         const fake = body.cenario_teste?.[key];
         const sistema = fake && "sistema" in fake ? fake.sistema : produto[campo.campo];
@@ -114,7 +118,7 @@ Deno.serve(async req => {
         }
       }
     }
-    const totais = { linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
+    const totais = { colunas_ignoradas: layout.colunas_ignoradas, linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
     const done = await sb.rpc("fn_catalogo_leitura_concluir", { p_leitura_id: id, p_status: "comparada", p_totais: totais, p_mudancas: mudancas, p_base_inicial: baseInicial }); if (done.error) throw done.error;
     return json({ ok: true, id, status: "comparada", totais, testando });
   } catch (e) {
