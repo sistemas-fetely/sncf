@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Catálogo SharePoint F1: credenciais Microsoft 365, leitura e comparação, aplicação Operações, ponte FOP, aviso/cron e teste fake; não publicar.
 - [x] Unificar fila operacional Central/Cockpit, alertas por SKU, ações e gaveta; contagens iguais, pré-carga 4 kits e filtros reais conferidos. Devolução alta = 0, sem ação real/TRS; sem SQL/publicação.
 - [x] Reposição SP v2: Central/motor compartilhado, pré-carga e gaveta migradas; fretes via APIs existentes; 15 testes, painel 30 urgentes/286 carga, edição/pré-carga e PAC/SEDEX reais conferidos. Parâmetros sem seção de estoque (não criada). Sem SQL/publicação/TRS real; gravação do frete não executada.
 - [x] Reformar documento externo do representante: vendas por NF, comissão a receber e previsão sem atrasos; 19 testes passaram, Carine/Lucia/Everson 10/2026 e impressão A4 conferidos, sem banco/publicação.

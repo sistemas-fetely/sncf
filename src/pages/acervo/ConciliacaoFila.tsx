@@ -38,6 +38,7 @@ import { NascerProdutoNacionalDialog } from "@/components/acervo/NascerProdutoNa
 import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
 import { ImportarPlanilhaCadastroDialog } from "@/components/acervo/ImportarPlanilhaCadastroDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AtualizacaoCatalogoDia } from "@/components/acervo/AtualizacaoCatalogoDia";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
@@ -473,6 +474,7 @@ export default function ConciliacaoFila() {
       </>}
     />
 
+    <AtualizacaoCatalogoDia />
     {erro && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar a fila de conciliação. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
 
     <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores por onde resolver">

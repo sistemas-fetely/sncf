@@ -13559,6 +13559,142 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_planilha_base: {
+        Row: {
+          atualizado_em: string
+          campo: string
+          cod_cadastro: string
+          leitura_id: string | null
+          valor: Json | null
+        }
+        Insert: {
+          atualizado_em?: string
+          campo: string
+          cod_cadastro: string
+          leitura_id?: string | null
+          valor?: Json | null
+        }
+        Update: {
+          atualizado_em?: string
+          campo?: string
+          cod_cadastro?: string
+          leitura_id?: string | null
+          valor?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_planilha_base_leitura_id_fkey"
+            columns: ["leitura_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_planilha_leitura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogo_planilha_leitura: {
+        Row: {
+          ambiente: string
+          criado_por: string | null
+          erro: string | null
+          etag: string | null
+          hash: string | null
+          id: string
+          lida_em: string
+          origem: string
+          origem_chave: string
+          status: string
+          storage_path: string | null
+          totais: Json
+        }
+        Insert: {
+          ambiente?: string
+          criado_por?: string | null
+          erro?: string | null
+          etag?: string | null
+          hash?: string | null
+          id?: string
+          lida_em?: string
+          origem: string
+          origem_chave?: string
+          status?: string
+          storage_path?: string | null
+          totais?: Json
+        }
+        Update: {
+          ambiente?: string
+          criado_por?: string | null
+          erro?: string | null
+          etag?: string | null
+          hash?: string | null
+          id?: string
+          lida_em?: string
+          origem?: string
+          origem_chave?: string
+          status?: string
+          storage_path?: string | null
+          totais?: Json
+        }
+        Relationships: []
+      }
+      catalogo_planilha_mudanca: {
+        Row: {
+          campo: string
+          cod_cadastro: string
+          dono: string
+          erro: string | null
+          escolha: string | null
+          id: string
+          leitura_id: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+          status: string
+          tipo: string
+          valor_base: Json | null
+          valor_planilha: Json | null
+          valor_sistema: Json | null
+        }
+        Insert: {
+          campo: string
+          cod_cadastro: string
+          dono: string
+          erro?: string | null
+          escolha?: string | null
+          id?: string
+          leitura_id: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          status?: string
+          tipo: string
+          valor_base?: Json | null
+          valor_planilha?: Json | null
+          valor_sistema?: Json | null
+        }
+        Update: {
+          campo?: string
+          cod_cadastro?: string
+          dono?: string
+          erro?: string | null
+          escolha?: string | null
+          id?: string
+          leitura_id?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          status?: string
+          tipo?: string
+          valor_base?: Json | null
+          valor_planilha?: Json | null
+          valor_sistema?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_planilha_mudanca_leitura_id_fkey"
+            columns: ["leitura_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_planilha_leitura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       centro_canal: {
         Row: {
           atualizado_em: string
@@ -104872,6 +105008,22 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_catalogo_planilha_operacoes_pendente: {
+        Row: {
+          desde: string | null
+          id: string | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
+      vw_catalogo_planilha_produto_pendente: {
+        Row: {
+          desde: string | null
+          id: string | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
       vw_catalogo_por_app: {
         Row: {
           app_chave: string | null
@@ -136154,14 +136306,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -149650,14 +149802,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -158559,6 +158711,35 @@ export type Database = {
         }[]
       }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
+      fn_catalogo_leitura_concluir: {
+        Args: {
+          p_base_inicial?: Json
+          p_erro?: string
+          p_leitura_id: string
+          p_mudancas?: Json
+          p_status: string
+          p_totais: Json
+        }
+        Returns: Json
+      }
+      fn_catalogo_m365_gravar: {
+        Args: { p_config: Json; p_segredos?: Json }
+        Returns: Json
+      }
+      fn_catalogo_resolver: {
+        Args: {
+          p_acao: string
+          p_ator?: string
+          p_dono?: string
+          p_escolha?: string
+          p_ids: string[]
+        }
+        Returns: Json
+      }
+      fn_catalogo_status_leitura: {
+        Args: { p_leitura_id: string }
+        Returns: undefined
+      }
       fn_chamado_minha_relacao: {
         Args: { p_chamado_id: string }
         Returns: Json

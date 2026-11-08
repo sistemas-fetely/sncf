@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Settings2, ExternalLink, Mail, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AbaMercadoPago } from "@/components/ti/AbaMercadoPago";
+import { AbaMicrosoft365 } from "@/components/ti/AbaMicrosoft365";
 import { PUBLIC_APP_URL } from "@/lib/urls";
 import { fmtDataHora } from "@/lib/data";
 import { formatDistanceToNow, format } from "date-fns";
@@ -487,8 +488,10 @@ export default function ConfiguracaoIntegracao() {
           <TabsTrigger value="email">Email Externo</TabsTrigger>
           <TabsTrigger value="xpm">XPM / ZenLOG</TabsTrigger>
           <TabsTrigger value="mercado_pago">Mercado Pago</TabsTrigger>
+          <TabsTrigger value="microsoft_365">Microsoft 365</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="microsoft_365"><AbaMicrosoft365 /></TabsContent>
         {/* ABA BLING */}
         <TabsContent value="bling" className="space-y-6">
           <div className="flex justify-end">{statusBadge()}</div>
