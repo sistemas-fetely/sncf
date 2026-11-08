@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Revisão diária Operações: produtos, rótulos da matriz, filtros/seleção por célula, resumos recolhidos e paginação; leitura real 235 produtos/770 células, NCM 172, prévia sem confirmar; sem aplicar/publicar.
 - [x] Catálogo SharePoint F1: Microsoft 365/Vault, leitura/comparação, revisão Operações, ponte FOP, duas filas e cron 06:30; seis cenários fake e 11 testes, acesso inválido negado, produtos/base oficial intactos. Sem publicação.
 - [ ] Catálogo oficial: testar conexão/arquivo Microsoft (bloqueado: credenciais reais ainda não fornecidas); rota da fila Produto aguarda tela FOP da F2.
 - [x] Unificar fila operacional Central/Cockpit, alertas por SKU, ações e gaveta; contagens iguais, pré-carga 4 kits e filtros reais conferidos. Devolução alta = 0, sem ação real/TRS; sem SQL/publicação.
