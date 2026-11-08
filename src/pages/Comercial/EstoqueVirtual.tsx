@@ -22,12 +22,11 @@ import {
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
 import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO, LINHA_CABECALHO_COLADO_NIVEL2 } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
-import { ArrowDown, ArrowUp, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { classeStatusVenda, rotuloStatusVenda } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
-import { PainelSyncEstoque } from "@/components/acervo/PainelSyncEstoque";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { BlocoSincronizacao, ROTINAS_ESTOQUE } from "@/components/acervo/PainelSyncEstoque";
 import { formatError } from "@/lib/format-error";
 import { PageShell } from "@/components/layout/PageShell";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -738,16 +737,7 @@ export default function EstoqueVirtual() {
         </p>
       )}
 
-      <Collapsible>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2 px-2">
-            <ChevronDown className="h-4 w-4" />Sincronização
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-2">
-          <PainelSyncEstoque />
-        </CollapsibleContent>
-      </Collapsible>
+      <BlocoSincronizacao rotinas={ROTINAS_ESTOQUE} />
 
       {cockpitQuery.isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">

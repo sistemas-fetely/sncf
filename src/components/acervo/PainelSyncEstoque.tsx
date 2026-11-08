@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SyncStatus {
   sistema: string;
@@ -18,7 +20,9 @@ interface SyncStatus {
 }
 
 /** Rótulos humanos por sistema/tipo. Ordem = ordem dos cards. */
-const ROTULOS: { sistema: string; tipo: string; rotulo: string }[] = [
+interface RotinaSync { sistema: string; tipo: string; rotulo: string }
+
+const ROTULOS: RotinaSync[] = [
   { sistema: "shopify", tipo: "estoque_carga_completa", rotulo: "Shopify · releitura completa" },
   { sistema: "shopify", tipo: "estoque_push", rotulo: "Shopify · envio de estoque" },
   { sistema: "shopify", tipo: "catalogo_espelhar", rotulo: "Shopify · catálogo" },
@@ -27,7 +31,32 @@ const ROTULOS: { sistema: string; tipo: string; rotulo: string }[] = [
   { sistema: "bling", tipo: "estoque_push", rotulo: "Bling · envio de estoque" },
 ];
 
-export function PainelSyncEstoque() {
+export const ROTINAS_ESTOQUE: readonly RotinaSync[] = [
+  ROTULOS[1], ROTULOS[5], ROTULOS[4],
+];
+
+export const ROTINAS_CADASTRO_SHOPIFY: readonly RotinaSync[] = [
+  ROTULOS[0], ROTULOS[2], ROTULOS[3],
+];
+
+interface PainelSyncProps { rotinas?: readonly RotinaSync[] }
+
+export function BlocoSincronizacao({ rotinas }: PainelSyncProps) {
+  return (
+    <Collapsible>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-2 px-2">
+          <ChevronDown className="h-4 w-4" />Sincronização
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2">
+        <PainelSyncEstoque rotinas={rotinas} />
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+export function PainelSyncEstoque({ rotinas }: PainelSyncProps) {
   const q = useQuery({
     queryKey: ["vw_estoque_sync_status"],
     queryFn: async (): Promise<SyncStatus[]> => {
@@ -48,10 +77,11 @@ export function PainelSyncEstoque() {
   const conhecidos = new Set(ROTULOS.map((r) => `${r.sistema}/${r.tipo}`));
   const extras = linhas.filter((l) => !conhecidos.has(`${l.sistema}/${l.tipo}`))
     .map((l) => ({ sistema: l.sistema, tipo: l.tipo, rotulo: `${l.sistema} · ${l.tipo}` }));
+  const rotinasVisiveis = rotinas ?? [...ROTULOS, ...extras];
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {[...ROTULOS, ...extras].map((r) => {
+      {rotinasVisiveis.map((r) => {
         const l = linhas.find((x) => x.sistema === r.sistema && x.tipo === r.tipo);
         if (!l) return (
           <div key={`${r.sistema}/${r.tipo}`} className="rounded-md border bg-muted/40 p-3">

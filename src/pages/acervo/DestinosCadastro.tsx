@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { XpmCadastroPainel } from "@/components/acervo/XpmCadastroPainel";
 import { ShopifyCadastroPainel } from "@/components/acervo/ShopifyCadastroPainel";
 import { BlingCardPainel } from "@/components/acervo/BlingCardPainel";
+import { BlocoSincronizacao, ROTINAS_CADASTRO_SHOPIFY } from "@/components/acervo/PainelSyncEstoque";
 
 export default function DestinosCadastro() {
   const [aba, setAba] = useAbaUrl("bling");
@@ -31,7 +32,8 @@ export default function DestinosCadastro() {
           <XpmCadastroPainel />
         </TabsContent>
 
-        <TabsContent value="shopify" className="mt-4">
+        <TabsContent value="shopify" className="mt-4 space-y-4">
+          <BlocoSincronizacao rotinas={ROTINAS_CADASTRO_SHOPIFY} />
           <ShopifyCadastroPainel />
         </TabsContent>
       </Tabs>
