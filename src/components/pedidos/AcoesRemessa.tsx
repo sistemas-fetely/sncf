@@ -208,7 +208,14 @@ export function AcoesRemessa({
             variant="outline"
             className="mt-2 gap-1 w-full whitespace-normal h-auto text-xs leading-tight py-2"
             disabled={sync.isPending}
-            onClick={async () => { await sync.mutateAsync(parceiro_id); recheckBling(); }}
+            onClick={async () => {
+              try {
+                await sync.mutateAsync(parceiro_id);
+                await recheckBling();
+              } catch {
+                // O hook já mostra a falha real; não deixar rejeição sem tratamento.
+              }
+            }}
           >
             {sync.isPending ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" />Sincronizando…</>

@@ -36,9 +36,34 @@ export function useSyncContato() {
       if (!data?.sucesso && !data?.ignorado) {
         throw new Error(data?.erro || "Falha ao sincronizar contato");
       }
+      if (!data.ignorado) {
+        const { data: parceiro, error: leituraErro } = await supabase
+          .from("parceiros_comerciais")
+          .select("bling_id")
+          .eq("id", parceiro_id)
+          .single();
+        if (leituraErro) throw new Error(leituraErro.message);
+        if (!parceiro.bling_id || String(parceiro.bling_id) !== String(data.bling_id)) {
+          throw new Error("O Bling retornou o contato, mas o ID não foi gravado no parceiro. Sincronização não confirmada no SNCF.");
+        }
+      }
       return data;
     },
-    onSuccess: (data, parceiro_id) => {
+    onSuccess: async (data, parceiro_id) => {
+      if (!data.ignorado && data.bling_id) {
+        await qc.cancelQueries({ queryKey: ["parceiro-bling-check", parceiro_id], exact: true });
+        qc.setQueryData(["parceiro-bling-check", parceiro_id], { bling_id: data.bling_id });
+      }
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["parceiro-bling-check", parceiro_id] }),
+        qc.invalidateQueries({ queryKey: ["parceiro"] }),
+        qc.invalidateQueries({ queryKey: ["parceiros"] }),
+        qc.invalidateQueries({
+          predicate: (query) => query.queryKey[0] === "pedido-detalhe"
+            && query.state.data != null
+            && (query.state.data as { pedido?: { parceiro_id?: string } }).pedido?.parceiro_id === parceiro_id,
+        }),
+      ]);
       if (data.ignorado) {
         toast({
           title: "Sync ignorado",
@@ -51,9 +76,6 @@ export function useSyncContato() {
           description: `id Bling: ${data.bling_id}`,
         });
       }
-      qc.invalidateQueries({ queryKey: ["parceiro-bling-check", parceiro_id] });
-      qc.invalidateQueries({ queryKey: ["parceiro"] });
-      qc.invalidateQueries({ queryKey: ["parceiros"] });
     },
     onError: (e: Error) => {
       toast({
