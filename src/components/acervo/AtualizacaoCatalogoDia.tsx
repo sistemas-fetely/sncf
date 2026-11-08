@@ -17,7 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
-import { agruparCatalogo, CAMPOS_OPERACOES, celulasSelecionadas, decisoesCatalogo, type CelulaCatalogo, type DecisaoCatalogo, type EscolhasCatalogo } from "@/lib/acervo/revisaoCatalogo";
+import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
+import { agruparCatalogo, completarNomesCatalogo, valorSistemaVazio, CAMPOS_OPERACOES, celulasSelecionadas, decisoesCatalogo, type CelulaCatalogo, type DecisaoCatalogo, type EscolhasCatalogo } from "@/lib/acervo/revisaoCatalogo";
 
 const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
@@ -31,23 +32,7 @@ export function AtualizacaoCatalogoDia() {
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [semCadastroAberto, setSemCadastroAberto] = useState(false);
   const [errosAberto, setErrosAberto] = useState(false);
-  const ultima = useQuery({ queryKey: ['catalogo-planilha-ultima'], queryFn: async () => {
-    const r = await supabase.from('catalogo_planilha_leitura').select('*').eq('ambiente', 'oficial').order('lida_em', { ascending: false }).limit(1).maybeSingle();
-    if (r.error) throw r.error; return r.data;
-  } });
-  const referencia = useQuery({ queryKey: ['catalogo-planilha-referencia', ultima.data?.id], queryFn: async () => {
-    const r = await supabase.from('catalogo_planilha_leitura').select('*').eq('ambiente', 'oficial').in('status', ['comparada', 'aplicada_parcial', 'aplicada']).order('lida_em', { ascending: false }).limit(1).maybeSingle();
-    if (r.error) throw r.error; return r.data;
-  } });
-  const lista = useQuery({ queryKey: ['catalogo-planilha-mudancas', referencia.data?.id], enabled: !!referencia.data?.id, queryFn: async () => {
-    const out: CelulaCatalogo[] = [];
-    for (let de = 0; ; de += 1000) {
-      const r = await supabase.from('catalogo_planilha_mudanca').select('*').eq('leitura_id', referencia.data?.id ?? '').eq('status', 'pendente').order('cod_cadastro').order('campo').range(de, de + 999);
-      if (r.error) throw r.error;
-      out.push(...(r.data ?? [])); if (!r.data || r.data.length < 1000) break;
-    }
-    return out;
-  } });
+  const { ultima, referencia, lista } = useCatalogoLeitura();
   const matriz = useQuery({ queryKey: ['catalogo-planilha-rotulos'], queryFn: async () => {
     const r = await supabase.from('produto_ficha_nascimento').select('campo,rotulo,ordem').in('campo', CAMPOS_OPERACOES).order('ordem');
     if (r.error) throw r.error;
@@ -62,10 +47,14 @@ export function AtualizacaoCatalogoDia() {
       if (r.error) throw r.error;
       for (const p of r.data ?? []) if (p.cod_cadastro) out[p.cod_cadastro] = p.nome_comercial ?? '';
     }
-    for (const c of lista.data ?? []) {
-      if (c.campo === 'nome_comercial' && !out[c.cod_cadastro] && typeof c.valor_planilha === 'string') out[c.cod_cadastro] = `${c.valor_planilha} (planilha)`;
+    const semNome = codigos.filter(c => !out[c]?.trim());
+    const celulasNome: Pick<CelulaCatalogo, 'cod_cadastro' | 'campo' | 'valor_planilha'>[] = [];
+    for (let de = 0; de < semNome.length; de += 200) {
+      const r = await supabase.from('catalogo_planilha_mudanca').select('cod_cadastro,campo,valor_planilha').eq('leitura_id', referencia.data?.id ?? '').eq('campo', 'nome_comercial').in('cod_cadastro', semNome.slice(de, de + 200));
+      if (r.error) throw r.error;
+      celulasNome.push(...(r.data ?? []));
     }
-    return out;
+    return completarNomesCatalogo(out, celulasNome);
   } });
   useEffect(() => { setSelecionados(new Set()); setEscolhas({}); setPrevia(null); }, [referencia.data?.id]);
   const ler = useMutation({ mutationFn: async () => {
@@ -132,7 +121,7 @@ export function AtualizacaoCatalogoDia() {
       {!falhas.length && !carregando && visiveis.map(p => <TableRow key={p.codigo} className="bg-card hover:bg-muted/50"><TableCell className="align-top"><Checkbox aria-label={`Selecionar produto ${p.codigo}`} checked={selecionados.has(p.codigo)} disabled={!p.celulas.some(c => ['mudanca', 'conflito'].includes(c.tipo)) || resolver.isPending} onCheckedChange={v => setSelecionados(old => { const n = new Set(old); if (v === true) n.add(p.codigo); else n.delete(p.codigo); return n; })} /></TableCell><TableCell className="align-top"><p className="font-mono text-sm font-semibold">{p.codigo}</p><p className="mt-1 text-sm">{p.nome || 'Nome comercial não informado'}</p></TableCell>{(matriz.data ?? []).map(m => {
         const c = p.celulas.find(c => c.campo === m.campo);
         return <TableCell key={m.campo} className={`align-top ${c?.tipo === 'conflito' ? 'bg-warning/10' : c?.tipo === 'erro' ? 'bg-destructive/10' : ''}`}>
-          {!c ? <span className="text-muted-foreground">—</span> : c.tipo === 'erro' ? <div className="space-y-1 text-sm text-destructive"><p className="font-medium">Erro</p><p>{c.erro}</p><p className="break-words">Planilha: {texto(c.valor_planilha)}</p></div> : c.tipo === 'conflito' ? <div className="space-y-2 text-xs"><p className="font-semibold text-warning">Conflito</p><div className="space-y-1 break-words"><p><span className="text-muted-foreground">Base:</span> {texto(c.valor_base)}</p><p><span className="text-muted-foreground">Sistema:</span> {texto(c.valor_sistema)}</p><p><span className="text-muted-foreground">Planilha:</span> {texto(c.valor_planilha)}</p></div><RadioGroup aria-label={`Escolha para ${p.codigo} ${m.rotulo}`} value={escolhas[c.id] ?? ''} disabled={resolver.isPending} onValueChange={v => { if (v === 'planilha' || v === 'sistema') setEscolhas(old => ({ ...old, [c.id]: v })); }} className="flex flex-wrap gap-3">{(['planilha', 'sistema'] as const).map(v => <label key={v} className="flex items-center gap-1"><RadioGroupItem value={v} />{v === 'planilha' ? 'Planilha' : 'Sistema'}</label>)}</RadioGroup></div> : <div className="flex flex-wrap items-baseline gap-1 text-sm break-words"><span className="text-muted-foreground">{texto(c.valor_sistema)}</span><span className="text-muted-foreground">→</span><span className="font-medium">{texto(c.valor_planilha)}</span></div>}
+          {!c ? <span className="text-muted-foreground">—</span> : c.tipo === 'erro' ? <div className="space-y-1 text-sm text-destructive"><p className="font-medium">Erro</p><p>{c.erro}</p><p className="break-words">Planilha: {texto(c.valor_planilha)}</p></div> : c.tipo === 'conflito' ? <div className="space-y-2 text-xs"><p className="font-semibold text-warning">Conflito</p><div className="space-y-1 break-words"><p><span className="text-muted-foreground">Base:</span> {texto(c.valor_base)}</p><p><span className="text-muted-foreground">Sistema:</span> {texto(c.valor_sistema)}</p><p><span className="text-muted-foreground">Planilha:</span> {texto(c.valor_planilha)}</p></div><RadioGroup aria-label={`Escolha para ${p.codigo} ${m.rotulo}`} value={escolhas[c.id] ?? ''} disabled={resolver.isPending} onValueChange={v => { if (v === 'planilha' || v === 'sistema') setEscolhas(old => ({ ...old, [c.id]: v })); }} className="flex flex-wrap gap-3">{(['planilha', 'sistema'] as const).map(v => <label key={v} className="flex items-center gap-1"><RadioGroupItem value={v} />{v === 'planilha' ? 'Planilha' : 'Sistema'}</label>)}</RadioGroup></div> : <div className="flex flex-wrap items-baseline gap-1 text-sm break-words">{valorSistemaVazio(c.valor_sistema) ? <span className="text-muted-foreground">novo:</span> : <><span className="text-muted-foreground">{texto(c.valor_sistema)}</span><span className="text-muted-foreground">→</span></>}<span className="font-medium">{texto(c.valor_planilha)}</span></div>}
         </TableCell>;
       })}</TableRow>)}
       {(carregando || !visiveis.length || !!falhas.length) && <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">{falhas.length ? 'Não foi possível carregar a revisão.' : carregando ? 'Carregando produtos…' : 'Nenhuma pendência neste filtro.'}</TableCell></TableRow>}

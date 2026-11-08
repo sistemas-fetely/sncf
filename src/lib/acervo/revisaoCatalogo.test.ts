@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { agruparCatalogo, celulasSelecionadas, decisoesCatalogo, type CelulaCatalogo } from './revisaoCatalogo';
+import { agruparCatalogo, celulasSelecionadas, decisoesCatalogo, completarNomesCatalogo, valorSistemaVazio, type CelulaCatalogo } from './revisaoCatalogo';
 const celula = (id: string, codigo: string, campo: string, tipo = 'mudanca'): CelulaCatalogo => ({ id, cod_cadastro: codigo, campo, tipo, dono: 'operacoes', status: 'pendente', leitura_id: 'leitura', erro: null, escolha: null, resolvido_em: null, resolvido_por: null, valor_base: null, valor_sistema: 'a', valor_planilha: 'b' });
 const dados = [celula('1','001','ncm'), celula('2','001','cest'), celula('3','002','ncm','conflito'), celula('4','002','cest','erro')];
 describe('revisão por produto', () => {
+  it('resolve o nome da mesma leitura mesmo pertencendo a Produto e já aplicado', () => {
+    const nome = { ...celula('nome','001','nome_comercial'), dono: 'produto', status: 'aplicada', valor_planilha: 'Prato Vermelho' };
+    expect(completarNomesCatalogo({ '001': '' }, [nome])['001']).toBe('Prato Vermelho (planilha)');
+    expect(completarNomesCatalogo({ '001': 'Nome SNCF' }, [nome])['001']).toBe('Nome SNCF');
+  });
+  it('considera nulo e texto vazio como novo, preservando zero e false como valores existentes', () => {
+    expect([null, undefined, '', '  '].every(valorSistemaVazio)).toBe(true);
+    expect([0, false, '4823.69.00'].some(valorSistemaVazio)).toBe(false);
+  });
   it('agrupa duas pendências em um produto e conta células', () => {
     const produtos = agruparCatalogo(dados, {}, { campo: 'todos', tipo: 'todos', busca: '' });
     expect(produtos).toHaveLength(2);

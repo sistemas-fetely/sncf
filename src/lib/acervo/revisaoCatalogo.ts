@@ -6,6 +6,18 @@ export type ProdutoRevisao = { codigo: string; nome: string; celulas: CelulaCata
 export type EscolhasCatalogo = Record<string, 'planilha' | 'sistema'>;
 export type DecisaoCatalogo = { ids: string[]; acao: 'aplicar' | 'descartar' | 'resolver'; escolha: 'planilha' | 'sistema' };
 
+export function valorSistemaVazio(valor: unknown): boolean {
+  return valor == null || (typeof valor === 'string' && valor.trim() === '');
+}
+
+export function completarNomesCatalogo(nomes: Record<string, string>, celulas: Pick<CelulaCatalogo, 'cod_cadastro' | 'campo' | 'valor_planilha'>[]): Record<string, string> {
+  const out = { ...nomes };
+  for (const c of celulas) {
+    if (c.campo === 'nome_comercial' && !out[c.cod_cadastro]?.trim() && typeof c.valor_planilha === 'string' && c.valor_planilha.trim()) out[c.cod_cadastro] = `${c.valor_planilha} (planilha)`;
+  }
+  return out;
+}
+
 export function agruparCatalogo(celulas: CelulaCatalogo[], nomes: Record<string, string>, filtro: { campo: string; tipo: string; busca: string }): ProdutoRevisao[] {
   const grupos = new Map<string, ProdutoRevisao>();
   const busca = filtro.busca.trim().toLocaleLowerCase('pt-BR');

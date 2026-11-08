@@ -38,6 +38,9 @@ import { NascerProdutoNacionalDialog } from "@/components/acervo/NascerProdutoNa
 import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
 import { ImportarPlanilhaCadastroDialog } from "@/components/acervo/ImportarPlanilhaCadastroDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
+import { resolverAbaConciliacao } from "@/lib/acervo/abasConciliacao";
 import { AtualizacaoCatalogoDia } from "@/components/acervo/AtualizacaoCatalogoDia";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
@@ -134,6 +137,7 @@ export default function ConciliacaoFila() {
   const [importCad, setImportCad] = useState(false);
   const [sp, setSp] = useSearchParams();
   const location = useLocation();
+  const catalogo = useCatalogoLeitura();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: página e ordem também na URL (filtros já moravam lá).
   const [nav, setNav] = useEstadoTela({ pagina: 1, ordem: "regra:asc" });
   const pagina = nav.pagina;
@@ -182,7 +186,11 @@ export default function ConciliacaoFila() {
     if (v) novo.set("q", v); else novo.delete("q");
     setSp(novo, { replace: true });
   }
-  function limpar() { setSp(new URLSearchParams(), { replace: true }); }
+  function limpar() {
+    const novo = new URLSearchParams(sp);
+    for (const k of [...PARAMS, "q", "sem_produto", "pagina"]) novo.delete(k);
+    setSp(novo, { replace: true });
+  }
 
   // POSTGREST-CORTA-EM-MIL (22/09/2026): a view tem 3.348 linhas e o corte
   // silencioso mostrava 877 divergências no lugar de 2.860. Lê em páginas de
@@ -227,6 +235,20 @@ export default function ConciliacaoFila() {
   const atualizando = fila.isFetching;
 
   const linhas = useMemo(() => fila.data ?? [], [fila.data]);
+  const aba = resolverAbaConciliacao(sp.get('aba'), location.hash, catalogo.pendencias, linhas.length);
+  const setAba = (valor: string) => {
+    if (valor !== 'entrada' && valor !== 'saida') return;
+    const novo = new URLSearchParams(sp);
+    novo.set('aba', valor);
+    setSp(novo);
+  };
+  useEffect(() => {
+    if (sp.get('aba') === 'entrada' || sp.get('aba') === 'saida') return;
+    if (location.hash !== '#atualizacao-do-dia' && (!catalogo.pronto || !fila.isSuccess)) return;
+    const novo = new URLSearchParams(sp);
+    novo.set('aba', aba);
+    setSp(novo, { replace: true });
+  }, [aba, sp, location.hash, catalogo.pronto, fila.isSuccess, setSp]);
 
   const aplica = (l: FilaLinha, ignorar?: Grupo) => {
     const q = busca.trim().toLocaleLowerCase("pt-BR");
@@ -452,8 +474,8 @@ export default function ConciliacaoFila() {
     <PageHeader
       titulo="Conciliação de Cadastro"
       icone={GitCompare}
-      estado={estado}
-      acoes={<>
+      estado={aba === "saida" ? estado : undefined}
+      acoes={aba === "entrada" ? <>
         <DropdownMenu open={menuPlanilha} onOpenChange={setMenuPlanilha}>
           <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="mr-2 h-4 w-4" />Planilha<ChevronDown className="ml-1 h-3.5 w-3.5 opacity-60" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="flex w-64 flex-col gap-1 p-1">
@@ -462,7 +484,7 @@ export default function ConciliacaoFila() {
             <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Importar planilha de cadastro" variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setImportCad(true); }}><Upload className="mr-2 h-4 w-4" />Importar planilha de cadastro</BotaoGuardado>
           </DropdownMenuContent>
         </DropdownMenu>
-        <span className="mx-1 h-6 w-px bg-border" aria-hidden />
+      </> : <>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         {/* 20/10/2026: aposentado — porta única é a planilha de cadastro */}
         {false && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />}
@@ -474,7 +496,18 @@ export default function ConciliacaoFila() {
       </>}
     />
 
-    <AtualizacaoCatalogoDia />
+    <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+      <TabsList className="h-auto max-w-full flex-wrap justify-start" aria-label="Fluxo da conciliação">
+        <TabsTrigger value="entrada" className="gap-2">Entrada · Planilha<Badge variant="secondary">{catalogo.pronto ? catalogo.pendencias : '…'}</Badge></TabsTrigger>
+        <TabsTrigger value="saida" className="gap-2">Saída · Destinos<Badge variant="secondary">{fila.isSuccess ? linhas.length : '…'}</Badge></TabsTrigger>
+      </TabsList>
+      {catalogo.erro && <Alert variant="destructive"><AlertDescription>Não foi possível consultar as pendências da planilha: {catalogo.erro.message}</AlertDescription></Alert>}
+      <TabsContent value="entrada" className="space-y-4">
+        <p className="text-sm text-muted-foreground">O que o time escreveu na planilha do catálogo e ainda não entrou no sistema.</p>
+        <AtualizacaoCatalogoDia />
+      </TabsContent>
+      <TabsContent value="saida" className="space-y-4">
+        <p className="text-sm text-muted-foreground">O que está diferente entre o sistema e os canais (Bling, XPM, Shopify).</p>
     {erro && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar a fila de conciliação. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
 
     <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores por onde resolver">
@@ -564,5 +597,7 @@ export default function ConciliacaoFila() {
       </Table>
       <RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_cadastro" onPagina={setPagina} onTamanhoPagina={setTamanho} />
     </div>}
+      </TabsContent>
+    </Tabs>
   </PageShell></TooltipProvider>;
 }
