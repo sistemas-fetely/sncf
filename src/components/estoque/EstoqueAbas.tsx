@@ -1,10 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-const ABAS = [
+export const ABAS = [
   { rotulo: "Central", to: "/vendas/produto/estoque/central" },
   { rotulo: "Cockpit", to: "/vendas/produto/estoque/virtual" },
   { rotulo: "Conciliação", to: "/vendas/produto/estoque/conciliacao" },
+  { rotulo: "Inventário", to: "/vendas/produto/estoque/inventario" },
 ];
 
 export function destinoEstoque(to: string, search: string) {

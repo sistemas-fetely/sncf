@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destinoEstoque } from "./EstoqueAbas";
+import { ABAS, destinoEstoque } from "./EstoqueAbas";
 
 describe("navegação entre telas de estoque", () => {
   const destino = "/vendas/produto/estoque/virtual";
@@ -16,5 +16,22 @@ describe("navegação entre telas de estoque", () => {
 
   it("não acrescenta query quando não há busca", () => {
     expect(destinoEstoque(destino, "?aba=xpm")).toBe(destino);
+  });
+});
+
+describe("barra de abas do estoque", () => {
+  it("tem as quatro abas na ordem Central, Cockpit, Conciliação, Inventário", () => {
+    expect(ABAS.map(aba => aba.rotulo)).toEqual(["Central", "Cockpit", "Conciliação", "Inventário"]);
+    expect(ABAS.map(aba => aba.to)).toEqual([
+      "/vendas/produto/estoque/central",
+      "/vendas/produto/estoque/virtual",
+      "/vendas/produto/estoque/conciliacao",
+      "/vendas/produto/estoque/inventario",
+    ]);
+  });
+
+  it("leva a busca para a aba do Inventário", () => {
+    expect(destinoEstoque("/vendas/produto/estoque/inventario", "?q=vela&card=acabando"))
+      .toBe("/vendas/produto/estoque/inventario?q=vela");
   });
 });
