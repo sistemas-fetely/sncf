@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import { colecaoNaoCadastrada, type ColecaoDim } from './colecoesCatalogo';
 
 export type CelulaCatalogo = Database['public']['Tables']['catalogo_planilha_mudanca']['Row'];
 export const CAMPOS_OPERACOES = ['ncm', 'cest', 'origem_fisc', 'origem_prod'];
@@ -80,7 +81,7 @@ export function agruparCatalogo(celulas: CelulaCatalogo[], nomes: Record<string,
   return [...grupos.values()].sort((a, b) => a.codigo.localeCompare(b.codigo));
 }
 
-export const celulaSelecionavel = (c: CelulaCatalogo) => ['mudanca', 'conflito'].includes(c.tipo);
+export const celulaSelecionavel = (c: CelulaCatalogo, colecoes?: ColecaoDim[]) => ['mudanca', 'conflito'].includes(c.tipo) && (colecoes === undefined || !colecaoNaoCadastrada(c, colecoes));
 
 /** Footer summary of a cell selection. */
 export function resumoSelecao(celulas: CelulaCatalogo[]) {

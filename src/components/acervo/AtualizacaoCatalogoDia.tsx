@@ -21,6 +21,8 @@ import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
 import { FiltroMultiSelect } from "@/components/financeiro/FiltroMultiSelect";
 import { filtrarCelulas, contarOpcoes, celulaSelecionavel, resumoSelecao, naturezaCelula, listaFiltro, juntarFiltro, type InfoProdutoCatalogo, type DimensaoCatalogo, agruparCatalogo, completarNomesCatalogo, valorSistemaVazio, planoCatalogo, totaisPorBloco, type CelulaCatalogo, type EscolhasCatalogo, type PlanoCatalogo } from "@/lib/acervo/revisaoCatalogo";
 import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
+import { detectarColecoesNovas, colecaoNaoCadastrada } from '@/lib/acervo/colecoesCatalogo';
+import { ColecoesNovasCatalogo } from './ColecoesNovasCatalogo';
 
 const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
@@ -35,6 +37,16 @@ export function AtualizacaoCatalogoDia() {
   const [semCadastroAberto, setSemCadastroAberto] = useState(false);
   const [errosAberto, setErrosAberto] = useState(false);
   const { ultima, referencia, lista } = useCatalogoLeitura();
+  const colecoes = useQuery({ queryKey: ['catalogo-colecoes-dim'], queryFn: async () => {
+    const out = [];
+    for (let de = 0; ; de += 1000) {
+      const r = await supabase.from('produto_colecao_dim').select('codigo,rotulo,variantes,ativo').eq('ativo', true).order('codigo').range(de, de + 999);
+      if (r.error) throw r.error;
+      out.push(...(r.data ?? []));
+      if ((r.data?.length ?? 0) < 1000) break;
+    }
+    return out;
+  } });
   const matriz = useQuery({ queryKey: ['catalogo-planilha-rotulos'], queryFn: async () => {
     const r = await supabase.from('produto_ficha_nascimento').select('campo,rotulo,ordem,bloco').eq('importavel_planilha', true).order('ordem');
     if (r.error) throw r.error;
@@ -110,9 +122,11 @@ export function AtualizacaoCatalogoDia() {
   const porBloco = totaisPorBloco(pendentesTodas, blocoDe);
   const blocos = [...new Set((matriz.data ?? []).map(m => m.bloco))].filter(b => porBloco[b]);
   const produtos = agruparCatalogo(lista.data ?? [], ctx.nomes, filtro, blocoDe, ctx.info);
-  const selecionadas = (lista.data ?? []).filter(c => selecionados.has(c.id) && celulaSelecionavel(c));
+  const selecionavel = (c: CelulaCatalogo) => (c.campo !== 'colecao' || !!colecoes.data) && celulaSelecionavel(c, colecoes.data ?? []);
+  const novasColecoes = colecoes.data ? detectarColecoesNovas(lista.data ?? [], colecoes.data) : [];
+  const selecionadas = (lista.data ?? []).filter(c => selecionados.has(c.id) && selecionavel(c));
   const resumo = resumoSelecao(selecionadas);
-  // Product cells wait for the FOP door: Apply only sends fiscal (Operações) cells.
+  // Both owners go to the FOP; unknown collections wait for human registration.
   const aplicacoes = planoCatalogo(selecionadas, 'aplicar', escolhas);
   const descartes = planoCatalogo(selecionadas, 'descartar', escolhas);
   const temPlano = (p: PlanoCatalogo) => p.sncf.length + p.fop.length > 0;
@@ -122,12 +136,12 @@ export function AtualizacaoCatalogoDia() {
   const paginas = Math.max(1, Math.ceil(produtos.length / TAMANHO_PAGINA));
   const pagina = Math.max(1, Math.min(filtro.pagina, paginas));
   const visiveis = produtos.slice((pagina - 1) * TAMANHO_PAGINA, pagina * TAMANHO_PAGINA);
-  const elegiveis = recorte.filter(celulaSelecionavel);
+  const elegiveis = recorte.filter(selecionavel);
   const todos = elegiveis.length > 0 && elegiveis.every(c => selecionados.has(c.id));
   const alguns = elegiveis.some(c => selecionados.has(c.id));
   const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
-  const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading;
-  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
+  const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading || colecoes.isLoading;
+  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
   const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => setPrevia({ acao, plano, celulas: selecionadas });
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
@@ -141,6 +155,7 @@ export function AtualizacaoCatalogoDia() {
       <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copiar()} disabled={!ultima.data?.storage_path}><Download className="mr-2 h-4 w-4" />Cópia da planilha</Button><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Ler catálogo" size="sm" disabled={ler.isPending} onClick={() => ler.mutate()}><RefreshCw className="mr-2 h-4 w-4" />Ler agora</BotaoGuardado></div>
     </div>
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
+    <ColecoesNovasCatalogo novas={novasColecoes} />
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
       <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />
@@ -158,9 +173,11 @@ export function AtualizacaoCatalogoDia() {
     </div>
     {selecionadas.some(c => c.tipo === 'conflito' && !escolhas[c.id]) && <p className="text-sm text-warning">Há conflitos selecionados sem escolha de planilha ou sistema.</p>}
     <div className="max-h-[36rem] overflow-auto rounded-md border bg-card card-shadow"><Table className="min-w-[1000px] w-max"><TableHeader className="sticky top-0 z-10 bg-muted"><TableRow><TableHead colSpan={2} />{faixas.map(f => <TableHead key={f.bloco} colSpan={f.n} className="h-8 border-l text-xs font-semibold uppercase tracking-wide">{legivel(f.bloco)}</TableHead>)}</TableRow><TableRow><TableHead className="w-10" /><TableHead className="w-64">Produto</TableHead>{colunas.map(m => <TableHead key={m.campo} className="min-w-40 border-l">{m.rotulo}</TableHead>)}</TableRow></TableHeader><TableBody>
-      {!falhas.length && !carregando && visiveis.map(p => <TableRow key={p.codigo} className="bg-card hover:bg-muted/50"><TableCell className="align-top"><Checkbox aria-label={`Selecionar produto ${p.codigo}`} checked={(() => { const cs = p.celulas.filter(celulaSelecionavel); const n = cs.filter(c => selecionados.has(c.id)).length; return n && n === cs.length ? true : n ? 'indeterminate' : false; })()} disabled={!p.celulas.some(celulaSelecionavel) || resolver.isPending} onCheckedChange={v => marcar(p.celulas.filter(celulaSelecionavel), v === true)} /></TableCell><TableCell className="align-top"><p className="font-mono text-sm font-semibold">{p.codigo}</p><p className="mt-1 text-sm">{p.nome || 'Nome comercial não informado'}</p></TableCell>{colunas.map(m => {
+      {!falhas.length && !carregando && visiveis.map(p => <TableRow key={p.codigo} className="bg-card hover:bg-muted/50"><TableCell className="align-top"><Checkbox aria-label={`Selecionar produto ${p.codigo}`} checked={(() => { const cs = p.celulas.filter(selecionavel); const n = cs.filter(c => selecionados.has(c.id)).length; return n && n === cs.length ? true : n ? 'indeterminate' : false; })()} disabled={!p.celulas.some(selecionavel) || resolver.isPending} onCheckedChange={v => marcar(p.celulas.filter(selecionavel), v === true)} /></TableCell><TableCell className="align-top"><p className="font-mono text-sm font-semibold">{p.codigo}</p><p className="mt-1 text-sm">{p.nome || 'Nome comercial não informado'}</p></TableCell>{colunas.map(m => {
         const c = p.celulas.find(c => c.campo === m.campo);
         return <TableCell key={m.campo} className={`align-top border-l ${c?.tipo === 'conflito' ? 'bg-warning/10' : c?.tipo === 'erro' ? 'bg-destructive/10' : c && naturezaCelula(c) === 'alterar' ? 'bg-warning/5' : ''}`}>
+          {c && ['mudanca', 'conflito'].includes(c.tipo) && <Checkbox className="mb-2" aria-label={`Selecionar célula ${p.codigo} ${m.rotulo}`} checked={selecionavel(c) && selecionados.has(c.id)} disabled={!selecionavel(c) || resolver.isPending} onCheckedChange={v => marcar([c], v === true)} />}
+          {c && colecaoNaoCadastrada(c, colecoes.data ?? []) && <p className="mb-2 text-xs text-warning">coleção não cadastrada</p>}
           {!c ? <span className="text-muted-foreground">—</span> : c.tipo === 'erro' ? <div className="space-y-1 text-sm text-destructive"><p className="font-medium">Erro</p><p>{c.erro}</p><p className="break-words">Planilha: {texto(c.valor_planilha)}</p></div> : c.tipo === 'conflito' ? <div className="space-y-2 text-xs"><p className="font-semibold text-warning">Conflito</p><div className="space-y-1 break-words"><p><span className="text-muted-foreground">Base:</span> {texto(c.valor_base)}</p><p><span className="text-muted-foreground">Sistema:</span> {texto(c.valor_sistema)}</p><p><span className="text-muted-foreground">Planilha:</span> {texto(c.valor_planilha)}</p></div>{c.erro && <p className="text-destructive">{c.erro}</p>}<RadioGroup aria-label={`Escolha para ${p.codigo} ${m.rotulo}`} value={escolhas[c.id] ?? ''} disabled={resolver.isPending} onValueChange={v => { if (v === 'planilha' || v === 'sistema') setEscolhas(old => ({ ...old, [c.id]: v })); }} className="flex flex-wrap gap-3">{(['planilha', 'sistema'] as const).map(v => <label key={v} className="flex items-center gap-1"><RadioGroupItem value={v} />{v === 'planilha' ? 'Planilha' : 'Sistema'}</label>)}</RadioGroup></div> : <div className="flex flex-wrap items-baseline gap-1 text-sm break-words">{valorSistemaVazio(c.valor_sistema) ? <span className="text-muted-foreground">novo:</span> : <><span className="text-warning line-through decoration-warning/50">{texto(c.valor_sistema)}</span><span className="text-warning">→</span></>}<span className="font-medium">{texto(c.valor_planilha)}</span>{c.erro && <p className="w-full text-xs text-destructive">{c.erro}</p>}</div>}
         </TableCell>;
       })}</TableRow>)}

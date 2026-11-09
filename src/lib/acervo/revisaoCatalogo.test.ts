@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { filtrarCelulas, contarOpcoes, resumoSelecao, naturezaCelula, planoCatalogo, totaisPorBloco, agruparCatalogo, celulasSelecionadas, decisoesCatalogo, completarNomesCatalogo, valorSistemaVazio, type CelulaCatalogo } from './revisaoCatalogo';
+import { celulaSelecionavel, filtrarCelulas, contarOpcoes, resumoSelecao, naturezaCelula, planoCatalogo, totaisPorBloco, agruparCatalogo, celulasSelecionadas, decisoesCatalogo, completarNomesCatalogo, valorSistemaVazio, type CelulaCatalogo } from './revisaoCatalogo';
 const celula = (id: string, codigo: string, campo: string, tipo = 'mudanca'): CelulaCatalogo => ({ id, cod_cadastro: codigo, campo, tipo, dono: 'operacoes', status: 'pendente', leitura_id: 'leitura', erro: null, escolha: null, resolvido_em: null, resolvido_por: null, valor_base: null, valor_sistema: 'a', valor_planilha: 'b' });
 const dados = [celula('1','001','ncm'), celula('2','001','cest'), celula('3','002','ncm','conflito'), celula('4','002','cest','erro')];
 describe('revisão por produto', () => {
+  it('seleção do filtro exclui coleção desconhecida sem bloquear outros campos', () => {
+    const cs = [celula('nova', '001', 'colecao'), celula('fiscal', '001', 'ncm')];
+    const selecionadas = cs.filter(c => celulaSelecionavel(c, []));
+    expect(selecionadas.map(c => c.id)).toEqual(['fiscal']);
+    expect(planoCatalogo(selecionadas, 'aplicar', {})).toEqual({ sncf: [], fop: ['fiscal'] });
+    expect(celulaSelecionavel(cs[0], [{ codigo: 'b', rotulo: 'b', variantes: [], ativo: true }])).toBe(true);
+  });
   it('resolve o nome da mesma leitura mesmo pertencendo a Produto e já aplicado', () => {
     const nome = { ...celula('nome','001','nome_comercial'), dono: 'produto', status: 'aplicada', valor_planilha: 'Prato Vermelho' };
     expect(completarNomesCatalogo({ '001': '' }, [nome])['001']).toBe('Prato Vermelho (planilha)');

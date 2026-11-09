@@ -1,5 +1,6 @@
 # Catalog daily review
-- Daily catalog decisions are split by owner through the tested `planoCatalogo`: fiscal cells use the atomic catalog resolver; Product cells go to the FOP edge (discard/"sistema" never call the FOP); never write products client-side.
+- Daily catalog decisions use the tested `planoCatalogo`: both owners go to the FOP edge (discard/"sistema" never call the FOP); never write products client-side.
+- Collection matching is shared with the dimension edge; selection gates individual, product and filtered-batch cells until the active dimension is known, and human registration refetches it.
 - Keep the newest read status visible while pending work follows the latest comparable read, so an unchanged daily download does not hide unreviewed cells.
 - Group and filter daily review cells through the tested pure selector; use matrix labels and identify spreadsheet-name fallbacks without writing product names.
 - Conciliação tabs share read-only catalog queries for badges and default selection; explicit URL tabs override the legacy daily hash, and missing names query the same reading regardless of owner or resolution status.
