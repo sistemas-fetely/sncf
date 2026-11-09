@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
+import { podeCorrigirNf } from "./correcaoNf";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // CORRIGIR-NF / REFATURAR (27/10/2026): a tela só declara o motivo; o banco escolhe o caminho fiscal.
@@ -129,12 +130,12 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
   );
 }
 
-/** Botão + diálogo. Aparece só em pedido B2B, não cancelado, já faturado (etapa) e sem devolução aberta. */
-export function BotaoCorrigirNf({ pedido }: { pedido: { id: string; canal?: string | null; estagio?: string | null; cancelado_em?: string | null; nf_numero?: string | null } }) {
+/** Botão + diálogo. Aparece em pedido B2B ou de venda direta, não cancelado, em estágio com NF (etapa) e sem devolução aberta. */
+export function BotaoCorrigirNf({ pedido }: { pedido: { id: string; canal?: string | null; origem?: string | null; estagio?: string | null; cancelado_em?: string | null; nf_numero?: string | null } }) {
   const [aberto, setAberto] = useState(false);
   const perm = usePermissoesTela("tela.devolucoes");
   // NF pode estar autorizada com pedido.nf_numero nulo (ex.: PED-2352) — a etapa é o sinal, e a prévia do banco é o juiz final.
-  const elegivelBase = pedido.canal === "B2B" && pedido.estagio !== "cancelado" && !pedido.cancelado_em && ["faturado", "em_transporte", "entregue"].includes(pedido.estagio ?? "");
+  const elegivelBase = podeCorrigirNf(pedido);
   const abertaQ = useQuery({
     queryKey: ["devolucao-aberta-pedido", pedido.id],
     enabled: elegivelBase && perm.podeVer,

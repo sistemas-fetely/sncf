@@ -371,7 +371,7 @@ export default function RetornoDevolucao() {
         <CasaPageHeader
           breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções e Correções de NF" }]}
           title="Devoluções e Correções de NF"
-          subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o pedido é reenviado ao Bling." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
+          subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o SNCF gera a NF nova no Bling para o Fiscal transmitir." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
             <div className="flex items-center gap-2">
               <DeclararCancelamentoDialog

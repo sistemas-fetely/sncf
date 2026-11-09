@@ -15,6 +15,7 @@ import { naoMapeada, type ClassificacaoVD, type Marcos } from "./FunilVD";
 import { cn } from "@/lib/utils";
 import { EnderecoEntregaBloco } from "@/components/pedidos/EnderecoEntregaBloco";
 import { ehCancelamentoComNf } from "@/components/devolucao/correcaoNf";
+import { BotaoCorrigirNf } from "@/components/devolucao/CorrigirNfDialog";
 
 export interface LinhaGaveta {
   id: string;
@@ -31,6 +32,9 @@ export interface LinhaGaveta {
   nf_numero: string | number | null;
   bling_pedido_numero: string | number | null;
   valor_liquido: number | null;
+  /** Vindos da view da gestão: o botão de correção decide o estágio com eles. */
+  estagio?: string | null;
+  cancelado_em?: string | null;
 }
 
 interface Item { id: string; sku: string; descricao: string | null; quantidade: number; valor_unitario: number | null; subtotal: number | null }
@@ -171,6 +175,9 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
   });
 
   const l = linha;
+  // Correção de NF na gaveta: só com NF emitida e sem cancelamento; o próprio botão decide o resto
+  // (venda direta é elegível pela origem) e a prévia do banco é o juiz final.
+  const corrigirNf = !!l && l.nf_numero != null && String(l.nf_numero).trim() !== "" && !l.cancelado_em;
   return (
     <Sheet open={!!l} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 bg-card p-0 text-card-foreground sm:max-w-[480px]">
@@ -291,7 +298,16 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
             </Secao>
           </div>
         )}
-        {acoes && <SheetFooter className="flex flex-row flex-wrap gap-2 border-t p-4 sm:justify-start">{acoes}</SheetFooter>}
+        {(acoes || corrigirNf) && (
+          <SheetFooter className="flex flex-row flex-wrap gap-2 border-t p-4 sm:justify-start">
+            {acoes}
+            {corrigirNf && l && (
+              <BotaoCorrigirNf
+                pedido={{ id: l.id, origem: "venda_direta", estagio: l.estagio, cancelado_em: l.cancelado_em, nf_numero: l.nf_numero != null ? String(l.nf_numero) : null }}
+              />
+            )}
+          </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordenarCorrecoes, prazoCancelamento, podeGerarNfSubstituta, ehCancelamentoComNf, type StatusNfSub } from "./correcaoNf";
+import { ordenarCorrecoes, prazoCancelamento, podeGerarNfSubstituta, ehCancelamentoComNf, podeCorrigirNf, ESTAGIOS_CORRIGIR_NF, type StatusNfSub } from "./correcaoNf";
 
 describe("correções de NF", () => {
   it("ordena abertas primeiro e prazo mais próximo no topo", () => {
@@ -31,5 +31,23 @@ describe("correções de NF", () => {
     expect(ehCancelamentoComNf("refaturar")).toBe(false);
     expect(ehCancelamentoComNf("devolucao")).toBe(true);
     expect(ehCancelamentoComNf(null)).toBe(false);
+  });
+  it("B2B e venda direta são elegíveis nos estágios com NF", () => {
+    expect(podeCorrigirNf({ canal: "B2B", estagio: "faturado" })).toBe(true);
+    expect(podeCorrigirNf({ canal: "B2C", origem: "venda_direta", estagio: "pre_separacao" })).toBe(true);
+    expect(podeCorrigirNf({ canal: "B2C", origem: "venda_direta", estagio: "em_separacao" })).toBe(true);
+    expect(podeCorrigirNf({ canal: "B2C", origem: "venda_direta", estagio: "em_transporte" })).toBe(true);
+    expect(podeCorrigirNf({ canal: "B2C", origem: "venda_direta", estagio: "entregue" })).toBe(true);
+  });
+  it("B2C fora da venda direta, cancelado e estágio sem NF ficam de fora", () => {
+    expect(podeCorrigirNf({ canal: "B2C", estagio: "faturado" })).toBe(false);
+    expect(podeCorrigirNf({ canal: "B2C", origem: "shopify", estagio: "faturado" })).toBe(false);
+    expect(podeCorrigirNf({ canal: "B2B", estagio: "cancelado" })).toBe(false);
+    expect(podeCorrigirNf({ canal: "B2B", estagio: "entregue", cancelado_em: "2026-11-09T00:00:00Z" })).toBe(false);
+    expect(podeCorrigirNf({ canal: "B2C", origem: "venda_direta", estagio: "aguardando_pagamento" })).toBe(false);
+    expect(podeCorrigirNf({})).toBe(false);
+  });
+  it("estágios aceitos na correção de NF incluem pre_separacao e em_separacao", () => {
+    expect(ESTAGIOS_CORRIGIR_NF).toEqual(["faturado", "pre_separacao", "em_separacao", "em_transporte", "entregue"]);
   });
 });

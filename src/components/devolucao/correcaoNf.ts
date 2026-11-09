@@ -16,6 +16,20 @@ export function podeGerarNfSubstituta(originalAnulada: boolean, status: StatusNf
 
 export const ehCancelamentoComNf = (finalidade: string | null | undefined) => finalidade === "devolucao";
 
+/** Estágios em que se pode pedir correção: com NF emitida. Na venda direta a NF sai ANTES da separação. */
+export const ESTAGIOS_CORRIGIR_NF: string[] = ["faturado", "pre_separacao", "em_separacao", "em_transporte", "entregue"];
+
+/**
+ * Quem pode pedir correção de NF (09/11/2026): B2B ou venda direta (pedidos.origem = 'venda_direta',
+ * canal B2C), pedido não cancelado e em estágio com NF. A prévia do banco (dry_run) é o juiz final.
+ */
+export function podeCorrigirNf(p: {
+  canal?: string | null; origem?: string | null; estagio?: string | null; cancelado_em?: string | null;
+}): boolean {
+  const dono = p.canal === "B2B" || p.origem === "venda_direta";
+  return dono && p.estagio !== "cancelado" && !p.cancelado_em && ESTAGIOS_CORRIGIR_NF.includes(p.estagio ?? "");
+}
+
 /** Prazo de 24h para cancelar no Bling: conta da emissão da NF original (fallback autorização, depois data de emissão). */
 export function prazoCancelamento(
   fiscalAcao: string | null,
