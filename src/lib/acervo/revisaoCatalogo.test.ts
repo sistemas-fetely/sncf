@@ -45,10 +45,14 @@ describe('revisão por produto', () => {
     expect(totaisPorBloco(misto, blocos)).toEqual({ fiscal_fisico: 1, classificacao: 3 });
   });
   it('separa por dono: fiscal no SNCF, produto no FOP', () => {
-    expect(planoCatalogo(misto, 'aplicar', { p2: 'planilha', p3: 'planilha' })).toEqual({ sncf: [{ ids: ['1'], acao: 'aplicar', escolha: 'planilha', dono: 'operacoes' }], fop: ['p1', 'p2', 'p3'] });
+    expect(planoCatalogo(misto, 'aplicar', { p2: 'planilha', p3: 'planilha' })).toEqual({ sncf: [], fop: ['1', 'p1', 'p2', 'p3'] });
   });
   it('conflito de Produto: sistema descarta sem FOP, planilha vai ao FOP', () => {
-    expect(planoCatalogo(misto, 'aplicar', { p2: 'sistema', p3: 'planilha' })).toEqual({ sncf: [{ ids: ['1'], acao: 'aplicar', escolha: 'planilha', dono: 'operacoes' }, { ids: ['p2'], acao: 'resolver', escolha: 'sistema', dono: 'produto' }], fop: ['p1', 'p3'] });
+    expect(planoCatalogo(misto, 'aplicar', { p2: 'sistema', p3: 'planilha' })).toEqual({ sncf: [{ ids: ['p2'], acao: 'resolver', escolha: 'sistema', dono: 'produto' }], fop: ['1', 'p1', 'p3'] });
+  });
+  it('conflito fiscal: planilha vai ao FOP, sistema resolve direto com dono operacoes', () => {
+    const fisc = [celula('f1','001','ncm','conflito'), celula('f2','001','cest','conflito')];
+    expect(planoCatalogo(fisc, 'aplicar', { f1: 'planilha', f2: 'sistema' })).toEqual({ sncf: [{ ids: ['f2'], acao: 'resolver', escolha: 'sistema', dono: 'operacoes' }], fop: ['f1'] });
   });
   it('conflito sem escolha bloqueia o plano inteiro', () => {
     expect(planoCatalogo(misto, 'aplicar', { p2: 'planilha' })).toEqual({ sncf: [], fop: [] });

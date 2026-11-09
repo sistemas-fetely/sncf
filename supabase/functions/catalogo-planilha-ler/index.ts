@@ -8,6 +8,7 @@ import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts
 import { analisarCelula, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
 const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
+const ERRO_INTERROMPIDA = "Leitura interrompida antes de concluir (limite do servidor). Rode de novo.";
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const erroTexto = (e: unknown) => e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
 Deno.serve(async req => {
@@ -57,10 +58,10 @@ Deno.serve(async req => {
     const path = `${testando ? "testes/leituras" : "historico"}/${dia}/${id}.xlsx`;
     const up = await sb.storage.from("catalogo-planilha").upload(path, arquivo.bytes, { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     if (up.error) throw up.error;
-    const ins = await sb.from("catalogo_planilha_leitura").insert({ id, origem: cron ? "cron" : "manual", hash, etag: arquivo.etag, storage_path: path, ambiente, origem_chave: arquivo.origemChave, criado_por: ator });
+    const ins = await sb.from("catalogo_planilha_leitura").insert({ id, origem: cron ? "cron" : "manual", hash, etag: arquivo.etag, storage_path: path, ambiente, origem_chave: arquivo.origemChave, criado_por: ator, erro: ERRO_INTERROMPIDA });
     if (ins.error) throw ins.error; leitura = id;
     if (anterior.data?.hash === hash) {
-      const upd = await sb.from("catalogo_planilha_leitura").update({ status: "sem_mudanca", totais: { leitura_referencia: anterior.data.id } }).eq("id", id); if (upd.error) throw upd.error;
+      const upd = await sb.from("catalogo_planilha_leitura").update({ status: "sem_mudanca", erro: null, totais: { leitura_referencia: anterior.data.id } }).eq("id", id); if (upd.error) throw upd.error;
       return json({ ok: true, id, status: "sem_mudanca", testando });
     }
     const fichaQ = await sb.from("produto_ficha_nascimento").select("campo,importavel_planilha,onde_resolver,contexto_planilha");
@@ -74,9 +75,14 @@ Deno.serve(async req => {
     const tiposProduto = tiposColunasProduto(await esquemaResposta.json());
     const colunasProduto = Object.keys(tiposProduto);
     statusErro = "layout_quebrado";
-    const wb = XLSX.read(arquivo.bytes, { type: "array" });
+    // Parse only the catalog sheet, and only up to the last slug column / last used row (cost: WORKER_RESOURCE_LIMIT).
+    const wb = XLSX.read(arquivo.bytes, { type: "array", sheets: arquivo.aba, cellStyles: false, cellHTML: false, cellFormula: false, cellText: false });
     const ws = wb.Sheets[arquivo.aba]; if (!ws) throw new Error(`Layout quebrado: aba ${arquivo.aba} inexistente.`);
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null });
+    const area = XLSX.utils.decode_range(ws["!ref"] ?? "A1");
+    const cabecalho = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null, range: { s: { r: 2, c: area.s.c }, e: { r: 2, c: area.e.c } } })[0] ?? [];
+    let ultimaColuna = cabecalho.length - 1;
+    while (ultimaColuna >= 0 && String(cabecalho[ultimaColuna] ?? "").trim() === "") ultimaColuna--;
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null, blankrows: true, range: { s: { r: 0, c: area.s.c }, e: { r: area.e.r, c: area.s.c + Math.max(ultimaColuna, 0) } } });
     const slugs = (rows[2] ?? []).map(v => String(v ?? "").trim());
     const layout = validarSlugs(slugs, ficha, colunasProduto);
     statusErro = "erro";
@@ -102,6 +108,7 @@ Deno.serve(async req => {
       vistos.add(linha.cod);
       const produto = produtos.get(linha.cod);
       if (!produto) { mudancas.push({ cod_cadastro: linha.cod || `(linha ${linha.linha})`, campo: "cod_cadastro", dono: "operacoes", tipo: "sem_cadastro", erro: "Código não existe no SNCF; encaminhar à Importação de PI." }); continue; }
+      const fiscais: Record<string, unknown>[] = [];
       for (const campo of ficha) {
         if (somenteLeitura(campo.campo) || !campo.importavel_planilha || vazio(linha.valores[campo.campo])) continue;
         const key = `${linha.cod}|${campo.campo}`;
@@ -118,18 +125,25 @@ Deno.serve(async req => {
         const planilha = celula.valor_planilha;
         const tipo = celula.tipo;
         if (tipo) {
-          let erroCelula: string | null = null;
-          if (donoCampo(campo) === "operacoes") {
-            const validar = await sb.rpc("fn_produto_formato_validar_patch", { p_cod_cadastro: linha.cod, p_campos: { [campo.campo]: planilha } });
-            if (validar.error) throw validar.error;
-            else if (validar.data?.length) erroCelula = validar.data.map((v: { motivo: string }) => v.motivo).join("; ");
-          }
-          mudancas.push({ cod_cadastro: linha.cod, campo: campo.campo, dono: donoCampo(campo), ...celula, tipo: erroCelula ? "erro" : tipo, erro: erroCelula });
+          const m = { cod_cadastro: linha.cod, campo: campo.campo, dono: donoCampo(campo), ...celula, tipo, erro: null as string | null, _planilha: planilha };
+          (m.dono === "operacoes" ? fiscais : mudancas).push(m);
+        }
+      }
+      // One format check per product with all its fiscal fields (was one RPC per cell).
+      if (fiscais.length) {
+        const validar = await sb.rpc("fn_produto_formato_validar_patch", { p_cod_cadastro: linha.cod, p_campos: Object.fromEntries(fiscais.map(m => [m.campo, m._planilha])) });
+        if (validar.error) throw validar.error;
+        const motivos = new Map<string, string[]>();
+        for (const v of (validar.data ?? []) as { campo: string; motivo: string }[]) motivos.set(v.campo, [...(motivos.get(v.campo) ?? []), v.motivo]);
+        for (const { _planilha: _, ...m } of fiscais) {
+          const erroCelula = motivos.get(String(m.campo))?.join("; ") || null;
+          mudancas.push({ ...m, tipo: erroCelula ? "erro" : m.tipo, erro: erroCelula });
         }
       }
     }
     const totais = { colunas_ignoradas: layout.colunas_ignoradas, linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
     const done = await sb.rpc("fn_catalogo_leitura_concluir", { p_leitura_id: id, p_status: "comparada", p_totais: totais, p_mudancas: mudancas, p_base_inicial: baseInicial }); if (done.error) throw done.error;
+    const limpa = await sb.from("catalogo_planilha_leitura").update({ erro: null }).eq("id", id); if (limpa.error) throw limpa.error;
     return json({ ok: true, id, status: "comparada", totais, testando });
   } catch (e) {
     const erro = erroTexto(e);

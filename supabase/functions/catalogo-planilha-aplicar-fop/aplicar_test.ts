@@ -6,10 +6,10 @@ const cel = (id: string, tipo = "mudanca", extra: Partial<CelulaFop> = {}): Celu
 const quem = { id: "u1", nome: "Teste" };
 
 function fakeDeps(fop: (corpo: { celulas: { id: string }[] }) => Promise<unknown>) {
-  const log = { concluir: [] as [string[], string][], registrar: [] as ResultadoFop[], chamadas: [] as number[] };
+  const log = { concluir: [] as [string[], string, string?][], registrar: [] as ResultadoFop[], chamadas: [] as number[] };
   return { log, deps: {
     chamarFop: (c: { celulas: { id: string }[] }) => { log.chamadas.push(c.celulas.length); return fop(c); },
-    concluir: async (ids: string[], acao: "aplicar" | "resolver") => { log.concluir.push([ids, acao]); },
+    concluir: async (ids: string[], acao: "aplicar" | "resolver", dono?: string) => { log.concluir.push(dono === "produto" ? [ids, acao] : [ids, acao, dono]); },
     registrar: async (p: ResultadoFop[]) => { log.registrar.push(...p); },
   } };
 }
@@ -20,10 +20,10 @@ Deno.test("payload usa valor da planilha e valor esperado do sistema; conflito e
   assertEquals(itens[1].valor_esperado, "Atual FOP");
 });
 
-Deno.test("recusa célula de Operações ou de outra leitura", () => {
+Deno.test("recusa dono fora de produto/operacoes ou de outra leitura", () => {
   let erro = "";
-  try { montarItens([cel("1", "mudanca", { dono: "operacoes" })], ["1"], L); } catch (e) { erro = (e as Error).message; }
-  assertEquals(erro.includes("não é de Produto"), true);
+  try { montarItens([cel("1", "mudanca", { dono: "outro" })], ["1"], L); } catch (e) { erro = (e as Error).message; }
+  assertEquals(erro.includes("não vai ao FOP"), true);
   try { montarItens([cel("1", "mudanca", { leitura_id: "x" })], ["1"], L); } catch (e) { erro = (e as Error).message; }
   assertEquals(erro.includes("leitura atual"), true);
 });
@@ -98,4 +98,17 @@ Deno.test("FOP fake: HTTP 404 vira erro registrado na célula", async () => {
   const { log, deps } = fakeDeps(async () => { throw new Error("HTTP 404 — Not Found"); });
   await assertRejects(() => aplicarNoFop([cel("1")], ["1"], L, quem, deps), Error, "HTTP 404");
   assertEquals(log.registrar[0].erro, "Falha ao falar com o FOP: HTTP 404 — Not Found");
+});
+
+Deno.test("aceita célula de Operações (fiscal) no payload", () => {
+  const itens = montarItens([cel("1", "mudanca", { dono: "operacoes", campo: "ncm", valor_planilha: "1234.56.78", valor_sistema: null })], ["1"], L);
+  assertEquals(itens, [{ id: "1", cod_cadastro: "C1", campo: "ncm", valor_novo: "1234.56.78", valor_esperado: null }]);
+});
+
+Deno.test("FOP fake: concluir agrupa por dono (aplicar e resolver)", async () => {
+  const { log, deps } = fakeDeps(async c => ({ resultados: c.celulas.map(x => ({ id: x.id, status: "aplicada" })) }));
+  const cs = [cel("1"), cel("2", "mudanca", { dono: "operacoes", campo: "ncm" }), cel("3", "conflito", { dono: "operacoes", campo: "cest" }), cel("4", "mudanca", { dono: "operacoes", campo: "origem_fisc" })];
+  const r = await aplicarNoFop(cs, ["1", "2", "3", "4"], L, quem, deps);
+  assertEquals(r.aplicadas, 4);
+  assertEquals(log.concluir, [[["1"], "aplicar"], [["2", "4"], "aplicar", "operacoes"], [["3"], "resolver", "operacoes"]]);
 });

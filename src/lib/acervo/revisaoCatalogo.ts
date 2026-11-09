@@ -119,22 +119,21 @@ export function totaisPorBloco(celulas: CelulaCatalogo[], blocoDe: Record<string
 export type PlanoCatalogo = { sncf: DecisaoCatalogo[]; fop: string[] };
 
 /**
- * Splits selected cells by owner (Mapa v2). Fiscal (operacoes) → fn_catalogo_resolver as before.
- * Product: mudança and conflict "planilha" go to the FOP; conflict "sistema" and discards never call the FOP.
+ * Splits selected cells (Mapa v2). Both owners (operacoes/fiscal and produto): mudança and conflict "planilha" go to the FOP; conflict "sistema" and discards never call the FOP.
  * Returns an empty plan while any selected conflict lacks a choice.
  */
 export function planoCatalogo(celulas: CelulaCatalogo[], acao: 'aplicar' | 'descartar', escolhas: EscolhasCatalogo): PlanoCatalogo {
   const elegiveis = celulas.filter(c => DONOS.includes(c.dono) && ['mudanca', 'conflito'].includes(c.tipo));
-  const operacoes = elegiveis.filter(c => c.dono === 'operacoes');
-  const produto = elegiveis.filter(c => c.dono === 'produto');
   if (acao === 'aplicar' && elegiveis.some(c => c.tipo === 'conflito' && !escolhas[c.id])) return { sncf: [], fop: [] };
-  const sncf: DecisaoCatalogo[] = decisoesCatalogo(operacoes, acao, escolhas).map(d => ({ ...d, dono: 'operacoes' as const }));
-  if (acao === 'descartar') {
-    if (produto.length) sncf.push({ ids: produto.map(c => c.id), acao: 'descartar', escolha: 'sistema', dono: 'produto' });
-    return { sncf, fop: [] };
+  // Mapa v2: both owners are written by the FOP (its mirror overwrote fiscal fields written in sncf_produtos);
+  // discard and conflict→"sistema" never call the FOP and resolve directly per owner.
+  const sncf: DecisaoCatalogo[] = [];
+  for (const dono of ['operacoes', 'produto'] as const) {
+    const doDono = elegiveis.filter(c => c.dono === dono);
+    const ids = (acao === 'descartar' ? doDono : doDono.filter(c => c.tipo === 'conflito' && escolhas[c.id] === 'sistema')).map(c => c.id);
+    if (ids.length) sncf.push({ ids, acao: acao === 'descartar' ? 'descartar' : 'resolver', escolha: 'sistema', dono });
   }
-  const sistema = produto.filter(c => c.tipo === 'conflito' && escolhas[c.id] === 'sistema');
-  if (sistema.length) sncf.push({ ids: sistema.map(c => c.id), acao: 'resolver', escolha: 'sistema', dono: 'produto' });
-  const fop = produto.filter(c => c.tipo === 'mudanca' || escolhas[c.id] === 'planilha').map(c => c.id);
+  if (acao === 'descartar') return { sncf, fop: [] };
+  const fop = elegiveis.filter(c => c.tipo === 'mudanca' || escolhas[c.id] === 'planilha').map(c => c.id);
   return { sncf, fop };
 }

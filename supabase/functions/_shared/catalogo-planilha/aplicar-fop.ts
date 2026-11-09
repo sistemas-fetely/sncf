@@ -1,7 +1,17 @@
-// Mapa v2: Product-owned cells are written in the FOP; the SNCF only marks a cell
+// Mapa v2: Product- and fiscal-owned (operacoes) cells are written in the FOP; the SNCF only marks a cell
 // after the FOP answers. Pure rules + an orchestrator with injected I/O (tested with a fake FOP).
 
 export const LOTE_FOP = 500;
+export const DONOS_FOP = ["produto", "operacoes"] as const;
+export type DonoFop = typeof DONOS_FOP[number];
+
+/** Groups cell ids by owner so fn_catalogo_resolver is called with the matching p_dono. */
+export function agruparPorDono(ids: string[], celulas: CelulaFop[]): Map<DonoFop, string[]> {
+  const dono = new Map(celulas.map(c => [c.id, c.dono as DonoFop]));
+  const out = new Map<DonoFop, string[]>();
+  for (const id of ids) { const d = dono.get(id)!; out.set(d, [...(out.get(d) ?? []), id]); }
+  return out;
+}
 
 export type CelulaFop = {
   id: string; cod_cadastro: string; campo: string; dono: string; tipo: string; status: string;
@@ -22,7 +32,7 @@ export function montarItens(celulas: CelulaFop[], ids: string[], leituraId: stri
     const c = porId.get(id);
     if (!c) throw new Error(`Célula ${id} não encontrada.`);
     if (c.leitura_id !== leituraId) throw new Error(`Célula ${c.cod_cadastro}/${c.campo} não é da leitura atual.`);
-    if (c.dono !== "produto") throw new Error(`Célula ${c.cod_cadastro}/${c.campo} não é de Produto.`);
+    if (!DONOS_FOP.includes(c.dono as DonoFop)) throw new Error(`Célula ${c.cod_cadastro}/${c.campo} tem dono "${c.dono}", que não vai ao FOP.`);
     if (c.status !== "pendente" || !["mudanca", "conflito"].includes(c.tipo)) throw new Error(`Célula ${c.cod_cadastro}/${c.campo} não está pendente.`);
     // Conflict "planilha": the expected value is the FOP's current value, stored as valor_sistema.
     return { id: c.id, cod_cadastro: c.cod_cadastro, campo: c.campo, valor_novo: c.valor_planilha, valor_esperado: c.valor_sistema };
@@ -55,7 +65,7 @@ export function classificarResultados(itens: ItemFop[], celulas: CelulaFop[], re
 
 export type Dependencias = {
   chamarFop: (corpo: { quem: { id: string; nome: string }; leitura_id: string; celulas: ItemFop[] }) => Promise<unknown>;
-  concluir: (ids: string[], acao: "aplicar" | "resolver") => Promise<void>;
+  concluir: (ids: string[], acao: "aplicar" | "resolver", dono: DonoFop) => Promise<void>;
   registrar: (pendentes: ResultadoFop[]) => Promise<void>;
 };
 export type Resumo = { aplicadas: number; conflitos: number; erros: number; lotes: number };
@@ -78,8 +88,8 @@ export async function aplicarNoFop(celulas: CelulaFop[], ids: string[], leituraI
       const feito = resumo.lotes ? ` ${resumo.aplicadas} células já tinham sido aplicadas em lotes anteriores.` : "";
       throw new Error(`Falha ao falar com o FOP: ${msg}. Nenhuma célula deste lote foi aplicada; o erro ficou registrado nelas.${feito}`);
     }
-    if (c.aplicar.length) await deps.concluir(c.aplicar, "aplicar");
-    if (c.resolver.length) await deps.concluir(c.resolver, "resolver");
+    for (const [dono, l] of agruparPorDono(c.aplicar, celulas)) await deps.concluir(l, "aplicar", dono);
+    for (const [dono, l] of agruparPorDono(c.resolver, celulas)) await deps.concluir(l, "resolver", dono);
     if (c.pendentes.length) await deps.registrar(c.pendentes);
     resumo.aplicadas += c.aplicar.length + c.resolver.length;
     resumo.conflitos += c.pendentes.filter(p => p.status === "conflito").length;

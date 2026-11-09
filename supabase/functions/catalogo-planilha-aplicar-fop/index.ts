@@ -1,4 +1,6 @@
-// Applies Product-owned catalog cells in the FOP (Mapa v2). Fiscal cells keep using fn_catalogo_resolver.
+// Applies catalog cells of both owners (produto and operacoes/fiscal) in the FOP (Mapa v2); the SNCF
+// only marks them via fn_catalogo_resolver (p_dono per owner) after the FOP confirms, because the
+// FOP mirror (fn_upsert_catalogo) overwrote fiscal fields written directly in sncf_produtos.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
@@ -54,8 +56,8 @@ Deno.serve(async req => {
         if (!r.ok) throw new Error(`HTTP ${r.status}${texto ? ` — ${texto.slice(0, 300)}` : ""}`);
         try { return JSON.parse(texto); } catch { throw new Error("FOP devolveu resposta que não é JSON"); }
       },
-      concluir: async (lista, acao) => {
-        const r = await sb.rpc("fn_catalogo_resolver", { p_ids: lista, p_acao: acao, p_escolha: "planilha", p_dono: "produto", p_ator: quem.id });
+      concluir: async (lista, acao, dono) => {
+        const r = await sb.rpc("fn_catalogo_resolver", { p_ids: lista, p_acao: acao, p_escolha: "planilha", p_dono: dono, p_ator: quem.id });
         if (r.error) throw new Error(`FOP aplicou, mas o SNCF não registrou: ${r.error.message}`);
         const d = r.data as { ok: boolean; resultados: { ok: boolean; erro?: string }[] };
         if (!d.ok) throw new Error(`FOP aplicou, mas o SNCF não registrou: ${d.resultados.filter(x => !x.ok).map(x => x.erro).join("; ")}`);
