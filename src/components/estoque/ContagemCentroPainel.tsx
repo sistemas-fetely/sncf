@@ -272,7 +272,7 @@ export function ContagemCentroPainel() {
     const v = sessao.qtd[l.sku] ?? "";
     const dif = v !== "" && !numeroInvalido(v) ? Number(v) - (l.contabil ?? 0) : null;
     return (
-      <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", (destaque?.sku === l.sku || topo) && "bg-primary/15")}>
+      <TableRow key={l.sku} data-sku={l.sku} className={cn("bg-card transition-colors hover:bg-muted/50", (destaque?.sku === l.sku || topo) && "bg-primary/15")}>
         <TableCell><CodProduto chave={l.sku} /></TableCell>
         <TableCell>{celulaProduto(l)}</TableCell>
         <TableCell className="text-right tabular-nums">{l.contabil ?? 0}</TableCell>
@@ -336,27 +336,31 @@ export function ContagemCentroPainel() {
       />
 
       {resultado && (
-        <div className="space-y-2 rounded-md border p-3">
+        <div className="space-y-2 rounded-md border bg-card p-3">
           <p className="text-sm font-medium">
             {resultado.itens ?? 0} contagens registradas · {(resultado.divergencias ?? []).length} com diferença
           </p>
           {(resultado.divergencias ?? []).length > 0 && (
-            <Table className="text-[12px]">
-              <TableHeader><TableRow>
-                <TableHead>Código</TableHead><TableHead className="text-right">Contábil</TableHead>
-                <TableHead className="text-right">Contado</TableHead><TableHead className="text-right">Diferença</TableHead>
+            <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
+            <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)]">
+              <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>
+                <TableHead className="w-[150px]">Código</TableHead><TableHead>Produto</TableHead>
+                <TableHead className="w-[90px] text-right">Contábil</TableHead>
+                <TableHead className="w-[90px] text-right">Contado</TableHead><TableHead className="w-[100px] text-right">Diferença</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {(resultado.divergencias ?? []).map((d) => (
-                  <TableRow key={d.sku}>
-                    <TableCell><CodProduto chave={d.sku} variant="compacto" /></TableCell>
+                  <TableRow key={d.sku} className="bg-card hover:bg-muted/50">
+                    <TableCell><CodProduto chave={d.sku} /></TableCell>
+                    <TableCell>{celulaProduto(linhaDe(d.sku))}</TableCell>
                     <TableCell className="text-right tabular-nums">{d.contabil}</TableCell>
                     <TableCell className="text-right tabular-nums">{d.contado}</TableCell>
-                    <TableCell className="text-right tabular-nums text-destructive">{d.diferenca > 0 ? `+${d.diferenca}` : d.diferenca}</TableCell>
+                    <TableCell className={cn("text-right tabular-nums font-medium", d.diferenca < 0 && "text-destructive", d.diferenca > 0 && "text-warning")}>{d.diferenca > 0 ? `+${d.diferenca}` : d.diferenca}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </div>
       )}
@@ -376,7 +380,7 @@ export function ContagemCentroPainel() {
       </div>
 
       {contadas.length === 0 ? (
-        <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-md border border-dashed bg-card py-10 text-center text-sm text-muted-foreground">
           Nenhum item contado ainda. Bipe o primeiro produto.
         </div>
       ) : (
@@ -400,7 +404,7 @@ export function ContagemCentroPainel() {
               <FiltroColecao colecoes={colecoesLista} selecionadas={colecoes} onChange={setColecoes} />
             </div>
             {pendentesVisiveis.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">Nenhum produto não contado neste recorte</div>
+              <div className="rounded-md border bg-card py-6 text-center text-sm text-muted-foreground">Nenhum produto não contado neste recorte</div>
             ) : (
               <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
                 <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[12rem]">
