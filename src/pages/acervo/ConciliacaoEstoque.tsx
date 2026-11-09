@@ -106,6 +106,13 @@ function csvCelula(v: unknown): string {
 }
 function csvCod(v: string | null): string { return temValor(v) ? `="${String(v).replace(/"/g, '""')}"` : ""; }
 
+export function atualizarFiltroConciliacao(params: URLSearchParams, chave: string, valor: string | null): URLSearchParams {
+  const novo = new URLSearchParams(params);
+  if (valor) novo.set(chave, valor); else novo.delete(chave);
+  novo.delete("pagina");
+  return novo;
+}
+
 function fmtDataHora(iso: string | null, comHora: boolean) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -211,11 +218,9 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   const centroCartao = sp.get("centro_card") ?? "";
   const filCentros = lista("centro"); const filColecoes = lista("colecao");
   function setParam(k: string, v: string | null) {
-    const novo = new URLSearchParams(sp);
-    if (v) novo.set(k, v); else novo.delete(k);
-    setSp(novo, { replace: true }); setPagina(1);
+    setSp(atualizarFiltroConciliacao(sp, k, v), { replace: true });
   }
-  function limpar() { setSp(new URLSearchParams(), { replace: true }); setPagina(1); }
+  function limpar() { setSp(new URLSearchParams(), { replace: true }); }
 
   // POSTGREST-CORTA-EM-MIL
   const produtosQ = useQuery({ queryKey: ["estoque-triade-produto"], queryFn: () => lerTudo<Produto>("vw_estoque_triade_produto", ["sku"]) });
