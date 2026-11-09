@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatError } from "@/lib/format-error";
+import { cn } from "@/lib/utils";
+import { sugerirProdutos, type ProdutoCatalogo } from "@/lib/estoque/contagemSessao";
 
 export interface LeituraCodigo { sku: string; unidades: number }
 interface Codigo { sku: string; unidades: number | null; tipo: string | null }
@@ -40,15 +43,21 @@ interface Props {
   onDesfazer: (l: LeituraCodigo) => void;
   validarSku?: (sku: string) => string | null;
   autoFocus?: boolean;
+  /** Catálogo para sugestões por nome/código quando o texto tem letras. */
+  catalogo?: ProdutoCatalogo[];
+  grande?: boolean;
+  placeholder?: string;
 }
 
-export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocus = true }: Props) {
+export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocus = true, catalogo, grande = false, placeholder }: Props) {
   const [codigo, setCodigo] = useState("");
   const [qtd, setQtd] = useState("1");
   const [historico, setHistorico] = useState<LeituraCodigo[]>([]);
   const [caixa, setCaixa] = useState<{ sku: string; codigo: string; mult: number } | null>(null);
   const [pecasCaixa, setPecasCaixa] = useState("");
   const ref = useRef<HTMLInputElement>(null);
+  const [ativo, setAtivo] = useState(-1);
+  const sugestoes = useMemo(() => (catalogo ? sugerirProdutos(catalogo, codigo) : []), [catalogo, codigo]);
   const { resolver: resolverCod } = useCodigoProdutoMap();
 
   const codigosQ = useQuery({
@@ -116,6 +125,30 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
     focar();
   }
 
+  function escolher(p: ProdutoCatalogo) {
+    const mult = multiplicador();
+    setCodigo(""); setQtd("1"); setAtivo(-1);
+    const recusa = validarSku?.(p.sku) ?? null;
+    if (recusa) { toast.error(recusa); bip(false); focar(); return; }
+    aceitar(p.sku, mult);
+    focar();
+  }
+
+  function teclar(e: KeyboardEvent<HTMLInputElement>) {
+    if (sugestoes.length > 0 && e.key === "ArrowDown") { e.preventDefault(); setAtivo((a) => Math.min(sugestoes.length - 1, a + 1)); return; }
+    if (sugestoes.length > 0 && e.key === "ArrowUp") { e.preventDefault(); setAtivo((a) => Math.max(-1, a - 1)); return; }
+    if (e.key === "Escape") { setAtivo(-1); setCodigo(""); return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (ativo >= 0 && sugestoes[ativo]) { escolher(sugestoes[ativo]); return; }
+    // Código/SKU exato tem prioridade; sem correspondência e com sugestões, usa a primeira.
+    const k = normalizarCodigo(codigo);
+    const exato = (k && codigosQ.data?.has(k)) || resolverCod(codigo).cadastrado;
+    if (!exato && sugestoes.length > 0) { escolher(sugestoes[0]); return; }
+    setAtivo(-1);
+    ler();
+  }
+
   function confirmarCaixa() {
     if (!caixa) return;
     const p = Math.floor(Number(pecasCaixa));
@@ -142,13 +175,31 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
         <Input
           ref={ref}
           value={codigo}
-          onChange={(e) => setCodigo(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); ler(); } }}
-          placeholder={codigosQ.isLoading ? "Carregando códigos…" : "Bipar código"}
+          onChange={(e) => { setCodigo(e.target.value); setAtivo(-1); }}
+          onKeyDown={teclar}
+          placeholder={codigosQ.isLoading ? "Carregando códigos…" : placeholder ?? "Bipar código"}
           aria-label="Bipar código"
+          aria-expanded={sugestoes.length > 0}
+          autoComplete="off"
           disabled={codigosQ.isLoading}
-          className="h-9 w-[240px] pl-8 font-mono"
+          className={cn(grande ? "h-12 w-[min(520px,80vw)] pl-9 text-base" : "h-9 w-[240px] pl-8 font-mono")}
         />
+        {sugestoes.length > 0 && (
+          <ul role="listbox" className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+            {sugestoes.map((p, i) => (
+              <li
+                key={p.sku} role="option" aria-selected={i === ativo}
+                onMouseDown={(e) => { e.preventDefault(); escolher(p); }}
+                onMouseEnter={() => setAtivo(i)}
+                className={cn("flex cursor-pointer items-baseline gap-2 px-3 py-1.5 text-sm", i === ativo && "bg-accent text-accent-foreground")}
+              >
+                <span className="font-mono text-xs text-muted-foreground">{p.cod_cadastro ?? p.sku}</span>
+                <span className="truncate">{p.nome_comercial ?? p.sku}</span>
+                {p.cor_nome && <span className="truncate text-xs text-muted-foreground">{p.cor_nome}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="flex items-center gap-1">
         <span className="text-sm text-muted-foreground">×</span>

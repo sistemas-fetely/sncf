@@ -1,12 +1,12 @@
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
@@ -20,8 +20,11 @@ import { useNavigate } from "react-router-dom";
 import { useFotosPrincipais } from "@/hooks/useFotosProduto";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { ImportarContagemDialog, type ModoImportacao } from "@/components/estoque/ImportarContagemDialog";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { X, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  sessaoVazia, somarLeitura, definirQtd, removerItem, importarItens, preenchidos, resumoSessao,
+  naoContados, itensRegistro, numeroInvalido, chaveRascunho, lerRascunho, type SessaoContagem, type ProdutoCatalogo,
+} from "@/lib/estoque/contagemSessao";
 import { Badge } from "@/components/ui/badge";
 import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
@@ -42,22 +45,65 @@ interface Resultado { ok?: boolean; itens?: number; divergencias?: Divergencia[]
 
 const CENTRO_XPM = "XPM-SC";
 
+// Rascunho da sessão por centro+data (decisão Flavio 09/11/2026): só para não perder a contagem num recarregamento.
+function lerStorage(chave: string): SessaoContagem {
+  try { return lerRascunho(window.localStorage.getItem(chave)); } catch { return sessaoVazia(); }
+}
+function gravarStorage(chave: string, s: SessaoContagem) {
+  try {
+    if (s.ordem.length === 0) window.localStorage.removeItem(chave);
+    else window.localStorage.setItem(chave, JSON.stringify(s));
+  } catch { /* armazenamento indisponível: a contagem segue só na memória */ }
+}
+function apagarStorage(chave: string) { try { window.localStorage.removeItem(chave); } catch { /* idem */ } }
+
 export function ContagemCentroPainel() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
-  const [nav, setNav] = useEstadoTela({ div: false, centro: "SITE-SP", busca: "" }, { prefixo: "ct", replaceKeys: ["busca"] });
-  const soDiv = nav.div; const setSoDiv = (v: SetStateAction<typeof soDiv>) => setNav({ div: resolverAcao(v, soDiv) as never });
-  const [achados, setAchados] = useState<Linha[]>([]);
-  const centro = nav.centro; const setCentro = (v: SetStateAction<typeof centro>) => setNav({ centro: resolverAcao(v, centro) as never });
-  const [data, setData] = useState(hojeISO());
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: centro, busca e lista de não contados na URL.
+  const [nav, setNav] = useEstadoTela({ centro: "SITE-SP", busca: "", ver: false }, { prefixo: "ct", replaceKeys: ["busca"] });
+  const centro = nav.centro;
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const verNao = nav.ver; const setVerNao = (v: boolean) => setNav({ ver: v as never });
+  const [data, setDataRaw] = useState(hojeISO());
   const [colecoes, setColecoes] = useState<string[]>([]);
-  const [contados, setContados] = useState<Record<string, string>>({});
+  const [sess, setSess] = useState<{ chave: string; s: SessaoContagem }>(() => {
+    const k = chaveRascunho(centro, hojeISO());
+    return { chave: k, s: lerStorage(k) };
+  });
+  const sessao = sess.s;
+  const setSessao = (f: (s: SessaoContagem) => SessaoContagem) => setSess((x) => ({ ...x, s: f(x.s) }));
   const [confirmar, setConfirmar] = useState(false);
+  const [trocaCentro, setTrocaCentro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [destaque, setDestaque] = useState<{ sku: string; t: number } | null>(null);
-  const tabelaRef = useRef<HTMLDivElement>(null);
+
+  // Centro vindo da URL (ex.: voltar/avançar) carrega o rascunho dele.
+  useEffect(() => {
+    const k = chaveRascunho(centro, data);
+    setSess((x) => (x.chave === k ? x : { chave: k, s: lerStorage(k) }));
+  }, [centro, data]);
+  useEffect(() => { gravarStorage(sess.chave, sess.s); }, [sess]);
+
+  const setData = (d: string) => {
+    // Mudar a data leva a contagem em andamento junto (rascunho muda de chave).
+    const k = chaveRascunho(centro, d);
+    apagarStorage(sess.chave);
+    setSess((x) => ({ chave: k, s: x.s }));
+    setDataRaw(d);
+  };
+  const aplicarCentro = (c: string) => {
+    apagarStorage(sess.chave);
+    const k = chaveRascunho(c, data);
+    apagarStorage(k);
+    setSess({ chave: k, s: sessaoVazia() });
+    setResultado(null);
+    setNav({ centro: c as never });
+  };
+  const pedirCentro = (c: string) => {
+    if (c === centro) return;
+    if (sessao.ordem.length > 0) setTrocaCentro(c); else aplicarCentro(c);
+  };
 
   const centrosQ = useQuery({
     queryKey: ["contagem-centros"],
@@ -82,6 +128,24 @@ export function ContagemCentroPainel() {
     },
   });
 
+  // Catálogo inteiro: sugestões por nome e dados de itens contados fora do centro.
+  const catalogoQ = useQuery({
+    queryKey: ["sncf_produtos", "contagem-catalogo"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const r: ProdutoCatalogo[] = [];
+      const passo = 1000;
+      for (let de = 0; ; de += passo) {
+        const { data, error } = await (supabase as any)
+          .from("sncf_produtos").select("sku,cod_cadastro,nome_comercial,cor_nome,colecao").order("cod_cadastro").range(de, de + passo - 1);
+        if (error) throw error;
+        r.push(...((data ?? []) as ProdutoCatalogo[]).filter((p) => p.sku));
+        if (!data || data.length < passo) break;
+      }
+      return r;
+    },
+  });
+
   // Última contagem registrada por SKU no centro (qtd + data); sem contagem → "—".
   const ultimaQ = useQuery({
     queryKey: ["vw_estoque_centro", "ultima_contagem", centro],
@@ -99,101 +163,60 @@ export function ContagemCentroPainel() {
     },
   });
 
-  const linhas = useMemo(() => {
-    const base = linhasQ.data ?? [];
-    const ja = new Set(base.map((l) => l.sku));
-    return [...base, ...achados.filter((a) => !ja.has(a.sku))];
-  }, [linhasQ.data, achados]);
+  const porSkuCentro = useMemo(() => new Map((linhasQ.data ?? []).map((l) => [l.sku, l])), [linhasQ.data]);
+  const porSkuCatalogo = useMemo(() => new Map((catalogoQ.data ?? []).map((p) => [p.sku, p])), [catalogoQ.data]);
+  const linhaDe = (sku: string): Linha => {
+    const c = porSkuCentro.get(sku);
+    if (c) return c;
+    const p = porSkuCatalogo.get(sku);
+    return { sku, cod_cadastro: p?.cod_cadastro ?? null, nome_comercial: p?.nome_comercial ?? null, cor_nome: p?.cor_nome ?? null, colecao: p?.colecao ?? null, contabil: 0, fisico: null, virtual: 0, achado: true };
+  };
+  const contadas = sessao.ordem.map(linhaDe);
+
+  const pendentes = useMemo(() => naoContados(linhasQ.data ?? [], sessao), [linhasQ.data, sessao]);
   const colecoesLista = useMemo(() => {
     const m = new Map<string, number>();
-    linhas.forEach((l) => { if (l.colecao) m.set(l.colecao, (m.get(l.colecao) ?? 0) + 1); });
+    pendentes.forEach((l) => { if (l.colecao) m.set(l.colecao, (m.get(l.colecao) ?? 0) + 1); });
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [linhas]);
-
-  const visiveis = useMemo(() => {
+  }, [pendentes]);
+  const pendentesVisiveis = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    return linhas
+    return pendentes
       .filter((l) => colecoes.length === 0 || (l.colecao != null && colecoes.includes(l.colecao)))
-      .filter((l) => {
-        if (!soDiv) return true;
-        const v = contados[l.sku];
-        return v !== undefined && v !== "" && !isNaN(Number(v)) && Number(v) - (l.contabil ?? 0) !== 0;
-      })
       .filter((l) => !t || [l.cod_cadastro, l.sku, l.nome_comercial].some((v) => (v ?? "").toLowerCase().includes(t)))
       .sort((a, b) => (a.cod_cadastro ?? a.sku).localeCompare(b.cod_cadastro ?? b.sku));
-  }, [linhas, busca, colecoes, soDiv, contados]);
+  }, [pendentes, busca, colecoes]);
 
   useEffect(() => {
     if (!destaque) return;
-    const el = tabelaRef.current?.querySelector(`[data-sku="${CSS.escape(destaque.sku)}"]`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
     const t = setTimeout(() => setDestaque((d) => (d?.t === destaque.t ? null : d)), 1500);
     return () => clearTimeout(t);
   }, [destaque]);
 
-  const somarContado = (sku: string, delta: number) =>
-    setContados((c) => {
-      const atual = c[sku] === undefined || c[sku] === "" || isNaN(Number(c[sku])) ? 0 : Number(c[sku]);
-      const novo = Math.max(0, atual + delta);
-      return { ...c, [sku]: String(novo) };
-    });
-
-  async function incluirAchado(sku: string) {
-    const { data: p, error } = await (supabase as any)
-      .from("sncf_produtos").select("sku,cod_cadastro,nome_comercial").eq("sku", sku).maybeSingle();
-    if (error || !p) {
-      toast.error(error ? `Falha ao buscar produto ${sku}: ${formatError(error)}` : `SKU ${sku} não encontrado no catálogo`);
-      setContados((c) => { const n = { ...c }; delete n[sku]; return n; });
-      return;
-    }
-    setAchados((a) => a.some((x) => x.sku === sku) ? a : [...a, {
-      sku: p.sku, cod_cadastro: p.cod_cadastro, nome_comercial: p.nome_comercial,
-      cor_nome: null, colecao: null, contabil: 0, fisico: null, achado: true,
-    }]);
-    setDestaque({ sku, t: Date.now() });
-  }
-
   function aoLer(l: LeituraCodigo) {
-    if (!visiveis.some((v) => v.sku === l.sku)) { setBusca(""); setColecoes([]); setSoDiv(false); }
-    if (!linhas.some((v) => v.sku === l.sku)) void incluirAchado(l.sku);
-    somarContado(l.sku, l.unidades);
+    setSessao((s) => somarLeitura(s, l.sku, l.unidades));
+    setDestaque({ sku: l.sku, t: Date.now() });
+  }
+  function aoDesfazer(l: LeituraCodigo) {
+    setSessao((s) => somarLeitura(s, l.sku, -l.unidades));
     setDestaque({ sku: l.sku, t: Date.now() });
   }
   function aoImportar(itens: { sku: string; qtd: number }[], modo: ModoImportacao) {
-    setBusca(""); setColecoes([]);
-    setContados((c) => {
-      const base = modo === "substituir" ? {} : { ...c };
-      itens.forEach(({ sku, qtd }) => {
-        const atual = base[sku] === undefined || base[sku] === "" || isNaN(Number(base[sku])) ? 0 : Number(base[sku]);
-        base[sku] = String(atual + qtd);
-      });
-      return base;
-    });
-    itens.filter((i) => !linhas.some((l) => l.sku === i.sku)).forEach((i) => void incluirAchado(i.sku));
-  }
-  const fotosQ = useFotosPrincipais(visiveis.map((l) => l.cod_cadastro));
-
-  function aoDesfazer(l: LeituraCodigo) {
-    somarContado(l.sku, -l.unidades);
-    setDestaque({ sku: l.sku, t: Date.now() });
+    setSessao((s) => importarItens(s, itens, modo === "substituir" ? "substituir" : "somar"));
+    const fora = itens.filter((i) => !porSkuCentro.has(i.sku) && !porSkuCatalogo.has(i.sku)).map((i) => i.sku);
+    if (fora.length > 0 && catalogoQ.data) toast.warning(`${fora.length} SKU(s) não encontrados no catálogo: ${fora.slice(0, 5).join(", ")}${fora.length > 5 ? "…" : ""}`);
   }
 
-  const preenchidos = Object.entries(contados).filter(([, v]) => v !== "" && Number(v) >= 0 && !isNaN(Number(v)));
-  const n = preenchidos.length;
-  const resumo = useMemo(() => {
-    const contabil = new Map(linhas.map((l) => [l.sku, l.contabil ?? 0]));
-    let pecas = 0, sobras = 0, faltas = 0;
-    preenchidos.forEach(([sku, v]) => {
-      const q = Number(v); pecas += q;
-      const d = q - (contabil.get(sku) ?? 0);
-      if (d > 0) sobras++; else if (d < 0) faltas++;
-    });
-    return { pecas, sobras, faltas };
-  }, [preenchidos, linhas]);
+  const fotosQ = useFotosPrincipais([...contadas, ...(verNao ? pendentesVisiveis : [])].map((l) => l.cod_cadastro));
+
+  const validos = preenchidos(sessao);
+  const n = validos.length;
+  const resumo = useMemo(() => resumoSessao(sessao, new Map((linhasQ.data ?? []).map((l) => [l.sku, l.contabil ?? 0]))), [sessao, linhasQ.data]);
+  const invalidos = sessao.ordem.some((k) => numeroInvalido(sessao.qtd[k] ?? ""));
 
   const registrar = useMutation({
-    mutationFn: async () => {
-      const itens = preenchidos.map(([sku, v]) => ({ sku, qtd: Number(v), condicao: "sadio" }));
+    mutationFn: async (modo: "total" | "parcial") => {
+      const itens = itensRegistro(sessao, pendentes.map((l) => l.sku), modo);
       const { data: r, error } = await (supabase as any).rpc("fn_registrar_contagem", {
         p_centro_codigo: centro, p_data: data, p_itens: itens,
       });
@@ -204,8 +227,8 @@ export function ContagemCentroPainel() {
     },
     onSuccess: async (res) => {
       setResultado(res);
-      setContados({});
-      setAchados([]);
+      apagarStorage(sess.chave);
+      setSessao(() => sessaoVazia());
       toast.success(`${res.itens ?? n} contagens registradas · ${(res.divergencias ?? []).length} com diferença`, {
         action: { label: "Ver na Conciliação", onClick: () => navigate("/vendas/produto/estoque/conciliacao") },
       });
@@ -216,17 +239,76 @@ export function ContagemCentroPainel() {
     onError: (e) => toast.error(`Falha ao registrar contagem: ${formatError(e)}`),
   });
 
-  const numeroInvalido = (v: string) => v !== "" && (isNaN(Number(v)) || Number(v) < 0);
-  const centroRotulo = centrosQ.data?.find((c) => c.codigo === centro)?.rotulo_curto ?? centro;
+  const centroRotulo = (c: string) => centrosQ.data?.find((x) => x.codigo === c)?.rotulo_curto ?? c;
+  const nPend = pendentes.length;
+
+  const celulaProduto = (l: Linha) => (
+    <div className="flex items-center gap-2">
+      <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro) : null} nome={l.nome_comercial} />
+      <div className="min-w-0 max-w-[360px]">
+        <div className="flex items-center gap-2 truncate">{l.nome_comercial ?? "—"}{l.achado && <Badge variant="outline" className="border-warning text-warning">Achado</Badge>}</div>
+        {l.cor_nome && <div className="text-[11px] text-muted-foreground">{l.cor_nome}</div>}
+      </div>
+    </div>
+  );
+  const celulaUltima = (sku: string) => {
+    const u = ultimaQ.data?.get(sku);
+    if (!u) return <span className="text-muted-foreground">—</span>;
+    return <>{u.qtd}<div className="text-[10px] text-muted-foreground">{fmtData(u.em)}</div></>;
+  };
+  const cabecalho = (comRemover: boolean) => (
+    <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>
+      <TableHead className="w-[150px]">Código</TableHead>
+      <TableHead>Produto</TableHead>
+      <TableHead className="w-[90px] text-right">Contábil</TableHead>
+      <TableHead className="w-[90px] text-right">Disponível</TableHead>
+      <TableHead className="w-[130px] text-right">Última contagem</TableHead>
+      <TableHead className="w-[120px] text-right">Contado</TableHead>
+      <TableHead className="w-[100px] text-right">Diferença</TableHead>
+      {comRemover && <TableHead className="w-[48px]" />}
+    </TableRow></TableHeader>
+  );
+  const linhaTabela = (l: Linha, contada: boolean, topo: boolean) => {
+    const v = sessao.qtd[l.sku] ?? "";
+    const dif = v !== "" && !numeroInvalido(v) ? Number(v) - (l.contabil ?? 0) : null;
+    return (
+      <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", (destaque?.sku === l.sku || topo) && "bg-primary/15")}>
+        <TableCell><CodProduto chave={l.sku} /></TableCell>
+        <TableCell>{celulaProduto(l)}</TableCell>
+        <TableCell className="text-right tabular-nums">{l.contabil ?? 0}</TableCell>
+        <TableCell className={cn("text-right tabular-nums font-medium", (l.virtual ?? 0) < 0 && "text-destructive")}>{l.virtual ?? 0}</TableCell>
+        <TableCell className="text-right tabular-nums">{celulaUltima(l.sku)}</TableCell>
+        <TableCell className="text-right">
+          <Input
+            type="number" min={0} step={1} inputMode="numeric" value={v}
+            aria-label={`Contado ${l.cod_cadastro ?? l.sku}`}
+            aria-invalid={numeroInvalido(v)}
+            onChange={(e) => { const val = e.target.value; setSessao((s) => definirQtd(s, l.sku, val)); }}
+            className={cn("ml-auto h-8 w-24 text-right tabular-nums", numeroInvalido(v) && "border-destructive")}
+          />
+        </TableCell>
+        <TableCell className={cn("text-right tabular-nums font-medium", dif === 0 && "text-success", dif != null && dif !== 0 && "text-destructive")}>
+          {dif == null ? "" : dif > 0 ? `+${dif}` : dif}
+        </TableCell>
+        {contada && (
+          <TableCell>
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remover ${l.cod_cadastro ?? l.sku} da contagem`} onClick={() => setSessao((s) => removerItem(s, l.sku))}>
+              <X className="h-4 w-4" />
+            </Button>
+          </TableCell>
+        )}
+      </TableRow>
+    );
+  };
 
   return (
     <section className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Registre o que foi contado na prateleira. A contagem não altera o saldo contábil — a diferença aparece como divergência para decisão.
+        Bipe ou digite cada produto contado. A contagem não altera o saldo contábil — a diferença aparece como divergência para decisão.
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={centro} onValueChange={(v) => { setCentro(v); setContados({}); setAchados([]); setResultado(null); }}>
+        <Select value={centro} onValueChange={pedirCentro}>
           <SelectTrigger className="w-[200px]"><SelectValue placeholder="Centro" /></SelectTrigger>
           <SelectContent>
             {(centrosQ.data ?? []).map((c) => (
@@ -235,14 +317,9 @@ export function ContagemCentroPainel() {
           </SelectContent>
         </Select>
         <Input type="date" value={data} max={hojeISO()} onChange={(e) => setData(e.target.value > hojeISO() ? hojeISO() : e.target.value)} className="w-[160px]" aria-label="Data da contagem" />
-        <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por código, SKU ou nome" className="w-[280px]" />
-        <FiltroColecao colecoes={colecoesLista} selecionadas={colecoes} onChange={setColecoes} />
-        <div className="flex items-center gap-2">
-          <Switch id="so-div" checked={soDiv} onCheckedChange={setSoDiv} />
-          <Label htmlFor="so-div" className="text-sm">Só divergências</Label>
-        </div>
+        <ImportarContagemDialog onAplicar={aoImportar} />
         <div className="ml-auto flex items-center gap-3">
-          <BotaoGuardado slug="acao.estoque_contagem_registrar" rotuloAcao="Registrar contagem" disabled={n === 0 || registrar.isPending || preenchidos.some(([, v]) => numeroInvalido(v)) || !data} onClick={() => setConfirmar(true)}>
+          <BotaoGuardado slug="acao.estoque_contagem_registrar" rotuloAcao="Registrar contagem" disabled={n === 0 || registrar.isPending || invalidos || !data} onClick={() => setConfirmar(true)}>
             Registrar contagem ({n})
           </BotaoGuardado>
         </div>
@@ -251,6 +328,12 @@ export function ContagemCentroPainel() {
       {centrosQ.isError && <p className="text-sm text-destructive">Falha ao carregar centros: {formatError(centrosQ.error)}</p>}
       {ultimaQ.isError && <p className="text-sm text-destructive">Falha ao carregar últimas contagens: {formatError(ultimaQ.error)}</p>}
       {linhasQ.isError && <p className="text-sm text-destructive">Falha ao carregar produtos: {formatError(linhasQ.error)}</p>}
+      {catalogoQ.isError && <p className="text-sm text-destructive">Falha ao carregar catálogo: {formatError(catalogoQ.error)}</p>}
+
+      <LeitorCodigoBarras
+        onLeitura={aoLer} onDesfazer={aoDesfazer} grande
+        catalogo={catalogoQ.data} placeholder="Bipar ou digitar código, SKU ou nome"
+      />
 
       {resultado && (
         <div className="space-y-2 rounded-md border p-3">
@@ -280,7 +363,7 @@ export function ContagemCentroPainel() {
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          ["Itens contados", n, ""],
+          ["Itens contados", resumo.itens, ""],
           ["Peças contadas", resumo.pecas, ""],
           ["Sobras", resumo.sobras, resumo.sobras > 0 ? "text-warning" : ""],
           ["Faltas", resumo.faltas, resumo.faltas > 0 ? "text-destructive" : ""],
@@ -292,80 +375,83 @@ export function ContagemCentroPainel() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-start gap-2">
-        <div className="min-w-0 flex-1"><LeitorCodigoBarras onLeitura={aoLer} onDesfazer={aoDesfazer} /></div>
-        <ImportarContagemDialog onAplicar={aoImportar} />
-      </div>
-
-      {linhasQ.isLoading ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
-      ) : visiveis.length === 0 ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">Nenhum produto neste recorte</div>
+      {contadas.length === 0 ? (
+        <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+          Nenhum item contado ainda. Bipe o primeiro produto.
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-md border bg-card" ref={tabelaRef} style={{ ["--fila-topo-colado" as string]: "0px" }}>
-          <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[20rem]">
-            <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>
-              <TableHead className="w-[150px]">Código</TableHead>
-              <TableHead>Produto</TableHead>
-              <TableHead className="w-[90px] text-right">Contábil</TableHead>
-              <TableHead className="w-[90px] text-right">Disponível</TableHead>
-              <TableHead className="w-[130px] text-right">Última contagem</TableHead>
-              <TableHead className="w-[120px] text-right">Contado</TableHead>
-              <TableHead className="w-[100px] text-right">Diferença</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {visiveis.map((l) => {
-                const v = contados[l.sku] ?? "";
-                const dif = v !== "" && !numeroInvalido(v) ? Number(v) - (l.contabil ?? 0) : null;
-                return (
-                  <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", destaque?.sku === l.sku && "bg-primary/15")}>
-                    <TableCell><CodProduto chave={l.sku} /></TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                      <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro) : null} nome={l.nome_comercial} />
-                      <div className="min-w-0 max-w-[360px]">
-                      <div className="flex items-center gap-2 truncate">{l.nome_comercial ?? "—"}{l.achado && <Badge variant="outline" className="border-warning text-warning">Achado</Badge>}</div>
-                      {l.cor_nome && <div className="text-[11px] text-muted-foreground">{l.cor_nome}</div>}
-                      </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{l.contabil ?? 0}</TableCell>
-                    <TableCell className={cn("text-right tabular-nums font-medium", (l.virtual ?? 0) < 0 && "text-destructive")}>{l.virtual ?? 0}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {(() => {
-                        const u = ultimaQ.data?.get(l.sku);
-                        if (!u) return <span className="text-muted-foreground">—</span>;
-                        return <>{u.qtd}<div className="text-[10px] text-muted-foreground">{fmtData(u.em)}</div></>;
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Input
-                        type="number" min={0} step={1} inputMode="numeric" value={v}
-                        aria-invalid={numeroInvalido(v)}
-                        onChange={(e) => setContados((c) => ({ ...c, [l.sku]: e.target.value }))}
-                        className={cn("ml-auto h-8 w-24 text-right tabular-nums", numeroInvalido(v) && "border-destructive")}
-                      />
-                    </TableCell>
-                    <TableCell className={cn("text-right tabular-nums font-medium", dif === 0 && "text-success", dif != null && dif !== 0 && "text-destructive")}>
-                      {dif == null ? "" : dif > 0 ? `+${dif}` : dif}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
+        <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
+          <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)]">
+            {cabecalho(true)}
+            <TableBody>{contadas.map((l, i) => linhaTabela(l, true, i === 0))}</TableBody>
           </Table>
         </div>
       )}
+
+      <div className="space-y-3">
+        <Button variant="outline" size="sm" onClick={() => setVerNao(!verNao)} disabled={linhasQ.isLoading}>
+          {verNao ? <ChevronDown className="mr-1 h-4 w-4" /> : <ChevronRight className="mr-1 h-4 w-4" />}
+          {linhasQ.isLoading ? "Carregando não contados…" : `Ver não contados (${nPend})`}
+        </Button>
+        {verNao && (
+          <>
+            <div className="flex flex-wrap items-center gap-3">
+              <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por código, SKU ou nome" className="w-[280px]" />
+              <FiltroColecao colecoes={colecoesLista} selecionadas={colecoes} onChange={setColecoes} />
+            </div>
+            {pendentesVisiveis.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Nenhum produto não contado neste recorte</div>
+            ) : (
+              <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
+                <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[12rem]">
+                  {cabecalho(false)}
+                  <TableBody>{pendentesVisiveis.map((l) => linhaTabela(l, false, false))}</TableBody>
+                </Table>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <AlertDialog open={confirmar} onOpenChange={setConfirmar}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Registrar contagem</AlertDialogTitle>
-            <AlertDialogDescription>Registrar {n} contagens no {centroRotulo} em {fmtData(data)}?</AlertDialogDescription>
+            <AlertDialogDescription>
+              {nPend > 0
+                ? `Você contou ${n} itens no ${centroRotulo(centro)} em ${fmtData(data)}. Há ${nPend} itens com saldo no centro que não foram contados.`
+                : `Registrar ${n} contagens no ${centroRotulo(centro)} em ${fmtData(data)}?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={cn(nPend > 0 && "flex-col gap-2 sm:flex-col sm:space-x-0")}>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            {nPend > 0 ? (
+              <>
+                <AlertDialogAction className={cn(buttonVariants({ variant: "outline" }), "text-foreground")} onClick={() => registrar.mutate("parcial")}>
+                  Contagem parcial — registrar só os {n} contados
+                </AlertDialogAction>
+                <AlertDialogAction onClick={() => registrar.mutate("total")}>
+                  Contagem total do centro — lançar os {nPend} não contados como zero
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction onClick={() => registrar.mutate("parcial")}>Registrar</AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!trocaCentro} onOpenChange={(o) => { if (!o) setTrocaCentro(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar de centro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A contagem em andamento no {centroRotulo(centro)} ({sessao.ordem.length} itens) será descartada.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => registrar.mutate()}>Registrar</AlertDialogAction>
+            <AlertDialogCancel>Manter</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (trocaCentro) aplicarCentro(trocaCentro); setTrocaCentro(null); }}>Descartar e trocar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
