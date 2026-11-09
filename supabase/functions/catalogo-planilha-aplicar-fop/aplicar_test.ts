@@ -72,17 +72,18 @@ Deno.test("FOP fake: erro fica pendente com a mensagem", async () => {
   assertEquals(log.registrar[0].erro, "Valor fora da lista");
 });
 
-Deno.test("FOP fake: rede caída não muda nenhuma célula do lote", async () => {
+Deno.test("FOP fake: rede caída não aplica nada e registra o erro na célula", async () => {
   const { log, deps } = fakeDeps(async () => { throw new TypeError("connection refused"); });
-  await assertRejects(() => aplicarNoFop([cel("1")], ["1"], L, quem, deps), Error, "Nenhuma célula deste lote mudou");
+  await assertRejects(() => aplicarNoFop([cel("1")], ["1"], L, quem, deps), Error, "Nenhuma célula deste lote foi aplicada");
   assertEquals(log.concluir, []);
-  assertEquals(log.registrar, []);
+  assertEquals(log.registrar, [{ id: "1", status: "erro", erro: "Falha ao falar com o FOP: connection refused" }]);
 });
 
-Deno.test("FOP fake: resposta sem lista é falha e nada muda", async () => {
+Deno.test("FOP fake: resposta sem lista não aplica nada e registra o erro", async () => {
   const { log, deps } = fakeDeps(async () => ({ ok: true }));
   await assertRejects(() => aplicarNoFop([cel("1")], ["1"], L, quem, deps), Error, "sem lista");
-  assertEquals([log.concluir.length, log.registrar.length], [0, 0]);
+  assertEquals(log.concluir.length, 0);
+  assertEquals(log.registrar[0].status, "erro");
 });
 
 Deno.test("FOP fake: 1001 células em 3 lotes", async () => {
@@ -91,4 +92,10 @@ Deno.test("FOP fake: 1001 células em 3 lotes", async () => {
   const r = await aplicarNoFop(cs, cs.map(c => c.id), L, quem, deps);
   assertEquals(log.chamadas, [500, 500, 1]);
   assertEquals(r.aplicadas, 1001);
+});
+
+Deno.test("FOP fake: HTTP 404 vira erro registrado na célula", async () => {
+  const { log, deps } = fakeDeps(async () => { throw new Error("HTTP 404 — Not Found"); });
+  await assertRejects(() => aplicarNoFop([cel("1")], ["1"], L, quem, deps), Error, "HTTP 404");
+  assertEquals(log.registrar[0].erro, "Falha ao falar com o FOP: HTTP 404 — Not Found");
 });

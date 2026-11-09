@@ -61,22 +61,23 @@ export type Dependencias = {
 export type Resumo = { aplicadas: number; conflitos: number; erros: number; lotes: number };
 
 /**
- * Sends batches sequentially. A network/HTTP failure throws before touching that batch, so
- * none of its cells change; previous batches are already recorded and reported in the error.
+ * Sends batches sequentially. A network/HTTP failure marks no cell applied, records the error on
+ * each cell of that batch and throws; previous batches are already recorded and reported in the error.
  */
 export async function aplicarNoFop(celulas: CelulaFop[], ids: string[], leituraId: string, quem: { id: string; nome: string }, deps: Dependencias): Promise<Resumo> {
   const itens = montarItens(celulas, ids, leituraId);
   const resumo: Resumo = { aplicadas: 0, conflitos: 0, erros: 0, lotes: 0 };
   for (const lote of lotes(itens)) {
-    let resposta: unknown;
+    let c: Classificacao;
     try {
-      resposta = await deps.chamarFop({ quem, leitura_id: leituraId, celulas: lote });
+      c = classificarResultados(lote, celulas, await deps.chamarFop({ quem, leitura_id: leituraId, celulas: lote }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      // Transport failure: nothing is marked applied, but each cell of the batch keeps the error visible.
+      await deps.registrar(lote.map(i => ({ id: i.id, status: "erro" as const, erro: `Falha ao falar com o FOP: ${msg}` })));
       const feito = resumo.lotes ? ` ${resumo.aplicadas} células já tinham sido aplicadas em lotes anteriores.` : "";
-      throw new Error(`Falha ao falar com o FOP: ${msg}. Nenhuma célula deste lote mudou.${feito}`);
+      throw new Error(`Falha ao falar com o FOP: ${msg}. Nenhuma célula deste lote foi aplicada; o erro ficou registrado nelas.${feito}`);
     }
-    const c = classificarResultados(lote, celulas, resposta);
     if (c.aplicar.length) await deps.concluir(c.aplicar, "aplicar");
     if (c.resolver.length) await deps.concluir(c.resolver, "resolver");
     if (c.pendentes.length) await deps.registrar(c.pendentes);
