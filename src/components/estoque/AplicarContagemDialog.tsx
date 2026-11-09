@@ -47,8 +47,8 @@ async function chamar(centro: string, skus: string[], documento: string, obs: st
   return r;
 }
 
-export function AplicarContagemDialog({ aberto, onFechar, centro, centroNome, skus, onAplicado }: {
-  aberto: boolean; onFechar: () => void; centro: string | null; centroNome?: string | null; skus: string[]; onAplicado: () => void;
+export function AplicarContagemDialog({ aberto, onFechar, centro, centroNome, skus, onAplicado, documentoInicial }: {
+  aberto: boolean; onFechar: () => void; centro: string | null; centroNome?: string | null; skus: string[]; onAplicado: () => void; documentoInicial?: string;
 }) {
   const qc = useQueryClient();
   const [documento, setDocumento] = useState("");
@@ -56,7 +56,7 @@ export function AplicarContagemDialog({ aberto, onFechar, centro, centroNome, sk
   const [bloqAberto, setBloqAberto] = useState(true);
   const [aplicando, setAplicando] = useState(false);
 
-  useEffect(() => { if (aberto) { setDocumento(documentoPadrao()); setObs(""); setAplicando(false); } }, [aberto]);
+  useEffect(() => { if (aberto) { setDocumento(documentoInicial ?? documentoPadrao()); setObs(""); setAplicando(false); } }, [aberto, documentoInicial]);
 
   const previa = useQuery({
     queryKey: ["contagem-aplicar-previa", centro, aberto ? [...skus].sort().join(",") : ""],

@@ -28,6 +28,9 @@ import {
   naoContados, itensRegistro, numeroInvalido, chaveRascunho, lerRascunho, type SessaoContagem, type ProdutoCatalogo,
 } from "@/lib/estoque/contagemSessao";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { AplicarContagemDialog } from "@/components/estoque/AplicarContagemDialog";
+import { podeAplicarDiferencas, skusComDiferenca, documentoContagem } from "@/lib/estoque/aplicarContagemLote";
 import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -43,7 +46,7 @@ interface Linha {
   achado?: boolean;
 }
 interface Divergencia { sku: string; contabil: number; contado: number; diferenca: number }
-interface Resultado { ok?: boolean; itens?: number; divergencias?: Divergencia[]; erro?: string }
+interface Resultado { ok?: boolean; itens?: number; divergencias?: Divergencia[]; erro?: string; centro?: string; data?: string; aplicado?: boolean }
 
 const CENTRO_XPM = "XPM-SC";
 
@@ -250,7 +253,7 @@ export function ContagemCentroPainel() {
       return res;
     },
     onSuccess: async (res) => {
-      setResultado(res);
+      setResultado({ ...res, centro, data });
       apagarStorage(sess.chave);
       setSessao(() => sessaoVazia());
       toast.success(`${res.itens ?? n} contagens registradas · ${(res.divergencias ?? []).length} com diferença`, {
@@ -264,6 +267,9 @@ export function ContagemCentroPainel() {
     onError: (e) => toast.error(`Falha ao registrar contagem: ${formatError(e)}`),
   });
 
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const [aplicarAberto, setAplicarAberto] = useState(false);
   const centroRotulo = (c: string) => centrosQ.data?.find((x) => x.codigo === c)?.rotulo_curto ?? c;
   const nPend = naoContadosSessao.length;
 
@@ -388,6 +394,19 @@ export function ContagemCentroPainel() {
             </Table>
             </div>
           )}
+          {(resultado.divergencias ?? []).length > 0 && (resultado.aplicado
+            ? <p className="text-sm text-success">Diferenças aplicadas ao estoque.</p>
+            : podeAplicarDiferencas(resultado.divergencias, isSuperAdmin)
+              ? <Button size="sm" variant="outline" onClick={() => setAplicarAberto(true)}>Aplicar estas diferenças ({skusComDiferenca(resultado.divergencias).length})</Button>
+              : <p className="text-xs text-muted-foreground">Diferenças vão para a Conciliação para decisão.</p>)}
+          <AplicarContagemDialog aberto={aplicarAberto} onFechar={() => setAplicarAberto(false)}
+            centro={resultado.centro ?? null} centroNome={resultado.centro ? centroRotulo(resultado.centro) : null}
+            skus={skusComDiferenca(resultado.divergencias)} documentoInicial={resultado.data ? documentoContagem(resultado.data) : undefined}
+            onAplicado={async () => {
+              setResultado((r) => (r ? { ...r, aplicado: true } : r));
+              toast.success("Diferenças da contagem aplicadas ao estoque");
+              await qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes("estoque") });
+            }} />
         </div>
       )}
 

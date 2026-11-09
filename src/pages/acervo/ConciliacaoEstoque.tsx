@@ -32,6 +32,7 @@ import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmaze
 import { AplicarContagemDialog } from "@/components/estoque/AplicarContagemDialog";
 
 import { temDiferenca, semContagemValida } from "@/lib/estoque/diferencaConciliacao";
+import { skusAplicaveisLote } from "@/lib/estoque/aplicarContagemLote";
 import { decidirCorrecao } from "@/lib/estoque/correcaoConciliacao";
 
 function BotaoNotasSemBaixa() {
@@ -337,6 +338,19 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   const ajustaveisVisiveis = [...new Set(visiveis.filter(p => linhasEscopo(p.sku).some(c => c.correcao === "ajustar_armazem")).map(p => p.sku))];
   const todosSel = ajustaveisVisiveis.length > 0 && ajustaveisVisiveis.every(s => selecionados.has(s));
   function alternar(sku: string) { setSelecionados(prev => { const n = new Set(prev); if (n.has(sku)) n.delete(sku); else n.add(sku); return n; }); }
+  const centroLote = escopo.length === 1 ? escopo[0] : null;
+  const aplicaveisLote = skusAplicaveisLote(recorte.map(p => p.sku), (s, c) => cs(s).find(x => x.centro === c), escopo, isSuperAdmin);
+  const nomeCentroLote = centroLote ? (centrosLista.find(x => x.codigo === centroLote)?.nome ?? centroLote) : null;
+  const loteSelN = centroLote && contagemSel?.centro === centroLote ? aplicaveisLote.filter(s => contagemSel.skus.has(s)).length : 0;
+  function alternarLote() {
+    if (!centroLote) return;
+    const marcar = loteSelN < aplicaveisLote.length;
+    setContagemSel(prev => {
+      const base = prev && prev.centro === centroLote ? new Set(prev.skus) : new Set<string>();
+      aplicaveisLote.forEach(s => marcar ? base.add(s) : base.delete(s));
+      return base.size ? { centro: centroLote, nome: nomeCentroLote, skus: base } : null;
+    });
+  }
   function alternarTodos() { setSelecionados(prev => { const n = new Set(prev); ajustaveisVisiveis.forEach(s => todosSel ? n.delete(s) : n.add(s)); return n; }); }
 
   const opcCentro = centrosLista.map(c => ({ valor: c.codigo, rotulo: c.nome, contagem: produtos.filter(p => cs(p.sku).some(x => x.centro === c.codigo)).length }));
@@ -423,10 +437,11 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
       </div>
 
       {temEscopo && <p className="mb-2 text-xs text-muted-foreground">Números do centro: {nomesEscopo}. Limpe o filtro para ver o total.</p>}
+      {isSuperAdmin && !centroLote && <p className="mb-2 text-xs text-muted-foreground">Escolha um centro para aplicar em lote.</p>}
       <div className="overflow-hidden rounded-md border">
         <Table className="text-xs">
           <TableHeader className="sticky top-0 z-20"><TableRow className="bg-muted">
-            <TableHead className="w-8">{isSuperAdmin && ajustaveisVisiveis.length > 0 && <Checkbox checked={todosSel} onCheckedChange={alternarTodos} aria-label="Selecionar todos os visíveis ajustáveis" title="Selecionar todos os visíveis ajustáveis" />}</TableHead>
+            <TableHead className="w-8"><div className="flex items-center gap-1">{isSuperAdmin && ajustaveisVisiveis.length > 0 && <Checkbox checked={todosSel} onCheckedChange={alternarTodos} aria-label="Selecionar todos os visíveis ajustáveis" title="Selecionar todos os visíveis ajustáveis" />}{centroLote && aplicaveisLote.length > 0 && <label className="flex items-center gap-1 whitespace-nowrap font-normal" title={`Marcar todas as ${aplicaveisLote.length} aplicáveis do filtro (todas as páginas)`}><Checkbox checked={loteSelN && loteSelN === aplicaveisLote.length ? true : loteSelN ? "indeterminate" : false} onCheckedChange={alternarLote} aria-label={`Marcar todas as aplicáveis do filtro (${aplicaveisLote.length})`} />{aplicaveisLote.length}</label>}</div></TableHead>
             <TableHead>Código</TableHead><TableHead>SKU</TableHead><TableHead>Nome</TableHead>
             <TableHead className="text-right"><Ordenar col="fiscal" rotulo="Fiscal" /></TableHead>
             <TableHead className="text-right"><Ordenar col="real" rotulo="Real" /></TableHead>
@@ -445,7 +460,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
               const causas = [...new Set([...centros.flatMap(c => (c.causas ?? []).map(x => x.nome ?? x.regra)), ...(temEscopo ? [] : (p.causas_produto ?? []).map(x => x.nome ?? x.regra))])];
               return <Fragment key={p.sku}>
                 <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : p.sku)}>
-                  <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
+                  <TableCell><div className="flex items-center gap-1">{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}{centroLote && aplicaveisLote.includes(p.sku) && <span onClick={e => e.stopPropagation()}><Checkbox aria-label={`Aplicar contagem ${p.sku}`} checked={contagemSel?.centro === centroLote && contagemSel.skus.has(p.sku)} onCheckedChange={() => alternarContagem({ centro: centroLote, centro_nome: nomeCentroLote, sku: p.sku })} /></span>}</div></TableCell>
                   <TableCell><CodProduto chave={p.sku} variant="compacto" /></TableCell>
                   <TableCell>{p.sku}</TableCell>
                   <TableCell className="max-w-60"><div className="truncate">{p.nome_comercial ?? "—"}</div>{p.colecao && <div className="text-[10px] text-muted-foreground">{p.colecao}</div>}</TableCell>
