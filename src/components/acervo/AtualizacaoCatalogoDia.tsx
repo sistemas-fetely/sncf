@@ -19,13 +19,12 @@ import { fmtDataHora } from "@/lib/data";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
 import { FiltroMultiSelect } from "@/components/financeiro/FiltroMultiSelect";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { filtrarCelulas, contarOpcoes, celulaSelecionavel, resumoSelecao, naturezaCelula, listaFiltro, juntarFiltro, type InfoProdutoCatalogo, type DimensaoCatalogo, agruparCatalogo, completarNomesCatalogo, valorSistemaVazio, planoCatalogo, totaisPorBloco, type CelulaCatalogo, type EscolhasCatalogo, type PlanoCatalogo } from "@/lib/acervo/revisaoCatalogo";
 import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 
 const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
-type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[]; produtoFora: number };
+type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[] };
 
 export function AtualizacaoCatalogoDia() {
   const qc = useQueryClient();
@@ -85,7 +84,6 @@ export function AtualizacaoCatalogoDia() {
   }, onSuccess: async (r, p) => {
     const resto = [r.conflitos && `${r.conflitos} viraram conflito`, r.erros && `${r.erros} com erro do FOP`].filter(Boolean).join(' · ');
     if (resto) toast.warning(`${r.feitas} células atualizadas · ${resto}.`); else toast.success(`${r.feitas} células atualizadas.`);
-    if (p.produtoFora) toast.info(`${p.produtoFora} células de Produto ficaram de fora, aguardando a porta FOP.`);
     setPrevia(null); setSelecionados(old => { const n = new Set(old); for (const c of p.celulas) n.delete(c.id); return n; }); setEscolhas({}); await qc.invalidateQueries();
   }, onError: async e => { toast.error(formatError(e)); await qc.invalidateQueries(); } });
   const copiar = async () => {
@@ -115,8 +113,7 @@ export function AtualizacaoCatalogoDia() {
   const selecionadas = (lista.data ?? []).filter(c => selecionados.has(c.id) && celulaSelecionavel(c));
   const resumo = resumoSelecao(selecionadas);
   // Product cells wait for the FOP door: Apply only sends fiscal (Operações) cells.
-  const aplicaveis = selecionadas.filter(c => c.dono === 'operacoes');
-  const aplicacoes = planoCatalogo(aplicaveis, 'aplicar', escolhas);
+  const aplicacoes = planoCatalogo(selecionadas, 'aplicar', escolhas);
   const descartes = planoCatalogo(selecionadas, 'descartar', escolhas);
   const temPlano = (p: PlanoCatalogo) => p.sncf.length + p.fop.length > 0;
   const semCadastro = [...new Set((lista.data ?? []).filter(m => m.tipo === 'sem_cadastro').map(m => m.cod_cadastro))].sort();
@@ -131,7 +128,7 @@ export function AtualizacaoCatalogoDia() {
   const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
   const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading;
   const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
-  const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => setPrevia({ acao, plano, celulas: acao === 'aplicar' ? aplicaveis : selecionadas, produtoFora: acao === 'aplicar' ? resumo.produto : 0 });
+  const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => setPrevia({ acao, plano, celulas: selecionadas });
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -157,9 +154,8 @@ export function AtualizacaoCatalogoDia() {
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Selecionar todos do filtro" checked={todos ? true : alguns ? 'indeterminate' : false} disabled={!elegiveis.length || resolver.isPending} onCheckedChange={v => marcar(elegiveis, v === true)} />Selecionar todos do filtro <span className="text-muted-foreground">({elegiveis.length} células)</span></label>
-      <div className="flex gap-2"><TooltipProvider><Tooltip><TooltipTrigger asChild><span tabIndex={resumo.produto && !aplicaveis.length ? 0 : -1}><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Aplicar catálogo" size="sm" disabled={!temPlano(aplicacoes) || resolver.isPending} onClick={() => abrirPrevia('aplicar', aplicacoes)}><Check className="mr-2 h-4 w-4" />Aplicar ({aplicaveis.length})</BotaoGuardado></span></TooltipTrigger>{resumo.produto > 0 && <TooltipContent>Aplicação de Produto chega com a porta FOP</TooltipContent>}</Tooltip></TooltipProvider><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Descartar catálogo" variant="outline" size="sm" disabled={!temPlano(descartes) || resolver.isPending} onClick={() => abrirPrevia('descartar', descartes)}><X className="mr-2 h-4 w-4" />Descartar ({selecionadas.length})</BotaoGuardado></div>
+      <div className="flex gap-2"><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Aplicar catálogo" size="sm" disabled={!temPlano(aplicacoes) || resolver.isPending} onClick={() => abrirPrevia('aplicar', aplicacoes)}><Check className="mr-2 h-4 w-4" />Aplicar ({selecionadas.length})</BotaoGuardado><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Descartar catálogo" variant="outline" size="sm" disabled={!temPlano(descartes) || resolver.isPending} onClick={() => abrirPrevia('descartar', descartes)}><X className="mr-2 h-4 w-4" />Descartar ({selecionadas.length})</BotaoGuardado></div>
     </div>
-    {resumo.produto > 0 && <p className="text-sm text-muted-foreground">{resumo.produto} células de Produto selecionadas ficam de fora do Aplicar — a aplicação de Produto chega com a porta FOP.</p>}
     {selecionadas.some(c => c.tipo === 'conflito' && !escolhas[c.id]) && <p className="text-sm text-warning">Há conflitos selecionados sem escolha de planilha ou sistema.</p>}
     <div className="max-h-[36rem] overflow-auto rounded-md border bg-card card-shadow"><Table className="min-w-[1000px] w-max"><TableHeader className="sticky top-0 z-10 bg-muted"><TableRow><TableHead colSpan={2} />{faixas.map(f => <TableHead key={f.bloco} colSpan={f.n} className="h-8 border-l text-xs font-semibold uppercase tracking-wide">{legivel(f.bloco)}</TableHead>)}</TableRow><TableRow><TableHead className="w-10" /><TableHead className="w-64">Produto</TableHead>{colunas.map(m => <TableHead key={m.campo} className="min-w-40 border-l">{m.rotulo}</TableHead>)}</TableRow></TableHeader><TableBody>
       {!falhas.length && !carregando && visiveis.map(p => <TableRow key={p.codigo} className="bg-card hover:bg-muted/50"><TableCell className="align-top"><Checkbox aria-label={`Selecionar produto ${p.codigo}`} checked={(() => { const cs = p.celulas.filter(celulaSelecionavel); const n = cs.filter(c => selecionados.has(c.id)).length; return n && n === cs.length ? true : n ? 'indeterminate' : false; })()} disabled={!p.celulas.some(celulaSelecionavel) || resolver.isPending} onCheckedChange={v => marcar(p.celulas.filter(celulaSelecionavel), v === true)} /></TableCell><TableCell className="align-top"><p className="font-mono text-sm font-semibold">{p.codigo}</p><p className="mt-1 text-sm">{p.nome || 'Nome comercial não informado'}</p></TableCell>{colunas.map(m => {
