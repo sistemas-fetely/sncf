@@ -589,6 +589,13 @@
       "when": 1794163809380,
       "tag": "0083_catalogo_leitura_ordem_e_idempotencia",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1794183663366,
+      "tag": "0084_catalogo_planilha_fop_porta_unica",
+      "breakpoints": true
     }
   ]
 }

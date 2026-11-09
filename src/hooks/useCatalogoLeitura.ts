@@ -21,7 +21,7 @@ export function useCatalogoLeitura() {
     }
     return out;
   } });
-  return { ultima, referencia, lista, pendencias: (lista.data ?? []).filter(c => c.dono === 'operacoes').length,
+  return { ultima, referencia, lista, pendencias: (lista.data ?? []).filter(c => ['operacoes', 'produto'].includes(c.dono) && ['mudanca', 'conflito', 'erro'].includes(c.tipo)).length,
     pronto: ultima.isSuccess && referencia.isSuccess && (!referencia.data || lista.isSuccess),
     erro: ultima.error ?? referencia.error ?? lista.error };
 }

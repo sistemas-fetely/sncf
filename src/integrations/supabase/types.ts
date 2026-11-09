@@ -7646,6 +7646,213 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_parceiros_dedup_gabriela_20261108: {
+        Row: {
+          ativo: boolean | null
+          bairro: string | null
+          bandeira_vermelha: boolean | null
+          bandeira_vermelha_em: string | null
+          bandeira_vermelha_motivo: string | null
+          bandeira_vermelha_por: string | null
+          bling_id: string | null
+          cadastro_incompleto: boolean | null
+          canal_fop: string | null
+          canal_venda_id: string | null
+          categoria_ka: string | null
+          centro_custo_id: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          consignado_cadencia_dias: number | null
+          consignado_dia_acerto: number | null
+          consignado_dia_fechamento: number | null
+          consignado_instrumento: string | null
+          consignado_modelo: string | null
+          consignado_prazo_dias_nf: number | null
+          contatos: Json | null
+          contexto_bureau: Json | null
+          cpf: string | null
+          created_at: string | null
+          dados_bancarios: Json | null
+          data_nascimento: string | null
+          eh_entidade_propria: boolean | null
+          email: string | null
+          email_cobranca: string | null
+          endereco_complemento: string | null
+          endereco_entrega: Json | null
+          forma_pagamento_padrao_id: string | null
+          grupo_economico_id: string | null
+          grupo_id: string | null
+          id: string | null
+          inscricao_estadual: string | null
+          isento_ie: boolean | null
+          logradouro: string | null
+          nivel_programa: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          observacao: string | null
+          origem: string | null
+          perfil_credito: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
+          plano_contas_id: string | null
+          premissas: Json | null
+          rastreio_automatico: boolean | null
+          razao_social: string | null
+          regiao_atuacao: string | null
+          regime_consignado: boolean | null
+          regime_consignado_desde: string | null
+          regime_consignado_motivo: string | null
+          regime_consignado_por: string | null
+          rg: string | null
+          segmento: string | null
+          situacao_cadastral: string | null
+          tags: string[] | null
+          telefone: string | null
+          tipo: string | null
+          tipo_pessoa: string | null
+          tipos: string[] | null
+          uf: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bairro?: string | null
+          bandeira_vermelha?: boolean | null
+          bandeira_vermelha_em?: string | null
+          bandeira_vermelha_motivo?: string | null
+          bandeira_vermelha_por?: string | null
+          bling_id?: string | null
+          cadastro_incompleto?: boolean | null
+          canal_fop?: string | null
+          canal_venda_id?: string | null
+          categoria_ka?: string | null
+          centro_custo_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          consignado_cadencia_dias?: number | null
+          consignado_dia_acerto?: number | null
+          consignado_dia_fechamento?: number | null
+          consignado_instrumento?: string | null
+          consignado_modelo?: string | null
+          consignado_prazo_dias_nf?: number | null
+          contatos?: Json | null
+          contexto_bureau?: Json | null
+          cpf?: string | null
+          created_at?: string | null
+          dados_bancarios?: Json | null
+          data_nascimento?: string | null
+          eh_entidade_propria?: boolean | null
+          email?: string | null
+          email_cobranca?: string | null
+          endereco_complemento?: string | null
+          endereco_entrega?: Json | null
+          forma_pagamento_padrao_id?: string | null
+          grupo_economico_id?: string | null
+          grupo_id?: string | null
+          id?: string | null
+          inscricao_estadual?: string | null
+          isento_ie?: boolean | null
+          logradouro?: string | null
+          nivel_programa?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacao?: string | null
+          origem?: string | null
+          perfil_credito?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          plano_contas_id?: string | null
+          premissas?: Json | null
+          rastreio_automatico?: boolean | null
+          razao_social?: string | null
+          regiao_atuacao?: string | null
+          regime_consignado?: boolean | null
+          regime_consignado_desde?: string | null
+          regime_consignado_motivo?: string | null
+          regime_consignado_por?: string | null
+          rg?: string | null
+          segmento?: string | null
+          situacao_cadastral?: string | null
+          tags?: string[] | null
+          telefone?: string | null
+          tipo?: string | null
+          tipo_pessoa?: string | null
+          tipos?: string[] | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bairro?: string | null
+          bandeira_vermelha?: boolean | null
+          bandeira_vermelha_em?: string | null
+          bandeira_vermelha_motivo?: string | null
+          bandeira_vermelha_por?: string | null
+          bling_id?: string | null
+          cadastro_incompleto?: boolean | null
+          canal_fop?: string | null
+          canal_venda_id?: string | null
+          categoria_ka?: string | null
+          centro_custo_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          consignado_cadencia_dias?: number | null
+          consignado_dia_acerto?: number | null
+          consignado_dia_fechamento?: number | null
+          consignado_instrumento?: string | null
+          consignado_modelo?: string | null
+          consignado_prazo_dias_nf?: number | null
+          contatos?: Json | null
+          contexto_bureau?: Json | null
+          cpf?: string | null
+          created_at?: string | null
+          dados_bancarios?: Json | null
+          data_nascimento?: string | null
+          eh_entidade_propria?: boolean | null
+          email?: string | null
+          email_cobranca?: string | null
+          endereco_complemento?: string | null
+          endereco_entrega?: Json | null
+          forma_pagamento_padrao_id?: string | null
+          grupo_economico_id?: string | null
+          grupo_id?: string | null
+          id?: string | null
+          inscricao_estadual?: string | null
+          isento_ie?: boolean | null
+          logradouro?: string | null
+          nivel_programa?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacao?: string | null
+          origem?: string | null
+          perfil_credito?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          plano_contas_id?: string | null
+          premissas?: Json | null
+          rastreio_automatico?: boolean | null
+          razao_social?: string | null
+          regiao_atuacao?: string | null
+          regime_consignado?: boolean | null
+          regime_consignado_desde?: string | null
+          regime_consignado_motivo?: string | null
+          regime_consignado_por?: string | null
+          rg?: string | null
+          segmento?: string | null
+          situacao_cadastral?: string | null
+          tags?: string[] | null
+          telefone?: string | null
+          tipo?: string | null
+          tipo_pessoa?: string | null
+          tipos?: string[] | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       backup_parceiros_dedup_keepers_20261019: {
         Row: {
           feito_em: string | null
@@ -105016,6 +105223,15 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_catalogo_planilha_pendente: {
+        Row: {
+          desde: string | null
+          dono: string | null
+          id: string | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
       vw_catalogo_planilha_produto_pendente: {
         Row: {
           desde: string | null
@@ -158711,6 +158927,8 @@ export type Database = {
         }[]
       }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
+      fn_catalogo_fop_registrar: { Args: { p_resultados: Json }; Returns: Json }
+      fn_catalogo_fop_url_gravar: { Args: { p_url: string }; Returns: Json }
       fn_catalogo_leitura_concluir: {
         Args: {
           p_base_inicial?: Json

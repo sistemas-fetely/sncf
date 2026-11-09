@@ -5,7 +5,7 @@
 - Microsoft 365: `/ti/integracoes?aba=microsoft_365`. Tenant/client/secret só no Vault; configuração não secreta em `integracoes_config`.
 - Revisão Operações: `/vendas/produto/conciliacao#atualizacao-do-dia`, com leitura, cópia privada, três valores, seleção, confirmação, aplicação/descarte/resolução.
 - `catalogo-planilha-ler`: Graph somente leitura, arquivo histórico privado, hash, layout linha 3, dados linha 5, comparação por célula, validação fiscal existente.
-- `catalogo-planilha-fop`: POST `{"acao":"pendentes"}`; confirmação `{"acao":"confirmar","ids":["uuid"],"status":"aplicada|descartada|resolvida","escolha":"planilha|sistema","quem":"uuid"}`. Bearer compartilhado `FOP_INBOUND_TOKEN` do Vault. O FOP deve autenticar o operador antes de fornecer `quem`; é confirmação de serviço confiável, não endpoint público do navegador.
+- (Mapa v2) `catalogo-planilha-fop` foi retirada. Campos de Produto são aplicados pela edge `catalogo-planilha-aplicar-fop` (sessão do usuário + `acao.produto_importar_planilha_cadastro`), que chama `POST {fop_base_url}/api/public/catalogo-planilha-aplicar` com Bearer `FOP_INBOUND_TOKEN` em lotes de 500; `aplicada` → `fn_catalogo_resolver` (serviço), `conflito`/`erro` → `fn_catalogo_fop_registrar`. `fop_base_url` fica em `integracoes_config` (sistema `fop`), editável em TI › Integrações › Microsoft 365.
 - Nenhuma nova rota; nenhuma publicação do front.
 
 ## Banco e agendamento

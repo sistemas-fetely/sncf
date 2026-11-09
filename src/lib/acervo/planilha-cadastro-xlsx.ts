@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
+import { ORDEM_BLOCO, legivel } from "@/lib/acervo/blocosFicha";
 
 /**
  * F1 — Planilha de cadastro de produto (FOP é o mestre).
@@ -38,8 +39,6 @@ export interface RespostaExport {
   codigos_livres?: string[];
 }
 
-// Ordem visual dos blocos na planilha (blocos desconhecidos vão no fim, em ordem alfabética).
-const ORDEM_BLOCO = ["identidade", "fiscal_fisico", "classificacao", "comercial"];
 const COR_BLOCO: Record<string, string> = {
   identidade: "FF1F4E79", fiscal_fisico: "FF7F6000", classificacao: "FF375623", comercial: "FF7030A0",
 };
@@ -49,11 +48,6 @@ const NOTA_SUGESTAO = "valor só no SNCF — confirme ou corrija";
 const LINHAS_LIVRES = 300;
 const IDENT_BANCO = new Set(["sku", "ean", "dun", "fase"]); // linhas extras editáveis para produto novo
 
-const legivel = (s: string | null | undefined) => {
-  if (!s) return "";
-  const t = s.replace(/_/g, " ").trim();
-  return t.charAt(0).toUpperCase() + t.slice(1);
-};
 
 function colLetra(n: number) {
   let s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }

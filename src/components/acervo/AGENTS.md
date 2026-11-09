@@ -1,5 +1,5 @@
 # Catalog daily review
-- Daily catalog decisions use the atomic catalog resolver and existing product-format validation/audit log; do not perform client-side product writes in the daily section.
+- Daily catalog decisions are split by owner through the tested `planoCatalogo`: fiscal cells use the atomic catalog resolver; Product cells go to the FOP edge (discard/"sistema" never call the FOP); never write products client-side.
 - Keep the newest read status visible while pending work follows the latest comparable read, so an unchanged daily download does not hide unreviewed cells.
 - Group and filter daily review cells through the tested pure selector; use matrix labels and identify spreadsheet-name fallbacks without writing product names.
 - Conciliação tabs share read-only catalog queries for badges and default selection; explicit URL tabs override the legacy daily hash, and missing names query the same reading regardless of owner or resolution status.
