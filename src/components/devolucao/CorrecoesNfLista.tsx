@@ -10,7 +10,7 @@ import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { BlocoFiscalDevolucao } from "./FiscalDevolucao";
-import { ordenarCorrecoes, prazoCancelamento, textoReenvio } from "./correcaoNf";
+import { ordenarCorrecoes, prazoCancelamento, textoReenvio, type StatusNfSub } from "./correcaoNf";
 
 const sb = supabase as any;
 export const QK_CORRECOES = ["vw_devolucao_funil", "correcoes-nf"];
@@ -18,7 +18,7 @@ const ddMMHHmm = (v: string) => new Date(v).toLocaleString("pt-BR", { timeZone: 
 
 type Linha = {
   id: string; numero: string | null; status: string | null; fiscal_acao: string | null; pedido_ref: string | null;
-  nf_numero: string | null; nf_cancelada: boolean; prazo: string | null; reenvio_status: string | null; reenvio_erro: string | null;
+  nf_numero: string | null; nf_cancelada: boolean; prazo: string | null; nf_sub_status: StatusNfSub; nf_sub_erro: string | null;
   nf_nova: string | null; chamado_id: string | null; criado_em: string | null;
 };
 
@@ -37,27 +37,26 @@ export function useCorrecoesNf() {
     queryKey: QK_CORRECOES,
     queryFn: async (): Promise<Linha[]> => {
       const { data, error } = await sb.from("devolucao")
-        .select("id,numero,status,fiscal_acao,nf_original_id,pedido_id,reenvio_status,reenvio_erro,nf_substituta_id,chamado_id,criado_em")
+        .select("id,numero,status,fiscal_acao,nf_original_id,pedido_id,nf_sub_status,nf_sub_bling_id,nf_sub_numero,nf_sub_erro,nf_sub_atualizado_em,chamado_id,criado_em")
         .eq("finalidade", "refaturar");
       if (error) throw error;
       const ds = (data ?? []) as any[];
-      const nfIds = [...new Set(ds.flatMap((d) => [d.nf_original_id, d.nf_substituta_id]).filter(Boolean))] as string[];
+      const nfIds = [...new Set(ds.map((d) => d.nf_original_id).filter(Boolean))] as string[];
       const pedIds = [...new Set(ds.map((d) => d.pedido_id).filter(Boolean))] as string[];
       const [nfs, peds] = await Promise.all([
-        emBlocos<any>("nfs_emitidas", "id,numero,situacao,emitida_em,autorizada_em,data_emissao", nfIds),
+        emBlocos<any>("nfs_emitidas", "id,numero,situacao,anulada_por_devolucao_em,emitida_em,autorizada_em,data_emissao", nfIds),
         emBlocos<any>("pedidos", "id,id_externo", pedIds),
       ]);
       const nfMap = new Map(nfs.map((n) => [n.id, n]));
       const pedMap = new Map(peds.map((p) => [p.id, p.id_externo as string | null]));
       return ds.map((d) => {
         const nf = d.nf_original_id ? nfMap.get(d.nf_original_id) ?? null : null;
-        const sub = d.nf_substituta_id ? nfMap.get(d.nf_substituta_id) : null;
         return {
           id: d.id, numero: d.numero ?? null, status: d.status ?? null, fiscal_acao: d.fiscal_acao ?? null,
           pedido_ref: d.pedido_id ? pedMap.get(d.pedido_id) ?? null : null,
-          nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_cancelada: nf?.situacao === "cancelada",
-          prazo: prazoCancelamento(d.fiscal_acao, nf), reenvio_status: d.reenvio_status ?? null, reenvio_erro: d.reenvio_erro ?? null,
-          nf_nova: sub?.numero != null ? String(sub.numero) : null, chamado_id: d.chamado_id ?? null, criado_em: d.criado_em ?? null,
+          nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_cancelada: nf?.situacao === "cancelada" || !!nf?.anulada_por_devolucao_em,
+          prazo: prazoCancelamento(d.fiscal_acao, nf), nf_sub_status: d.nf_sub_status ?? null, nf_sub_erro: d.nf_sub_erro ?? null,
+          nf_nova: d.nf_sub_numero ?? null, chamado_id: d.chamado_id ?? null, criado_em: d.criado_em ?? null,
         };
       });
     },
@@ -121,7 +120,7 @@ export function CorrecoesNfLista({ ehFinal, nfResolvida, filtro, setFiltro, onMu
               <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma correção encontrada.</TableCell></TableRow>
             ) : linhas.map((l) => {
               const aberto = expandido === l.id;
-              const st = textoReenvio(l.reenvio_status, l.nf_nova, l.reenvio_erro);
+              const st = textoReenvio(l.nf_sub_status, l.nf_nova, l.nf_sub_erro, l.nf_cancelada);
               return (
                 <Fragment key={l.id}>
                   <TableRow data-foco-id={l.id} className="cursor-pointer" onClick={() => setExpandido(aberto ? null : l.id)}>
@@ -130,7 +129,7 @@ export function CorrecoesNfLista({ ehFinal, nfResolvida, filtro, setFiltro, onMu
                     <TableCell className="text-sm">{l.pedido_ref ?? "—"}</TableCell>
                     <TableCell className="text-sm tabular-nums">{l.nf_numero ? `nº ${l.nf_numero}` : "—"}</TableCell>
                     <TableCell className={cn("text-sm", vencido(l) && "text-destructive")}>{caminho(l)}{vencido(l) && " · vencido"}</TableCell>
-                    <TableCell className={cn("text-sm", l.reenvio_status === "erro" ? "text-destructive" : l.reenvio_status === "concluido" ? "text-success" : "")}>
+                    <TableCell className={cn("text-sm", l.nf_sub_status === "erro" ? "text-destructive" : l.nf_sub_status === "autorizada" ? "text-success" : "")}>
                       <span className="line-clamp-2">{st ?? "—"}</span>
                     </TableCell>
                     <TableCell className="text-sm" onClick={(e) => e.stopPropagation()}>

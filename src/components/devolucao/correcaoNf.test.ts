@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordenarCorrecoes, prazoCancelamento, textoReenvio } from "./correcaoNf";
+import { ordenarCorrecoes, prazoCancelamento, podeGerarNfSubstituta, ehCancelamentoComNf, type StatusNfSub } from "./correcaoNf";
 
 describe("correções de NF", () => {
   it("ordena abertas primeiro e prazo mais próximo no topo", () => {
@@ -15,7 +15,21 @@ describe("correções de NF", () => {
     expect(prazoCancelamento("cancelar_nf", { emitida_em: "2026-10-27T10:00:00Z" })).toBe("2026-10-28T10:00:00.000Z");
     expect(prazoCancelamento("nf_devolucao", { emitida_em: "2026-10-27T10:00:00Z" })).toBeNull();
   });
-  it("texto do reenvio concluído traz a NF nova", () => {
-    expect(textoReenvio("concluido", "000910", null)).toBe("Concluída — NF nova nº 000910");
+  it("permite gerar somente após anulação/cancelamento da original", () => {
+    expect(podeGerarNfSubstituta(true, null, false)).toBe(true);
+    expect(podeGerarNfSubstituta(false, null, false)).toBe(false);
+  });
+  it("permite retentar erro, mas bloqueia gerando/rascunho/autorizada", () => {
+    expect(podeGerarNfSubstituta(true, "erro", false)).toBe(true);
+    for (const st of ["gerando", "rascunho", "autorizada"] as StatusNfSub[]) expect(podeGerarNfSubstituta(true, st, false)).toBe(false);
+  });
+  it("não gera em correção encerrada", () => {
+    expect(podeGerarNfSubstituta(true, null, true)).toBe(false);
+    expect(podeGerarNfSubstituta(true, "erro", true)).toBe(false);
+  });
+  it("correção refaturar não é cancelamento com NF", () => {
+    expect(ehCancelamentoComNf("refaturar")).toBe(false);
+    expect(ehCancelamentoComNf("devolucao")).toBe(true);
+    expect(ehCancelamentoComNf(null)).toBe(false);
   });
 });

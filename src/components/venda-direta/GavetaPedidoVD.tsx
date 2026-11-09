@@ -14,6 +14,7 @@ import { QK_VD_GAVETA } from "./queryKeys";
 import { naoMapeada, type ClassificacaoVD, type Marcos } from "./FunilVD";
 import { cn } from "@/lib/utils";
 import { EnderecoEntregaBloco } from "@/components/pedidos/EnderecoEntregaBloco";
+import { ehCancelamentoComNf } from "@/components/devolucao/correcaoNf";
 
 export interface LinhaGaveta {
   id: string;
@@ -271,7 +272,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
               <Par k="Nº Bling" v={<span className="tabular-nums">{l.bling_pedido_numero ?? "—"}</span>} />
             </Secao>
 
-            {cancelamentoNf && <Secao titulo="Cancelamento com NF"><SecaoCancelamentoNf c={cancelamentoNf} idExterno={l.id_externo} /></Secao>}
+            {cancelamentoNf && ehCancelamentoComNf(cancelamentoNf.finalidade) && <Secao titulo="Cancelamento com NF"><SecaoCancelamentoNf c={cancelamentoNf} idExterno={l.id_externo} /></Secao>}
             {devolucao && <Secao titulo="Reembolso"><TrilhaDevolucao devolucao={devolucao} /></Secao>}
 
             <Secao titulo="Histórico">

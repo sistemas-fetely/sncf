@@ -1,16 +1,20 @@
 // CORREÇÕES DE NF (27/10/2026): regras puras da aba "Correções de NF" — mesmos textos do bloco fiscal.
 
-export const REENVIO_TXT: Record<string, string> = {
-  aguardando_anulacao: "Aguardando anular a NF original",
-  enviando: "Reenviando ao Bling…",
-  enviado: "Pedido reenviado — aguardando a NF nova",
-};
+export type StatusNfSub = "gerando" | "rascunho" | "autorizada" | "erro" | null;
 
-export function textoReenvio(st: string | null, nfNova: string | null, erro: string | null): string | null {
-  if (st === "concluido") return `Concluída — NF nova nº ${nfNova ?? "?"}`;
-  if (st === "erro") return `Reenvio com erro: ${erro ?? "sem detalhe"}`;
-  return st ? (REENVIO_TXT[st] ?? st) : null;
+export function textoReenvio(st: StatusNfSub, nfNova: string | null, erro: string | null, originalAnulada = false): string | null {
+  if (st === "gerando") return "Gerando a NF nova no Bling…";
+  if (st === "rascunho") return `NF nova nº ${nfNova ?? "?"} em rascunho no Bling — Fiscal valida e transmite`;
+  if (st === "autorizada") return `NF nova nº ${nfNova ?? "?"} autorizada ✓`;
+  if (st === "erro") return erro ?? "Falha ao gerar a NF nova — sem detalhe registrado.";
+  return originalAnulada ? "Aguardando gerar a NF nova" : "Aguardando anular a NF original";
 }
+
+export function podeGerarNfSubstituta(originalAnulada: boolean, status: StatusNfSub, encerrada: boolean): boolean {
+  return originalAnulada && !encerrada && (status === null || status === "erro");
+}
+
+export const ehCancelamentoComNf = (finalidade: string | null | undefined) => finalidade === "devolucao";
 
 /** Prazo de 24h para cancelar no Bling: conta da emissão da NF original (fallback autorização, depois data de emissão). */
 export function prazoCancelamento(

@@ -17,6 +17,7 @@ import { QK_VD_DEVOLUCOES } from "./DevolucaoVendaDireta";
 export const QK_VD_CANCEL_NF = ["vd-cancelamento-com-nf"] as const;
 export interface CancelamentoNfSP {
   id: string; pedido_id: string; numero: string | null; status: string | null;
+  finalidade: string;
   etapa: string; aberta: boolean;
 }
 
@@ -29,7 +30,7 @@ export function useCancelamentosComNfSP() {
     queryKey: QK_VD_CANCEL_NF,
     refetchInterval: 30_000,
     queryFn: async (): Promise<Map<string, CancelamentoNfSP>> => {
-      const { data: devs, error } = await sb.from("devolucao").select("id,pedido_id,numero,status").eq("canal", "site_sp").neq("status", "cancelada");
+      const { data: devs, error } = await sb.from("devolucao").select("id,pedido_id,numero,status,finalidade").eq("canal", "site_sp").eq("finalidade", "devolucao").neq("status", "cancelada");
       if (error) throw error;
       const ids = ((devs ?? []) as any[]).map((d) => d.id);
       const out = new Map<string, CancelamentoNfSP>();
@@ -48,7 +49,7 @@ export function useCancelamentosComNfSP() {
         const pend: string[] = f?.pendencias_encerramento ?? [];
         const aberta = !f?.e7_encerrada && st.get(cod)?.eh_final !== true;
         const etapa = [st.get(cod)?.rotulo ?? cod, pend.length ? `falta: ${pend.join(", ")}` : ""].filter(Boolean).join(" · ");
-        if (d.pedido_id) out.set(d.pedido_id, { id: d.id, pedido_id: d.pedido_id, numero: d.numero, status: cod, etapa, aberta });
+        if (d.pedido_id) out.set(d.pedido_id, { id: d.id, pedido_id: d.pedido_id, numero: d.numero, status: cod, finalidade: d.finalidade, etapa, aberta });
       }
       return out;
     },
