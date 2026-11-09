@@ -1,3 +1,4 @@
 # Stock UI
+- Inventory validity is calculated by the tested `contagemValidade` helper from the table parameter and paginated latest per-center counts; keep total-session zeroing independent of the overdue list so valid stock is not silently excluded.
 - Central and Cockpit consume one operational-queue hook and pure SKU selector; keep counts global and intersect SKU sets with each screen's filters so their queue never diverges.
 - Alert transfers use the existing navigation-state replenishment payload, never browser storage or automatic order creation, so the operator reviews quantities before creating a TRS.- Inventory counting is a session of scanned items kept in the tested pure helper `src/lib/estoque/contagemSessao.ts` (sum/undo/remove/total×partial); its per centro+date draft is the second sanctioned browser-storage exception (Flavio 09/11/2026), so a reload never loses a count.
