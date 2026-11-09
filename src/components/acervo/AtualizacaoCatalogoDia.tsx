@@ -18,16 +18,18 @@ import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
-import { agruparCatalogo, completarNomesCatalogo, valorSistemaVazio, celulasSelecionadas, planoCatalogo, totaisPorBloco, type CelulaCatalogo, type EscolhasCatalogo, type PlanoCatalogo } from "@/lib/acervo/revisaoCatalogo";
+import { FiltroMultiSelect } from "@/components/financeiro/FiltroMultiSelect";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { filtrarCelulas, contarOpcoes, celulaSelecionavel, resumoSelecao, naturezaCelula, listaFiltro, juntarFiltro, type InfoProdutoCatalogo, type DimensaoCatalogo, agruparCatalogo, completarNomesCatalogo, valorSistemaVazio, planoCatalogo, totaisPorBloco, type CelulaCatalogo, type EscolhasCatalogo, type PlanoCatalogo } from "@/lib/acervo/revisaoCatalogo";
 import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 
 const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
-type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[] };
+type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[]; produtoFora: number };
 
 export function AtualizacaoCatalogoDia() {
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useEstadoTela({ bloco: 'todos', campo: 'todos', tipo: 'todos', busca: '', pagina: 1 }, { prefixo: 'catalogo', replaceKeys: ['busca'] });
+  const [filtro, setFiltro] = useEstadoTela({ bloco: 'todos', dono: 'todos', natureza: 'todos', fase: 'todos', colecoes: '', linhas: '', campo: 'todos', tipo: 'todos', busca: '', pagina: 1 }, { prefixo: 'catalogo', replaceKeys: ['busca'] });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [escolhas, setEscolhas] = useState<EscolhasCatalogo>({});
   const [previa, setPrevia] = useState<Previa | null>(null);
@@ -42,10 +44,11 @@ export function AtualizacaoCatalogoDia() {
   const nomes = useQuery({ queryKey: ['catalogo-planilha-nomes', referencia.data?.id], enabled: !!lista.data, queryFn: async () => {
     const codigos = [...new Set((lista.data ?? []).filter(m => m.tipo !== 'sem_cadastro').map(m => m.cod_cadastro))];
     const out: Record<string, string> = {};
+    const info: Record<string, InfoProdutoCatalogo> = {};
     for (let de = 0; de < codigos.length; de += 200) {
-      const r = await supabase.from('sncf_produtos').select('cod_cadastro,nome_comercial').in('cod_cadastro', codigos.slice(de, de + 200));
+      const r = await supabase.from('sncf_produtos').select('cod_cadastro,nome_comercial,colecao,linha,fase').in('cod_cadastro', codigos.slice(de, de + 200));
       if (r.error) throw r.error;
-      for (const p of r.data ?? []) if (p.cod_cadastro) out[p.cod_cadastro] = p.nome_comercial ?? '';
+      for (const p of r.data ?? []) if (p.cod_cadastro) { out[p.cod_cadastro] = p.nome_comercial ?? ''; info[p.cod_cadastro] = { colecao: p.colecao, linha: p.linha, fase: p.fase }; }
     }
     const semNome = codigos.filter(c => !out[c]?.trim());
     const celulasNome: Pick<CelulaCatalogo, 'cod_cadastro' | 'campo' | 'valor_planilha'>[] = [];
@@ -54,7 +57,7 @@ export function AtualizacaoCatalogoDia() {
       if (r.error) throw r.error;
       celulasNome.push(...(r.data ?? []));
     }
-    return completarNomesCatalogo(out, celulasNome);
+    return { nomes: completarNomesCatalogo(out, celulasNome), info };
   } });
   useEffect(() => { setSelecionados(new Set()); setEscolhas({}); setPrevia(null); }, [referencia.data?.id]);
   const ler = useMutation({ mutationFn: async () => {
@@ -79,10 +82,11 @@ export function AtualizacaoCatalogoDia() {
       Object.assign(fop, r.data);
     }
     return { feitas: feitas + fop.aplicadas, conflitos: fop.conflitos, erros: fop.erros };
-  }, onSuccess: async r => {
+  }, onSuccess: async (r, p) => {
     const resto = [r.conflitos && `${r.conflitos} viraram conflito`, r.erros && `${r.erros} com erro do FOP`].filter(Boolean).join(' · ');
     if (resto) toast.warning(`${r.feitas} células atualizadas · ${resto}.`); else toast.success(`${r.feitas} células atualizadas.`);
-    setPrevia(null); setSelecionados(new Set()); setEscolhas({}); await qc.invalidateQueries();
+    if (p.produtoFora) toast.info(`${p.produtoFora} células de Produto ficaram de fora, aguardando a porta FOP.`);
+    setPrevia(null); setSelecionados(old => { const n = new Set(old); for (const c of p.celulas) n.delete(c.id); return n; }); setEscolhas({}); await qc.invalidateQueries();
   }, onError: async e => { toast.error(formatError(e)); await qc.invalidateQueries(); } });
   const copiar = async () => {
     const path = ultima.data?.storage_path; if (!path) return;
@@ -95,13 +99,24 @@ export function AtualizacaoCatalogoDia() {
   const pendentesTodas = (lista.data ?? []).filter(c => ['operacoes', 'produto'].includes(c.dono) && ['mudanca', 'conflito', 'erro'].includes(c.tipo));
   const camposPendentes = new Set(pendentesTodas.map(c => c.campo));
   const semRotulo = [...camposPendentes].filter(c => !rotulos[c]);
-  const colunas = (matriz.data ?? []).filter(m => camposPendentes.has(m.campo) && (filtro.bloco === 'todos' || m.bloco === filtro.bloco) && (filtro.campo === 'todos' || m.campo === filtro.campo));
+  const ctx = { nomes: nomes.data?.nomes ?? {}, blocoDe, info: nomes.data?.info };
+  const recorte = filtrarCelulas(lista.data ?? [], filtro, ctx);
+  const camposRecorte = new Set(recorte.map(c => c.campo));
+  const colunas = (matriz.data ?? []).filter(m => camposRecorte.has(m.campo));
+  const opcoes = (d: DimensaoCatalogo) => contarOpcoes(lista.data ?? [], filtro, ctx, d);
+  const cont = (o: Record<string, { produtos: number; celulas: number }>, v: string) => o[v] ? ` (${o[v].produtos} prod · ${o[v].celulas} cél.)` : ' (0)';
+  const ordenar = (o: Record<string, unknown>, sel: string[]) => [...new Set([...Object.keys(o), ...sel])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const oColecao = opcoes('colecoes'), oLinha = opcoes('linhas'), oFase = opcoes('fase'), oBloco = opcoes('bloco'), oDono = opcoes('dono'), oNatureza = opcoes('natureza'), oCampo = opcoes('campo'), oTipo = opcoes('tipo');
+  const mudancasDono = { operacoes: pendentesTodas.filter(c => c.tipo === 'mudanca' && c.dono === 'operacoes').length, produto: pendentesTodas.filter(c => c.tipo === 'mudanca' && c.dono === 'produto').length };
   const faixas = colunas.reduce<{ bloco: string; n: number }[]>((acc, m) => { const u = acc[acc.length - 1]; if (u?.bloco === m.bloco) u.n++; else acc.push({ bloco: m.bloco, n: 1 }); return acc; }, []);
   const porBloco = totaisPorBloco(pendentesTodas, blocoDe);
   const blocos = [...new Set((matriz.data ?? []).map(m => m.bloco))].filter(b => porBloco[b]);
-  const produtos = agruparCatalogo(lista.data ?? [], nomes.data ?? {}, filtro, blocoDe);
-  const selecionadas = celulasSelecionadas(produtos, selecionados);
-  const aplicacoes = planoCatalogo(selecionadas, 'aplicar', escolhas);
+  const produtos = agruparCatalogo(lista.data ?? [], ctx.nomes, filtro, blocoDe, ctx.info);
+  const selecionadas = (lista.data ?? []).filter(c => selecionados.has(c.id) && celulaSelecionavel(c));
+  const resumo = resumoSelecao(selecionadas);
+  // Product cells wait for the FOP door: Apply only sends fiscal (Operações) cells.
+  const aplicaveis = selecionadas.filter(c => c.dono === 'operacoes');
+  const aplicacoes = planoCatalogo(aplicaveis, 'aplicar', escolhas);
   const descartes = planoCatalogo(selecionadas, 'descartar', escolhas);
   const temPlano = (p: PlanoCatalogo) => p.sncf.length + p.fop.length > 0;
   const semCadastro = [...new Set((lista.data ?? []).filter(m => m.tipo === 'sem_cadastro').map(m => m.cod_cadastro))].sort();
@@ -110,17 +125,18 @@ export function AtualizacaoCatalogoDia() {
   const paginas = Math.max(1, Math.ceil(produtos.length / TAMANHO_PAGINA));
   const pagina = Math.max(1, Math.min(filtro.pagina, paginas));
   const visiveis = produtos.slice((pagina - 1) * TAMANHO_PAGINA, pagina * TAMANHO_PAGINA);
-  const elegiveis = produtos.filter(p => p.celulas.some(c => ['mudanca', 'conflito'].includes(c.tipo)));
-  const todos = elegiveis.length > 0 && elegiveis.every(p => selecionados.has(p.codigo));
-  const alguns = elegiveis.some(p => selecionados.has(p.codigo));
+  const elegiveis = recorte.filter(celulaSelecionavel);
+  const todos = elegiveis.length > 0 && elegiveis.every(c => selecionados.has(c.id));
+  const alguns = elegiveis.some(c => selecionados.has(c.id));
+  const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
   const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading;
   const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
-  const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => setPrevia({ acao, plano, celulas: selecionadas });
+  const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => setPrevia({ acao, plano, celulas: acao === 'aplicar' ? aplicaveis : selecionadas, produtoFora: acao === 'aplicar' ? resumo.produto : 0 });
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="space-y-1"><h2 className="text-lg font-semibold">Atualização do dia</h2>
-        {ultima.data && <p className="text-sm font-medium">{texto(totais.mudanca ?? 0)} mudanças · <span className="text-warning">{texto(totais.conflito ?? 0)} conflitos</span> · <span className="text-destructive">{texto(totais.erro ?? 0)} erros</span> · {texto(totais.sem_cadastro ?? 0)} sem cadastro</p>}
+        {ultima.data && <p className="text-sm font-medium">{texto(totais.mudanca ?? 0)} mudanças (Operações {mudancasDono.operacoes} · Produto {mudancasDono.produto}) · <span className="text-warning">{texto(totais.conflito ?? 0)} conflitos</span> · <span className="text-destructive">{texto(totais.erro ?? 0)} erros</span> · {texto(totais.sem_cadastro ?? 0)} sem cadastro</p>}
         {!!blocos.length && <p className="text-xs text-muted-foreground">{blocos.map(b => `${legivel(b)}: ${porBloco[b]}`).join(' · ')}</p>}
         <p className="text-xs text-muted-foreground">{ultima.isLoading ? 'Lendo…' : ultima.data ? `${ultima.data.status.replace(/_/g, ' ')} · ${fmtDataHora(ultima.data.lida_em)}` : 'Nenhuma leitura.'}</p>
         {referencia.data && ultima.data?.id !== referencia.data.id && <p className="text-xs text-muted-foreground">Pendências da leitura de {fmtDataHora(referencia.data.lida_em)}</p>}
@@ -130,25 +146,31 @@ export function AtualizacaoCatalogoDia() {
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
-      <Select value={filtro.bloco} onValueChange={bloco => setFiltro({ bloco, campo: 'todos', pagina: 1 })}><SelectTrigger className="w-44" aria-label="Filtrar por bloco"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os blocos</SelectItem>{blocos.map(b => <SelectItem key={b} value={b}>{legivel(b)}</SelectItem>)}</SelectContent></Select>
-      <Select value={filtro.campo} onValueChange={campo => setFiltro({ campo, pagina: 1 })}><SelectTrigger className="w-48" aria-label="Filtrar por campo"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os campos</SelectItem>{(matriz.data ?? []).filter(m => camposPendentes.has(m.campo) && (filtro.bloco === 'todos' || m.bloco === filtro.bloco)).map(m => <SelectItem key={m.campo} value={m.campo}>{m.rotulo}</SelectItem>)}</SelectContent></Select>
-      <Select value={filtro.tipo} onValueChange={tipo => setFiltro({ tipo, pagina: 1 })}><SelectTrigger className="w-40" aria-label="Filtrar por tipo"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os tipos</SelectItem><SelectItem value="mudanca">Mudança</SelectItem><SelectItem value="conflito">Conflito</SelectItem><SelectItem value="erro">Erro</SelectItem></SelectContent></Select>
+      <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />
+      <FiltroMultiSelect label="Linha" opcoes={ordenar(oLinha, listaFiltro(filtro.linhas))} selecionados={listaFiltro(filtro.linhas)} rotulo={v => v + cont(oLinha, v)} onChange={v => setFiltro({ linhas: juntarFiltro(v), pagina: 1 })} className="h-10" />
+      <Select value={filtro.fase} onValueChange={fase => setFiltro({ fase, pagina: 1 })}><SelectTrigger className="w-52" aria-label="Filtrar por fase"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todas as fases</SelectItem>{['registrado', 'pre_venda', 'ativo', 'inativo'].map(f => <SelectItem key={f} value={f}>{legivel(f)}{cont(oFase, f)}</SelectItem>)}</SelectContent></Select>
+      <Select value={filtro.bloco} onValueChange={bloco => setFiltro({ bloco, campo: 'todos', pagina: 1 })}><SelectTrigger className="w-56" aria-label="Filtrar por bloco"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os blocos</SelectItem>{blocos.map(b => <SelectItem key={b} value={b}>{legivel(b)}{cont(oBloco, b)}</SelectItem>)}</SelectContent></Select>
+      <Select value={filtro.dono} onValueChange={dono => setFiltro({ dono, pagina: 1 })}><SelectTrigger className="w-56" aria-label="Filtrar por dono"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os donos</SelectItem>{([['operacoes', 'Operações'], ['produto', 'Produto']] as const).map(([v, r]) => <SelectItem key={v} value={v}>{r}{cont(oDono, v)}</SelectItem>)}</SelectContent></Select>
+      <Select value={filtro.natureza} onValueChange={natureza => setFiltro({ natureza, pagina: 1 })}><SelectTrigger className="w-64" aria-label="Filtrar por natureza"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Toda natureza</SelectItem>{([['preencher', 'Preencher vazio'], ['alterar', 'Alterar valor existente']] as const).map(([v, r]) => <SelectItem key={v} value={v}>{r}{cont(oNatureza, v)}</SelectItem>)}</SelectContent></Select>
+      <Select value={filtro.campo} onValueChange={campo => setFiltro({ campo, pagina: 1 })}><SelectTrigger className="w-56" aria-label="Filtrar por campo"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os campos</SelectItem>{(matriz.data ?? []).filter(m => oCampo[m.campo] || m.campo === filtro.campo).map(m => <SelectItem key={m.campo} value={m.campo}>{m.rotulo}{cont(oCampo, m.campo)}</SelectItem>)}</SelectContent></Select>
+      <Select value={filtro.tipo} onValueChange={tipo => setFiltro({ tipo, pagina: 1 })}><SelectTrigger className="w-52" aria-label="Filtrar por tipo"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os tipos</SelectItem>{([['mudanca', 'Mudança'], ['conflito', 'Conflito'], ['erro', 'Erro']] as const).map(([v, r]) => <SelectItem key={v} value={v}>{r}{cont(oTipo, v)}</SelectItem>)}</SelectContent></Select>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Selecionar todos do filtro" checked={todos ? true : alguns ? 'indeterminate' : false} disabled={!elegiveis.length || resolver.isPending} onCheckedChange={v => setSelecionados(old => { const n = new Set(old); for (const p of elegiveis) { if (v === true) n.add(p.codigo); else n.delete(p.codigo); } return n; })} />Selecionar todos do filtro <span className="text-muted-foreground">({elegiveis.length} produtos)</span></label>
-      <div className="flex gap-2"><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Aplicar catálogo" size="sm" disabled={!temPlano(aplicacoes) || resolver.isPending} onClick={() => abrirPrevia('aplicar', aplicacoes)}><Check className="mr-2 h-4 w-4" />Aplicar ({selecionadas.length})</BotaoGuardado><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Descartar catálogo" variant="outline" size="sm" disabled={!temPlano(descartes) || resolver.isPending} onClick={() => abrirPrevia('descartar', descartes)}><X className="mr-2 h-4 w-4" />Descartar ({selecionadas.length})</BotaoGuardado></div>
+      <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Selecionar todos do filtro" checked={todos ? true : alguns ? 'indeterminate' : false} disabled={!elegiveis.length || resolver.isPending} onCheckedChange={v => marcar(elegiveis, v === true)} />Selecionar todos do filtro <span className="text-muted-foreground">({elegiveis.length} células)</span></label>
+      <div className="flex gap-2"><TooltipProvider><Tooltip><TooltipTrigger asChild><span tabIndex={resumo.produto && !aplicaveis.length ? 0 : -1}><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Aplicar catálogo" size="sm" disabled={!temPlano(aplicacoes) || resolver.isPending} onClick={() => abrirPrevia('aplicar', aplicacoes)}><Check className="mr-2 h-4 w-4" />Aplicar ({aplicaveis.length})</BotaoGuardado></span></TooltipTrigger>{resumo.produto > 0 && <TooltipContent>Aplicação de Produto chega com a porta FOP</TooltipContent>}</Tooltip></TooltipProvider><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Descartar catálogo" variant="outline" size="sm" disabled={!temPlano(descartes) || resolver.isPending} onClick={() => abrirPrevia('descartar', descartes)}><X className="mr-2 h-4 w-4" />Descartar ({selecionadas.length})</BotaoGuardado></div>
     </div>
+    {resumo.produto > 0 && <p className="text-sm text-muted-foreground">{resumo.produto} células de Produto selecionadas ficam de fora do Aplicar — a aplicação de Produto chega com a porta FOP.</p>}
     {selecionadas.some(c => c.tipo === 'conflito' && !escolhas[c.id]) && <p className="text-sm text-warning">Há conflitos selecionados sem escolha de planilha ou sistema.</p>}
     <div className="max-h-[36rem] overflow-auto rounded-md border bg-card card-shadow"><Table className="min-w-[1000px] w-max"><TableHeader className="sticky top-0 z-10 bg-muted"><TableRow><TableHead colSpan={2} />{faixas.map(f => <TableHead key={f.bloco} colSpan={f.n} className="h-8 border-l text-xs font-semibold uppercase tracking-wide">{legivel(f.bloco)}</TableHead>)}</TableRow><TableRow><TableHead className="w-10" /><TableHead className="w-64">Produto</TableHead>{colunas.map(m => <TableHead key={m.campo} className="min-w-40 border-l">{m.rotulo}</TableHead>)}</TableRow></TableHeader><TableBody>
-      {!falhas.length && !carregando && visiveis.map(p => <TableRow key={p.codigo} className="bg-card hover:bg-muted/50"><TableCell className="align-top"><Checkbox aria-label={`Selecionar produto ${p.codigo}`} checked={selecionados.has(p.codigo)} disabled={!p.celulas.some(c => ['mudanca', 'conflito'].includes(c.tipo)) || resolver.isPending} onCheckedChange={v => setSelecionados(old => { const n = new Set(old); if (v === true) n.add(p.codigo); else n.delete(p.codigo); return n; })} /></TableCell><TableCell className="align-top"><p className="font-mono text-sm font-semibold">{p.codigo}</p><p className="mt-1 text-sm">{p.nome || 'Nome comercial não informado'}</p></TableCell>{colunas.map(m => {
+      {!falhas.length && !carregando && visiveis.map(p => <TableRow key={p.codigo} className="bg-card hover:bg-muted/50"><TableCell className="align-top"><Checkbox aria-label={`Selecionar produto ${p.codigo}`} checked={(() => { const cs = p.celulas.filter(celulaSelecionavel); const n = cs.filter(c => selecionados.has(c.id)).length; return n && n === cs.length ? true : n ? 'indeterminate' : false; })()} disabled={!p.celulas.some(celulaSelecionavel) || resolver.isPending} onCheckedChange={v => marcar(p.celulas.filter(celulaSelecionavel), v === true)} /></TableCell><TableCell className="align-top"><p className="font-mono text-sm font-semibold">{p.codigo}</p><p className="mt-1 text-sm">{p.nome || 'Nome comercial não informado'}</p></TableCell>{colunas.map(m => {
         const c = p.celulas.find(c => c.campo === m.campo);
-        return <TableCell key={m.campo} className={`align-top border-l ${c?.tipo === 'conflito' ? 'bg-warning/10' : c?.tipo === 'erro' ? 'bg-destructive/10' : ''}`}>
-          {!c ? <span className="text-muted-foreground">—</span> : c.tipo === 'erro' ? <div className="space-y-1 text-sm text-destructive"><p className="font-medium">Erro</p><p>{c.erro}</p><p className="break-words">Planilha: {texto(c.valor_planilha)}</p></div> : c.tipo === 'conflito' ? <div className="space-y-2 text-xs"><p className="font-semibold text-warning">Conflito</p><div className="space-y-1 break-words"><p><span className="text-muted-foreground">Base:</span> {texto(c.valor_base)}</p><p><span className="text-muted-foreground">Sistema:</span> {texto(c.valor_sistema)}</p><p><span className="text-muted-foreground">Planilha:</span> {texto(c.valor_planilha)}</p></div>{c.erro && <p className="text-destructive">{c.erro}</p>}<RadioGroup aria-label={`Escolha para ${p.codigo} ${m.rotulo}`} value={escolhas[c.id] ?? ''} disabled={resolver.isPending} onValueChange={v => { if (v === 'planilha' || v === 'sistema') setEscolhas(old => ({ ...old, [c.id]: v })); }} className="flex flex-wrap gap-3">{(['planilha', 'sistema'] as const).map(v => <label key={v} className="flex items-center gap-1"><RadioGroupItem value={v} />{v === 'planilha' ? 'Planilha' : 'Sistema'}</label>)}</RadioGroup></div> : <div className="flex flex-wrap items-baseline gap-1 text-sm break-words">{valorSistemaVazio(c.valor_sistema) ? <span className="text-muted-foreground">novo:</span> : <><span className="text-muted-foreground">{texto(c.valor_sistema)}</span><span className="text-muted-foreground">→</span></>}<span className="font-medium">{texto(c.valor_planilha)}</span>{c.erro && <p className="w-full text-xs text-destructive">{c.erro}</p>}</div>}
+        return <TableCell key={m.campo} className={`align-top border-l ${c?.tipo === 'conflito' ? 'bg-warning/10' : c?.tipo === 'erro' ? 'bg-destructive/10' : c && naturezaCelula(c) === 'alterar' ? 'bg-warning/5' : ''}`}>
+          {!c ? <span className="text-muted-foreground">—</span> : c.tipo === 'erro' ? <div className="space-y-1 text-sm text-destructive"><p className="font-medium">Erro</p><p>{c.erro}</p><p className="break-words">Planilha: {texto(c.valor_planilha)}</p></div> : c.tipo === 'conflito' ? <div className="space-y-2 text-xs"><p className="font-semibold text-warning">Conflito</p><div className="space-y-1 break-words"><p><span className="text-muted-foreground">Base:</span> {texto(c.valor_base)}</p><p><span className="text-muted-foreground">Sistema:</span> {texto(c.valor_sistema)}</p><p><span className="text-muted-foreground">Planilha:</span> {texto(c.valor_planilha)}</p></div>{c.erro && <p className="text-destructive">{c.erro}</p>}<RadioGroup aria-label={`Escolha para ${p.codigo} ${m.rotulo}`} value={escolhas[c.id] ?? ''} disabled={resolver.isPending} onValueChange={v => { if (v === 'planilha' || v === 'sistema') setEscolhas(old => ({ ...old, [c.id]: v })); }} className="flex flex-wrap gap-3">{(['planilha', 'sistema'] as const).map(v => <label key={v} className="flex items-center gap-1"><RadioGroupItem value={v} />{v === 'planilha' ? 'Planilha' : 'Sistema'}</label>)}</RadioGroup></div> : <div className="flex flex-wrap items-baseline gap-1 text-sm break-words">{valorSistemaVazio(c.valor_sistema) ? <span className="text-muted-foreground">novo:</span> : <><span className="text-warning line-through decoration-warning/50">{texto(c.valor_sistema)}</span><span className="text-warning">→</span></>}<span className="font-medium">{texto(c.valor_planilha)}</span>{c.erro && <p className="w-full text-xs text-destructive">{c.erro}</p>}</div>}
         </TableCell>;
       })}</TableRow>)}
       {(carregando || !visiveis.length || !!falhas.length) && <TableRow><TableCell colSpan={colunas.length + 2} className="py-8 text-center text-muted-foreground">{falhas.length ? 'Não foi possível carregar a revisão.' : carregando ? 'Carregando produtos…' : 'Nenhuma pendência neste filtro.'}</TableCell></TableRow>}
     </TableBody></Table></div>
-    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{produtos.length} produtos · {produtos.reduce((n, p) => n + p.celulas.length, 0)} células pendentes</span><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Página anterior do catálogo" disabled={pagina === 1} onClick={() => setFiltro({ pagina: pagina - 1 })}><ChevronLeft className="h-4 w-4" /></Button><span>Página {pagina} de {paginas}</span><Button variant="outline" size="icon" aria-label="Próxima página do catálogo" disabled={pagina === paginas} onClick={() => setFiltro({ pagina: pagina + 1 })}><ChevronRight className="h-4 w-4" /></Button></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{produtos.length} produtos · {recorte.length} células no filtro · <strong className="text-foreground">{resumo.produtos} produtos · {resumo.celulas} células selecionadas (Operações {resumo.operacoes} · Produto {resumo.produto})</strong></span><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Página anterior do catálogo" disabled={pagina === 1} onClick={() => setFiltro({ pagina: pagina - 1 })}><ChevronLeft className="h-4 w-4" /></Button><span>Página {pagina} de {paginas}</span><Button variant="outline" size="icon" aria-label="Próxima página do catálogo" disabled={pagina === paginas} onClick={() => setFiltro({ pagina: pagina + 1 })}><ChevronRight className="h-4 w-4" /></Button></div></div>
     {!!semCadastro.length && <div className="border-t pt-2"><div className="flex flex-wrap items-center gap-1"><Button variant="ghost" size="sm" aria-expanded={semCadastroAberto} onClick={() => setSemCadastroAberto(v => !v)}>{semCadastroAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{semCadastro.length} códigos sem cadastro ({semCadastro[0]}–{semCadastro[semCadastro.length - 1]})</Button><Link className="text-sm text-primary underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">→ Importação de PI</Link></div>{semCadastroAberto && <div className="max-h-48 overflow-auto p-3 font-mono text-sm text-muted-foreground">{semCadastro.join(' · ')}</div>}</div>}
     {!!erros.length && <div className="border-t pt-2"><Button variant="ghost" size="sm" className="text-destructive" aria-expanded={errosAberto} onClick={() => setErrosAberto(v => !v)}>{errosAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{erros.length} erros</Button>{errosAberto && <div className="max-h-48 overflow-auto space-y-2 p-3 text-sm">{erros.map(c => <p key={c.id}><strong>{c.cod_cadastro}</strong> · {rotulos[c.campo] ?? 'Campo não identificado na matriz'} · <span className="text-destructive">{c.erro}</span></p>)}</div>}</div>}
     <Dialog open={!!previa} onOpenChange={o => { if (!o && !resolver.isPending) setPrevia(null); }}><DialogContent><DialogHeader><DialogTitle>Confirmar {previa?.acao === 'descartar' ? 'descarte' : 'aplicação'} · {previa?.celulas.length} células</DialogTitle></DialogHeader>{previa?.acao === 'aplicar' && !!previa.plano.fop.length && <p className="text-sm text-muted-foreground">{previa.plano.fop.length} células de Produto serão gravadas no FOP; só ficam aplicadas quando o FOP confirmar.</p>}<div className="max-h-80 overflow-auto text-sm">{previa?.celulas.map(c => { const d = previa.plano.sncf.find(d => d.ids.includes(c.id)); const vaiPlanilha = previa.plano.fop.includes(c.id) || d?.escolha === 'planilha'; return <p key={c.id} className="border-b py-2">{c.cod_cadastro} · {rotulos[c.campo] ?? 'Campo não identificado na matriz'}: {texto(c.valor_sistema)} → {texto(vaiPlanilha ? c.valor_planilha : c.valor_sistema)}</p>; })}</div><DialogFooter><Button variant="outline" disabled={resolver.isPending} onClick={() => setPrevia(null)}>Voltar</Button><Button disabled={resolver.isPending} onClick={() => { if (previa) resolver.mutate(previa); }}>Confirmar</Button></DialogFooter></DialogContent></Dialog>
