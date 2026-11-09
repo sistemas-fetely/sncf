@@ -31,6 +31,7 @@ import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components
 import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmazemDialog";
 import { AplicarContagemDialog } from "@/components/estoque/AplicarContagemDialog";
 
+import { temDiferenca, semContagemValida } from "@/lib/estoque/diferencaConciliacao";
 import { decidirCorrecao } from "@/lib/estoque/correcaoConciliacao";
 
 function BotaoNotasSemBaixa() {
@@ -246,12 +247,12 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
 
   // Linha exibida: números do escopo (ou do total quando vazio).
   const exibidos = useMemo<Produto[]>(() => {
-    if (!temEscopo) return produtos.map(p => ({ ...p, nf_pendente: somaNf(cs(p.sku)) }));
+    if (!temEscopo) return produtos.map(p => { const dif = cs(p.sku).filter(temDiferenca); return { ...p, nf_pendente: somaNf(cs(p.sku)), com_diferenca: dif.length > 0, centros_com_diferenca: dif.length, centros_diferenca: dif.map(c => c.centro) }; });
     return produtos.map(p => {
       const ls = linhasEscopo(p.sku);
       const comV = ls.filter(c => c.virtual !== null);
       const comDvr = ls.filter(c => c.delta_virtual_real !== null);
-      const dif = ls.filter(c => c.com_diferenca);
+      const dif = ls.filter(temDiferenca);
       return {
         ...p,
         fiscal: ls.reduce((s, c) => s + n0(c.fiscal), 0),
@@ -276,7 +277,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
     furo: p => linhasEscopo(p.sku).some(c => n0(c.delta_real_fiscal) !== 0),
     ruptura: p => linhasEscopo(p.sku).some(c => c.risco_ruptura === true),
     perdida: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) < 0),
-    semreal: p => linhasEscopo(p.sku).some(c => c.fonte_real === "sem_contagem" && c.fiscal !== 0),
+    semreal: p => linhasEscopo(p.sku).some(c => semContagemValida(c)),
     canais: p => linhasEscopo(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
     nfpend: p => linhasEscopo(p.sku).some(c => c.nf_pendente !== null && c.nf_pendente !== undefined),
   };
@@ -308,7 +309,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
     { k: "furo", titulo: "Furo físico", sub: `${base.reduce((s, p) => s + linhasEscopo(p.sku).reduce((t, c) => t + Math.abs(n0(c.delta_real_fiscal)), 0), 0)} un` },
     { k: "ruptura", titulo: "Risco de ruptura" },
     { k: "perdida", titulo: "Venda perdida" },
-    { k: "semreal", titulo: "Sem real" },
+    { k: "semreal", titulo: "Sem contagem válida" },
     { k: "canais", titulo: "Canais" },
     { k: "nfpend", titulo: "NF pendente", sub: `${base.reduce((s, p) => s + linhasEscopo(p.sku).reduce((t, c) => t + Math.abs(n0(c.nf_pendente)), 0), 0).toLocaleString("pt-BR")} un` },
   ];
@@ -406,7 +407,7 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         {centrosLista.map(c => {
-          const n = baseSemEscopo.filter(p => cs(p.sku).some(x => x.centro === c.codigo && x.com_diferenca)).length;
+          const n = baseSemEscopo.filter(p => cs(p.sku).some(x => x.centro === c.codigo && temDiferenca(x))).length;
           return <button key={c.codigo} type="button" onClick={() => setParam("centro_card", centroCartao === c.codigo ? null : c.codigo)} className={cn("rounded border bg-card px-2 py-1 text-xs hover:bg-muted", centroCartao === c.codigo && "border-primary ring-1 ring-primary")}>
             {c.nome} <span className="ml-1 font-semibold tabular-nums">{n}</span>
           </button>;
