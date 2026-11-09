@@ -31,8 +31,7 @@ import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components
 import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmazemDialog";
 import { AplicarContagemDialog } from "@/components/estoque/AplicarContagemDialog";
 
-const REGRA_FURO_CONTAGEM = "estoque_furo_fiscal_fisico";
-const temFuroContagem = (c: { causas: { regra: string }[] | null }) => (c.causas ?? []).some(x => x.regra === REGRA_FURO_CONTAGEM);
+import { decidirCorrecao } from "@/lib/estoque/correcaoConciliacao";
 
 function BotaoNotasSemBaixa() {
   const notas = useNotasSemBaixa();
@@ -363,12 +362,15 @@ function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   }
 
   function Correcao({ c }: { c: Centro }) {
-    if (temFuroContagem(c) && isSuperAdmin) return <label className="flex items-center gap-2 text-xs"><Checkbox checked={contagemSel?.centro === c.centro && contagemSel.skus.has(c.sku)} onCheckedChange={() => alternarContagem(c)} />Aplicar contagem</label>;
+    const tipo = decidirCorrecao(c, isSuperAdmin);
+    if (tipo === "aplicar_contagem") return <label className="flex items-center gap-2 text-xs"><Checkbox checked={contagemSel?.centro === c.centro && contagemSel.skus.has(c.sku)} onCheckedChange={() => alternarContagem(c)} />Aplicar contagem</label>;
+    if (tipo === "aplicar_contagem_sem_permissao") return <span className="text-xs text-muted-foreground">Aplicar contagem (super admin)</span>;
     if (c.correcao === "notas_sem_baixa") return <div className="space-y-1"><p className="text-xs">Resolver a nota antes</p><Button variant="outline" size="sm" className="h-7" onClick={() => setNotasAberto(true)}><FileWarning className="mr-1 h-3.5 w-3.5" />Notas sem baixa</Button></div>;
     if (c.correcao === "ajustar_armazem") return isSuperAdmin
       ? <label className="flex items-center gap-2 text-xs"><Checkbox checked={selecionados.has(c.sku)} onCheckedChange={() => alternar(c.sku)} />Ajustar pelo armazém</label>
       : <span className="text-xs text-muted-foreground">Ajuste pelo armazém (super admin)</span>;
-    if (c.correcao === "contagem") return <Link to="/pedidos/transferencias?aba=receber" className="text-xs text-primary underline-offset-2 hover:underline">Contar em Transferências › Receber no destino</Link>;
+    if (tipo === "contar_inventario") return <Link to="/vendas/produto/estoque/inventario" className="text-xs text-primary underline-offset-2 hover:underline">Contar no Inventário</Link>;
+    if (c.correcao === "contagem") return <span className="text-muted-foreground">—</span>;
     if (c.correcao === "canais") return <span className="text-xs">O envio a cada 15 min corrige; se persistir, veja a sincronização.</span>;
     return <span className="text-muted-foreground">—</span>;
   }
