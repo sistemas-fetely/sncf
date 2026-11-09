@@ -65,6 +65,7 @@ Deno.serve(async req => {
       registrar: async pendentes => {
         const r = await sb.rpc("fn_catalogo_fop_registrar", { p_resultados: pendentes });
         if (r.error) throw new Error(`Não foi possível registrar a resposta do FOP: ${r.error.message}`);
+        if (r.data?.registradas !== pendentes.length) throw new Error(`FOP respondeu, mas o SNCF registrou só ${r.data?.registradas ?? 0} de ${pendentes.length} células.`);
       },
     });
     return json({ ok: true, ...resumo });

@@ -1,9 +1,60 @@
 import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { aplicarNoFop, classificarResultados, lotes, montarItens, type CelulaFop, type ResultadoFop } from "../_shared/catalogo-planilha/aplicar-fop.ts";
+import { aplicarNoFop, classificarResultados, lotes, mesmoValor, montarItens, type CelulaFop, type ResultadoFop } from "../_shared/catalogo-planilha/aplicar-fop.ts";
 
 const L = "00000000-0000-0000-0000-00000000000a";
 const cel = (id: string, tipo = "mudanca", extra: Partial<CelulaFop> = {}): CelulaFop => ({ id, cod_cadastro: `C${id}`, campo: "categoria", dono: "produto", tipo, status: "pendente", leitura_id: L, valor_planilha: "Nova", valor_sistema: "Velha", ...extra });
 const quem = { id: "u1", nome: "Teste" };
+
+Deno.test("mesmoValor compara número e texto por valor primitivo", () => {
+  assertEquals(mesmoValor("2", 2), true);
+  assertEquals(mesmoValor("2", 3), false);
+});
+
+Deno.test("mesmoValor considera null, undefined e texto em branco vazios", () => {
+  assertEquals(mesmoValor(null, ""), true);
+  assertEquals(mesmoValor(undefined, "  "), true);
+  assertEquals(mesmoValor(null, undefined), true);
+  assertEquals(mesmoValor(null, 0), false);
+});
+
+Deno.test("mesmoValor ignora espaços nas pontas do texto", () => {
+  assertEquals(mesmoValor("Importado", "Importado "), true);
+  assertEquals(mesmoValor("Importado", "Nacional"), false);
+});
+
+Deno.test("mesmoValor compara objetos e arrays por JSON.stringify", () => {
+  assertEquals(mesmoValor({ valor: 2 }, { valor: 2 }), true);
+  assertEquals(mesmoValor(["Importado", 2], ["Importado", 2]), true);
+  assertEquals(mesmoValor({ valor: 2 }, { valor: "2" }), false);
+  assertEquals(mesmoValor([2], [3]), false);
+});
+
+Deno.test("conflito com valor igual vira aplicada para mudança e resolver para conflito escolhido planilha", () => {
+  const cs = [
+    cel("1", "mudanca", { dono: "operacoes", campo: "origem_fisc", valor_planilha: "2", valor_sistema: null }),
+    cel("2", "conflito", { campo: "origem_prod", valor_planilha: "Importado", valor_sistema: "" }),
+  ];
+  const c = classificarResultados(montarItens(cs, ["1", "2"], L), cs, { resultados: [
+    { id: "1", status: "conflito", valor_atual: 2 },
+    { id: "2", status: "conflito", valor_atual: "Importado " },
+  ] });
+  assertEquals(c, { aplicar: ["1"], resolver: ["2"], pendentes: [] });
+});
+
+Deno.test("FOP fake: conflito falso conclui por dono sem registrar pendências", async () => {
+  const cs = [
+    cel("1", "mudanca", { dono: "operacoes", campo: "origem_fisc", valor_planilha: "2", valor_sistema: null }),
+    cel("2", "conflito", { campo: "origem_prod", valor_planilha: "Importado", valor_sistema: "" }),
+  ];
+  const { log, deps } = fakeDeps(async () => ({ resultados: [
+    { id: "1", status: "conflito", valor_atual: 2 },
+    { id: "2", status: "conflito", valor_atual: "Importado " },
+  ] }));
+  const r = await aplicarNoFop(cs, ["1", "2"], L, quem, deps);
+  assertEquals(r, { aplicadas: 2, conflitos: 0, erros: 0, lotes: 1 });
+  assertEquals(log.concluir, [[["1"], "aplicar", "operacoes"], [["2"], "resolver"]]);
+  assertEquals(log.registrar, []);
+});
 
 function fakeDeps(fop: (corpo: { celulas: { id: string }[] }) => Promise<unknown>) {
   const log = { concluir: [] as [string[], string, string?][], registrar: [] as ResultadoFop[], chamadas: [] as number[] };

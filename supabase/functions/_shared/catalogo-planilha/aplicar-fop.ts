@@ -45,6 +45,14 @@ export function lotes<T>(itens: T[], tamanho = LOTE_FOP): T[][] {
   return out;
 }
 
+/** Compares empty values, trimmed primitives and serialized objects/arrays. */
+export function mesmoValor(a: unknown, b: unknown): boolean {
+  const vazio = (v: unknown) => v == null || (typeof v === "string" && v.trim() === "");
+  if (vazio(a) || vazio(b)) return vazio(a) && vazio(b);
+  const normalizar = (v: unknown) => typeof v === "object" ? JSON.stringify(v) : String(v).trim();
+  return normalizar(a) === normalizar(b);
+}
+
 /** Maps the FOP answer onto cell outcomes. Cells the FOP did not answer stay pending with an error. */
 export function classificarResultados(itens: ItemFop[], celulas: CelulaFop[], resposta: unknown): Classificacao {
   const lista = (resposta as { resultados?: unknown })?.resultados;
@@ -55,7 +63,7 @@ export function classificarResultados(itens: ItemFop[], celulas: CelulaFop[], re
   const out: Classificacao = { aplicar: [], resolver: [], pendentes: [] };
   for (const item of itens) {
     const r = porId.get(item.id);
-    if (r?.status === "aplicada") (tipo.get(item.id) === "conflito" ? out.resolver : out.aplicar).push(item.id);
+    if (r?.status === "aplicada" || (r?.status === "conflito" && mesmoValor(r.valor_atual, item.valor_novo))) (tipo.get(item.id) === "conflito" ? out.resolver : out.aplicar).push(item.id);
     else if (r?.status === "conflito") out.pendentes.push({ id: item.id, status: "conflito", valor_atual: r.valor_atual ?? null });
     else if (r?.status === "erro") out.pendentes.push({ id: item.id, status: "erro", erro: r.erro || "FOP recusou sem mensagem." });
     else out.pendentes.push({ id: item.id, status: "erro", erro: r ? `Status desconhecido do FOP: ${String(r.status)}` : "FOP não respondeu esta célula." });
