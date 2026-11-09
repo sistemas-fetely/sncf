@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Repor SP: filtros na URL, ordenação, agrupamento e seleção preservada; 27 testes passaram, abas/filtros restaurados e 1 SKU/4 kits fora do filtro chegaram à Nova transferência; sem banco/publicação/TRS real.
 - [x] Inventário: validade pelo parâmetro, pendentes e contados no prazo; 14 testes, listas reais e pós-registro simulado conferidos, sem registro real/banco/publicação.
 - [x] CORRIGIR-NF-V2: NF substituta em rascunho, estados/botão em Correções e filtro VD; 23 testes, Deno check e fluxo autenticado com Bling simulado; sem SQL, publicação do frontend ou NF real.
 - [x] Coleções novas na Entrada: confirmação humana, porta FOP sem implantação, equivalência/variantes, bloqueio individual/lote e 81 testes; conferência autenticada sem cadastro real/publicação.
