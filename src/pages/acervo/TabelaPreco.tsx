@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -344,6 +345,8 @@ export default function TabelaPreco() {
             </div>
           ) : undefined}
         />
+
+        <ProdutoAbas />
 
         <Tabs value={aba} onValueChange={mudarAba} className="space-y-4">
           <TabsList>

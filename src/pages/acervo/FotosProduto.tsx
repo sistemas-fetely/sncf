@@ -13,6 +13,7 @@ import { Download, Image as ImageIcon, Star, Trash2, Upload, X } from "lucide-re
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -297,6 +298,8 @@ export default function FotosProduto() {
           </Button>
         }
       />
+
+      <ProdutoAbas />
 
       {/* faixa de números */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

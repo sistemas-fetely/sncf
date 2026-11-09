@@ -610,11 +610,11 @@ export default function Produtos() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "SOPs" },
-          { label: "Produto" },
+          { label: "BI", to: "/bi" },
+          { label: "Produtos" },
         ]}
         title="Produtos"
-        subtitle="Cockpit de negócio: venda, margem e capital por produto. Cadastro e correções ficam na Mesa do Produto e na Conciliação."
+        subtitle="Venda, margem e capital por produto. Cadastro e correções ficam na Central do Produto."
         actions={
           <Button
             variant="outline"

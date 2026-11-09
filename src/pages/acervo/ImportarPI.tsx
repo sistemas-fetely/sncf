@@ -1478,7 +1478,7 @@ export default function ImportarPI({ embutido = false }: { embutido?: boolean })
         titulo="Importação de PI"
         estado="Lê a proforma da fábrica no navegador, o humano confirma o mapeamento e o lote nasce em estágio."
         breadcrumb={[
-          { label: "Produto", to: "/vendas/produto" },
+          { label: "Produto", to: "/vendas/produto/mesa" },
           { label: "Importação de PI" },
         ]}
       />

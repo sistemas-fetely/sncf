@@ -1,0 +1,2 @@
+# Product navigation
+- Product tabs translate the search term using each page's URL key and carry no other state; Destinos carries the term in q without consuming it, so crossing that page never loses the product search.

@@ -10,6 +10,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -495,6 +496,8 @@ export default function ConciliacaoFila() {
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
+
+    <ProdutoAbas />
 
     <Tabs value={aba} onValueChange={setAba} className="space-y-4">
       <TabsList className="h-auto max-w-full flex-wrap justify-start" aria-label="Fluxo da conciliação">

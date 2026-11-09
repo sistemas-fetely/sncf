@@ -39,7 +39,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
   { rota: "/vendas/produto/chegada-mercadoria", titulo: "Chegada de Mercadoria", pilar: "sops", icon: Package, tags: ["chegada", "mercadoria", "recebimento", "importação", "importacao", "entrada", "xpm", "de-para", "fornecedor", "compras"] },
   { rota: "/credito", titulo: "Análise de Crédito", pilar: "credito", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
-  { rota: "/vendas/produto", titulo: "Produto", pilar: "sops", icon: LayoutGrid, tags: ["produto", "cockpit", "sku", "catálogo"] },
+  { rota: "/vendas/produto/mesa", titulo: "Produto", pilar: "sops", icon: LayoutGrid, tags: ["produto", "sku", "catálogo"] },
   { rota: "/vendas/produto/estoque/virtual", titulo: "Estoque Virtual", pilar: "sops", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
   { rota: "/vendas/produto/estoque/saude", titulo: "Saúde do Estoque", pilar: "sops", icon: LayoutGrid, tags: ["saúde", "estoque", "auditoria"] },
   { rota: "/vendas/produto/conciliacao", titulo: "Conciliação de Cadastro", pilar: "sops", icon: GitCompare, tags: ["conciliação", "cadastro", "bling", "shopify"] },

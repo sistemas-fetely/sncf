@@ -2,6 +2,7 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { XpmCadastroPainel } from "@/components/acervo/XpmCadastroPainel";
 import { ShopifyCadastroPainel } from "@/components/acervo/ShopifyCadastroPainel";
 import { BlingCardPainel } from "@/components/acervo/BlingCardPainel";
@@ -16,6 +17,8 @@ export default function DestinosCadastro() {
         titulo="Destinos de Cadastro"
         estado="Cadastra os produtos nos sistemas de destino (Bling, XPM e Shopify), a partir da matriz do SNCF."
       />
+
+      <ProdutoAbas />
 
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList>

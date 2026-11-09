@@ -477,7 +477,7 @@ const App = () => (
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 
-                <Route path="/vendas/produto" element={<Produtos />} />
+                <Route path="/vendas/produto" element={<Navigate to="/vendas/produto/mesa" replace />} />
                 <Route path="/vendas/produto/chegada-mercadoria" element={<ChegadaMercadoria />} />
                 <Route path="/vendas/produto/chegada-mercadoria/:id" element={<ChegadaMercadoriaDetalhe />} />
                 <Route path="/vendas/produto/mesa" element={
@@ -562,6 +562,7 @@ const App = () => (
               <Route element={<BILayout />}>
                 <Route path="/bi" element={<Navigate to="/bi/giro-ranking" replace />} />
                 <Route path="/bi/giro-ranking" element={<InteligenciaComercial />} />
+                <Route path="/bi/produtos" element={<Produtos />} />
               </Route>
               <Route element={<ChamadosLayout />}>
                 <Route path="/chamados" element={<Navigate to="/chamados/fila/abertos" replace />} />
@@ -1013,7 +1014,7 @@ const App = () => (
             <Route path="/acervo/destinos-cadastro" element={<Navigate to="/vendas/produto/estoque/destinos" replace />} />
             {/* Integrações moveu para TI (23/08/2026): é infra, não financeiro */}
             <Route path="/administrativo/configuracao-integracao" element={<Navigate to="/ti/integracoes" replace />} />
-            <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto/mesa" replace />} />
             <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
             <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
@@ -1031,7 +1032,7 @@ const App = () => (
             <Route path="/sncf" element={<Navigate to="/" replace />} />
             {/* Consignados virou rota própria (/comercial/consignados) — o antigo link da aba não quebra. */}
             <Route path="/pedidos/consignados" element={<Navigate to="/comercial/consignados" replace />} />
-            <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/produto" element={<Navigate to="/vendas/produto/mesa" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
@@ -1075,7 +1076,7 @@ const App = () => (
             <Route path="/gestao/ata/:reuniaoId" element={<GestaoAtaRedirect />} />
             <Route path="/administrativo/parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
             <Route path="/administrativo/pedidos" element={<Navigate to="/pedidos" replace />} />
-            <Route path="/administrativo/produtos" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/administrativo/produtos" element={<Navigate to="/vendas/produto/mesa" replace />} />
             {/* DESMONTE-PATRIMONIO (23/08/2026): pilar extinto — Contratos → Finanças, GED → TI,
                 Imóveis/Seguros nunca construídos. importar/nfs-stage/motor-classificacao/
                 documentos-pendentes viraram rotas reais em Finanças. */}
@@ -1091,7 +1092,7 @@ const App = () => (
             <Route path="/administrativo-fetely/motor-classificacao" element={<Navigate to="/administrativo/motor-classificacao" replace />} />
             <Route path="/administrativo-fetely/documentos-pendentes" element={<Navigate to="/administrativo/documentos-pendentes" replace />} />
             <Route path="/administrativo-fetely/pedidos" element={<Navigate to="/pedidos" replace />} />
-            <Route path="/administrativo-fetely/produtos" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/administrativo-fetely/produtos" element={<Navigate to="/vendas/produto/mesa" replace />} />
             <Route path="/administrativo-fetely" element={<Navigate to="/administrativo" replace />} />
 
             {/* CHAMADOS-É-APP-PRÓPRIO (15/09/2026): link antigo do Canal CPO → Central de Chamados */}
