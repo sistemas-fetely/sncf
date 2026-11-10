@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { BlingHttpError, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
 async function handlerFor(get: (path: string) => Promise<unknown>, channels: Record<string, any>[] = []) {
   const source = await Bun.file(new URL("./index.ts", import.meta.url)).text();
@@ -36,7 +37,7 @@ async function handlerFor(get: (path: string) => Promise<unknown>, channels: Rec
   };
   new Function("createClient", "corsHeaders", "gateCronOuSessao", "BlingHttpError", "ensureFreshToken", "makeBlingClient", "resolverParceiroBling", "Deno", js)(
     () => sb, { "Access-Control-Allow-Headers": "content-type" }, async () => null,
-    class extends Error {}, async () => "test", () => ({ get }),
+    BlingHttpError, async () => "test", () => ({ get }),
     () => { throw new Error("No partner resolution allowed"); },
     { env: { get: () => "test" }, serve: (fn: typeof handler) => { handler = fn; } },
   );
@@ -46,6 +47,69 @@ async function handlerFor(get: (path: string) => Promise<unknown>, channels: Rec
 const request = (body: unknown) => new Request("http://localhost", { method: "POST", body: JSON.stringify(body) });
 
 describe("marketplace diagnostic actions", () => {
+  test("etiqueta returns raw labels and then raw objects without writes", async () => {
+    const paths: string[] = [];
+    const labels = { data: [{ url: "https://example.com/etiqueta" }], extra: "raw" };
+    const objects = { data: [{ codigo: "AB123" }] };
+    const { handler, tables, writes } = await handlerFor(async (path) => {
+      paths.push(path);
+      return paths.length === 1 ? labels : objects;
+    });
+    const response = await handler(request({ acao: "etiqueta", bling_pedido_id: " 123 " }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, data: labels, objetos: objects });
+    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123", "/logisticas/objetos?idsVendas%5B%5D=123"]);
+    expect(tables).toEqual(["integracoes_config"]);
+    expect(writes).toEqual([]);
+  });
+
+  test("object errors do not fail a successful label response", async () => {
+    const { handler } = await handlerFor(async (path) => {
+      if (path.startsWith("/logisticas/objetos")) throw new Error("Bling 404: objetos indisponíveis");
+      return { data: [] };
+    });
+    const response = await handler(request({ acao: "etiqueta", bling_pedido_id: "123" }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, data: { data: [] }, objetos_erro: "Bling 404: objetos indisponíveis" });
+  });
+
+  test("label errors return 502 and the complete Bling body while still fetching objects", async () => {
+    const corpo = JSON.stringify({ error: { message: "Etiqueta indisponível", details: "x".repeat(700) } });
+    const { handler, writes } = await handlerFor(async (path) => {
+      if (path.startsWith("/logisticas/etiquetas")) throw new BlingHttpError("Bling 400", 400, corpo);
+      return { data: [123] };
+    });
+    const response = await handler(request({ acao: "etiqueta", bling_pedido_id: "123" }));
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ ok: false, erro: "Bling 400: Etiqueta indisponível", corpo, objetos: { data: [123] } });
+    expect(writes).toEqual([]);
+  });
+
+  test("etiqueta rejects invalid IDs without calling Bling", async () => {
+    let calls = 0;
+    const { handler } = await handlerFor(async () => { calls++; return {}; });
+    for (const id of [undefined, "", "  ", 123]) {
+      expect((await handler(request({ acao: "etiqueta", bling_pedido_id: id }))).status).toBe(400);
+    }
+    expect(calls).toBe(0);
+  });
+
+  test("shared GET preserves the complete error body and existing error message", async () => {
+    const originalFetch = globalThis.fetch;
+    const corpo = JSON.stringify({ error: { message: "x".repeat(700) } });
+    globalThis.fetch = (async () => new Response(corpo, { status: 400 })) as typeof fetch;
+    try {
+      const client = makeBlingClient({}, { client_id: "test", client_secret: "test", access_token: "test", refresh_token: "test", token_expires_at: null }, "test");
+      let error: unknown;
+      try { await client.get("/logisticas/etiquetas?idsVendas%5B%5D=123"); } catch (e) { error = e; }
+      expect(error).toBeInstanceOf(BlingHttpError);
+      if (!(error instanceof BlingHttpError)) throw new Error("Expected BlingHttpError");
+      expect(error.corpo).toBe(corpo);
+      expect(error.status).toBe(400);
+      expect(error.message).toBe(`Bling 400: ${corpo.slice(0, 300)}`);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
   test("lojas reads canais-venda and returns tipo", async () => {
     const paths: string[] = [];
     const { handler, writes } = await handlerFor(async (path) => {

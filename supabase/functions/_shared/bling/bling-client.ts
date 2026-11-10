@@ -137,7 +137,7 @@ export function makeBlingClient(supabase: any, cfg: BlingConfig, initialToken: s
     }
     if (!res.ok) {
       const txt = await res.text();
-      throw new Error(`Bling ${res.status}: ${txt.slice(0, 300)}`);
+      throw new BlingHttpError(`Bling ${res.status}: ${txt.slice(0, 300)}`, res.status, txt);
     }
     return res.json();
   }

@@ -79,6 +79,27 @@ Deno.serve(async (req) => {
     } catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
   }
 
+  // ---------- acao: etiqueta (diagnóstico, sem gravação) ----------
+  if (acao === "etiqueta") {
+    const blingId = body?.bling_pedido_id;
+    if (typeof blingId !== "string" || !blingId.trim()) return json({ ok: false, erro: "bling_pedido_id obrigatório." }, 400);
+    const query = `idsVendas%5B%5D=${encodeURIComponent(blingId.trim())}`;
+    let resultado: Record<string, unknown>;
+    let status = 200;
+    try {
+      resultado = { ok: true, data: await client.get(`/logisticas/etiquetas?${query}`) };
+    } catch (e) {
+      resultado = { ok: false, erro: errMsg(e), ...(e instanceof BlingHttpError ? { corpo: e.corpo } : {}) };
+      status = 502;
+    }
+    try {
+      resultado.objetos = await client.get(`/logisticas/objetos?${query}`);
+    } catch (e) {
+      resultado.objetos_erro = errMsg(e);
+    }
+    return json(resultado, status);
+  }
+
   // ---------- acao: pedidos ----------
   if (acao !== "pedidos") return json({ ok: false, erro: `acao desconhecida: ${acao}` }, 400);
   const { data: mkts, error: eM } = await sb.from("marketplace_loja_bling")
