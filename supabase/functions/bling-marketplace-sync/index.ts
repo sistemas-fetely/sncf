@@ -1,6 +1,6 @@
 // Edge: bling-marketplace-sync (10/11/2026, mapa-pedidos-marketplace-v1 F0)
 // Pedido de marketplace nasce no Bling (TikTok Shop / Mercado Livre / Shopee).
-// Esta edge: (a) acao "lojas" — lista GET /lojas e preenche marketplace_loja.loja_bling_id
+// Esta edge: (a) acao "lojas" — lista GET /canais-venda e preenche marketplace_loja.loja_bling_id
 // por nome; (b) acao "pedidos" (padrao/cron) — para cada loja de marketplace ativa, lista
 // pedidos recentes, busca o detalhe e chama fn_nascer_pedido_marketplace.
 // deno-lint-ignore-file no-explicit-any
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   // ---------- acao: lojas ----------
   if (acao === "lojas") {
     let lojas: any[] = [];
-    try { const r = await client.get(`/lojas?limite=100&pagina=1`); lojas = r?.data ?? []; }
+    try { const r = await client.get(`/canais-venda?limite=100&pagina=1`); lojas = r?.data ?? []; }
     catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
     const { data: mkts } = await sb.from("marketplace_loja").select("codigo, nome, loja_bling_id");
     const casados: unknown[] = [];
@@ -60,7 +60,17 @@ Deno.serve(async (req) => {
         .update({ loja_bling_id: Number(hit.id), atualizado_em: new Date().toISOString() }).eq("codigo", m.codigo);
       casados.push({ codigo: m.codigo, loja_bling_id: Number(hit.id), nome_bling: hit.descricao ?? hit.nome, origem: error ? `erro: ${error.message}` : "preenchido" });
     }
-    return json({ ok: true, lojas_bling: lojas.map((l) => ({ id: l.id, descricao: l.descricao ?? l.nome })), marketplace: casados });
+    return json({ ok: true, lojas_bling: lojas.map((l) => ({ id: l.id, descricao: l.descricao ?? l.nome, tipo: l.tipo })), marketplace: casados });
+  }
+
+  // ---------- acao: detalhe (diagnóstico, sem gravação) ----------
+  if (acao === "detalhe") {
+    const blingId = body?.bling_pedido_id;
+    if (typeof blingId !== "string" || !blingId.trim()) return json({ ok: false, erro: "bling_pedido_id obrigatório." }, 400);
+    try {
+      const det = (await client.get(`/pedidos/vendas/${encodeURIComponent(blingId.trim())}`))?.data;
+      return json({ ok: true, data: det });
+    } catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
   }
 
   // ---------- acao: pedidos ----------
