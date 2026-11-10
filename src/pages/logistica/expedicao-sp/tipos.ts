@@ -1,3 +1,4 @@
+import { normalizarGtin, normalizarLeitura } from "@/lib/estoque/resolverCodigoBarras";
 // Mesa de Expedição SP — vocabulário da tela.
 //
 // NUNCA-INVENTAR-STATUS: o estágio macro é `pedidos.estagio` (dimensão que já
@@ -453,13 +454,13 @@ export function modalSugerido(cep: string | null, regras: ModalRegra[]): string 
 
 /** Normaliza leitura de código de barras: leitor pode mandar espaço/quebra junto. */
 export function normalizarCodigo(v: string): string {
-  return v.trim().replace(/\s+/g, "").toUpperCase();
+  return normalizarLeitura(v);
 }
 
-/** Chave de comparação de código de barras: se for só dígitos (EAN/UPC/GTIN), ignora zeros à esquerda — UPC-A (12) e EAN-13 com 0 na frente são o mesmo código. Alfanumérico (SKU) fica como está. */
+/** Legacy comparison adapter; barcode resolution uses the shared GTIN index. */
 export function chaveCodigo(v: string | null | undefined): string {
   const n = normalizarCodigo(v ?? "");
-  return /^\d+$/.test(n) ? n.replace(/^0+/, "") : n;
+  return /^\d+$/.test(n) ? normalizarGtin(n) : n;
 }
 
 

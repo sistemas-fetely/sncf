@@ -3,7 +3,9 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryCodigosBarras } from "@/hooks/estoque/useResolverCodigoBarras";
+import { resolverCodigoBarras, unidadesCodigoBarras, type IndiceBarras } from "@/lib/estoque/resolverCodigoBarras";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +13,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatError } from "@/lib/format-error";
-import { normalizarCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type ModoImportacao = "somar" | "substituir";
@@ -27,50 +28,21 @@ function baixarModelo() {
   XLSX.writeFile(wb, "modelo_inventario.xlsx");
 }
 
-async function resolver(brutas: { linha: number; codigo: string; quantidade: string }[]): Promise<LinhaPrevia[]> {
-  const cods = brutas.map((b) => b.codigo).filter(Boolean);
-  const variantes = new Set<string>();
-  cods.forEach((c) => {
-    const d = c.replace(/\D/g, ""); const n = d.replace(/^0+/, "");
-    [c, d, n, n.padStart(13, "0"), n.padStart(14, "0"), n.padStart(8, "0"), n.padStart(12, "0")].forEach((v) => v && variantes.add(v));
-  });
-  const vs = [...variantes];
-  const barras = new Map<string, { sku: string; unidades: number | null; tipo: string | null }>();
-  const porSku = new Map<string, string>();
-  const porCod = new Map<string, string>();
-  for (let i = 0; i < vs.length; i += 300) {
-    const fatia = vs.slice(i, i + 300);
-    const { data, error } = await supabase.from("vw_codigo_barras").select("codigo,sku,unidades,tipo").in("codigo", fatia);
-    if (error) throw error;
-    (data ?? []).forEach((r: any) => { const k = normalizarCodigo(r.codigo); if (k && r.sku) barras.set(k, { sku: r.sku, unidades: r.unidades == null ? null : Number(r.unidades), tipo: r.tipo }); });
-    const cods5 = fatia.concat(fatia.map((f) => f.padStart(5, "0")));
-    const { data: p1, error: e1 } = await (supabase as any).from("sncf_produtos").select("sku").in("sku", fatia);
-    if (e1) throw e1;
-    (p1 ?? []).forEach((p: any) => porSku.set(p.sku, p.sku));
-    const { data: p2, error: e2 } = await (supabase as any).from("sncf_produtos").select("sku,cod_cadastro").in("cod_cadastro", cods5);
-    if (e2) throw e2;
-    (p2 ?? []).forEach((p: any) => { if (p.cod_cadastro) porCod.set(p.cod_cadastro, p.sku); });
-  }
+export function resolverContagemImportada(brutas: { linha: number; codigo: string; quantidade: string }[], indice: IndiceBarras): LinhaPrevia[] {
   return brutas.map((b) => {
     const q = Number(String(b.quantidade).replace(",", "."));
     if (!b.codigo) return { ...b, erro: "Código vazio" };
     if (!Number.isFinite(q) || q < 0 || !Number.isInteger(q)) return { ...b, erro: "Quantidade inválida" };
-    const bc = barras.get(normalizarCodigo(b.codigo));
-    if (bc) {
-      if (bc.tipo === "dun") {
-        if (bc.unidades == null || bc.unidades <= 0) return { ...b, erro: "Caixa (DUN) sem peças por caixa cadastradas" };
-        return { ...b, sku: bc.sku, qtd: bc.unidades * q, via: `DUN × ${bc.unidades}` };
-      }
-      return { ...b, sku: bc.sku, qtd: q, via: "EAN" };
-    }
-    if (porSku.has(b.codigo)) return { ...b, sku: b.codigo, qtd: q, via: "SKU" };
-    const c5 = porCod.get(b.codigo) ?? porCod.get(b.codigo.padStart(5, "0"));
-    if (c5) return { ...b, sku: c5, qtd: q, via: "Cód." };
-    return { ...b, erro: "Código não encontrado" };
+    const codigo = resolverCodigoBarras(b.codigo, indice);
+    if (!codigo) return { ...b, erro: "Código não encontrado" };
+    const unidades = unidadesCodigoBarras(codigo, q);
+    if (unidades === null) return { ...b, erro: "Caixa (DUN) sem conteúdo definido — informe unidades por EAN, cód. ou SKU" };
+    return { ...b, sku: codigo.sku, qtd: unidades, via: codigo.tipo === "dun" ? `DUN × ${codigo.innerQtd}` : codigo.tipo.toUpperCase() };
   });
 }
 
 export function ImportarContagemDialog({ onAplicar }: { onAplicar: (itens: { sku: string; qtd: number }[], modo: ModoImportacao) => void }) {
+  const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [previa, setPrevia] = useState<LinhaPrevia[] | null>(null);
@@ -88,7 +60,7 @@ export function ImportarContagemDialog({ onAplicar }: { onAplicar: (itens: { sku
       if (!kc || !kq) throw new Error("A planilha precisa das colunas \"codigo\" (ou ean/sku/cod) e \"quantidade\"");
       const brutas = rows.map((r, i) => ({ linha: i + 2, codigo: String(r[kc] ?? "").trim(), quantidade: String(r[kq] ?? "").trim() }))
         .filter((b) => b.codigo || b.quantidade);
-      setPrevia(await resolver(brutas));
+      setPrevia(resolverContagemImportada(brutas, await qc.ensureQueryData(queryCodigosBarras)));
     } catch (e) {
       toast.error(`Falha ao ler planilha: ${formatError(e)}`);
     } finally { setCarregando(false); }
@@ -99,7 +71,7 @@ export function ImportarContagemDialog({ onAplicar }: { onAplicar: (itens: { sku
 
   function aplicar() {
     const agg = new Map<string, number>();
-    ok.forEach((p) => agg.set(p.sku!, (agg.get(p.sku!) ?? 0) + p.qtd!));
+    ok.forEach((p) => { if (p.sku && p.qtd != null) agg.set(p.sku, (agg.get(p.sku) ?? 0) + p.qtd); });
     onAplicar([...agg.entries()].map(([sku, qtd]) => ({ sku, qtd })), modo);
     toast.success(`${agg.size} produtos preenchidos — revise e clique em Registrar contagem`);
     setAberto(false); setPrevia(null);

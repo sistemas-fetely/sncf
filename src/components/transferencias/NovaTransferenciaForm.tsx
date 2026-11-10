@@ -1,3 +1,5 @@
+import { unidadesCodigoBarras } from "@/lib/estoque/resolverCodigoBarras";
+import { useResolverCodigoBarras } from "@/hooks/estoque/useResolverCodigoBarras";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
@@ -124,11 +126,12 @@ export function SkuCombobox({
   ariaLabel: string;
   /** Liga busca por EAN (substring) e leitura de EAN completo. Padrão desligado. */
   buscaEan?: boolean;
-  onEanExato?: (p: ProdutoCatalogo) => void;
+  onEanExato?: (p: ProdutoCatalogo, unidades: number) => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
+  const barrasQ = useResolverCodigoBarras(!!buscaEan);
   const [eanNaoCadastrado, setEanNaoCadastrado] = useState<string | null>(null);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(termo.trim()), 300);
@@ -161,26 +164,27 @@ export function SkuCombobox({
     const dig = termo.replace(/\D/g, "");
     if (![8, 12, 13, 14].includes(dig.length) || /[^\d\s]/.test(termo.trim())) return false;
     try {
-      const { data, error } = await supabase
-        .from("sncf_produtos")
-        .select("sku, cod_cadastro, nome_completo, preco_custo, ean, ativo")
-        .eq("ativo", true)
-        .ilike("ean", `%${dig.replace(/^0+/, "")}%`)
-        .limit(50);
-      if (error) throw error;
-      const alvo = dig.replace(/^0+/, "");
-      const exatos = ((data ?? []) as unknown as ProdutoCatalogo[]).filter(
-        (p) => (p.ean ?? "").replace(/\D/g, "").replace(/^0+/, "") === alvo
-      );
-      if (exatos.length === 1) {
-        onEanExato(exatos[0]);
-        setTermo("");
-        setDebounced("");
-        setEanNaoCadastrado(null);
-        setAberto(false);
-        return true;
+      const codigo = barrasQ.resolver(termo);
+      if (barrasQ.error) throw barrasQ.error;
+      if (!barrasQ.data) throw new Error("Códigos ainda carregando");
+      if (codigo) {
+        let unidades = unidadesCodigoBarras(codigo, 1);
+        if (unidades === null) {
+          const informado = window.prompt("DUN sem conteúdo de caixa definido. Informe o total de unidades:");
+          if (informado === null) return true;
+          unidades = Number(informado);
+          if (!Number.isInteger(unidades) || unidades < 1) { toast.error("Quantidade inválida."); return true; }
+        }
+        const { data, error } = await supabase.from("sncf_produtos")
+          .select("sku, cod_cadastro, nome_completo, preco_custo, ean, ativo").eq("sku", codigo.sku).eq("ativo", true).maybeSingle();
+        if (error) throw error;
+        if (data) {
+          onEanExato(data as unknown as ProdutoCatalogo, unidades);
+          setTermo(""); setDebounced(""); setEanNaoCadastrado(null); setAberto(false);
+          return true;
+        }
       }
-      if (exatos.length === 0) setEanNaoCadastrado(dig);
+      setEanNaoCadastrado(dig);
       return false;
     } catch (e) {
       toast.error(`Falha na busca por EAN: ${(e as Error).message}`);
@@ -813,17 +817,17 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                                 form.setValue(`itens.${index}.sku`, p.sku, { shouldValidate: true });
                                 form.setValue(`itens.${index}.nome`, p.nome_completo ?? "");
                               }}
-                              onEanExato={(p) => {
+                              onEanExato={(p, unidades) => {
                                 const atuais = form.getValues("itens");
                                 const ja = atuais.findIndex((i) => i.sku?.trim() === p.sku);
                                 if (ja >= 0) {
-                                  form.setValue(`itens.${ja}.quantidade`, (Number(atuais[ja].quantidade) || 0) + 1, { shouldValidate: true });
+                                  form.setValue(`itens.${ja}.quantidade`, (Number(atuais[ja].quantidade) || 0) + unidades, { shouldValidate: true });
                                 } else if (!atuais[index]?.sku?.trim()) {
                                   form.setValue(`itens.${index}.sku`, p.sku, { shouldValidate: true });
                                   form.setValue(`itens.${index}.nome`, p.nome_completo ?? "");
-                                  form.setValue(`itens.${index}.quantidade`, 1, { shouldValidate: true });
+                                  form.setValue(`itens.${index}.quantidade`, unidades, { shouldValidate: true });
                                 } else {
-                                  append({ sku: p.sku, nome: p.nome_completo ?? "", quantidade: 1 });
+                                  append({ sku: p.sku, nome: p.nome_completo ?? "", quantidade: unidades });
                                 }
                                 form.clearErrors("itens");
                               }}

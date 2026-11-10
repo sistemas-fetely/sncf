@@ -13,7 +13,9 @@ import { Selo } from "@/components/ui/selo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { chaveCodigo, normalizarCodigo, type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
+import { normalizarLeitura as normalizarCodigo, unidadesCodigoBarras, type CodigoBarrasResolvido } from "@/lib/estoque/resolverCodigoBarras";
+import { useResolverCodigoBarras } from "@/hooks/estoque/useResolverCodigoBarras";
+import { type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
 
 /**
  * Estação 3 — Conferência por bipagem.
@@ -224,6 +226,9 @@ interface Props {
 export function EstacaoConferencia({
   pedidoId, itens, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao, bloqueado = false,
 }: Props) {
+  const barrasQ = useResolverCodigoBarras();
+  const [caixaPendente, setCaixaPendente] = useState<CodigoBarrasResolvido | null>(null);
+  const [unidadesCaixa, setUnidadesCaixa] = useState("");
   const [bipados, setBipados] = useState<Record<string, number>>({});
   const [buffer, setBuffer] = useState("");
   const [alerta, setAlerta] = useState<string | null>(null);
@@ -248,6 +253,8 @@ export function EstacaoConferencia({
 
   // Troca de pedido zera tudo — contador de um pedido nunca vaza para o outro.
   useEffect(() => {
+    setCaixaPendente(null);
+    setUnidadesCaixa("");
     setBipados({});
     setBuffer("");
     setAlerta(null);
@@ -269,9 +276,9 @@ export function EstacaoConferencia({
   }, []);
 
   const focar = useCallback(() => {
-    if (dialogDivergencia) return; // o diálogo precisa do foco dele
+    if (dialogDivergencia || caixaPendente) return; // o diálogo precisa do foco dele
     inputRef.current?.focus();
-  }, [dialogDivergencia]);
+  }, [dialogDivergencia, caixaPendente]);
 
   useEffect(() => { focar(); }, [focar, carregando]);
 
@@ -304,18 +311,17 @@ export function EstacaoConferencia({
     if (codigo === "") return;
     setBuffer("");
 
-    // O cadastro guarda EAN-13 com zero à esquerda e o leitor manda o UPC-A sem
-    // ele: a chave de comparação ignora zeros à esquerda quando é só dígito.
-    const chave = chaveCodigo(codigoBruto);
-    if (chave === "") return; // código todo zeros não é código de barras: ignora
+    if (barrasQ.error) { setAlerta((barrasQ.error as Error).message); return; }
+    if (!barrasQ.data) { setAlerta("Carregando códigos…"); return; }
+    const resolvido = barrasQ.resolver(codigoBruto);
+    if (!resolvido) { tocarAlerta(); setAlerta(`Código não encontrado: ${codigo}`); return; }
+    const unidades = unidadesCodigoBarras(resolvido, 1);
+    if (unidades === null) { setUnidadesCaixa(""); setCaixaPendente(resolvido); return; }
+    contarProduto(resolvido, unidades, codigo);
+  }
 
-    // Casa por EAN (o que o leitor lê). SKU é aceito como segunda chave para o
-    // item sem EAN cadastrado, que só pode entrar digitado à mão.
-    const candidatos = itens.filter(
-      (i) => chaveCodigo(i.ean) === chave || chaveCodigo(i.sku) === chave ||
-        chaveCodigo(i.cod_cadastro) === chave,
-    );
-
+  function contarProduto(resolvido: CodigoBarrasResolvido, unidades: number, codigo: string) {
+    const candidatos = itens.filter((i) => i.sku === resolvido.sku);
     if (candidatos.length === 0) {
       tocarAlerta();
       setAlerta(`${codigo} não pertence a este pedido.`);
@@ -331,7 +337,16 @@ export function EstacaoConferencia({
     }
 
     setAlerta(null);
-    setBipados((atual) => ({ ...atual, [alvo.id]: (atual[alvo.id] ?? 0) + 1 }));
+    const capacidade = candidatos.reduce((s, i) => s + Math.max(0, i.quantidade - (bipados[i.id] ?? 0)), 0);
+    if (unidades > capacidade) { tocarAlerta(); setAlerta(`${codigo}: ${unidades} unidades excedem as ${capacidade} restantes.`); return; }
+    setBipados((atual) => {
+      const novo = { ...atual }; let restante = unidades;
+      for (const item of candidatos) {
+        const delta = Math.min(restante, Math.max(0, item.quantidade - (novo[item.id] ?? 0)));
+        novo[item.id] = (novo[item.id] ?? 0) + delta; restante -= delta;
+      }
+      return novo;
+    });
     // CADA bipe move o item para o topo dos conferidos e acende o realce —
     // a peça bipada aparece no bloco de baixo na hora, não só ao completar.
     setOrdemConferidos((ordem) => [...ordem.filter((id) => id !== alvo.id), alvo.id]);
@@ -398,6 +413,7 @@ export function EstacaoConferencia({
                 ref={inputRef}
                 autoFocus
                 autoComplete="off"
+                disabled={barrasQ.isLoading || !!caixaPendente}
                 className="pl-9 font-mono"
                 placeholder="Leitor USB ou digitação + Enter"
                 value={buffer}
@@ -418,6 +434,18 @@ export function EstacaoConferencia({
           </div>
         </div>
 
+        <Dialog open={!!caixaPendente} onOpenChange={(v) => { if (!v) setCaixaPendente(null); }}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Quantas unidades contar?</DialogTitle><DialogDescription>DUN sem conteúdo de caixa definido. Informe o total de unidades.</DialogDescription></DialogHeader>
+            <Input autoFocus type="number" min={1} step={1} aria-label="Total de unidades" value={unidadesCaixa} onChange={(e) => setUnidadesCaixa(e.target.value)} />
+            <DialogFooter><Button onClick={() => {
+              const qtd = Number(unidadesCaixa);
+              if (!caixaPendente || !Number.isInteger(qtd) || qtd < 1) return;
+              contarProduto(caixaPendente, qtd, caixaPendente.dun ?? caixaPendente.sku);
+              setCaixaPendente(null);
+            }}>Confirmar unidades</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
         <div aria-live="assertive">
           {alerta && (
             <div className="flex items-center gap-2 rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive-strong">

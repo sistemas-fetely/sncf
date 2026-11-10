@@ -1,10 +1,9 @@
 import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ScanBarcode, Undo2, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useResolverCodigoBarras } from "@/hooks/estoque/useResolverCodigoBarras";
+import { normalizarGtin, unidadesCodigoBarras } from "@/lib/estoque/resolverCodigoBarras";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,12 +12,7 @@ import { cn } from "@/lib/utils";
 import { sugerirProdutos, type ProdutoCatalogo } from "@/lib/estoque/contagemSessao";
 
 export interface LeituraCodigo { sku: string; unidades: number }
-interface Codigo { sku: string; unidades: number | null; tipo: string | null }
-
-/** Normaliza código de barras: só dígitos, sem zeros à esquerda. */
-export function normalizarCodigo(c: string | null | undefined): string {
-  return (c ?? "").trim().replace(/\D/g, "").replace(/^0+/, "");
-}
+export const normalizarCodigo = normalizarGtin;
 
 let audioCtx: AudioContext | null = null;
 function bip(agudo: boolean) {
@@ -58,27 +52,7 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
   const ref = useRef<HTMLInputElement>(null);
   const [ativo, setAtivo] = useState(-1);
   const sugestoes = useMemo(() => (catalogo ? sugerirProdutos(catalogo, codigo) : []), [catalogo, codigo]);
-  const { resolver: resolverCod } = useCodigoProdutoMap();
-
-  const codigosQ = useQuery({
-    queryKey: ["vw_codigo_barras"],
-    staleTime: 10 * 60 * 1000,
-    queryFn: async () => {
-      const mapa = new Map<string, Codigo>();
-      const passo = 1000;
-      for (let de = 0; ; de += passo) {
-        const { data, error } = await supabase
-          .from("vw_codigo_barras").select("codigo,sku,unidades,tipo").range(de, de + passo - 1);
-        if (error) throw error;
-        (data ?? []).forEach((r) => {
-          const k = normalizarCodigo(r.codigo);
-          if (k && r.sku) mapa.set(k, { sku: r.sku, unidades: r.unidades == null ? null : Number(r.unidades), tipo: r.tipo });
-        });
-        if (!data || data.length < passo) break;
-      }
-      return mapa;
-    },
-  });
+  const codigosQ = useResolverCodigoBarras();
 
   useEffect(() => {
     if (codigosQ.isError) toast.error(`Falha ao carregar códigos de barras: ${formatError(codigosQ.error)}`);
@@ -101,27 +75,24 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
 
   function ler() {
     const bruto = codigo;
-    const k = normalizarCodigo(bruto);
     setCodigo("");
     const mult = multiplicador();
     setQtd("1");
-    if (!k) { focar(); return; }
-    const mapa = codigosQ.data;
-    // Fallback: cod_cadastro ou SKU digitado (sem código de barras) resolve para o SKU, 1 peça.
-    const viaCadastro = resolverCod(bruto);
-    const c = mapa?.get(k) ?? (viaCadastro.cadastrado && viaCadastro.sku ? { sku: viaCadastro.sku, unidades: 1, tipo: "sku" } : undefined);
+    if (!bruto.trim()) { focar(); return; }
+    const c = codigosQ.resolver(bruto);
     if (!c) {
-      toast.error(`Código ${bruto.trim()} não cadastrado`);
+      toast.error(`Código não encontrado: ${bruto.trim()}`);
       bip(false); focar(); return;
     }
     const recusa = validarSku?.(c.sku) ?? null;
     if (recusa) { toast.error(recusa); bip(false); focar(); return; }
-    if (c.tipo === "dun" && (c.unidades == null || c.unidades <= 0)) {
+    const unidades = unidadesCodigoBarras(c, mult);
+    if (unidades === null) {
       setPecasCaixa("");
       setCaixa({ sku: c.sku, codigo: bruto.trim(), mult });
       return;
     }
-    aceitar(c.sku, (c.tipo === "dun" ? Number(c.unidades) : 1) * mult);
+    aceitar(c.sku, unidades);
     focar();
   }
 
@@ -142,8 +113,7 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
     e.preventDefault();
     if (ativo >= 0 && sugestoes[ativo]) { escolher(sugestoes[ativo]); return; }
     // Código/SKU exato tem prioridade; sem correspondência e com sugestões, usa a primeira.
-    const k = normalizarCodigo(codigo);
-    const exato = (k && codigosQ.data?.has(k)) || resolverCod(codigo).cadastrado;
+    const exato = codigosQ.resolver(codigo);
     if (!exato && sugestoes.length > 0) { escolher(sugestoes[0]); return; }
     setAtivo(-1);
     ler();
@@ -153,7 +123,7 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
     if (!caixa) return;
     const p = Math.floor(Number(pecasCaixa));
     if (isNaN(p) || p < 1) { toast.error("Informe quantas peças tem a caixa"); return; }
-    aceitar(caixa.sku, p * caixa.mult);
+    aceitar(caixa.sku, p);
     setCaixa(null);
     focar();
   }
@@ -222,14 +192,14 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
       <Dialog open={!!caixa} onOpenChange={(o) => { if (!o) { setCaixa(null); focar(); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Quantas peças tem esta caixa?</DialogTitle>
+            <DialogTitle>Quantas unidades contar?</DialogTitle>
             <DialogDescription>Código {caixa?.codigo} · {caixa?.sku}{caixa && caixa.mult > 1 ? ` · × ${caixa.mult} caixas` : ""}</DialogDescription>
           </DialogHeader>
           <Input
             type="number" min={1} step={1} autoFocus value={pecasCaixa}
             onChange={(e) => setPecasCaixa(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); confirmarCaixa(); } }}
-            aria-label="Peças por caixa"
+            aria-label="Total de unidades"
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setCaixa(null); focar(); }}>Cancelar</Button>

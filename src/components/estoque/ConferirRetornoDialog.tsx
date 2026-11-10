@@ -3,6 +3,7 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { queryCodigosBarras, useResolverCodigoBarras } from "@/hooks/estoque/useResolverCodigoBarras";
 import { formatError } from "@/lib/format-error";
 import { resolverCodigoRetorno, unidadesBipeRetorno, origemDunRetorno, type ProdutoRetorno } from "@/lib/estoque/codigoRetorno";
 
@@ -137,6 +138,7 @@ function useProdutosDevolucao(skus: string[], enabled: boolean) {
 
 export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) {
   const qc = useQueryClient();
+  const barrasQ = useResolverCodigoBarras(open);
   const condQ = useCondicoesEntrada();
   const condicoes = condQ.data ?? [];
   const funilQ = useFunilLinha(devolucao?.devolucao_id ?? null, open);
@@ -169,7 +171,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const codigoRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
-  const mapaCodigosRef = useRef(new Map<string, { sku: string; cod: string | null; nome: string | null }>());
   const filaRef = useRef<BipPendente[]>([]);
   const processandoFilaRef = useRef(false);
   const sessaoRef = useRef(0);
@@ -235,17 +236,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     return m;
   }, [devolucao]);
 
-  useEffect(() => {
-    const mapa = new Map<string, { sku: string; cod: string | null; nome: string | null }>();
-    for (const produto of produtosQ.data ?? []) {
-      const valor = { sku: produto.sku, cod: produto.cod_cadastro, nome: produto.nome_comercial };
-      mapa.set(produto.sku.toLocaleLowerCase().trim(), valor);
-      if (produto.ean) mapa.set(String(produto.ean).toLocaleLowerCase().trim(), valor);
-      if (produto.cod_cadastro) mapa.set(String(produto.cod_cadastro).toLocaleLowerCase().trim(), valor);
-    }
-    mapaCodigosRef.current = mapa;
-  }, [produtosQ.data]);
-
   // cod_cadastro por SKU para exibição (etapa 1 e confronto). Envio continua por SKU.
   const codPorSku = useMemo(() => {
     const m = new Map<string, string | null>();
@@ -291,7 +281,8 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         const bip = filaRef.current.shift();
         if (!bip) continue;
         try {
-          const produto = await resolverCodigoRetorno(bip.codigo);
+          const indice = await qc.ensureQueryData(queryCodigosBarras);
+          const produto = resolverCodigoRetorno(bip.codigo, indice);
           if (bip.sessao !== sessaoRef.current) continue;
           if (!produto) {
             setCodigoErro(true);
@@ -336,14 +327,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     setCodigo("");
     setQtdBip("1");
     setCodigoErro(false);
-    const produtoLocal = mapaCodigosRef.current.get(cod.toLocaleLowerCase());
-    if (produtoLocal) {
-      adicionarContagem(produtoLocal, qtd);
-    } else {
-      filaRef.current.push({ codigo: cod, qtd, sessao: sessaoRef.current });
-      setFilaPendente((total) => total + 1);
-      void processarFila();
-    }
+    filaRef.current.push({ codigo: cod, qtd, sessao: sessaoRef.current });
+    setFilaPendente((total) => total + 1);
+    void processarFila();
     setTimeout(() => codigoRef.current?.focus(), 0);
   }
 
@@ -594,9 +580,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
           </DialogDescription>
         </DialogHeader>
 
-        {(funilQ.error || condQ.error || produtosQ.error) && (
+        {(funilQ.error || condQ.error || produtosQ.error || barrasQ.error) && (
           <Alert variant="destructive">
-            <AlertDescription>{formatError(funilQ.error ?? condQ.error ?? produtosQ.error)}</AlertDescription>
+            <AlertDescription>{formatError(funilQ.error ?? condQ.error ?? produtosQ.error ?? barrasQ.error)}</AlertDescription>
           </Alert>
         )}
 
