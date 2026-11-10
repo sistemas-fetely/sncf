@@ -307,6 +307,10 @@ export default function EstoqueVirtual() {
     },
   });
   const centros = centrosQuery.data ?? [];
+  /** Centro selecionado que não vende pelo SNCF (vende=false): virtual é 0 por regra. */
+  const centroNaoVende =
+    centroFiltro !== "todos" && centros.find((c) => c.codigo === centroFiltro)?.vende === false;
+  const TITLE_NAO_VENDE = "Este centro não vende pelo SNCF — saldo em Fiscal";
 
 
   const cockpitQuery = useQuery({
@@ -906,7 +910,9 @@ export default function EstoqueVirtual() {
                       key={c.codigo}
                       colSpan={2}
                       className="border-l border-border/60 text-center font-semibold"
-                      title={c.nome ?? c.codigo}
+                      title={c.vende === false
+                        ? `${c.nome ?? c.codigo} — Não vende pelo SNCF — Disp. é sempre 0; saldo no tooltip`
+                        : (c.nome ?? c.codigo)}
                     >
                       {c.rotulo_curto ?? c.codigo}
                     </TableHead>
@@ -934,7 +940,7 @@ export default function EstoqueVirtual() {
                 {cabecalho("conciliacao", "Conciliação", "w-[90px] min-[1440px]:w-[108px] text-center")}
                 {visao === "estoque" && <>
                 {cabecalho("contabil", "Fiscal", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true, centroNaoVende ? TITLE_NAO_VENDE : undefined)}
                 {cabecalho("vmes", "Vendas/mês", "w-[78px] min-[1440px]:w-[88px]", true, "Vendas da janela ÷ dias da janela × 30")}
                 {cabecalho("vcustoprod", "Valor a custo", "w-[92px] min-[1440px]:w-[104px]", true)}
                 {cabecalho(
@@ -949,7 +955,8 @@ export default function EstoqueVirtual() {
                 {cabecalho("chegada", "Chegada", "w-[62px] min-[1440px]:w-[72px]", true)}
                 </>}
                 {visao === "valor" && <>
-                  {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                  {centroNaoVende && cabecalho("contabil", "Fiscal", "w-[72px] min-[1440px]:w-[84px]", true)}
+                  {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true, centroNaoVende ? TITLE_NAO_VENDE : undefined)}
                   {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
                   {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
                   {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
@@ -1008,7 +1015,14 @@ export default function EstoqueVirtual() {
                       <div key={t} className="whitespace-nowrap text-[10px] font-normal leading-tight text-muted-foreground">{t}</div>
                     ))}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">
+                    {centroNaoVende ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild><span className="cursor-help text-muted-foreground" tabIndex={0}>—</span></TooltipTrigger>
+                        <TooltipContent>{TITLE_NAO_VENDE}</TooltipContent>
+                      </Tooltip>
+                    ) : formatNum(p.virtual)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {(() => {
                       const vm = p.janela_dias > 0 ? Math.round((p.vendas_janela / p.janela_dias) * 30) : 0;
@@ -1026,7 +1040,15 @@ export default function EstoqueVirtual() {
                   </TableCell>
                 </>}
                 {visao === "valor" && <>
-                  <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
+                  {centroNaoVende && <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>}
+                  <TableCell className="text-right tabular-nums font-medium">
+                    {centroNaoVende ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild><span className="cursor-help text-muted-foreground" tabIndex={0}>—</span></TooltipTrigger>
+                        <TooltipContent>{TITLE_NAO_VENDE}</TooltipContent>
+                      </Tooltip>
+                    ) : formatNum(p.virtual)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
                   <TableCell
                     className={cn("text-right tabular-nums", p.fonte_ticket === "tabela" && "text-muted-foreground")}
@@ -1055,7 +1077,13 @@ export default function EstoqueVirtual() {
                           {!dc || (dc.disp === 0 && dc.contabil === 0 && dc.reservado === 0 && dc.a_caminho === 0) ? <span className="text-muted-foreground">—</span> : (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="cursor-help" tabIndex={0} onClick={(e) => e.stopPropagation()}>{formatNum(dc.disp)}</span>
+                                <span
+                                  className={cn("cursor-help", c.vende === false && dc.disp === 0 && dc.contabil > 0 && "text-muted-foreground")}
+                                  tabIndex={0}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {c.vende === false && dc.disp === 0 && dc.contabil > 0 ? "—" : formatNum(dc.disp)}
+                                </span>
                               </TooltipTrigger>
                               <TooltipContent className="text-xs tabular-nums">
                                 <div className="grid grid-cols-[auto_auto] gap-x-3">
