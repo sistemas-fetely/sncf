@@ -180,3 +180,6 @@ verify_jwt = false
 
 [functions.bling-marketplace-sync]
   verify_jwt = false
+
+[functions.ingerir-termo-xpm-email]
+  verify_jwt = false

@@ -180,6 +180,23 @@ Deno.serve(async (req) => {
       console.log(`importar-fatura-xpm ${rf.status}: ${txt.slice(0, 500)}`);
       return json({ encaminhado: "faturas", status_importacao: rf.status });
     }
+    const ehTermo = destinos.some((d) => {
+      const s = String(d ?? "").toLowerCase();
+      const m = s.match(/<([^>]+)>/);
+      return (m ? m[1] : s).trim().startsWith("termo@");
+    });
+    if (ehTermo) {
+      const { data: ik } = await sb.rpc("get_vault_secret", { p_name: "INTERNAL_EDGE_KEY" });
+      const chaveInterna = String(ik ?? "") || String(rk ?? "");
+      const rf = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ingerir-termo-xpm-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-internal-key": chaveInterna },
+        body: JSON.stringify({ resend_email_id: emailId }),
+      });
+      const txt = await rf.text();
+      console.log(`ingerir-termo-xpm-email ${rf.status}: ${txt.slice(0, 500)}`);
+      return json({ encaminhado: "termo", status_importacao: rf.status });
+    }
   }
 
   // idempotência: já processado com sucesso -> 200 sem refazer
