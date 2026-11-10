@@ -12,8 +12,11 @@ describe("bipe da devolução", () => {
   it("inner nulo exige unidades explícitas, não lança Qtd caixas", () => {
     expect(unidadesBipeRetorno({ ...produto, innerQtd: null }, 3)).toBeNull();
   });
-  it("inner 1 também exige unidades explícitas", () => {
-    expect(unidadesBipeRetorno({ ...produto, innerQtd: 1 }, 3)).toBeNull();
+  it("inner 1 conta uma unidade por caixa sem pedir total", () => {
+    expect(unidadesBipeRetorno({ ...produto, innerQtd: 1 }, 3)).toBe(3);
+  });
+  it.each([0, -1])("inner %s exige unidades explícitas", (innerQtd) => {
+    expect(unidadesBipeRetorno({ ...produto, innerQtd }, 3)).toBeNull();
   });
   it("EAN/código/SKU continuam contando unidades", () => {
     expect(unidadesBipeRetorno({ sku: "SKU-A", nome: "A", cod: "001" }, 3)).toBe(3);

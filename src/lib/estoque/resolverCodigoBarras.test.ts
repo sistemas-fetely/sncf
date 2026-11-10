@@ -9,7 +9,7 @@ describe("GTIN único", () => {
   it("DUN 10631911283366 resolve 01833 como caixa", () => {
     const codigo = resolverCodigoBarras("10631911283366", indice);
     expect(codigo).toMatchObject({ cod: "01833", tipo: "dun", innerQtd: 1 });
-    expect(codigo && unidadesCodigoBarras(codigo, 3)).toBeNull();
+    expect(codigo && unidadesCodigoBarras(codigo, 3)).toBe(3);
   });
   it("código inexistente não resolve", () => { expect(resolverCodigoBarras("9999999999999", indice)).toBeNull(); });
   it("EAN8 e GTIN14 equivalentes", () => { expect(normalizarGtin("12345678")).toBe("00000012345678"); });
@@ -33,7 +33,11 @@ describe("GTIN único", () => {
     expect(c?.tipo).toBe("dun");
     expect(c && unidadesCodigoBarras(c, 3)).toBe(72);
   });
-  it.each([null, 1])("inner %s pede unidades", (inner_qtd) => {
+  it("inner 1 conta diretamente uma unidade por caixa", () => {
+    const c = resolverCodigoBarras(p.dun ?? "", indice);
+    expect(c && unidadesCodigoBarras(c, 5)).toBe(5);
+  });
+  it.each([null, 0, -1])("inner %s pede unidades", (inner_qtd) => {
     const c = resolverCodigoBarras(p.dun ?? "", montarIndiceBarras([{ ...p, inner_qtd }]));
     expect(c && unidadesCodigoBarras(c, 5)).toBeNull();
   });

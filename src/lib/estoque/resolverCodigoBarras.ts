@@ -47,5 +47,5 @@ export function resolverCodigoBarras(codigo: string, indice: IndiceBarras | unde
 }
 export function unidadesCodigoBarras(p: CodigoBarrasResolvido, qtd: number): number | null {
   if (p.tipo !== "dun") return qtd;
-  return p.innerQtd != null && Number.isFinite(p.innerQtd) && p.innerQtd > 1 ? p.innerQtd * qtd : null;
+  return p.innerQtd != null && Number.isFinite(p.innerQtd) && p.innerQtd >= 1 ? p.innerQtd * qtd : null;
 }

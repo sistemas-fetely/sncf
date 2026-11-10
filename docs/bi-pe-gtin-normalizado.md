@@ -4,7 +4,7 @@ Resolver único: `src/lib/estoque/resolverCodigoBarras.ts` (`normalizarGtin`, `m
 
 Base: a conferência da Mesa SP já tratava UPC/EAN ignorando zeros à esquerda. Agora EAN e DUN numéricos com até 14 dígitos são comparados como GTIN-14. Código de cadastro continua exato; SKU literal sem distinção entre maiúsculas/minúsculas. Precedência: EAN → código → SKU → DUN.
 
-`useResolverCodigoBarras` carrega produtos/cartório com paginação estável e cache compartilhado. Os índices de comparação são mapas em memória; não há busca SQL por expressão nem consulta por bipe, portanto não é necessário índice novo no banco. Inner é associado por DUN normalizado, nunca por SKU, múltiplo comercial ou kit. Inner nulo/1 requer total explícito de unidades.
+`useResolverCodigoBarras` carrega produtos/cartório com paginação estável e cache compartilhado. Os índices de comparação são mapas em memória; não há busca SQL por expressão nem consulta por bipe, portanto não é necessário índice novo no banco. Inner é associado por DUN normalizado, nunca por SKU, múltiplo comercial ou kit. Inner >= 1 multiplica diretamente pela Qtd, inclusive inner = 1 (uma unidade por caixa). Só inner nulo ou <= 0 requer total explícito de unidades. A origem na devolução mostra "DUN · 1 cx = N un" para todo inner válido.
 
 ## Telas migradas e resolução anterior
 
@@ -22,4 +22,4 @@ A estação Separação da Mesa SP é uma lista de picking: o bipe acontece na C
 
 ## Verificação
 
-DEV-B2C-1455 no preview autenticado: `631911283369` e `0631911283369` somam 2 unidades do 01833; `10631911283366` resolve como DUN, inner=1, exige unidades com foco; 4 unidades explícitas levam a 6; código inexistente é recusado sem alterar a contagem. Nenhum retorno ou despacho registrado.
+Na validação original de GTIN, DEV-B2C-1455 no preview autenticado aceitou `631911283369` e `0631911283369` como 01833 e recusou código inexistente sem alterar a contagem. A decisão do Flávio em 10/11/2026 substitui a regra anterior para inner=1: `10631911283366` agora conta diretamente Qtd unidades, sem abrir pedido de unidades. Nenhum retorno ou despacho registrado.

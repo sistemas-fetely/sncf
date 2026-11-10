@@ -20,7 +20,7 @@ export function unidadesBipeRetorno(produto: ProdutoRetorno, qtd: number): numbe
 
 export function origemDunRetorno(produto: ProdutoRetorno): string | undefined {
   if (!produto.dun) return undefined;
-  return produto.innerQtd != null && produto.innerQtd > 1
+  return unidadesBipeRetorno(produto, 1) != null
     ? `DUN · 1 cx = ${produto.innerQtd} un`
     : "DUN · unidades informadas";
 }
