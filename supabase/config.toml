@@ -177,3 +177,6 @@ verify_jwt = false
 
 [functions.enviar-posicao-comissao]
   verify_jwt = true
+
+[functions.bling-marketplace-sync]
+  verify_jwt = false
