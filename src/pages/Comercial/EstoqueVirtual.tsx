@@ -784,12 +784,14 @@ export default function EstoqueVirtual() {
                 aria-pressed={sel}
                 onClick={() => { setCentroFiltro(sel ? "todos" : c.codigo); setPagina(1); }}
                 className={cn(
-                  "rounded-md border bg-card px-3 py-2 text-left transition-colors hover:border-primary/60",
-                  sel && "border-primary",
-                  r.un === 0 && !sel && "opacity-50",
+                  "rounded-md border-2 border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/60",
+                  sel && "border-primary bg-primary/10 ring-2 ring-primary/30",
+                  r.un === 0 && !sel
+                    ? "opacity-50"
+                    : !sel && centroFiltro !== "todos" && "opacity-60 hover:opacity-100",
                 )}
               >
-                <div className="text-[11px] text-muted-foreground truncate">{c.rotulo_curto ?? c.codigo}</div>
+                <div className={cn("truncate text-[11px]", sel ? "font-semibold text-foreground" : "text-muted-foreground")}>{c.rotulo_curto ?? c.codigo}</div>
                 <div className="text-base font-medium tabular-nums">{formatNum(r.un)} un</div>
                 {desvio ? (
                   <>
