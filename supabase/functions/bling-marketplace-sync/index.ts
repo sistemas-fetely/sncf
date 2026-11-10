@@ -1,7 +1,7 @@
 // Edge: bling-marketplace-sync (10/11/2026, mapa-pedidos-marketplace-v1 F0)
 // Pedido de marketplace nasce no Bling (TikTok Shop / Mercado Livre / Shopee).
-// Esta edge: (a) acao "lojas" — lista GET /canais-venda e preenche marketplace_loja.loja_bling_id
-// por nome; (b) acao "pedidos" (padrao/cron) — para cada loja de marketplace ativa, lista
+// Esta edge: (a) acao "lojas" — lista GET /canais-venda e sincroniza marketplace_loja_bling
+// por tipo; (b) acao "pedidos" (padrao/cron) — para cada canal de marketplace ativo, lista
 // pedidos recentes, busca o detalhe e chama fn_nascer_pedido_marketplace.
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -49,16 +49,22 @@ Deno.serve(async (req) => {
     let lojas: any[] = [];
     try { const r = await client.get(`/canais-venda?limite=100&pagina=1`); lojas = r?.data ?? []; }
     catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
-    const { data: mkts } = await sb.from("marketplace_loja").select("codigo, nome, loja_bling_id");
     const casados: unknown[] = [];
-    const chave: Record<string, RegExp> = { TTS: /tik\s*tok/i, MLB: /mercado\s*livre|meli|mercadolivre/i, SHP: /shopee/i };
-    for (const m of mkts ?? []) {
-      if (m.loja_bling_id) { casados.push({ codigo: m.codigo, loja_bling_id: m.loja_bling_id, origem: "ja_preenchido" }); continue; }
-      const hit = lojas.find((l) => chave[m.codigo]?.test(String(l?.descricao ?? l?.nome ?? "")));
-      if (!hit) { casados.push({ codigo: m.codigo, loja_bling_id: null, origem: "nao_encontrada" }); continue; }
-      const { error } = await sb.from("marketplace_loja")
-        .update({ loja_bling_id: Number(hit.id), atualizado_em: new Date().toISOString() }).eq("codigo", m.codigo);
-      casados.push({ codigo: m.codigo, loja_bling_id: Number(hit.id), nome_bling: hit.descricao ?? hit.nome, origem: error ? `erro: ${error.message}` : "preenchido" });
+    const codigos = new Map<string, string>([["TikTok", "TTS"], ["MercadoLivre", "MLB"], ["Shopee", "SHP"]]);
+    for (const canal of lojas) {
+      const codigo = codigos.get(canal.tipo);
+      if (!codigo) continue;
+      const lojaId = Number(canal.id);
+      const { data: existente, error: eBusca } = await sb.from("marketplace_loja_bling")
+        .select("loja_bling_id").eq("loja_bling_id", lojaId).maybeSingle();
+      if (eBusca) return json({ ok: false, erro: `marketplace_loja_bling: ${eBusca.message}`, marketplace: casados }, 500);
+      // ativo fica fora do UPSERT: usa o default no insert e preserva a escolha existente no update.
+      const { error } = await sb.from("marketplace_loja_bling").upsert([{
+        loja_bling_id: lojaId, marketplace_codigo: codigo, descricao: canal.descricao ?? canal.nome,
+        tipo_bling: canal.tipo,
+      }], { onConflict: "loja_bling_id", defaultToNull: false });
+      if (error) return json({ ok: false, erro: `marketplace_loja_bling: ${error.message}`, marketplace: casados }, 500);
+      casados.push({ codigo, loja_bling_id: lojaId, nome_bling: canal.descricao ?? canal.nome, origem: existente ? "atualizado" : "inserido" });
     }
     return json({ ok: true, lojas_bling: lojas.map((l) => ({ id: l.id, descricao: l.descricao ?? l.nome, tipo: l.tipo })), marketplace: casados });
   }
@@ -75,8 +81,10 @@ Deno.serve(async (req) => {
 
   // ---------- acao: pedidos ----------
   if (acao !== "pedidos") return json({ ok: false, erro: `acao desconhecida: ${acao}` }, 400);
-  const { data: mkts, error: eM } = await sb.from("marketplace_loja").select("codigo, nome, loja_bling_id").eq("ativo", true).not("loja_bling_id", "is", null);
-  if (eM) return json({ ok: false, erro: `marketplace_loja: ${eM.message}` }, 500);
+  const { data: mkts, error: eM } = await sb.from("marketplace_loja_bling")
+    .select("loja_bling_id, marketplace_codigo, descricao, marketplace_loja!inner(codigo, nome, ativo)")
+    .eq("ativo", true).eq("marketplace_loja.ativo", true);
+  if (eM) return json({ ok: false, erro: `marketplace_loja_bling: ${eM.message}` }, 500);
   if (!(mkts ?? []).length) return json({ ok: true, aviso: "nenhuma loja de marketplace com loja_bling_id — rode acao=lojas", processados: 0 });
 
   const resumo = { listados: 0, novos: 0, criados: 0, ja_existiam: 0, ignorados: 0, erros: 0, detalhes: [] as unknown[] };
@@ -90,7 +98,7 @@ Deno.serve(async (req) => {
       try {
         const r = await client.get(`/pedidos/vendas?limite=100&pagina=${pagina}&idLoja=${m.loja_bling_id}&dataInicial=${dataInicial}`);
         lista = r?.data ?? [];
-      } catch (e) { resumo.erros++; resumo.detalhes.push({ loja: m.codigo, pagina, erro: errMsg(e) }); break; }
+      } catch (e) { resumo.erros++; resumo.detalhes.push({ loja: m.marketplace_codigo, pagina, erro: errMsg(e) }); break; }
       if (!lista.length) break;
       resumo.listados += lista.length;
 
@@ -106,7 +114,7 @@ Deno.serve(async (req) => {
         if (!filaId) {
           const { data: ins, error: eIns } = await sb.from("bling_pedido_fila_mkt").insert({
             bling_pedido_id: blingId, bling_numero: p.numero ? String(p.numero) : null, numero_loja: p.numeroLoja ?? null,
-            loja_bling_id: m.loja_bling_id, marketplace_codigo: m.codigo, situacao_bling: p.situacao ?? null, status: "processando",
+            loja_bling_id: m.loja_bling_id, marketplace_codigo: m.marketplace_codigo, situacao_bling: p.situacao ?? null, status: "processando",
           }).select("id").maybeSingle();
           if (eIns || !ins) { resumo.erros++; resumo.detalhes.push({ bling_id: blingId, erro: `fila insert: ${eIns?.message}` }); continue; }
           filaId = ins.id;
@@ -130,12 +138,12 @@ Deno.serve(async (req) => {
             ultimo_erro: status === "erro" ? JSON.stringify(r).slice(0, 500) : null,
             tentativas: Number(fila?.tentativas ?? 0) + 1, processado_em: new Date().toISOString(),
           }).eq("id", filaId);
-          resumo.detalhes.push({ loja: m.codigo, bling_id: blingId, resultado: r });
+          resumo.detalhes.push({ loja: m.marketplace_codigo, bling_id: blingId, resultado: r });
         } catch (e) {
           const msg = errMsg(e);
           resumo.erros++;
           await sb.from("bling_pedido_fila_mkt").update({ status: "erro", ultimo_erro: msg, tentativas: Number(fila?.tentativas ?? 0) + 1, processado_em: new Date().toISOString() }).eq("id", filaId);
-          resumo.detalhes.push({ loja: m.codigo, bling_id: blingId, erro: msg });
+          resumo.detalhes.push({ loja: m.marketplace_codigo, bling_id: blingId, erro: msg });
         }
         await sleep(250);
       }
