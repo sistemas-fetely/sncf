@@ -8,25 +8,27 @@ import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { acaoModalDespacho, executarAcaoModalMesa } from "@/lib/logistica/trocaModalMesa";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatError } from "@/lib/format-error";
 import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } from "./tipos";
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
-import { cancelarPrepostagemSeSairDeCorreios, useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
+import { useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
 import { BotaoEtiquetaCorreios } from "./BotaoEtiquetaCorreios";
 import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
 
 /**
  * Despacho individual (B2C e B2B). Modal pré-selecionado com o vigente;
- * trocar exige motivo e chama fn_mesa_sp_trocar_modal antes do despacho. Os campos dependem do modal; quem valida de
+ * trocar exige motivo e chama fn_mesa_sp_trocar_modal, voltando a Documentos. Os campos dependem do modal; quem valida de
  * verdade é `fn_mesa_sp_despachar` — o erro dela sobe como está (FAIL-LOUD).
  *
  * - Modal com executores em `mesa_sp_executor` (Frete Fetely): "Quem entrega";
  *   referência obrigatória se o executor `exige_referencia`.
- * - Correios (`exige_etiqueta_correios`): SEMPRE pede o bipe do código do
- *   comprovante (campo vazio); diferente do já registrado, o bipado substitui.
+ * - Correios: despacho pelo rastreio; só "Já postei na agência" pede bipe.
  * - Retirada (B2B): "Quem retirou".
  * - Demais (Transportadora): referência da coleta obrigatória.
  */
@@ -41,11 +43,12 @@ interface Props {
   /** Presente quando o form vive num diálogo: mostra "Cancelar" no rodapé. */
   onCancelar?: () => void;
   onDespachar: (referencia: string | null, executor: string | null, modal: string) => void;
+  onModalTrocado?: () => void;
   /** Erro do último despacho deste pedido: fica sob o campo até o operador tentar de novo. */
   erroDespacho?: string | null;
 }
 
-export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onCancelar, onDespachar, erroDespacho = null }: Props) {
+export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onCancelar, onDespachar, onModalTrocado, erroDespacho = null }: Props) {
   const qc = useQueryClient();
   // Modal vigente: considera troca registrada depois da embalagem.
   const vigenteQ = useQuery({
@@ -66,28 +69,38 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
   const [motivoTroca, setMotivoTroca] = useState("");
   const [salvandoTroca, setSalvandoTroca] = useState(false);
   const [erroTroca, setErroTroca] = useState<string | null>(null);
+  const [jaPostei, setJaPostei] = useState(false);
+  useEffect(() => { setJaPostei(false); }, [pedidoId, modalCodigo]);
   const opcoesModal = modais.filter((m) => m.ativo || m.codigo === modalVigente);
 
   async function despachar(refFinal: string | null, execFinal: string | null) {
     if (!modalCodigo) return;
-    if (houveTroca) {
-      setSalvandoTroca(true); setErroTroca(null);
-      try {
-        await cancelarPrepostagemSeSairDeCorreios(pedidoId, modalCodigo, motivoTroca.trim());
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc as any)("fn_mesa_sp_trocar_modal", {
-          p_pedido_id: pedidoId, p_modal: modalCodigo, p_motivo: motivoTroca.trim(),
-        });
-        if (error) throw new Error(error.message);
-      } catch (e) {
-        setErroTroca(e instanceof Error ? e.message : String(e));
-        setSalvandoTroca(false);
-        return; // troca falhou: não despacha
-      }
+    setSalvandoTroca(true); setErroTroca(null);
+    try {
+      await executarAcaoModalMesa(acao, houveTroca, {
+        trocar: async () => {
+          const { data, error } = await supabase.rpc("fn_mesa_sp_trocar_modal", {
+            p_pedido_id: pedidoId, p_modal: modalCodigo, p_motivo: motivoTroca.trim(),
+          });
+          if (error) throw new Error(error.message);
+          const r = data as { ok?: boolean; erro?: string } | null;
+          if (!r?.ok) throw new Error(r?.erro ?? "Troca de modal não confirmada pelo banco.");
+          await qc.invalidateQueries({ queryKey: ["mesa-sp"] });
+        },
+        agencia: async () => {
+          const { error } = await supabase.rpc("fn_mesa_sp_postar_agencia", { p_pedido_id: pedidoId });
+          if (error) throw new Error(error.message);
+          await qc.invalidateQueries({ queryKey: ["mesa-sp"] });
+        },
+        documentos: () => { toast.success("Modal trocado — refaça os documentos."); onModalTrocado?.(); },
+        despachar: () => onDespachar(refFinal, execFinal, modalCodigo),
+      });
+    } catch (e) {
+      const mensagem = formatError(e);
+      setErroTroca(mensagem); toast.error(mensagem);
+    } finally {
       setSalvandoTroca(false);
-      void qc.invalidateQueries({ queryKey: ["mesa-sp", "modal-do-pedido", pedidoId] });
     }
-    onDespachar(refFinal, execFinal, modalCodigo);
   }
 
   const execQ = useExecutoresMesa();
@@ -97,6 +110,9 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
     [execQ.data, modalCodigo],
   );
   const ehCorreios = modal?.exige_etiqueta_correios === true;
+  const acao = acaoModalDespacho({ atual: modalVigente, escolhido: modalCodigo, correios: ehCorreios, jaPostei });
+  const soTroca = acao === "trocar";
+  const peloRastreio = acao === "rastreio";
   const docsQ = useDocumentosMesa(ehCorreios ? pedidoId : "");
   const [executor, setExecutor] = useState("");
   const [referencia, setReferencia] = useState("");
@@ -140,10 +156,11 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
 
   const ref = campo?.id === "ref-correios" ? normalizarCodigoCorreios(referencia) : referencia.trim();
   const erroSro = campo?.id === "ref-correios" && ref !== "" ? erroCodigoSro(ref) : null;
+  if (soTroca || peloRastreio) campo = null;
   const pode =
-    (!usaExecutor || execEscolhido !== null) &&
-    (!campo?.obrigatorio || ref !== "") &&
-    erroSro === null &&
+    (soTroca || !usaExecutor || !!execEscolhido) &&
+    (soTroca || !campo?.obrigatorio || ref !== "") &&
+    (soTroca || erroSro === null) && !peloRastreio &&
     (!houveTroca || motivoTroca.trim() !== "") &&
     !salvandoTroca && !despachando && !bloqueado && !execQ.isLoading && !(ehCorreios && docsQ.isLoading);
 
@@ -165,11 +182,19 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
             Motivo da troca <span className="text-destructive" aria-hidden="true">*</span>
           </Label>
           <Textarea id="mesa-sp-troca-motivo" rows={2} value={motivoTroca} onChange={(e) => setMotivoTroca(e.target.value)} placeholder="Explique por que o modal mudou" />
-          {erroTroca && <p className="whitespace-pre-wrap text-xs text-destructive">{erroTroca}</p>}
         </div>
       )}
 
-      {usaExecutor && (
+      {ehCorreios && (
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={jaPostei} onCheckedChange={(v) => setJaPostei(v === true)} disabled={salvandoTroca || despachando || bloqueado} />
+          Já postei na agência
+        </label>
+      )}
+      {erroTroca && <p role="alert" className="whitespace-pre-wrap text-sm text-destructive">{erroTroca}</p>}
+      {peloRastreio && <p className="text-sm text-muted-foreground">Aguardando coleta — o despacho será registrado pelo rastreio dos Correios.</p>}
+
+      {usaExecutor && !soTroca && (
         <div className="space-y-1.5">
           <Label htmlFor="mesa-sp-executor">Quem entrega</Label>
           <Select value={executor} onValueChange={setExecutor}>
@@ -185,9 +210,9 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
         </div>
       )}
 
-      {ehCorreios && <BotaoEtiquetaCorreios pedidoId={pedidoId} />}
+      {ehCorreios && !houveTroca && !jaPostei && <BotaoEtiquetaCorreios pedidoId={pedidoId} />}
 
-      {ehCorreios && codigoRegistrado && (
+      {ehCorreios && jaPostei && codigoRegistrado && (
         <p className="text-xs text-muted-foreground">
           Código já no pedido: <span className="font-mono">{codigoRegistrado}</span>. Bipe o comprovante — se for diferente, o bipado substitui.
         </p>
@@ -230,12 +255,12 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
         )}
         <BotaoGuardado
           slug="acao.expedicao_sp_operar"
-          rotuloAcao="Despachar pedido"
+          rotuloAcao={soTroca ? "Trocar modal e refazer documentos" : "Despachar pedido"}
           onClick={() => void despachar(ref || null, execEscolhido?.codigo ?? null)}
           disabled={!pode}
         >
           {despachando || salvandoTroca ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
-          {modal?.sem_despacho ? "Registrar retirada" : "Despachar"}
+          {soTroca ? "Trocar modal e refazer documentos" : peloRastreio ? "Aguardando coleta" : modal?.sem_despacho ? "Registrar retirada" : "Despachar"}
         </BotaoGuardado>
       </DialogFooter>
     </div>

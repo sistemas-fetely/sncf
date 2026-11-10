@@ -610,6 +610,20 @@
       "when": 1794270498217,
       "tag": "0086_catalogo_trava_restringir_acesso",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794319667770,
+      "tag": "0087_mesa_sp_documentos_modal_vigente",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794320035282,
+      "tag": "0088_mesa_sp_remarcar_documento_novo_modal",
+      "breakpoints": true
     }
   ]
 }

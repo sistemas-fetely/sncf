@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Mesa SP: troca individual volta a Documentos, guarda/marcações por ciclo do modal no banco, agência explícita e aviso CC-e; 32 testes passaram. PED-2402 trocado realmente para CORREIOS pela tela e documentos antigos descartados; função de troca, edge e lote intactos; sem publicar.
+- [ ] Mesa SP PED-2402: concluir geração real da etiqueta (Correios RTL-076: UF enviada "Rio Grande do Sul" vira RI, CEP exige RS; sem alterar endereço ou edge fora do escopo). Pedido permanece em Documentos, sem pré-postagem criada e sem despacho.
 - [x] Catálogo: fechamento antes do limite adaptativo restaurado, fronteiras/reenvio/parada conferidos e AGENTS.md incluído; 80 testes passaram. Com 904 células em produtos de 4: 11 lotes adaptativos (limite 91), ou 10 com limite explícito 100; sem banco, edge ou publicação.
 - [x] Órfãos de Entrada: sugestão por pedido/valor/data e atualização aguardada de pedidos/provas após aceite; 3 testes e aceite autenticado simulado conferidos, sem banco, tipos gerados ou publicação.
 - [x] Catálogo: lotes adaptativos por produto e 100% visível por 600 ms; 35 testes passaram e fluxo autenticado de 16 células conferido com aplicação simulada, sem banco, edge ou publicação.

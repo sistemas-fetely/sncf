@@ -63441,6 +63441,9 @@ export type Database = {
           frete_tipo: string | null
           id: string
           id_externo: string
+          instrucao_expedicao: string | null
+          instrucao_expedicao_lida_em: string | null
+          instrucao_expedicao_lida_por: string | null
           itens_json: Json | null
           link_pagamento: string | null
           marcacao: string | null
@@ -63567,6 +63570,9 @@ export type Database = {
           frete_tipo?: string | null
           id?: string
           id_externo: string
+          instrucao_expedicao?: string | null
+          instrucao_expedicao_lida_em?: string | null
+          instrucao_expedicao_lida_por?: string | null
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
@@ -63693,6 +63699,9 @@ export type Database = {
           frete_tipo?: string | null
           id?: string
           id_externo?: string
+          instrucao_expedicao?: string | null
+          instrucao_expedicao_lida_em?: string | null
+          instrucao_expedicao_lida_por?: string | null
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
@@ -111082,6 +111091,8 @@ export type Database = {
           movimentacao_id: string | null
           parceiro_sugerido_id: string | null
           parceiro_sugerido_nome: string | null
+          pedido_sugerido: string | null
+          pedido_sugerido_id: string | null
           pos_corte: boolean | null
           sugerido_eh_entidade_propria: boolean | null
           sugestao_forca: string | null
@@ -130491,6 +130502,9 @@ export type Database = {
           frete_cliente_valor: number | null
           frete_gratis: boolean | null
           id_externo: string | null
+          instrucao_expedicao: string | null
+          instrucao_expedicao_lida_em: string | null
+          instrucao_pendente: boolean | null
           limite_min: number | null
           minutos_parado: number | null
           pedido_id: string | null
@@ -132887,14 +132901,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -150067,14 +150081,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -159192,6 +159206,10 @@ export type Database = {
         Args: { p_dry_run?: boolean }
         Returns: Json
       }
+      fn_conciliar_comprovante_documento: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
+      }
       fn_conciliar_recebimento_agrupado: {
         Args: { p_dry_run?: boolean; p_janela?: number; p_tolerancia?: number }
         Returns: {
@@ -160495,10 +160513,15 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: undefined
       }
+      fn_mesa_sp_exigir_instrucao_lida: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       fn_mesa_sp_iniciar_conferencia: {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_mesa_sp_ler_instrucao: { Args: { p_pedido_id: string }; Returns: Json }
       fn_mesa_sp_marcar_documento: {
         Args: {
           p_documento_id: string
@@ -160858,6 +160881,18 @@ export type Database = {
         Args: { p_itens: Json; p_valor_bruto: number }
         Returns: Json
       }
+      fn_pedido_definir_instrucao_expedicao: {
+        Args: { p_pedido_id: string; p_texto: string }
+        Returns: Json
+      }
+      fn_pedido_descer_apos_pagamento: {
+        Args: {
+          p_motivo?: string
+          p_pedido_id: string
+          p_proxima_acao?: string
+        }
+        Returns: string
+      }
       fn_pedido_deve_esperar_pagamento: {
         Args: { p_pedido_id: string }
         Returns: boolean
@@ -160869,6 +160904,10 @@ export type Database = {
       fn_pedido_estoque_veredito: {
         Args: { p_pedido_id: string }
         Returns: Json
+      }
+      fn_pedido_falta_lastro_fisico: {
+        Args: { p_pedido_id: string }
+        Returns: string
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
       fn_pedido_lastro_lote: {

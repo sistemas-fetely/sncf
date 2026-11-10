@@ -5,6 +5,7 @@ import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } fr
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { executarInstrucaoRpc } from "@/lib/pedidos/instrucaoExpedicao";
+import { transportadoraNfDiverge } from "@/lib/logistica/trocaModalMesa";
 import type { DanfeEtiqueta } from "./impressaoMesa";
 import {
   EVENTO_ROTEADO,
@@ -391,6 +392,37 @@ export function useDadosImpressao(pedidoId: string | null) {
       if (error) throw new Error(`ler dados de impressão: ${mensagemErro(error)}`);
       if (!data) throw new Error("ler dados de impressão: o banco não devolveu dados para este pedido.");
       return data as DadosImpressao;
+    },
+  });
+}
+
+/** Aviso fiscal informativo: resolve o modal da transportadora pelo cadastro. */
+export function useAvisoTransportadoraNf(pedidoId: string | null) {
+  return useQuery({
+    queryKey: ["mesa-sp", "aviso-transportadora-nf", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      const { data: modal, error: em } = await supabaseMesa.rpc("fn_mesa_sp_modal_do_pedido", { p_pedido_id: pedidoId });
+      if (em) throw new Error(mensagemErro(em));
+      const { data: nfs, error: en } = await supabaseMesa.from("nfs_emitidas")
+        .select("transportadora_nome, transportadora_cnpj").eq("pedido_venda_id", pedidoId)
+        .eq("situacao", "autorizada").is("substituida_por_nf_id", null).is("anulada_por_devolucao_em", null)
+        .order("autorizada_em", { ascending: false, nullsFirst: false });
+      if (en) throw new Error(mensagemErro(en));
+      const { data: mapas, error: ep } = await supabaseMesa.from("mesa_sp_transportadora_modal")
+        .select("modal_codigo, parceiros_comerciais(cnpj)");
+      if (ep) throw new Error(mensagemErro(ep));
+      const digitos = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+      for (const nf of nfs ?? []) {
+        if (!nf.transportadora_nome || !digitos(nf.transportadora_cnpj)) continue;
+        const mapa = (mapas ?? []).find((m) => {
+          const parceiro = Array.isArray(m.parceiros_comerciais) ? m.parceiros_comerciais[0] : m.parceiros_comerciais;
+          return digitos(parceiro?.cnpj) === digitos(nf.transportadora_cnpj);
+        });
+        const modalNf = mapa?.modal_codigo ?? "TRANSPORTADORA";
+        if (transportadoraNfDiverge(modal as string | null, modalNf)) return nf.transportadora_nome as string;
+      }
+      return null;
     },
   });
 }
@@ -879,7 +911,7 @@ async function erroDaEdge(error: unknown): Promise<Error> {
   if (ctx && typeof ctx.json === "function") {
     try {
       const b = await ctx.json();
-      if (b?.erro) return new Error(b.detalhe ? `${b.erro} — ${JSON.stringify(b.detalhe)}` : b.erro);
+      if (b?.erro) return new Error(b.detalhe && !b.detalhe.payload ? `${b.erro} — ${JSON.stringify(b.detalhe)}` : b.erro);
     } catch { /* corpo não-JSON */ }
   }
   return new Error(mensagemErro(error));

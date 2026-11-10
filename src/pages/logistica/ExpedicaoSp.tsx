@@ -43,7 +43,7 @@ import {
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
+  useAvisoTransportadoraNf, useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega, useTrocarModal,
   useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
@@ -194,6 +194,7 @@ export default function ExpedicaoSp() {
     : false;
 
   const itensQ = useItensPedidoMesa(selecionado?.id ?? null);
+  const avisoNfQ = useAvisoTransportadoraNf(selecionado?.id ?? null);
   // Fotos de conferência visual por SKU — se a leitura falhar, a mesa segue sem fotos.
   const imagensQ = useImagensProdutosMesa(
     (itensQ.data ?? []).map((i) => i.sku).filter((s): s is string => !!s),
@@ -523,6 +524,8 @@ export default function ExpedicaoSp() {
                          </span>
                        </div>
                      )}
+                     {avisoNfQ.data && <p className="flex items-start gap-2 whitespace-normal text-sm text-warning"><AlertTriangle className="size-4 shrink-0" aria-hidden="true" />NF com transportadora {avisoNfQ.data} — avaliar CC-e</p>}
+                     {avisoNfQ.error && <p className="text-xs text-destructive">{formatError(avisoNfQ.error)}</p>}
                      {(() => {
                        const embSel = embalagemDoPedido(eventosSelecionado);
                        const correios = embSel?.modal

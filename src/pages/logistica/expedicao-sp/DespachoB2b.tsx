@@ -63,6 +63,7 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
               bloqueado={bloqueado}
               clienteNome={clienteNome}
               onCancelar={() => setAberto(false)}
+              onModalTrocado={() => setAberto(false)}
               onDespachar={(ref, exec, modal) => {
                 onDespachar(modal, ref, exec);
                 setAberto(false);

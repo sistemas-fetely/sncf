@@ -119,7 +119,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
 
   function botaoImprimir(d: DocumentoMesa, rotulo: string, fn: (x: DadosImpressao) => boolean) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="outline" disabled={bloqueado || !dados} onClick={() => imprimir(d, fn)}>
           {dadosQ.isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}{rotulo}
         </Button>
@@ -151,7 +151,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
         );
       case "rastreio":
         return (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 [&>button]:h-auto [&>button]:min-h-9 [&>button]:whitespace-normal [&>button]:text-left">
             {pp && servicoEfetivo ? (
               <SeloServicoCorreios
                 servico={servicoCliente && servicoEfetivo !== servicoCliente ? `${servicoEfetivo} (cliente: ${servicoCliente})` : servicoEfetivo}
@@ -302,6 +302,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
     <Card>
       <CardContent className="space-y-4 p-4">
         <p className="text-sm font-medium">Documentos do pedido</p>
+        {erroGerar && <p role="alert" className="whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{erroGerar}</p>}
 
         {dadosQ.error && (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -362,7 +363,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
                       <p className="text-xs text-muted-foreground">Imprime no Bling — não há impressão por aqui.</p>
                     )}
                   </div>
-                  <div className="shrink-0">{acao(d)}</div>
+                  <div className="w-full min-w-0">{acao(d)}</div>
                 </li>
               );
             })}
