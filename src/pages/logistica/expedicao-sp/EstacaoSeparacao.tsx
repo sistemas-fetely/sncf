@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { bloqueiaAvancoInstrucao } from "@/lib/pedidos/instrucaoExpedicao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { ArrowRight, ImageOff, Loader2, PackageSearch, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -201,10 +202,12 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
               <Printer aria-hidden="true" />
               Imprimir folha
             </Button>
-            <Button onClick={onConcluir} disabled={bloqueado}>
+            <span title={bloqueiaAvancoInstrucao(pedido) ? "Leia a instrução primeiro" : undefined}>
+            <Button onClick={onConcluir} disabled={bloqueado || bloqueiaAvancoInstrucao(pedido)}>
               Concluir separação
               <ArrowRight aria-hidden="true" />
             </Button>
+            </span>
           </div>
         </div>
 

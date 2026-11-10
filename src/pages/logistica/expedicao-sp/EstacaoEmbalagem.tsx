@@ -61,6 +61,7 @@ interface Props {
   salvando: boolean;
   /** Cancelamento solicitado: não embala. */
   bloqueado?: boolean;
+  instrucaoPendente?: boolean;
   /** `motivoTroca` preenchido = modal diferente do sugerido; a tela registra a troca antes de embalar. */
   onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null, motivoTroca: string | null, caixaDim: DimCaixa | null) => void;
 }
@@ -69,7 +70,7 @@ interface Props {
 export function EstacaoEmbalagem({
   pedidoId, itens, modais, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
-  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false, servicoCorreios,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false, instrucaoPendente = false, servicoCorreios,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [pesoEditado, setPesoEditado] = useState(false);
@@ -455,13 +456,15 @@ export function EstacaoEmbalagem({
         )}
 
         <div className="flex flex-wrap items-center gap-3">
+          <span title={instrucaoPendente ? "Leia a instrução primeiro" : undefined}>
           <Button
             onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa, trocou ? motivoTroca.trim() : null, caixa ? null : dimOk)}
-            disabled={!podeSalvar || salvando || bloqueado}
+            disabled={!podeSalvar || salvando || bloqueado || instrucaoPendente}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
             Registrar embalagem
           </Button>
+          </span>
           {modal === "CORREIOS" && !caixaOkParaModal(modal, caixa, dimOk) && (
             <span className="text-xs text-warning">Correios exige a caixa usada (do cadastro ou medidas da caixa avulsa).</span>
           )}

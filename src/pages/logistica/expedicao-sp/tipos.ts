@@ -113,6 +113,9 @@ export const ESTAGIO_FATURADO = "faturado";
 export const CENTRO_SITE_SP = "SITE-SP";
 
 export interface PedidoMesa {
+  instrucao_expedicao: string | null;
+  instrucao_expedicao_lida_em: string | null;
+  instrucao_pendente: boolean;
   id: string;
   id_externo: string;
   estagio: string;

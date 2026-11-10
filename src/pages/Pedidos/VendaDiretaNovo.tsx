@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { AlertTriangle, CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { definirInstrucaoExpedicao, instrucaoMudou } from "@/lib/pedidos/instrucaoExpedicao";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -98,6 +100,7 @@ interface PedidoEdicao {
   linha: LinhaVD & { pagamento_confirmado_em: string | null };
   estagio: string; cancelado_em: string | null; reembolsoAtivo: boolean;
   cliente: ClienteBusca | null; itens: Item[]; modo: ModalVd; endereco: Endereco; beneficio: BeneficioEstado; observacao: string;
+  instrucaoExpedicao: string;
 }
 const ROTULO_MODAL: Record<ModalVd, string> = { retirada: "Retirada no Site SP", sedex: "Correios SEDEX", pac: "Correios PAC", frete_fetely: "Frete Fetely" };
 
@@ -173,6 +176,9 @@ export default function VendaDiretaNovo() {
   const itensCobertura = useMemo(() => itens.map((i) => ({ sku: i.sku, qtd: i.quantidade })), [itens]);
   const coberturaCd = useCoberturaPorCd(itensCobertura, "VD", { debounceMs: 300, enabled: !edicao });
   const [observacao, setObservacao] = useState("");
+  const [instrucaoExpedicao, setInstrucaoExpedicao] = useState("");
+  // Preserve a successfully created order if the separate instruction RPC fails.
+  const criadoAguardandoInstrucao = useRef<Resultado | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
   const edQ = useQuery({
@@ -182,7 +188,7 @@ export default function VendaDiretaNovo() {
     queryFn: async (): Promise<PedidoEdicao> => {
       const { data: p, error } = await (supabase as any)
         .from("pedidos")
-        .select("id, id_externo, estagio, cancelado_em, parceiro_id, forma_solicitada, valor_liquido, endereco_entrega, observacao_pedido, itens_json")
+        .select("id, id_externo, estagio, cancelado_em, parceiro_id, forma_solicitada, valor_liquido, endereco_entrega, observacao_pedido, itens_json, instrucao_expedicao")
         .eq("id", editId).maybeSingle();
       if (error) throw error;
       if (!p) throw new Error("Pedido não encontrado.");
@@ -247,6 +253,7 @@ export default function VendaDiretaNovo() {
           },
         beneficio,
         observacao: observacaoSemBeneficio(p.observacao_pedido),
+        instrucaoExpedicao: p.instrucao_expedicao ?? "",
       };
     },
   });
@@ -259,6 +266,7 @@ export default function VendaDiretaNovo() {
     setPagamento(meioVD(d.linha.pagamento));
     setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setEndereco(d.endereco);
     setEnderecoEditado(true); setBeneficio(d.beneficio); setObservacao(d.observacao);
+    setInstrucaoExpedicao(d.instrucaoExpedicao);
   }, [edQ.data]);
   const bloqueioEdicao: string | null = !edQ.data ? null
     : edQ.data.cancelado_em ? "Pedido cancelado — não pode ser editado."
@@ -464,6 +472,12 @@ export default function VendaDiretaNovo() {
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
+      if (criadoAguardandoInstrucao.current) {
+        await definirInstrucaoExpedicao(criadoAguardandoInstrucao.current.pedido_id, instrucaoExpedicao);
+        const r = criadoAguardandoInstrucao.current;
+        criadoAguardandoInstrucao.current = null;
+        return r;
+      }
       const p_cliente = cliente
         ? { parceiro_id: cliente.id }
         : {
@@ -498,6 +512,13 @@ export default function VendaDiretaNovo() {
         });
         if (error) throw error;
         if (!data) throw new Error("A edição do pedido não devolveu resultado.");
+        if (editId && instrucaoMudou(edQ.data?.instrucaoExpedicao, instrucaoExpedicao)) {
+          try { await definirInstrucaoExpedicao(editId, instrucaoExpedicao); }
+          catch (e) {
+            await Promise.all([invalidarVendaDireta(queryClient), invalidarPedido(queryClient, editId)]);
+            throw new Error(`Pedido editado, mas a instrução não foi salva: ${rawMessage(e)}`);
+          }
+        }
         return data as Resultado;
       }
       const { data, error } = await (supabase as any).rpc("criar_pedido_venda_direta", {
@@ -512,10 +533,20 @@ export default function VendaDiretaNovo() {
       });
       if (error) throw error;
       if (!data) throw new Error("A criação do pedido não devolveu resultado.");
+      if (instrucaoMudou(null, instrucaoExpedicao)) {
+        const r = data as Resultado;
+        criadoAguardandoInstrucao.current = r;
+        try { await definirInstrucaoExpedicao(r.pedido_id, instrucaoExpedicao); }
+        catch (e) {
+          await Promise.all([invalidarVendaDireta(queryClient), invalidarPedido(queryClient, r.pedido_id)]);
+          throw new Error(`${r.id_externo} criado, mas a instrução não foi salva. Tente salvar novamente para salvar apenas a instrução: ${rawMessage(e)}`);
+        }
+        criadoAguardandoInstrucao.current = null;
+      }
       return data as Resultado;
     },
     onSuccess: async (r) => {
-      await invalidarVendaDireta(queryClient);
+      await Promise.all([invalidarVendaDireta(queryClient), invalidarPedido(queryClient, r.pedido_id)]);
       if (edicao) {
         await queryClient.invalidateQueries({ queryKey: ["venda-direta-edicao", editId] });
         if (!r.pagamento_refeito) {
@@ -534,6 +565,7 @@ export default function VendaDiretaNovo() {
   });
 
   const limparTudo = () => {
+    setInstrucaoExpedicao(""); criadoAguardandoInstrucao.current = null;
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
     setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setBonifAutorizado(""); setBonifMotivo("brinde"); setBonifObs(""); setObservacao(""); setVendedorId(null);
     setCdCodigo("SITE-SP"); setResultado(null);
@@ -1003,6 +1035,13 @@ export default function VendaDiretaNovo() {
       </Card>
 
       {/* 5. Observação */}
+      <Card className="border-warning/50 bg-warning/10">
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base text-warning-strong"><AlertTriangle className="h-5 w-5" />Instrução para expedição</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <Textarea aria-label="Instrução para expedição" value={instrucaoExpedicao} onChange={(e) => setInstrucaoExpedicao(e.target.value)} disabled={criar.isPending} placeholder="Ex.: enviar apenas a peça, embalar para presente… Aparece em destaque para a Mesa SP" />
+          <p className="text-sm text-muted-foreground">Use só para o que a expedição precisa fazer. Observação comum não aparece na expedição.</p>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader><CardTitle className="text-base">Observação</CardTitle></CardHeader>
         <CardContent><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" /></CardContent>

@@ -15,6 +15,7 @@ import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { temCondicaoPendente } from "@/lib/pedidos/condicaoPendente";
 import { CondicaoPendenteCard } from "@/components/pedidos/CondicaoPendenteCard";
 import { FaixaMesaSp } from "@/components/pedidos/FaixaMesaSp";
+import { InstrucaoExpedicaoBloco } from "@/components/pedidos/InstrucaoExpedicaoBloco";
 import { prefixarProximaAcao } from "@/lib/pedidos/donoProximaAcao";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
@@ -2852,6 +2853,8 @@ export default function PedidoDetalhe() {
 
 
 
+
+          <InstrucaoExpedicaoBloco key={pedido.id} pedido={pedido} />
 
           {/* ============ FAIXA 4: Itens do pedido (largura cheia) ============ */}
           <div className="grid gap-4 lg:grid-cols-2 items-stretch">

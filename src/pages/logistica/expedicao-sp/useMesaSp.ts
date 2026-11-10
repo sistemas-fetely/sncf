@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } from "@/lib/logistica/postagemAgencia";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { executarInstrucaoRpc } from "@/lib/pedidos/instrucaoExpedicao";
 import type { DanfeEtiqueta } from "./impressaoMesa";
 import {
   EVENTO_ROTEADO,
@@ -54,7 +55,7 @@ export function usePedidosMesaSp() {
       const { data, error } = await supabaseMesa
         .from("vw_mesa_sp_quadro")
         .select(
-          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis",
+          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente",
         )
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);
@@ -84,6 +85,21 @@ export function useEtapasMesaSp() {
       if (error) throw new Error(`ler etapas da mesa: ${mensagemErro(error)}`);
       return (data ?? []) as EtapaMesa[];
     },
+  });
+}
+
+export function useLerInstrucaoExpedicao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { p_pedido_id: string }) => executarInstrucaoRpc("fn_mesa_sp_ler_instrucao", args),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA }),
+        qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA }),
+      ]);
+      toast.success("Instrução marcada como lida.");
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
   });
 }
 

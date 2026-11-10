@@ -30,6 +30,8 @@ import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
 import { EstacaoDocumentos } from "./expedicao-sp/EstacaoDocumentos";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
+import { FaixaInstrucaoExpedicao, SeloInstrucaoExpedicao } from "./expedicao-sp/FaixaInstrucaoExpedicao";
+import { bloqueiaAvancoInstrucao } from "@/lib/pedidos/instrucaoExpedicao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import { SolicitacaoNf } from "./expedicao-sp/SolicitacaoNf";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
@@ -477,6 +479,7 @@ export default function ExpedicaoSp() {
                               <span className="block truncate text-xs text-muted-foreground">
                                 {medidasColeta(caixa.volumes, caixa.peso_kg)} · {esperaColeta(caixa.embaladoEm)}
                               </span>
+                              {(() => { const p = pedidos.find((p) => p.id === caixa.pedido_id); return p ? <SeloInstrucaoExpedicao pedido={p} /> : null; })()}
                             </button>
                           </li>
                         ))}
@@ -499,6 +502,7 @@ export default function ExpedicaoSp() {
             />
           ) : (
             <>
+              <FaixaInstrucaoExpedicao pedido={selecionado} />
               <Card>
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
                     <div className="min-w-0 space-y-1">
@@ -778,6 +782,7 @@ export default function ExpedicaoSp() {
                   carregandoCaixas={caixasQ.isLoading}
                   erroCaixas={caixasQ.error ? formatError(caixasQ.error) : null}
                   salvando={embalar.isPending || trocarModal.isPending}
+                  instrucaoPendente={bloqueiaAvancoInstrucao(selecionado)}
                   bloqueado={bloqueado}
                   onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo, motivoTroca, caixaDim) => {
                     const args = {
@@ -918,6 +923,7 @@ function LinhaPedido({
     >
       <span className="flex flex-wrap items-center gap-1.5 text-sm">
         <span className="truncate">{pedido.id_externo}</span>
+        <SeloInstrucaoExpedicao pedido={pedido} />
         {pedidoEhVendaDireta(pedido.id_externo) && <Selo estado="info">Site SP · venda direta</Selo>}
         {pedidoEhB2B(pedido.canal) && <Selo estado="info">B2B</Selo>}
         {cancelamento && <Selo estado="destructive">Cancelamento solicitado · {cancelamento.numero}</Selo>}
@@ -978,6 +984,7 @@ function QuadroBancada({
                   >
                     <span className="flex flex-wrap items-center gap-0.5">
                       <span className="font-medium">{p.id_externo}</span>
+                      <SeloInstrucaoExpedicao pedido={p} />
                       {pedidoEhVendaDireta(p.id_externo) && <Selo estado="info">VD</Selo>}
                       {pedidoEhB2B(p.canal) && <Selo estado="info">B2B</Selo>}
                       {p.cd_codigo && p.cd_codigo !== CENTRO_SITE_SP && p.cd_rotulo && <Selo estado="info">{p.cd_rotulo}</Selo>}
