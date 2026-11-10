@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     try { const r = await client.get(`/canais-venda?limite=100&pagina=1`); lojas = r?.data ?? []; }
     catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
     const casados: unknown[] = [];
-    const codigos = new Map<string, string>([["TikTok", "TTS"], ["MercadoLivre", "MLB"], ["Shopee", "SHP"]]);
+    const codigos = new Map<string, string>([["TikTok", "TIK"], ["MercadoLivre", "ML"], ["Shopee", "SPE"]]);
     for (const canal of lojas) {
       const codigo = codigos.get(canal.tipo);
       if (!codigo) continue;
@@ -83,11 +83,22 @@ Deno.serve(async (req) => {
   if (acao === "etiqueta") {
     const blingId = body?.bling_pedido_id;
     if (typeof blingId !== "string" || !blingId.trim()) return json({ ok: false, erro: "bling_pedido_id obrigatório." }, 400);
+    const formato = typeof body?.formato === "string" ? body.formato.trim().toUpperCase() : body?.formato ?? "ZPL";
+    if (formato !== "ZPL" && formato !== "PDF") return json({ ok: false, erro: "formato deve ser ZPL ou PDF." }, 400);
     const query = `idsVendas%5B%5D=${encodeURIComponent(blingId.trim())}`;
     let resultado: Record<string, unknown>;
     let status = 200;
     try {
-      resultado = { ok: true, data: await client.get(`/logisticas/etiquetas?${query}`) };
+      let formatoUsado = formato;
+      let data: unknown;
+      try {
+        data = await client.get(`/logisticas/etiquetas?${query}&formato=${formatoUsado}`);
+      } catch (e) {
+        if (!(e instanceof BlingHttpError) || e.status !== 400) throw e;
+        formatoUsado = formato === "ZPL" ? "PDF" : "ZPL";
+        data = await client.get(`/logisticas/etiquetas?${query}&formato=${formatoUsado}`);
+      }
+      resultado = { ok: true, data, formato_usado: formatoUsado };
     } catch (e) {
       resultado = { ok: false, erro: errMsg(e), ...(e instanceof BlingHttpError ? { corpo: e.corpo } : {}) };
       status = 502;

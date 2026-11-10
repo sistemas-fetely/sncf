@@ -57,8 +57,8 @@ describe("marketplace diagnostic actions", () => {
     });
     const response = await handler(request({ acao: "etiqueta", bling_pedido_id: " 123 " }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, data: labels, objetos: objects });
-    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123", "/logisticas/objetos?idsVendas%5B%5D=123"]);
+    expect(await response.json()).toEqual({ ok: true, data: labels, formato_usado: "ZPL", objetos: objects });
+    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123&formato=ZPL", "/logisticas/objetos?idsVendas%5B%5D=123"]);
     expect(tables).toEqual(["integracoes_config"]);
     expect(writes).toEqual([]);
   });
@@ -70,7 +70,57 @@ describe("marketplace diagnostic actions", () => {
     });
     const response = await handler(request({ acao: "etiqueta", bling_pedido_id: "123" }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, data: { data: [] }, objetos_erro: "Bling 404: objetos indisponíveis" });
+    expect(await response.json()).toEqual({ ok: true, data: { data: [] }, formato_usado: "ZPL", objetos_erro: "Bling 404: objetos indisponíveis" });
+  });
+
+  for (const [requested, alternative] of [["ZPL", "PDF"], ["PDF", "ZPL"]]) {
+    test(`etiqueta retries ${requested} as ${alternative} only after Bling 400`, async () => {
+      const paths: string[] = [];
+      const { handler, writes } = await handlerFor(async (path) => {
+        paths.push(path);
+        if (path.endsWith(`formato=${requested}`)) throw new BlingHttpError("Formato recusado", 400, "{} ");
+        if (path.startsWith("/logisticas/objetos")) throw new BlingHttpError("Objetos ausentes", 404, '{"message":"Não encontrado"}');
+        return { data: ["etiqueta"] };
+      });
+      const response = await handler(request({ acao: "etiqueta", bling_pedido_id: "123", formato: requested }));
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ok: true, data: { data: ["etiqueta"] }, formato_usado: alternative, objetos_erro: "Bling 404: Não encontrado" });
+      expect(paths).toEqual([
+        `/logisticas/etiquetas?idsVendas%5B%5D=123&formato=${requested}`,
+        `/logisticas/etiquetas?idsVendas%5B%5D=123&formato=${alternative}`,
+        "/logisticas/objetos?idsVendas%5B%5D=123",
+      ]);
+      expect(writes).toEqual([]);
+    });
+  }
+
+  test("etiqueta honors PDF directly without retry", async () => {
+    const paths: string[] = [];
+    const { handler } = await handlerFor(async (path) => { paths.push(path); return { data: [] }; });
+    const response = await handler(request({ acao: "etiqueta", bling_pedido_id: "123", formato: "PDF" }));
+    expect((await response.json()).formato_usado).toBe("PDF");
+    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123&formato=PDF", "/logisticas/objetos?idsVendas%5B%5D=123"]);
+  });
+
+  test("etiqueta does not retry non-400 label errors", async () => {
+    const paths: string[] = [];
+    const { handler } = await handlerFor(async (path) => {
+      paths.push(path);
+      if (path.startsWith("/logisticas/etiquetas")) throw new BlingHttpError("Falha", 500, '{"message":"Falha"}');
+      return {};
+    });
+    const response = await handler(request({ acao: "etiqueta", bling_pedido_id: "123" }));
+    expect(response.status).toBe(502);
+    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123&formato=ZPL", "/logisticas/objetos?idsVendas%5B%5D=123"]);
+  });
+
+  test("etiqueta rejects invalid formats without calling Bling", async () => {
+    let calls = 0;
+    const { handler } = await handlerFor(async () => { calls++; return {}; });
+    for (const formato of ["PNG", "", 123]) {
+      expect((await handler(request({ acao: "etiqueta", bling_pedido_id: "123", formato }))).status).toBe(400);
+    }
+    expect(calls).toBe(0);
   });
 
   test("label errors return 502 and the complete Bling body while still fetching objects", async () => {
@@ -119,7 +169,7 @@ describe("marketplace diagnostic actions", () => {
     const response = await handler(request({ acao: "lojas" }));
     expect(paths).toEqual(["/canais-venda?limite=100&pagina=1"]);
     expect((await response.json()).lojas_bling).toEqual([{ id: 123, descricao: "TikTok Shop", tipo: "TikTok" }]);
-    expect(writes).toEqual([{ loja_bling_id: 123, marketplace_codigo: "TTS", descricao: "TikTok Shop", tipo_bling: "TikTok" }]);
+    expect(writes).toEqual([{ loja_bling_id: 123, marketplace_codigo: "TIK", descricao: "TikTok Shop", tipo_bling: "TikTok" }]);
   });
 
   test("lojas maps all six MercadoLivre channels and Shopee by tipo, preserving inactive channels", async () => {
@@ -134,8 +184,8 @@ describe("marketplace diagnostic actions", () => {
     const result = await response.json();
     expect(result.marketplace[0].origem).toBe("atualizado");
     expect(result.marketplace[1].origem).toBe("inserido");
-    expect(writes.filter((w) => w.marketplace_codigo === "MLB")).toHaveLength(6);
-    expect(writes[6].marketplace_codigo).toBe("SHP");
+    expect(writes.filter((w) => w.marketplace_codigo === "ML")).toHaveLength(6);
+    expect(writes[6].marketplace_codigo).toBe("SPE");
     expect(writes.every((w) => !("ativo" in w))).toBe(true);
     expect(channels[0].ativo).toBe(false);
     expect(tables.includes("marketplace_loja")).toBe(false);
@@ -143,7 +193,7 @@ describe("marketplace diagnostic actions", () => {
 
   test("pedidos iterates each active channel and filters both activation flags", async () => {
     const paths: string[] = [];
-    const channels = Array.from({ length: 6 }, (_, i) => ({ loja_bling_id: i + 1, marketplace_codigo: "MLB", ativo: true, marketplace_loja: { ativo: true } }));
+    const channels = Array.from({ length: 6 }, (_, i) => ({ loja_bling_id: i + 1, marketplace_codigo: "ML", ativo: true, marketplace_loja: { ativo: true } }));
     const { handler, filters } = await handlerFor(async (path) => { paths.push(path); return { data: [] }; }, [
       ...channels, { loja_bling_id: 7, ativo: false, marketplace_loja: { ativo: true } },
       { loja_bling_id: 8, ativo: true, marketplace_loja: { ativo: false } },
