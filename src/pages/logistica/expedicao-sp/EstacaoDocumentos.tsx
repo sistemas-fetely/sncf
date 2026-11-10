@@ -11,7 +11,7 @@ import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
-import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia, useCaixasAtivas, useCorrigirCaixaEmbalagem } from "./useMesaSp";
+import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia, useCaixasAtivas, useCorrigirCaixaEmbalagem, useModaisEntrega } from "./useMesaSp";
 import { SeletorCaixaAvulsa } from "./SeletorCaixaAvulsa";
 import { dimAvulsa, embalagemSemCaixa, erroPedeCorrigirEmbalagem, type DimCaixaTexto } from "@/lib/logistica/caixaEmbalagem";
 import {
@@ -54,13 +54,14 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   const erroGerar = gerarCorreios.error ? (gerarCorreios.error as Error).message : null;
 
   const dadosQ = useDadosImpressao(pedido.id);
+  const modaisQ = useModaisEntrega();
   const docs = docsQ.data ?? [];
   const dados = dadosQ.data ?? null;
   const usaZebra = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume" || d.tipo === "etiqueta_retirada");
   const danfeQ = useDanfeEtiqueta(usaZebra ? pedido.id : null, !!dados?.nf);
   const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
   // Serviço (PAC/SEDEX) só vai ao rodapé da etiqueta quando o modal é Correios (exige rastreio).
-  const ehCorreios = docs.some((d) => d.tipo === "rastreio");
+  const ehCorreios = (modaisQ.data ?? []).find((m) => m.codigo === (dados?.modal ?? embalagem?.modal))?.exige_etiqueta_correios === true;
   // Etiqueta Correios gerada pelo SNCF (pré-postagem viva) — a linha fica ok pelo código registrado.
   const ppQ = usePrepostagemViva(ehCorreios ? pedido.id : null);
   const pp = ppQ.data ?? null;
@@ -150,6 +151,12 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
           <Button size="sm" variant="outline" disabled><ExternalLink aria-hidden="true" />Abrir DANFE</Button>
         );
       case "rastreio":
+        if (!ehCorreios) return (
+          <div className="flex flex-wrap items-center gap-2">
+            {d.url && <Button size="sm" variant="outline" asChild><a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />Abrir documento</a></Button>}
+            {caixaMarcacao(d)}
+          </div>
+        );
         return (
           <div className="flex min-w-0 flex-wrap items-center gap-2 [&>button]:h-auto [&>button]:min-h-9 [&>button]:whitespace-normal [&>button]:text-left">
             {pp && servicoEfetivo ? (
@@ -294,7 +301,14 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
         return caixaMarcacao(d);
 
       default:
-        return null;
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            {d.url && <Button size="sm" variant="outline" asChild>
+              <a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />Abrir documento</a>
+            </Button>}
+            {caixaMarcacao(d)}
+          </div>
+        );
     }
   }
 
@@ -302,6 +316,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
     <Card>
       <CardContent className="space-y-4 p-4">
         <p className="text-sm font-medium">Documentos do pedido</p>
+        {modaisQ.error && <p role="alert" className="text-sm text-destructive">{formatError(modaisQ.error)}</p>}
         {erroGerar && <p role="alert" className="whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{erroGerar}</p>}
 
         {dadosQ.error && (
@@ -353,7 +368,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
                         {d.detalhe}
                       </p>
                     )}
-                    {d.tipo === "rastreio" && !d.liberado && (
+                    {ehCorreios && d.tipo === "rastreio" && !d.liberado && (
                       <p className="text-xs text-muted-foreground">
                         Etiqueta não imprimiu? Poste no balcão dos Correios e bipe o código do comprovante no despacho.
                       </p>

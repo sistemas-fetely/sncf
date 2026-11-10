@@ -850,7 +850,7 @@ export function useModalSugerido(pedidoId: string | null) {
   });
 }
 
-/** Executores ativos do Frete Fetely (`mesa_sp_executor`), na ordem do banco. */
+/** Executores ativos de todos os modais (`mesa_sp_executor`), na ordem do banco. */
 export function useExecutoresMesa() {
   return useQuery({
     queryKey: ["mesa-sp", "executores"],

@@ -361,16 +361,10 @@ export function modoEntregaVendaDireta(endereco: unknown): string | null {
   return typeof valor === "string" && valor.trim() !== "" ? valor.trim().toLowerCase() : null;
 }
 
-const ROTULO_ENTREGA_VD: Record<string, string> = {
-  retirada: "Retirada",
-  sedex: "SEDEX",
-  pac: "PAC",
-  frete_fetely: "Frete Fetely",
-};
-
-export function rotuloEntregaVendaDireta(modo: string | null): string {
+export function rotuloEntregaVendaDireta(modo: string | null, modais: ModalEntrega[] = [], mapas: VdModoModal[] = []): string {
   if (!modo) return "Entrega não informada";
-  return ROTULO_ENTREGA_VD[modo] ?? modo;
+  const codigo = mapas.find((m) => m.modo.toLowerCase() === modo.toLowerCase())?.modal_codigo;
+  return modais.find((m) => m.codigo === codigo)?.nome ?? modo;
 }
 
 export interface ModalRegra {

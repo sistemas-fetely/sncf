@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { caixaOkParaModal, dimAvulsa, embalagemSemCaixa, erroPedeCorrigirEmbalagem } from "./caixaEmbalagem";
 
 describe("caixa obrigatória no Correios", () => {
+  it("Mesa usa exige_etiqueta_correios do cadastro sem depender do código", () => {
+    expect(caixaOkParaModal("NOVO", null, null, true)).toBe(false);
+    expect(caixaOkParaModal("NOVO", "CX-2", null, true)).toBe(true);
+    expect(caixaOkParaModal("CORREIOS", null, null, false)).toBe(true);
+  });
   it("Correios sem caixa nem avulsa não pode concluir", () => {
     expect(caixaOkParaModal("CORREIOS", null, null)).toBe(false);
   });

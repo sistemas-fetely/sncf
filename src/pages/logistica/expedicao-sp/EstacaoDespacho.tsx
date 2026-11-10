@@ -15,6 +15,9 @@ import type { ResultadoDespachoLote } from "./useMesaSp";
 import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
 import { codigosAposLote, referenciaLoteCorreios } from "@/lib/logistica/postagemAgencia";
 import { useEtiquetasSncfColeta } from "./useMesaSp";
+import { useExecutoresMesa } from "./useMesaSp";
+import { requisitosDespachoModal } from "@/lib/logistica/despachoModal";
+import { formatError } from "@/lib/format-error";
 import { useQueryClient } from "@tanstack/react-query";
 import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
@@ -109,6 +112,11 @@ export function EstacaoDespacho({
   idExterno = null, clienteNome = null, onRetiradaRegistrada, erroDespacho = null,
 }: Props) {
   const qc = useQueryClient();
+  const execQ = useExecutoresMesa();
+  const permiteLote = (codigo: string) => requisitosDespachoModal(
+    modais.find((m) => m.codigo === codigo) ?? null,
+    (execQ.data ?? []).filter((e) => e.modal_codigo === codigo), "",
+  ).permiteLote;
   const [retirada, setRetirada] = useState<LinhaVD | null>(null);
   const perm = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
   const semPerm = perm.carregando || !perm.permitido;
@@ -184,7 +192,7 @@ export function EstacaoDespacho({
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {grupo.modalNome} · {grupo.caixas.length}
                   </p>
-                  {grupo.temRastreioAutomatico && (
+                  {permiteLote(grupo.modalCodigo) && (
                     <BotaoGuardado
                       slug="acao.expedicao_sp_operar"
                       rotuloAcao="Despachar lote"
@@ -202,7 +210,7 @@ export function EstacaoDespacho({
                           setErrosLote(Object.fromEntries((r.itens ?? []).filter((i) => !i.ok).map((i) => [i.pedido_id, i.erro ?? "Não despachou."])));
                         });
                       }}
-                      disabled={despachandoLote || (ehCorreiosGrupo(grupo.modalCodigo) && (!sncfQ.data || !loteCorreiosValido(grupo.caixas.map((c) => refLote(c.pedido_id).referencia))))}
+                      disabled={despachandoLote || execQ.isLoading || !!execQ.error || (ehCorreiosGrupo(grupo.modalCodigo) && (!sncfQ.data || !loteCorreiosValido(grupo.caixas.map((c) => refLote(c.pedido_id).referencia))))}
                     >
                       {despachandoLote
                         ? <Loader2 className="animate-spin" aria-hidden="true" />
@@ -212,7 +220,8 @@ export function EstacaoDespacho({
                   )}
                 </div>
 
-                {!grupo.temRastreioAutomatico && (
+                {execQ.error && <p className="text-xs text-destructive">{formatError(execQ.error)}</p>}
+                {!permiteLote(grupo.modalCodigo) && (
                   <p className="text-xs text-muted-foreground">
                     Sem despacho em lote — cada pedido sai abaixo, um a um.
                   </p>

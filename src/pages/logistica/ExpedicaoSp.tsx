@@ -543,7 +543,7 @@ export default function ExpedicaoSp() {
                        <div className="flex flex-wrap items-center gap-2">
                          <Selo estado="info">Site SP · venda direta</Selo>
                          <span className="text-xs text-muted-foreground">
-                           Entrega: {rotuloEntregaVendaDireta(modoEntregaSelecionado)}
+                           Entrega: {rotuloEntregaVendaDireta(modoEntregaSelecionado, modaisQ.data ?? [], vdModosQ.data ?? [])}
                          </span>
                        </div>
                      )}
@@ -766,7 +766,6 @@ export default function ExpedicaoSp() {
                   enderecoEntrega={selecionado.endereco_entrega}
                   modoVendaDireta={modoEntregaSelecionado}
                   modalVendaDireta={modalVdSelecionado}
-                  modalPreferido={selecionadoEhB2B ? "TRANSPORTADORA" : null}
                   servicoCorreios={{ servico: selecionado.servico_correios, freteValor: selecionado.frete_cliente_valor, freteGratis: selecionado.frete_gratis }}
                   itens={itensQ.data ?? []}
                   modais={modaisQ.data ?? []}
@@ -915,6 +914,8 @@ function LinhaPedido({
   rotulo?: string;
   onSelecionar: () => void;
 }) {
+  const modaisQ = useModaisEntrega();
+  const vdModosQ = useVdModosModal();
   return (
     <button
       type="button"
@@ -940,7 +941,7 @@ function LinhaPedido({
       </span>
       {pedidoEhVendaDireta(pedido.id_externo) && (
         <span className="block truncate text-xs text-muted-foreground">
-          Entrega: {rotuloEntregaVendaDireta(modoEntregaVendaDireta(pedido.endereco_entrega))}
+          Entrega: {rotuloEntregaVendaDireta(modoEntregaVendaDireta(pedido.endereco_entrega), modaisQ.data ?? [], vdModosQ.data ?? [])}
         </span>
       )}
     </button>

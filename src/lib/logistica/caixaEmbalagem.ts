@@ -18,8 +18,8 @@ export function dimAvulsa(t: DimCaixaTexto | null): DimCaixa | null {
 }
 
 /** Correios sem caixa do cadastro nem avulsa válida não pode concluir. Outros modais: caixa opcional. */
-export function caixaOkParaModal(modal: string, caixaCodigo: string | null, dim: DimCaixa | null): boolean {
-  if (modal !== "CORREIOS") return true;
+export function caixaOkParaModal(modal: string, caixaCodigo: string | null, dim: DimCaixa | null, exigeEtiquetaCorreios = modal === "CORREIOS"): boolean {
+  if (!exigeEtiquetaCorreios) return true;
   return !!caixaCodigo || !!dim;
 }
 

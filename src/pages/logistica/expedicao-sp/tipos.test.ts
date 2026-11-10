@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cepDoEndereco, colunasQuadro, modalSugerido, modoEntregaVendaDireta,
-  pedidoEhVendaDireta, rotuloEntregaVendaDireta, tempoParado,
+  pedidoEhVendaDireta, tempoParado,
   type EtapaMesa, type ModalRegra,
 } from "./tipos";
 
@@ -94,9 +94,7 @@ describe("venda direta na Mesa SP", () => {
     expect(pedidoEhVendaDireta("SHOP-0009")).toBe(false);
   });
 
-  it("lê e rotula a entrega escolhida na venda", () => {
+  it("lê a entrega escolhida na venda", () => {
     expect(modoEntregaVendaDireta({ modal: "frete_fetely" })).toBe("frete_fetely");
-    expect(rotuloEntregaVendaDireta("frete_fetely")).toBe("Frete Fetely");
-    expect(rotuloEntregaVendaDireta("retirada")).toBe("Retirada");
   });
 });

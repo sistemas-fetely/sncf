@@ -41,8 +41,6 @@ interface Props {
   /** Preenchido somente para venda direta; nos demais pedidos vale a regra de CEP. */
   modoVendaDireta: string | null;
   modalVendaDireta: string | null;
-  /** Modal pré-selecionado fora da venda direta (ex.: B2B → TRANSPORTADORA). Operador pode trocar. */
-  modalPreferido?: string | null;
   /** MESA-SP-SERVICO-CORREIOS: PAC/SEDEX e frete do banco, mostrado quando o modal escolhido é Correios. */
   servicoCorreios?: { servico: string | null; freteValor: number | null; freteGratis: boolean | null };
   itens: ItemPedidoMesa[];
@@ -107,12 +105,14 @@ export function EstacaoEmbalagem({
   const sugestao = sugestaoQ.data ?? null;
   const sugerido = sugestao?.modal ?? null;
   const modaisAtivos = useMemo(() => modais.filter((m) => m.ativo), [modais]);
+  const exigeCaixaCorreios = modais.find((m) => m.codigo === modal)?.exige_etiqueta_correios === true;
 
   const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
   // MESA-SP-CAIXA-OBRIGATORIA: sem sugestão (lista vazia ou nada cabe) → todas as ativas para escolha.
   const semSugestao = !carregandoCaixas && (caixas.length === 0 || nenhumaCabe);
   const ativasQ = useCaixasAtivas(semSugestao);
   const dimOk = dimAvulsa(avulsa);
+  const caixaValida = caixaOkParaModal(modal, caixa, dimOk, exigeCaixaCorreios);
   const caixaDiferenteDaSugerida =
     caixa !== null && sugeridaCodigo !== null && caixa !== sugeridaCodigo;
 
@@ -160,7 +160,7 @@ export function EstacaoEmbalagem({
     modal !== "" &&
     (!trocou || motivoTroca.trim() !== "") &&
     faltando.length === 0 &&
-    caixaOkParaModal(modal, caixa, dimOk);
+    caixaValida;
 
   return (
     <Card>
@@ -465,7 +465,7 @@ export function EstacaoEmbalagem({
             Registrar embalagem
           </Button>
           </span>
-          {modal === "CORREIOS" && !caixaOkParaModal(modal, caixa, dimOk) && (
+          {exigeCaixaCorreios && !caixaValida && (
             <span className="text-xs text-warning">Correios exige a caixa usada (do cadastro ou medidas da caixa avulsa).</span>
           )}
           {faltando.length > 0 && (

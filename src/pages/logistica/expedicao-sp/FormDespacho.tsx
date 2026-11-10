@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { acaoModalDespacho, executarAcaoModalMesa } from "@/lib/logistica/trocaModalMesa";
+import { requisitosDespachoModal } from "@/lib/logistica/despachoModal";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -26,11 +27,11 @@ import { AvisoAgenciaSncf } from "./AvisoAgenciaSncf";
  * trocar exige motivo e chama fn_mesa_sp_trocar_modal, voltando a Documentos. Os campos dependem do modal; quem valida de
  * verdade é `fn_mesa_sp_despachar` — o erro dela sobe como está (FAIL-LOUD).
  *
- * - Modal com executores em `mesa_sp_executor` (Frete Fetely): "Quem entrega";
+ * - Qualquer modal com executores ativos em `mesa_sp_executor`: "Quem entrega";
  *   referência obrigatória se o executor `exige_referencia`.
  * - Correios: despacho pelo rastreio; só "Já postei na agência" pede bipe.
  * - Retirada (B2B): "Quem retirou".
- * - Demais (Transportadora): referência da coleta obrigatória.
+ * - Demais modais: despacho direto, sem referência inventada pela tela.
  */
 interface Props {
   pedidoId: string;
@@ -137,32 +138,29 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
   }
 
   let campo: { id: string; rotulo: string; placeholder: string; obrigatorio: boolean } | null = null;
-  const execEscolhido = executores.find((e) => e.codigo === executor) ?? null;
-  const usaExecutor = executores.length > 0;
+  const requisitos = requisitosDespachoModal(modal, executores, executor);
+  const execEscolhido = requisitos.executor;
+  const usaExecutor = requisitos.usaExecutor;
   if (usaExecutor) {
-    if (execEscolhido) {
-      campo = execEscolhido.exige_referencia
-        ? { id: "ref-corrida", rotulo: "Referência da corrida", placeholder: "ID ou link da corrida", obrigatorio: true }
-        : { id: "ref-portador", rotulo: "Referência (opcional)", placeholder: "Nome do portador", obrigatorio: false };
+    if (requisitos.exigeReferencia) {
+      campo = { id: "ref-executor", rotulo: "Referência", placeholder: "ID ou referência da entrega", obrigatorio: true };
     }
   } else if (ehCorreios) {
     // Sempre pede o bipe, mesmo com código já no pedido (pode ser pré-postagem morta do Bling).
     campo = { id: "ref-correios", rotulo: "Código do comprovante", placeholder: "AA123456789BR", obrigatorio: true };
   } else if (modal?.sem_despacho) {
     campo = { id: "ref-retirada", rotulo: "Quem retirou", placeholder: "Nome de quem retira", obrigatorio: true };
-  } else {
-    campo = { id: "ref-coleta", rotulo: "Referência da coleta", placeholder: "Nº da coleta ou CT-e", obrigatorio: true };
   }
 
   const ref = campo?.id === "ref-correios" ? normalizarCodigoCorreios(referencia) : referencia.trim();
   const erroSro = campo?.id === "ref-correios" && ref !== "" ? erroCodigoSro(ref) : null;
   if (soTroca || peloRastreio) campo = null;
   const pode =
-    (soTroca || !usaExecutor || !!execEscolhido) &&
+    (soTroca || requisitos.executorValido) &&
     (soTroca || !campo?.obrigatorio || ref !== "") &&
     (soTroca || erroSro === null) && !peloRastreio &&
     (!houveTroca || motivoTroca.trim() !== "") &&
-    !salvandoTroca && !despachando && !bloqueado && !execQ.isLoading && !(ehCorreios && docsQ.isLoading);
+    !salvandoTroca && !despachando && !bloqueado && !execQ.isLoading && !execQ.error && !vigenteQ.error && !(ehCorreios && (docsQ.isLoading || docsQ.error));
 
   return (
     <div className="space-y-4">
@@ -196,7 +194,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
 
       {usaExecutor && !soTroca && (
         <div className="space-y-1.5">
-          <Label htmlFor="mesa-sp-executor">Quem entrega</Label>
+          <Label htmlFor="mesa-sp-executor">Quem entrega <span className="text-destructive" aria-hidden="true">*</span></Label>
           <Select value={executor} onValueChange={setExecutor}>
             <SelectTrigger id="mesa-sp-executor">
               <SelectValue placeholder="Escolher" />
@@ -245,6 +243,8 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
       )}
 
       {execQ.error && <p className="text-xs text-destructive">{formatError(execQ.error)}</p>}
+      {vigenteQ.error && <p className="text-xs text-destructive">{formatError(vigenteQ.error)}</p>}
+      {erroDespacho && !campo && !despachando && <p role="alert" className="whitespace-pre-wrap text-xs text-destructive">{erroDespacho}</p>}
       {docsQ.error && <p className="text-xs text-destructive">{formatError(docsQ.error)}</p>}
 
       <DialogFooter className="gap-2">
