@@ -88,6 +88,7 @@ function formatarDocumento(doc: string | null | undefined): string | null {
 const ROTULO_FORCA: Record<Exclude<SugestaoForca, null>, string> = {
   doc_e_cnpj_do_cliente: "CNPJ do cliente",
   pagador_ja_ensinado: "Pagador conhecido",
+  pedido_valor_data: "Pedido por valor + data",
 };
 
 function mensagemSucesso(valor: number, nome: string, aprendido?: boolean) {
@@ -243,7 +244,9 @@ function BotaoAceitarSugestao({ orfao }: { orfao: OrfaoEntrada }) {
       const res = await atribuir.mutateAsync({
         movimentacao_id: orfao.movimentacao_id,
         parceiro_id: orfao.parceiro_sugerido_id,
-        nota: `Aceita sugestão (${orfao.sugestao_forca ?? "sem força"})`,
+        nota: orfao.sugestao_forca === "pedido_valor_data"
+          ? `Aceita sugestão (pedido por valor + data · ${orfao.pedido_sugerido})`
+          : `Aceita sugestão (${orfao.sugestao_forca ?? "sem força"})`,
       });
       mensagemSucesso(
         Number(res.valor ?? orfao.valor),
@@ -506,6 +509,9 @@ export default function ConciliacaoOrfaos() {
                         {o.parceiro_sugerido_id ? (
                           <div className="space-y-0.5">
                             <span className="block">{o.parceiro_sugerido_nome ?? "cliente"}</span>
+                            {o.sugestao_forca === "pedido_valor_data" && o.pedido_sugerido && (
+                              <span className="block text-[10px] text-muted-foreground">{o.pedido_sugerido}</span>
+                            )}
                             {o.sugestao_forca && (
                               <Badge
                                 variant="secondary"

@@ -9,10 +9,11 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export const QK_ORFAOS = "conciliacao-orfaos";
 
-export type SugestaoForca = "doc_e_cnpj_do_cliente" | "pagador_ja_ensinado" | null;
+export type SugestaoForca = "doc_e_cnpj_do_cliente" | "pagador_ja_ensinado" | "pedido_valor_data" | null;
 
 export interface OrfaoEntrada {
   movimentacao_id: string;
@@ -28,6 +29,8 @@ export interface OrfaoEntrada {
   parceiro_sugerido_id: string | null;
   parceiro_sugerido_nome: string | null;
   sugestao_forca: SugestaoForca;
+  pedido_sugerido_id: string | null;
+  pedido_sugerido: string | null;
 }
 
 /** Fila de órfãos, mais recente primeiro. */
@@ -84,10 +87,16 @@ export function useAtribuirOrfao() {
       if (!res.ok) throw new Error(res.erro || "O banco recusou a atribuição desta entrada.");
       return res;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [QK_ORFAOS] });
-      qc.invalidateQueries({ queryKey: ["conta-cliente-saldo"] });
-      qc.invalidateQueries({ queryKey: ["entradas-reconhecer"] });
+    onSuccess: async (_res, input) => {
+      const pedidoId = qc.getQueryData<OrfaoEntrada[]>([QK_ORFAOS])
+        ?.find(o => o.movimentacao_id === input.movimentacao_id)?.pedido_sugerido_id;
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: [QK_ORFAOS] }),
+        qc.invalidateQueries({ queryKey: ["conta-cliente-saldo"] }),
+        qc.invalidateQueries({ queryKey: ["entradas-reconhecer"] }),
+        qc.invalidateQueries({ queryKey: ["primeiro-pagamento-fila"] }),
+        invalidarPedido(qc, pedidoId),
+      ]);
     },
   });
 }

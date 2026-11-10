@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Órfãos de Entrada: sugestão por pedido/valor/data e atualização aguardada de pedidos/provas após aceite; 3 testes e aceite autenticado simulado conferidos, sem banco, tipos gerados ou publicação.
 - [x] Catálogo: lotes adaptativos por produto e 100% visível por 600 ms; 35 testes passaram e fluxo autenticado de 16 células conferido com aplicação simulada, sem banco, edge ou publicação.
 - [x] Mesa SP: instrução em todas as estações, leitura obrigatória antes de conferir/embalar e edição no pedido/VD; 25 testes, leitura/edição autenticadas com respostas simuladas e celular conferidos; sem gravações reais, banco ou publicação.
 - [x] Condições de pagamento: cadastro rápido exclusivo do Super Admin, prévia real e validação conferidas, salvamento/reativação por Enter e recarga simulados no celular, 18 testes; tipos regenerados, sem SQL, cadastro real ou publicação.
