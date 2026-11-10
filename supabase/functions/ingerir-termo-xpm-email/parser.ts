@@ -31,9 +31,10 @@ export function parsearTermoEmail(html: string): LinhaTermo[] {
         const cels = Array.from(tr.querySelectorAll("th,td"));
         const cel = (campo: keyof typeof mapa) => (cels[mapa[campo]]?.textContent ?? "").trim();
         const sku = cel("sku");
-        if (!/^[A-Z]{3,}/.test(sku) || normalizar(sku) === "ITEM") continue;
+        const documento = cel("nf");
+        if (normalizar(sku) === "ITEM" || (!documento && !sku)) continue;
         rows.push({
-          nf: cel("nf").split(".")[0], sku, descricao: cel("descricao"), lote: textoOpcional(cel("lote")),
+          nf: documento.split(".")[0], sku, descricao: cel("descricao"), lote: textoOpcional(cel("lote")),
           validade: textoOpcional(cel("validade")), declarado: numero(cel("declarado")), recebido: numero(cel("recebido")),
           falta: numero(cel("falta")), excesso: numero(cel("excesso")), nao_conforme: numero(cel("nao_conforme")),
           rnc: textoOpcional(cel("rnc")),
