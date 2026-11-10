@@ -150099,14 +150099,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -159802,6 +159802,10 @@ export type Database = {
           sku: string
           valor_unitario: number
         }[]
+      }
+      fn_devolucao_nf_cliente_confirmada: {
+        Args: { p_devolucao_id: string; p_nf_original_id: string }
+        Returns: boolean
       }
       fn_devolucao_nf_registrar: {
         Args: {

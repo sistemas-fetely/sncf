@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
+import { useNfClienteDevolucao } from "@/hooks/useNfClienteDevolucao";
 
 const sb = supabase as any;
 type Estado = { nf_dev_status: "gerando" | "rascunho" | "autorizada" | "erro" | null; nf_dev_numero: string | null; nf_dev_erro: string | null };
@@ -27,6 +28,7 @@ async function chamar(devolucao_id: string, acao: "gerar" | "verificar") {
 // 21/10/2026 (Flavio): o mesmo bloco serve NF de devolução e nota de crédito — só os textos mudam, a chamada à edge é a mesma.
 export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_devolucao", ocultarGerar = false }: { devolucaoId: string; nf: string; onMudou: () => void; documento?: "nf_devolucao" | "nota_credito"; ocultarGerar?: boolean }) {
   const qc = useQueryClient();
+  const clienteQ = useNfClienteDevolucao(devolucaoId);
   const key = ["devolucao-nf-dev", devolucaoId];
   const q = useQuery({
     queryKey: key,
@@ -39,7 +41,7 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
   const podeKey = ["pode-gerar-nf", devolucaoId];
   const podeQ = useQuery({
     queryKey: podeKey,
-    enabled: q.data != null && q.data.nf_dev_status == null && !ocultarGerar,
+    enabled: q.data != null && q.data.nf_dev_status == null && !ocultarGerar && clienteQ.isSuccess && !clienteQ.data,
     queryFn: async (): Promise<{ pode: boolean; motivo: string | null }> => {
       const { data, error } = await sb.rpc("fn_devolucao_pode_gerar_nf", { p_devolucao_id: devolucaoId });
       if (error) throw error;
@@ -60,9 +62,12 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
     onSettled: () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["devolucoes"] }); qc.invalidateQueries({ queryKey: podeKey }); onMudou(); },
   });
 
-  if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
+  if (q.isLoading || clienteQ.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
+  if (clienteQ.isError) return <div className="text-sm text-destructive">{rawMessage(clienteQ.error)}</div>;
   if (q.isError) return <div className="text-sm text-destructive">{rawMessage(q.error)}</div>;
-  const s = q.data!;
+  if (clienteQ.data) return <div className="text-success">NF do cliente nº {clienteQ.data.nfs_stage?.nf_numero ?? "?"} vinculada</div>;
+  const s = q.data;
+  if (!s) return <div className="text-sm text-destructive">Devolução não encontrada.</div>;
   const ocupado = mut.isPending;
   const spin = ocupado ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null;
   const credito = documento === "nota_credito";

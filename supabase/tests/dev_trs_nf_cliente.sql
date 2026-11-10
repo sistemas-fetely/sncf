@@ -1,0 +1,54 @@
+-- Isolated PostgreSQL fixture: run with /tests runner using the real migration and
+-- original TRS creator, but stub external transfer creation. Never run on production.
+BEGIN;
+DO $test$
+DECLARE d uuid := '00000000-0000-0000-0000-000000000010';
+  nf uuid := '00000000-0000-0000-0000-000000000020';
+  cd uuid := '00000000-0000-0000-0000-000000000001';
+  link uuid := '00000000-0000-0000-0000-000000000030'; r jsonb;
+BEGIN
+  INSERT INTO centro_distribuicao VALUES(cd,'SITE-SP');
+  INSERT INTO devolucao VALUES(d,'DEV-TESTE','retorno_concluido','b2b',cd,nf,NULL,NULL);
+  INSERT INTO movimentacao_estoque VALUES(d,cd,'01833',70,'entrada'),(d,cd,'01833',-10,'saida');
+  INSERT INTO nf_devolucao_vinculo VALUES(link,d,nf,'sugerido','devolucao_comercial');
+  IF fn_devolucao_nf_cliente_confirmada(d,nf) THEN RAISE EXCEPTION 'Sugerido não é lastro'; END IF;
+  r := fn_devolucao_criar_trs_retorno(d);
+  IF r->>'motivo' IS DISTINCT FROM 'nf_devolucao_nao_autorizada' THEN RAISE EXCEPTION 'Sem lastro deve bloquear'; END IF;
+  UPDATE nf_devolucao_vinculo SET status='confirmado' WHERE id=link;
+  IF (SELECT transferencia_pedido_id FROM devolucao WHERE id=d) IS NULL THEN RAISE EXCEPTION 'Confirmação não criou TRS'; END IF;
+  IF (SELECT (itens->0->>'quantidade')::numeric FROM mock_trs LIMIT 1) <> 60 THEN RAISE EXCEPTION 'TRS deve usar saldo líquido 60'; END IF;
+  IF NOT (SELECT nf_vinculo_confirmado FROM vw_devolucao_funil WHERE id=d) THEN RAISE EXCEPTION 'Checklist não reconhece vínculo'; END IF;
+  r := fn_devolucao_criar_trs_retorno(d);
+  IF r->>'ja_existia' IS DISTINCT FROM 'true' THEN RAISE EXCEPTION 'Criador deve ser idempotente'; END IF;
+  UPDATE devolucao SET transferencia_pedido_id=NULL WHERE id=d;
+  DELETE FROM mock_trs;
+  UPDATE nf_devolucao_vinculo SET devolucao_id=NULL WHERE id=link;
+  IF NOT fn_devolucao_nf_cliente_confirmada(d,nf) THEN RAISE EXCEPTION 'NF original deve ligar sem devolucao_id'; END IF;
+  IF NOT (SELECT nf_vinculo_confirmado FROM vw_devolucao_funil WHERE id=d) THEN RAISE EXCEPTION 'Checklist deve ligar pela NF original'; END IF;
+  UPDATE devolucao SET transferencia_pedido_id=NULL,nf_dev_status='autorizada' WHERE id=d;
+  UPDATE nf_devolucao_vinculo SET classe='retorno_remessa' WHERE id=link;
+  IF fn_devolucao_nf_cliente_confirmada(d,nf) THEN RAISE EXCEPTION 'Outra classe não é lastro'; END IF;
+  r := fn_devolucao_criar_trs_retorno(d);
+  IF r->>'ok' IS DISTINCT FROM 'true' THEN RAISE EXCEPTION 'NF SNCF autorizada segue válida'; END IF;
+  UPDATE devolucao SET transferencia_pedido_id=NULL,status='encerrada' WHERE id=d;
+  r := fn_devolucao_criar_trs_retorno(d);
+  IF r->>'motivo' IS DISTINCT FROM 'devolucao_encerrada' THEN RAISE EXCEPTION 'Encerrada segue bloqueada'; END IF;
+  UPDATE devolucao SET status='cancelada' WHERE id=d;
+  r := fn_devolucao_criar_trs_retorno(d);
+  IF r->>'motivo' IS DISTINCT FROM 'devolucao_cancelada' THEN RAISE EXCEPTION 'Cancelada segue bloqueada'; END IF;
+  UPDATE devolucao SET status='retorno_concluido',canal='site_sp' WHERE id=d;
+  r := fn_devolucao_criar_trs_retorno(d);
+  IF r->>'motivo' IS DISTINCT FROM 'nao_exige_transferencia' THEN RAISE EXCEPTION 'Exigência CD segue preservada'; END IF;
+  UPDATE devolucao SET canal='b2b',nf_dev_status=NULL WHERE id=d;
+  DELETE FROM movimentacao_estoque;
+  UPDATE nf_devolucao_vinculo SET classe='devolucao_comercial' WHERE id=link;
+  IF (SELECT status FROM nf_devolucao_vinculo WHERE id=link) <> 'confirmado' THEN RAISE EXCEPTION 'Falha não pode desfazer confirmação'; END IF;
+  IF (SELECT erro FROM devolucao_trs_auto WHERE devolucao_id=d) NOT LIKE 'Sem entrada%' THEN RAISE EXCEPTION 'Erro sem estoque deve ser registrado'; END IF;
+  INSERT INTO movimentacao_estoque VALUES(d,cd,'01833',60,'entrada');
+  PERFORM set_config('test.transfer_fail','on',true);
+  UPDATE nf_devolucao_vinculo SET status='sugerido' WHERE id=link;
+  UPDATE nf_devolucao_vinculo SET status='confirmado' WHERE id=link;
+  IF (SELECT status FROM nf_devolucao_vinculo WHERE id=link) <> 'confirmado' THEN RAISE EXCEPTION 'Falha transferência desfez confirmação'; END IF;
+  IF (SELECT erro FROM devolucao_trs_auto WHERE devolucao_id=d) IS DISTINCT FROM 'Falha simulada' THEN RAISE EXCEPTION 'Falha deve ser registrada'; END IF;
+END $test$;
+ROLLBACK;

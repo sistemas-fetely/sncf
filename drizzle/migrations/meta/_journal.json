@@ -631,6 +631,13 @@
       "when": 1794320973235,
       "tag": "0089_parceiros_uf_sigla_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794328580322,
+      "tag": "0090_dev_trs_nf_cliente_lastro",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 import { podeGerarNfSubstituta, textoReenvio, type StatusNfSub } from "./correcaoNf";
 import { chamarEdge } from "@/lib/pedidos/edgePagamento";
+import { useNfClienteDevolucao } from "@/hooks/useNfClienteDevolucao";
 
 type FiscalDevolucao = {
   id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | "nota_credito" | null; pedido_ref: string | null;
@@ -109,16 +110,19 @@ function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinc
 
 export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida, vinculoSugeridoId, nfRetornoSugerida, grauSugerido, onMudou }: PropsBloco) {
   const q = useFiscalDevolucao(devolucaoId);
+  const clienteQ = useNfClienteDevolucao(devolucaoId);
   const temCapturada = !!vinculoSugeridoId && !nfResolvida;
   const refaturar = q.data?.finalidade === "refaturar";
   const confirmar = temCapturada && vinculoSugeridoId && !refaturar ? <ConfirmarVinculo vinculoId={vinculoSugeridoId} nfNumero={nfRetornoSugerida ?? null} grauSugerido={grauSugerido ?? null} onMudou={onMudou} /> : null;
   const mudou = async () => { await q.refetch(); await onMudou?.(); };
-  if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
+  if (q.isLoading || clienteQ.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
+  if (clienteQ.isError) return <div className="text-sm text-destructive">{rawMessage(clienteQ.error)}</div>;
   if (q.isError) return <div className="text-sm text-destructive">{rawMessage(q.error)}</div>;
   const f = q.data;
   if (!f) return <div className="text-sm text-destructive">Devolução não encontrada.</div>;
   const nf = f.nf_numero ?? "?";
   if (refaturar) return <BlocoRefaturar f={f} nfResolvida={nfResolvida} mudou={mudou} />;
+  if (clienteQ.data) return <div className="text-sm text-success">NF do cliente nº {clienteQ.data.nfs_stage?.nf_numero ?? "?"} vinculada</div>;
   if (f.fiscal_acao === "cancelar_nf") {
     const cancelada = nfResolvida || f.nf_situacao === "cancelada";
     const expirou = !cancelada && !!f.prazo && Date.now() > new Date(f.prazo).getTime();

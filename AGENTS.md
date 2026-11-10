@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Customer-return NF backing uses `fn_devolucao_nf_cliente_confirmada` and the protected confirmed-link trigger calling the existing TRS creator; Fiscal uses one confirmed-link hook so failures never undo confirmation or prompt duplicate issuance.
 - Partner UF normalization belongs to the database trigger calling `fn_uf_sigla`; retain its exact function definitions in migrations so integrations share one validation rule.
 - All product scanners use the tested GTIN-14 resolver and shared paginated query cache; barcode namespaces preserve EAN/code/SKU/DUN precedence and cartons join inner by normalized DUN, because UPC/EAN equivalence and physical units must agree across screens.
 - Catalog application uses an adaptive hard cap per batch in `lotesPorProduto`, closing before overflow and keeping products whole (only a single oversized product may exceed the cap), because the FOP edge accepts at most 100 cells otherwise; retain the 600 ms completed-progress display only for uninterrupted completion.
