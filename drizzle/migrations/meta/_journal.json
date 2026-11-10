@@ -596,6 +596,20 @@
       "when": 1794183663366,
       "tag": "0084_catalogo_planilha_fop_porta_unica",
       "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1794270411878,
+      "tag": "0085_catalogo_lease_leitura_aplicacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794270498217,
+      "tag": "0086_catalogo_trava_restringir_acesso",
+      "breakpoints": true
     }
   ]
 }

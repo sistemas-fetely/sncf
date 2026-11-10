@@ -23,6 +23,7 @@ import { filtrarCelulas, contarOpcoes, celulaSelecionavel, resumoSelecao, nature
 import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 import { detectarColecoesNovas, colecaoNaoCadastrada } from '@/lib/acervo/colecoesCatalogo';
 import { ColecoesNovasCatalogo } from './ColecoesNovasCatalogo';
+import { agruparMensagens, ErroCatalogo, deveAtualizarLeitura } from '@/lib/acervo/mensagensCatalogo';
 
 const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
@@ -71,33 +72,47 @@ export function AtualizacaoCatalogoDia() {
     return { nomes: completarNomesCatalogo(out, celulasNome), info };
   } });
   useEffect(() => { setSelecionados(new Set()); setEscolhas({}); setPrevia(null); }, [referencia.data?.id]);
+  const erroResposta = async (erro: Error, prefixo = '') => {
+    if (erro instanceof FunctionsHttpError) {
+      const corpo = await erro.context.json().catch(() => null);
+      return new ErroCatalogo(prefixo + (corpo?.erro ?? erro.message), erro.context.status, corpo?.codigo);
+    }
+    return new Error(prefixo + erro.message);
+  };
+  const tratarErro = async (erro: unknown) => {
+    if (deveAtualizarLeitura(erro)) {
+      setSelecionados(new Set()); setEscolhas({}); setPrevia(null);
+      await qc.invalidateQueries();
+      toast.warning('A leitura mudou — a tela foi atualizada.');
+    } else { toast.error(formatError(erro)); await qc.invalidateQueries(); }
+  };
   const ler = useMutation({ mutationFn: async () => {
     const r = await supabase.functions.invoke('catalogo-planilha-ler', { body: { acao: 'ler' } });
-    if (r.error) throw new Error(r.error instanceof FunctionsHttpError ? await r.error.context.text() : r.error.message);
+    if (r.error) throw await erroResposta(r.error);
     if (!r.data?.ok) throw new Error(r.data?.erro); return r.data;
-  }, onSuccess: async r => { toast.success(r.status === 'sem_mudanca' ? 'Planilha sem mudança.' : 'Leitura comparada.'); await qc.invalidateQueries({ queryKey: ['catalogo-planilha-ultima'] }); }, onError: e => toast.error(formatError(e)) });
+  }, onSuccess: async r => { toast.success(r.status === 'sem_mudanca' ? 'Planilha sem mudança.' : 'Leitura comparada.'); await qc.invalidateQueries({ queryKey: ['catalogo-planilha-ultima'] }); }, onError: tratarErro });
   const resolver = useMutation({ mutationFn: async (p: Previa) => {
     let feitas = 0;
     for (const d of p.plano.sncf) {
       const r = await supabase.rpc('fn_catalogo_resolver', { p_ids: d.ids, p_acao: d.acao, p_escolha: d.escolha, p_dono: d.dono ?? 'operacoes' });
       if (r.error) throw r.error;
       const data = r.data as { ok: boolean; feitas: number; resultados: { ok: boolean; erro?: string }[] };
-      if (!data.ok) throw new Error(data.resultados.filter(x => !x.ok).map(x => x.erro).join('; '));
+      if (!data.ok) throw new Error(agruparMensagens(data.resultados.filter(x => !x.ok).map(x => x.erro)));
       feitas += data.feitas;
     }
-    const fop = { aplicadas: 0, conflitos: 0, erros: 0 };
+    const fop = { aplicadas: 0, conflitos: 0, erros: 0, motivos: [] as string[] };
     if (p.plano.fop.length) {
       const r = await supabase.functions.invoke('catalogo-planilha-aplicar-fop', { body: { leitura_id: referencia.data?.id, ids: p.plano.fop } });
-      if (r.error) throw new Error(`${feitas ? `${feitas} células do SNCF já foram atualizadas. ` : ''}${r.error instanceof FunctionsHttpError ? (await r.error.context.json().catch(() => null))?.erro ?? r.error.message : r.error.message}`);
+      if (r.error) throw await erroResposta(r.error, feitas ? `${feitas} células do SNCF já foram atualizadas. ` : '');
       if (!r.data?.ok) throw new Error(r.data?.erro ?? 'FOP não confirmou a aplicação.');
       Object.assign(fop, r.data);
     }
-    return { feitas: feitas + fop.aplicadas, conflitos: fop.conflitos, erros: fop.erros };
+    return { feitas: feitas + fop.aplicadas, conflitos: fop.conflitos, erros: fop.erros, motivos: fop.motivos };
   }, onSuccess: async (r, p) => {
     const resto = [r.conflitos && `${r.conflitos} viraram conflito`, r.erros && `${r.erros} com erro do FOP`].filter(Boolean).join(' · ');
-    if (resto) toast.warning(`${r.feitas} células atualizadas · ${resto}.`); else toast.success(`${r.feitas} células atualizadas.`);
+    if (resto) toast.warning(`${r.feitas} células atualizadas · ${resto}.${r.motivos.length ? ` ${agruparMensagens(r.motivos)}` : ''}`); else toast.success(`${r.feitas} células atualizadas.`);
     setPrevia(null); setSelecionados(old => { const n = new Set(old); for (const c of p.celulas) n.delete(c.id); return n; }); setEscolhas({}); await qc.invalidateQueries();
-  }, onError: async e => { toast.error(formatError(e)); await qc.invalidateQueries(); } });
+  }, onError: tratarErro });
   const copiar = async () => {
     const path = ultima.data?.storage_path; if (!path) return;
     const r = await supabase.storage.from('catalogo-planilha').createSignedUrl(path, 300);

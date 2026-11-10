@@ -9,7 +9,7 @@ export type DonoFop = typeof DONOS_FOP[number];
 export function agruparPorDono(ids: string[], celulas: CelulaFop[]): Map<DonoFop, string[]> {
   const dono = new Map(celulas.map(c => [c.id, c.dono as DonoFop]));
   const out = new Map<DonoFop, string[]>();
-  for (const id of ids) { const d = dono.get(id)!; out.set(d, [...(out.get(d) ?? []), id]); }
+  for (const id of ids) { const d = dono.get(id); if (!d) throw new Error(`Dono da célula ${id} não encontrado.`); out.set(d, [...(out.get(d) ?? []), id]); }
   return out;
 }
 
@@ -76,7 +76,7 @@ export type Dependencias = {
   concluir: (ids: string[], acao: "aplicar" | "resolver", dono: DonoFop) => Promise<void>;
   registrar: (pendentes: ResultadoFop[]) => Promise<void>;
 };
-export type Resumo = { aplicadas: number; conflitos: number; erros: number; lotes: number };
+export type Resumo = { aplicadas: number; conflitos: number; erros: number; lotes: number; motivos?: string[] };
 
 /**
  * Sends batches sequentially. A network/HTTP failure marks no cell applied, records the error on
@@ -99,6 +99,8 @@ export async function aplicarNoFop(celulas: CelulaFop[], ids: string[], leituraI
     for (const [dono, l] of agruparPorDono(c.aplicar, celulas)) await deps.concluir(l, "aplicar", dono);
     for (const [dono, l] of agruparPorDono(c.resolver, celulas)) await deps.concluir(l, "resolver", dono);
     if (c.pendentes.length) await deps.registrar(c.pendentes);
+    const motivos = c.pendentes.filter(p => p.status === "erro").map(p => p.erro || "FOP recusou sem mensagem.");
+    if (motivos.length) resumo.motivos = [...(resumo.motivos ?? []), ...motivos];
     resumo.aplicadas += c.aplicar.length + c.resolver.length;
     resumo.conflitos += c.pendentes.filter(p => p.status === "conflito").length;
     resumo.erros += c.pendentes.filter(p => p.status === "erro").length;

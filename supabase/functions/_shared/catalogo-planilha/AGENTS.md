@@ -1,4 +1,5 @@
 # Daily catalog reconciliation
+- Official reads and FOP applications acquire the shared service-only renewable lease before reading or writing catalog state; ownership tokens fence renew/release and automatic contention arms a bounded retry which drains on acquisition.
 - Keep spreadsheet layout, field ownership and three-way comparison in the shared catalog module; never write status/identity fields or create products from this feed.
 - Test reads use isolated reading records and synthetic snapshots, never update the official cell base or live products.
 - Microsoft credentials and FOP machine authentication come only from Vault through the service-role client; do not return tokens or raw OAuth errors.

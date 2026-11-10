@@ -13902,6 +13902,39 @@ export type Database = {
           },
         ]
       }
+      catalogo_planilha_trava: {
+        Row: {
+          ambiente: string
+          ator: string | null
+          dono: string | null
+          expira_em: string | null
+          iniciada_em: string | null
+          leitura_aguardando: boolean
+          tentar_em: string | null
+          token: string | null
+        }
+        Insert: {
+          ambiente: string
+          ator?: string | null
+          dono?: string | null
+          expira_em?: string | null
+          iniciada_em?: string | null
+          leitura_aguardando?: boolean
+          tentar_em?: string | null
+          token?: string | null
+        }
+        Update: {
+          ambiente?: string
+          ator?: string | null
+          dono?: string | null
+          expira_em?: string | null
+          iniciada_em?: string | null
+          leitura_aguardando?: boolean
+          tentar_em?: string | null
+          token?: string | null
+        }
+        Relationships: []
+      }
       centro_canal: {
         Row: {
           atualizado_em: string
@@ -29615,6 +29648,11 @@ export type Database = {
           nf_dev_status: string | null
           nf_devolucao: string | null
           nf_original_id: string | null
+          nf_sub_atualizado_em: string | null
+          nf_sub_bling_id: number | null
+          nf_sub_erro: string | null
+          nf_sub_numero: string | null
+          nf_sub_status: string | null
           nf_substituta_id: string | null
           numero: string
           observacao: string | null
@@ -29662,6 +29700,11 @@ export type Database = {
           nf_dev_status?: string | null
           nf_devolucao?: string | null
           nf_original_id?: string | null
+          nf_sub_atualizado_em?: string | null
+          nf_sub_bling_id?: number | null
+          nf_sub_erro?: string | null
+          nf_sub_numero?: string | null
+          nf_sub_status?: string | null
           nf_substituta_id?: string | null
           numero: string
           observacao?: string | null
@@ -29709,6 +29752,11 @@ export type Database = {
           nf_dev_status?: string | null
           nf_devolucao?: string | null
           nf_original_id?: string | null
+          nf_sub_atualizado_em?: string | null
+          nf_sub_bling_id?: number | null
+          nf_sub_erro?: string | null
+          nf_sub_numero?: string | null
+          nf_sub_status?: string | null
           nf_substituta_id?: string | null
           numero?: string
           observacao?: string | null
@@ -133986,14 +134034,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -136522,14 +136570,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -158940,6 +158988,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_catalogo_leitura_retentar: { Args: never; Returns: undefined }
       fn_catalogo_m365_gravar: {
         Args: { p_config: Json; p_segredos?: Json }
         Returns: Json
@@ -158957,6 +159006,24 @@ export type Database = {
       fn_catalogo_status_leitura: {
         Args: { p_leitura_id: string }
         Returns: undefined
+      }
+      fn_catalogo_trava_pegar: {
+        Args: {
+          p_aguardar?: boolean
+          p_ambiente: string
+          p_ator?: string
+          p_dono: string
+          p_segundos: number
+        }
+        Returns: Json
+      }
+      fn_catalogo_trava_renovar: {
+        Args: { p_ambiente: string; p_segundos: number; p_token: string }
+        Returns: boolean
+      }
+      fn_catalogo_trava_soltar: {
+        Args: { p_ambiente: string; p_token: string }
+        Returns: boolean
       }
       fn_chamado_minha_relacao: {
         Args: { p_chamado_id: string }
@@ -161175,6 +161242,20 @@ export type Database = {
         Args: { p_meio: string; p_ref: string }
         Returns: string
       }
+      fn_refaturar_dados_nf_substituta: {
+        Args: { p_devolucao_id: string }
+        Returns: Json
+      }
+      fn_refaturar_nf_sub_registrar: {
+        Args: {
+          p_bling_id?: number
+          p_devolucao_id: string
+          p_erro?: string
+          p_numero?: string
+          p_status: string
+        }
+        Returns: Json
+      }
       fn_refaturar_original_anulada: {
         Args: { p_devolucao_id: string; p_origem: string }
         Returns: Json
@@ -161186,6 +161267,13 @@ export type Database = {
       fn_refaturar_retentar_reenvio: {
         Args: { p_devolucao_id: string }
         Returns: Json
+      }
+      fn_refaturar_substituta_candidata: {
+        Args: { p_devolucao_id: string }
+        Returns: {
+          nf_id: string
+          numero: string
+        }[]
       }
       fn_refaturar_trocar_para_nf_entrada: {
         Args: { p_devolucao_id: string }

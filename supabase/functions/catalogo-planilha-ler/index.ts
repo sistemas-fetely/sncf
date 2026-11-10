@@ -4,6 +4,8 @@ import { z } from "npm:zod@3";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
+import { pegarTrava } from "../_shared/catalogo-planilha/trava.ts";
+import { ErroCatalogo } from "../_shared/catalogo-planilha/mensagens.ts";
 import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts";
 import { analisarCelula, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
@@ -20,6 +22,7 @@ Deno.serve(async req => {
   let statusErro = "erro";
   let autorizado = false;
   let testarConexao = false;
+  let trava: Awaited<ReturnType<typeof pegarTrava>> | null = null;
   try {
     const body = Body.parse(await req.json().catch(() => ({})));
     testarConexao = body.acao === "testar";
@@ -37,6 +40,13 @@ Deno.serve(async req => {
       if (r.error || r.data !== true) return json({ ok: false, erro: "Teste exclusivo de super administrador." }, 403);
       if (!body.arquivo_teste) throw new Error("Cenário fake requer arquivo em testes/.");
       testando = true;
+    }
+    if (!testando && !testarConexao) {
+      try { trava = await pegarTrava((nome, args) => sb.rpc(nome, args), "leitura", ator, cron); }
+      catch (e) {
+        if (cron && e instanceof ErroCatalogo && e.status === 409) return json({ ok: true, status: "aguardando", mensagem: e.message });
+        throw e;
+      }
     }
     let arquivo;
     if (body.arquivo_teste) {
@@ -58,6 +68,7 @@ Deno.serve(async req => {
     const path = `${testando ? "testes/leituras" : "historico"}/${dia}/${id}.xlsx`;
     const up = await sb.storage.from("catalogo-planilha").upload(path, arquivo.bytes, { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     if (up.error) throw up.error;
+    await trava?.verificar();
     const ins = await sb.from("catalogo_planilha_leitura").insert({ id, origem: cron ? "cron" : "manual", hash, etag: arquivo.etag, storage_path: path, ambiente, origem_chave: arquivo.origemChave, criado_por: ator, erro: ERRO_INTERROMPIDA });
     if (ins.error) throw ins.error; leitura = id;
     if (anterior.data?.hash === hash) {
@@ -92,6 +103,7 @@ Deno.serve(async req => {
     const produtos = new Map<string, Record<string, unknown>>();
     const bases = new Map<string, unknown>();
     for (let i = 0; i < cods.length; i += 150) {
+      await trava?.verificar();
       const bloco = cods.slice(i, i + 150);
       const p = await sb.from("sncf_produtos").select("*").in("cod_cadastro", bloco); if (p.error) throw p.error;
       for (const x of p.data ?? []) produtos.set(String(x.cod_cadastro), x);
@@ -142,14 +154,18 @@ Deno.serve(async req => {
       }
     }
     const totais = { colunas_ignoradas: layout.colunas_ignoradas, linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
+    await trava?.verificar();
     const done = await sb.rpc("fn_catalogo_leitura_concluir", { p_leitura_id: id, p_status: "comparada", p_totais: totais, p_mudancas: mudancas, p_base_inicial: baseInicial }); if (done.error) throw done.error;
     const limpa = await sb.from("catalogo_planilha_leitura").update({ erro: null }).eq("id", id); if (limpa.error) throw limpa.error;
     return json({ ok: true, id, status: "comparada", totais, testando });
   } catch (e) {
     const erro = erroTexto(e);
+    if (e instanceof ErroCatalogo) return json({ ok: false, erro, codigo: e.codigo }, e.status);
     if (autorizado && testarConexao) await sb.from("credenciais_integracao_log").insert({ nome: "m365_conexao", acao: "atualizado", descricao: `Teste de conexão falhou — ${erro}`, por: ator });
     if (autorizado && leitura) await sb.from("catalogo_planilha_leitura").update({ status: statusErro, erro }).eq("id", leitura);
-    else if (autorizado && !testando && !testarConexao) await sb.from("catalogo_planilha_leitura").insert({ origem: req.headers.get("x-cron-secret") ? "cron" : "manual", status: "erro", erro, criado_por: ator });
+    else if (autorizado && trava && !testando && !testarConexao) await sb.from("catalogo_planilha_leitura").insert({ origem: req.headers.get("x-cron-secret") ? "cron" : "manual", status: "erro", erro, criado_por: ator });
     return json({ ok: false, id: leitura, status: statusErro, erro }, e instanceof z.ZodError ? 400 : 500);
+  } finally {
+    await trava?.soltar().catch(e => console.error("[catalogo-trava-soltar]", erroTexto(e)));
   }
 });
