@@ -1,4 +1,7 @@
 # Decisões técnicas
+<!-- LOVABLE:BEGIN -->
+- Catalog application uses an adaptive hard cap per batch in `lotesPorProduto`, closing before overflow and keeping products whole (only a single oversized product may exceed the cap), because the FOP edge accepts at most 100 cells otherwise; retain the 600 ms completed-progress display only for uninterrupted completion.
+<!-- LOVABLE:END -->
 - Reuse NF cache for Sublimity.
 - Read docs/AGENTS.md.
 - Monthly statements use versioned RPCs/read-only parsers; MP monthly collection never imports movements or replaces a manual current file.

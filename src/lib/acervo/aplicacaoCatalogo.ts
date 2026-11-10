@@ -13,9 +13,8 @@ export function lotesPorProduto(celulas: CelulaLote[], limite = Math.min(100, Ma
   const lotes: string[][] = [];
   let lote: string[] = [];
   for (const ids of produtos.values()) {
+    if (lote.length && lote.length + ids.length > limite) { lotes.push(lote); lote = []; }
     lote.push(...ids);
-    // The target is soft: finish the product that reaches it before closing the batch.
-    if (lote.length >= limite) { lotes.push(lote); lote = []; }
   }
   if (lote.length) lotes.push(lote);
   return lotes;

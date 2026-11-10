@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Catálogo: fechamento antes do limite adaptativo restaurado, fronteiras/reenvio/parada conferidos e AGENTS.md incluído; 80 testes passaram. Com 904 células em produtos de 4: 11 lotes adaptativos (limite 91), ou 10 com limite explícito 100; sem banco, edge ou publicação.
 - [x] Órfãos de Entrada: sugestão por pedido/valor/data e atualização aguardada de pedidos/provas após aceite; 3 testes e aceite autenticado simulado conferidos, sem banco, tipos gerados ou publicação.
 - [x] Catálogo: lotes adaptativos por produto e 100% visível por 600 ms; 35 testes passaram e fluxo autenticado de 16 células conferido com aplicação simulada, sem banco, edge ou publicação.
 - [x] Mesa SP: instrução em todas as estações, leitura obrigatória antes de conferir/embalar e edição no pedido/VD; 25 testes, leitura/edição autenticadas com respostas simuladas e celular conferidos; sem gravações reais, banco ou publicação.
