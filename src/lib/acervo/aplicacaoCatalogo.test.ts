@@ -17,14 +17,33 @@ describe('aplicação frontal do catálogo', () => {
   it('mantém inteiro produto maior que 100', () => {
     expect(lotesPorProduto(Array.from({ length: 104 }, (_, i) => ({ id: String(i), cod_cadastro: '01355' })))).toHaveLength(1);
   });
+  it('divide 16 células de quatro produtos inteiros e emite passos intermediários', async () => {
+    const cs = celulas(16);
+    const lotes = lotesPorProduto(cs);
+    expect(lotes).toEqual([['0', '1', '2', '3'], ['4', '5', '6', '7'], ['8', '9', '10', '11'], ['12', '13', '14', '15']]);
+    const progressos: number[] = [];
+    const r = await executarLotesCatalogo(cs, {
+      enviar: async ids => ok(ids.length), identificarErros: async () => [], pausa: async () => 'parar',
+      progresso: p => progressos.push(p.processadas),
+    });
+    expect(progressos).toEqual([0, 4, 4, 8, 8, 12, 12, 16]);
+    expect(r.aplicadas).toBe(16);
+  });
+  it('mantém um produto de 16 células inteiro apesar do limite adaptativo de 2', () => {
+    const cs = celulas(16).map(c => ({ ...c, cod_cadastro: '01355' }));
+    expect(lotesPorProduto(cs)).toEqual([cs.map(c => c.id)]);
+  });
+  it('permite informar o limite explicitamente', () => {
+    expect(lotesPorProduto(celulas(16), 8).map(l => l.length)).toEqual([8, 8]);
+  });
   it('envia em sequência e soma progresso por resultados concluídos', async () => {
     const progressos: number[] = []; let ativo = 0;
     const r = await executarLotesCatalogo(celulas(204), {
       enviar: async ids => { expect(ativo++).toBe(0); await Promise.resolve(); ativo--; return ok(ids.length); },
       identificarErros: async () => [], pausa: async () => 'parar', progresso: p => progressos.push(p.processadas),
     });
-    expect(progressos).toEqual([0, 100, 100, 200, 200, 204]);
-    expect(r.aplicadas).toBe(204); expect(r.lotes).toBe(3);
+    expect(progressos).toEqual([0, 24, 24, 48, 48, 72, 72, 96, 96, 120, 120, 144, 144, 168, 168, 192, 192, 204]);
+    expect(r.aplicadas).toBe(204); expect(r.lotes).toBe(9);
   });
   it('reenvia o mesmo lote após transporte, sem duplicar contadores', async () => {
     const enviados: string[][] = [];
@@ -32,7 +51,7 @@ describe('aplicação frontal do catálogo', () => {
       enviar: async ids => { enviados.push(ids); if (enviados.length === 1) throw new FalhaLoteCatalogo('FOP indisponível', 502); return ok(ids.length); },
       identificarErros: async () => [], pausa: async () => 'tentar', progresso: () => {},
     });
-    expect(enviados[0]).toEqual(enviados[1]); expect(r.aplicadas).toBe(104); expect(r.lotes).toBe(2);
+    expect(enviados[0]).toEqual(enviados[1]); expect(r.aplicadas).toBe(104); expect(r.lotes).toBe(9);
   });
   it('parar inclui lote interrompido e seguintes nas não enviadas', async () => {
     let chamadas = 0;
@@ -40,7 +59,7 @@ describe('aplicação frontal do catálogo', () => {
       enviar: async ids => { if (++chamadas === 2) throw new TypeError('Failed to fetch'); return ok(ids.length); },
       identificarErros: async () => [], pausa: async () => 'parar', progresso: () => {},
     });
-    expect(r.aplicadas).toBe(100); expect(r.naoEnviadas).toBe(104); expect(chamadas).toBe(2);
+    expect(r.aplicadas).toBe(24); expect(r.naoEnviadas).toBe(180); expect(chamadas).toBe(2);
   });
   it('409 de leitura nova interrompe sem pedir tentativa', async () => {
     const r = await executarLotesCatalogo(celulas(204), {

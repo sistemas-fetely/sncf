@@ -7,14 +7,15 @@ export type ResultadoAplicacao = {
 export type ProgressoAplicacao = { total: number; processadas: number; lote: number; totalLotes: number; resultado: ResultadoAplicacao };
 
 // Products stay whole, even when a single product exceeds the target batch size.
-export function lotesPorProduto(celulas: CelulaLote[], limite = 100): string[][] {
+export function lotesPorProduto(celulas: CelulaLote[], limite = Math.min(100, Math.max(1, Math.ceil(celulas.length / 10)))): string[][] {
   const produtos = new Map<string, string[]>();
   for (const c of celulas) produtos.set(c.cod_cadastro, [...(produtos.get(c.cod_cadastro) ?? []), c.id]);
   const lotes: string[][] = [];
   let lote: string[] = [];
   for (const ids of produtos.values()) {
-    if (lote.length && lote.length + ids.length > limite) { lotes.push(lote); lote = []; }
     lote.push(...ids);
+    // The target is soft: finish the product that reaches it before closing the batch.
+    if (lote.length >= limite) { lotes.push(lote); lote = []; }
   }
   if (lote.length) lotes.push(lote);
   return lotes;

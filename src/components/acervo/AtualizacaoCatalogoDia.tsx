@@ -148,6 +148,14 @@ export function AtualizacaoCatalogoDia() {
         pausa: mensagem => { setPausa(mensagem); return new Promise(resolve => { responderPausa.current = resolve; }); },
         progresso: p => setProgresso({ ...p, total: p.total + feitasSncf, processadas: p.processadas + feitasSncf, resultado: { ...p.resultado, aplicadas: p.resultado.aplicadas + feitasSncf } }),
       });
+      if (!r.mensagem && !r.leituraNova && r.naoEnviadas === 0) {
+        const total = cs.length + feitasSncf;
+        setProgresso(atual => ({
+          total, processadas: total, lote: atual?.totalLotes ?? 1, totalLotes: atual?.totalLotes ?? 1,
+          resultado: { ...r, aplicadas: r.aplicadas + feitasSncf },
+        }));
+        await new Promise(resolve => window.setTimeout(resolve, 600));
+      }
       const final = { ...r, aplicadas: r.aplicadas + feitasSncf };
       if (anterior) {
         final.aplicadas += anterior.aplicadas;
