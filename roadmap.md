@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Catálogo: aplicação frontal em lotes por produto, modal protegido, progresso, pausa/reenvio e resumo; 35 testes e fluxo autenticado simulado (pausa, repetição do lote, erro isolado, 409, parar e celular), sem aplicação real, edge, banco ou publicação.
 - [x] Catálogo: lease renovável de 5 min, retentativa automática limitada à espera, aviso 409 e erros agrupados; 90 testes, tela autenticada com 409 simulado e duas edges reimplantadas; sem aplicar células reais ou publicar frontend.
 - [x] Central do Produto: cinco abas com busca traduzida, Cockpit no BI e links antigos para Mesa; 33 testes, navegação autenticada e Mesa 01888 conferidos; BI abre com aviso de rota ainda não cadastrada, menu/banco ficam para a conexão antes da publicação; sem banco/publicação.
 - [x] Repor SP: filtros na URL, ordenação, agrupamento e seleção preservada; 27 testes passaram, abas/filtros restaurados e 1 SKU/4 kits fora do filtro chegaram à Nova transferência; sem banco/publicação/TRS real.

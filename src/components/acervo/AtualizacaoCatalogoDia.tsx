@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,10 +25,11 @@ import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 import { detectarColecoesNovas, colecaoNaoCadastrada } from '@/lib/acervo/colecoesCatalogo';
 import { ColecoesNovasCatalogo } from './ColecoesNovasCatalogo';
 import { agruparMensagens, ErroCatalogo, deveAtualizarLeitura } from '@/lib/acervo/mensagensCatalogo';
+import { executarLotesCatalogo, FalhaLoteCatalogo, motivosAgrupados, resultadoVazio, type ProgressoAplicacao, type ResultadoAplicacao, type RespostaLote } from '@/lib/acervo/aplicacaoCatalogo';
 
 const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
-type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[] };
+type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[]; leituraId?: string };
 
 export function AtualizacaoCatalogoDia() {
   const qc = useQueryClient();
@@ -35,6 +37,12 @@ export function AtualizacaoCatalogoDia() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [escolhas, setEscolhas] = useState<EscolhasCatalogo>({});
   const [previa, setPrevia] = useState<Previa | null>(null);
+  const [progresso, setProgresso] = useState<ProgressoAplicacao | null>(null);
+  const [resultado, setResultado] = useState<ResultadoAplicacao | null>(null);
+  const [pausa, setPausa] = useState<string | null>(null);
+  const emExecucao = useRef(false);
+  const modalEmExecucao = useRef(false);
+  const responderPausa = useRef<((acao: 'tentar' | 'parar') => void) | null>(null);
   const [semCadastroAberto, setSemCadastroAberto] = useState(false);
   const [errosAberto, setErrosAberto] = useState(false);
   const { ultima, referencia, lista } = useCatalogoLeitura();
@@ -71,7 +79,14 @@ export function AtualizacaoCatalogoDia() {
     }
     return { nomes: completarNomesCatalogo(out, celulasNome), info };
   } });
-  useEffect(() => { setSelecionados(new Set()); setEscolhas({}); setPrevia(null); }, [referencia.data?.id]);
+  useEffect(() => { if (!modalEmExecucao.current) { setSelecionados(new Set()); setEscolhas({}); setPrevia(null); } }, [referencia.data?.id]);
+  useEffect(() => {
+    if (!progresso || resultado) return;
+    const avisar = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', avisar);
+    return () => window.removeEventListener('beforeunload', avisar);
+  }, [!!progresso, !!resultado]);
+  useEffect(() => () => { responderPausa.current?.('parar'); }, []);
   const erroResposta = async (erro: Error, prefixo = '') => {
     if (erro instanceof FunctionsHttpError) {
       const corpo = await erro.context.json().catch(() => null);
@@ -92,6 +107,56 @@ export function AtualizacaoCatalogoDia() {
     if (!r.data?.ok) throw new Error(r.data?.erro); return r.data;
   }, onSuccess: async r => { toast.success(r.status === 'sem_mudanca' ? 'Planilha sem mudança.' : 'Leitura comparada.'); await qc.invalidateQueries({ queryKey: ['catalogo-planilha-ultima'] }); }, onError: tratarErro });
   const resolver = useMutation({ mutationFn: async (p: Previa) => {
+    if (p.acao === 'aplicar') {
+      const leituraId = p.leituraId;
+      if (!leituraId) throw new Error('Leitura não encontrada. Recarregue a tela.');
+      const anterior = resultado;
+      const inicial = resultadoVazio();
+      setResultado(null);
+      setProgresso({ total: p.plano.fop.length + p.plano.sncf.reduce((n, d) => n + d.ids.length, 0), processadas: 0, lote: 1, totalLotes: 1, resultado: inicial });
+      let feitasSncf = 0;
+      for (const d of p.plano.sncf) {
+        const r = await supabase.rpc('fn_catalogo_resolver', { p_ids: d.ids, p_acao: d.acao, p_escolha: d.escolha, p_dono: d.dono ?? 'operacoes' });
+        if (r.error) throw r.error;
+        const data = r.data as { ok: boolean; feitas: number; resultados: { ok: boolean; erro?: string }[] };
+        if (!data.ok) throw new Error(agruparMensagens(data.resultados.filter(x => !x.ok).map(x => x.erro)));
+        feitasSncf += data.feitas;
+      }
+      const idsFop = new Set(p.plano.fop);
+      const cs = p.celulas.filter(c => idsFop.has(c.id));
+      const r = await executarLotesCatalogo(cs, {
+        enviar: async ids => {
+          const r = await supabase.functions.invoke('catalogo-planilha-aplicar-fop', { body: { leitura_id: leituraId, ids } });
+          if (r.error) {
+            const e = await erroResposta(r.error);
+            throw new FalhaLoteCatalogo(e.message, e instanceof ErroCatalogo ? e.status : undefined, e instanceof ErroCatalogo ? e.codigo : undefined);
+          }
+          if (!r.data?.ok) throw new FalhaLoteCatalogo(r.data?.erro ?? 'FOP não confirmou a aplicação.', undefined, r.data?.codigo);
+          return r.data as RespostaLote;
+        },
+        identificarErros: async (ids, quantidade) => {
+          const encontrados: string[] = [];
+          for (let de = 0; de < ids.length; de += 100) {
+            const r = await supabase.from('catalogo_planilha_mudanca').select('id,erro,status').in('id', ids.slice(de, de + 100)).eq('leitura_id', leituraId).eq('status', 'pendente').not('erro', 'is', null);
+            if (r.error) throw r.error;
+            encontrados.push(...(r.data ?? []).filter(c => !!c.erro).map(c => c.id));
+          }
+          if (encontrados.length !== quantidade) throw new Error(`Esperadas ${quantidade}, encontradas ${encontrados.length}.`);
+          return encontrados;
+        },
+        pausa: mensagem => { setPausa(mensagem); return new Promise(resolve => { responderPausa.current = resolve; }); },
+        progresso: p => setProgresso({ ...p, total: p.total + feitasSncf, processadas: p.processadas + feitasSncf, resultado: { ...p.resultado, aplicadas: p.resultado.aplicadas + feitasSncf } }),
+      });
+      const final = { ...r, aplicadas: r.aplicadas + feitasSncf };
+      if (anterior) {
+        final.aplicadas += anterior.aplicadas;
+        final.conflitos += anterior.conflitos;
+        final.naoEnviadas += anterior.naoEnviadas;
+        final.lotes += anterior.lotes;
+      }
+      setResultado(final);
+      return null;
+    }
     let feitas = 0;
     for (const d of p.plano.sncf) {
       const r = await supabase.rpc('fn_catalogo_resolver', { p_ids: d.ids, p_acao: d.acao, p_escolha: d.escolha, p_dono: d.dono ?? 'operacoes' });
@@ -100,19 +165,31 @@ export function AtualizacaoCatalogoDia() {
       if (!data.ok) throw new Error(agruparMensagens(data.resultados.filter(x => !x.ok).map(x => x.erro)));
       feitas += data.feitas;
     }
-    const fop = { aplicadas: 0, conflitos: 0, erros: 0, motivos: [] as string[] };
-    if (p.plano.fop.length) {
-      const r = await supabase.functions.invoke('catalogo-planilha-aplicar-fop', { body: { leitura_id: referencia.data?.id, ids: p.plano.fop } });
-      if (r.error) throw await erroResposta(r.error, feitas ? `${feitas} células do SNCF já foram atualizadas. ` : '');
-      if (!r.data?.ok) throw new Error(r.data?.erro ?? 'FOP não confirmou a aplicação.');
-      Object.assign(fop, r.data);
-    }
-    return { feitas: feitas + fop.aplicadas, conflitos: fop.conflitos, erros: fop.erros, motivos: fop.motivos };
+    return { feitas };
   }, onSuccess: async (r, p) => {
-    const resto = [r.conflitos && `${r.conflitos} viraram conflito`, r.erros && `${r.erros} com erro do FOP`].filter(Boolean).join(' · ');
-    if (resto) toast.warning(`${r.feitas} células atualizadas · ${resto}.${r.motivos.length ? ` ${agruparMensagens(r.motivos)}` : ''}`); else toast.success(`${r.feitas} células atualizadas.`);
+    if (!r) return;
+    toast.success(`${r.feitas} células atualizadas.`);
     setPrevia(null); setSelecionados(old => { const n = new Set(old); for (const c of p.celulas) n.delete(c.id); return n; }); setEscolhas({}); await qc.invalidateQueries();
-  }, onError: tratarErro });
+  }, onError: async (erro, p) => {
+    if (p.acao === 'aplicar') setResultado({ ...resultadoVazio(), naoEnviadas: p.plano.fop.length, mensagem: formatError(erro) });
+    else await tratarErro(erro);
+  }, onSettled: () => { emExecucao.current = false; setPausa(null); responderPausa.current = null; } });
+  const confirmar = (p: Previa) => {
+    if (emExecucao.current) return;
+    emExecucao.current = true;
+    modalEmExecucao.current = p.acao === 'aplicar';
+    resolver.mutate(p);
+  };
+  const decidirPausa = (acao: 'tentar' | 'parar') => {
+    const responder = responderPausa.current;
+    responderPausa.current = null;
+    setPausa(null);
+    responder?.(acao);
+  };
+  const fecharResultado = async () => {
+    setPrevia(null); setProgresso(null); setResultado(null); modalEmExecucao.current = false;
+    setSelecionados(new Set()); setEscolhas({}); await qc.invalidateQueries();
+  };
   const copiar = async () => {
     const path = ultima.data?.storage_path; if (!path) return;
     const r = await supabase.storage.from('catalogo-planilha').createSignedUrl(path, 300);
@@ -157,7 +234,7 @@ export function AtualizacaoCatalogoDia() {
   const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
   const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading || colecoes.isLoading;
   const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
-  const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => setPrevia({ acao, plano, celulas: selecionadas });
+  const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => { setProgresso(null); setResultado(null); setPrevia({ acao, plano, celulas: selecionadas, leituraId: referencia.data?.id }); };
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -201,6 +278,26 @@ export function AtualizacaoCatalogoDia() {
     <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{produtos.length} produtos · {recorte.length} células no filtro · <strong className="text-foreground">{resumo.produtos} produtos · {resumo.celulas} células selecionadas (Operações {resumo.operacoes} · Produto {resumo.produto})</strong></span><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Página anterior do catálogo" disabled={pagina === 1} onClick={() => setFiltro({ pagina: pagina - 1 })}><ChevronLeft className="h-4 w-4" /></Button><span>Página {pagina} de {paginas}</span><Button variant="outline" size="icon" aria-label="Próxima página do catálogo" disabled={pagina === paginas} onClick={() => setFiltro({ pagina: pagina + 1 })}><ChevronRight className="h-4 w-4" /></Button></div></div>
     {!!semCadastro.length && <div className="border-t pt-2"><div className="flex flex-wrap items-center gap-1"><Button variant="ghost" size="sm" aria-expanded={semCadastroAberto} onClick={() => setSemCadastroAberto(v => !v)}>{semCadastroAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{semCadastro.length} códigos sem cadastro ({semCadastro[0]}–{semCadastro[semCadastro.length - 1]})</Button><Link className="text-sm text-primary underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">→ Importação de PI</Link></div>{semCadastroAberto && <div className="max-h-48 overflow-auto p-3 font-mono text-sm text-muted-foreground">{semCadastro.join(' · ')}</div>}</div>}
     {!!erros.length && <div className="border-t pt-2"><Button variant="ghost" size="sm" className="text-destructive" aria-expanded={errosAberto} onClick={() => setErrosAberto(v => !v)}>{errosAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{erros.length} erros</Button>{errosAberto && <div className="max-h-48 overflow-auto space-y-2 p-3 text-sm">{erros.map(c => <p key={c.id}><strong>{c.cod_cadastro}</strong> · {rotulos[c.campo] ?? 'Campo não identificado na matriz'} · <span className="text-destructive">{c.erro}</span></p>)}</div>}</div>}
-    <Dialog open={!!previa} onOpenChange={o => { if (!o && !resolver.isPending) setPrevia(null); }}><DialogContent><DialogHeader><DialogTitle>Confirmar {previa?.acao === 'descartar' ? 'descarte' : 'aplicação'} · {previa?.celulas.length} células</DialogTitle></DialogHeader>{previa?.acao === 'aplicar' && !!previa.plano.fop.length && <p className="text-sm text-muted-foreground">{previa.plano.fop.length} células (Produto e fiscais) serão gravadas no FOP; só ficam aplicadas quando o FOP confirmar.</p>}<div className="max-h-80 overflow-auto text-sm">{previa?.celulas.map(c => { const d = previa.plano.sncf.find(d => d.ids.includes(c.id)); const vaiPlanilha = previa.plano.fop.includes(c.id) || d?.escolha === 'planilha'; return <p key={c.id} className="border-b py-2">{c.cod_cadastro} · {rotulos[c.campo] ?? 'Campo não identificado na matriz'}: {texto(c.valor_sistema)} → {texto(vaiPlanilha ? c.valor_planilha : c.valor_sistema)}</p>; })}</div><DialogFooter><Button variant="outline" disabled={resolver.isPending} onClick={() => setPrevia(null)}>Voltar</Button><Button disabled={resolver.isPending} onClick={() => { if (previa) resolver.mutate(previa); }}>Confirmar</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={!!previa} onOpenChange={o => { if (!o && !resolver.isPending) { if (resultado) void fecharResultado(); else setPrevia(null); } }}><DialogContent className={`max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto ${resolver.isPending ? '[&>button:last-child]:hidden' : ''}`} onEscapeKeyDown={e => { if (resolver.isPending) e.preventDefault(); }} onInteractOutside={e => { if (resolver.isPending) e.preventDefault(); }}><DialogHeader><DialogTitle>{resultado ? 'Resumo da aplicação' : `Confirmar ${previa?.acao === 'descartar' ? 'descarte' : 'aplicação'} · ${previa?.celulas.length} células`}</DialogTitle></DialogHeader>
+      {progresso && !resultado ? <div className="space-y-4" aria-live="polite">
+        <p className="text-sm font-medium">Aplicando {progresso.processadas} de {progresso.total} · lote {progresso.lote} de {progresso.totalLotes}</p>
+        <Progress value={progresso.total ? progresso.processadas / progresso.total * 100 : 0} aria-label="Progresso da aplicação" />
+        <div className="flex flex-wrap gap-4 text-sm"><span className="text-success">✓ {progresso.resultado.aplicadas} aplicadas</span><span className="text-warning">⚠ {progresso.resultado.conflitos} conflitos</span><span className="text-destructive">✗ {progresso.resultado.erros} erros</span></div>
+        {pausa && <Alert variant="destructive"><AlertDescription className="space-y-3"><p className="break-words">{pausa}</p><div className="flex flex-wrap gap-2"><Button onClick={() => decidirPausa('tentar')}>Tentar de novo</Button><Button variant="outline" onClick={() => decidirPausa('parar')}>Parar</Button></div></AlertDescription></Alert>}
+      </div> : resultado ? <div className="space-y-4 text-sm" aria-live="polite">
+        <div className="grid grid-cols-2 gap-3"><p className="text-success">✓ {resultado.aplicadas} aplicadas</p><p className="text-warning">⚠ {resultado.conflitos} conflitos</p><p className="text-destructive">✗ {resultado.erros} erros</p><p className="text-muted-foreground">{resultado.naoEnviadas} não enviadas</p></div>
+        {resultado.mensagem && <Alert variant="destructive"><AlertDescription className="break-words">{resultado.mensagem}</AlertDescription></Alert>}
+        {!!resultado.motivos.length && <div className="max-h-48 space-y-2 overflow-auto">{motivosAgrupados(resultado.motivos).map(m => <p key={m.mensagem} className="break-words text-destructive">{m.quantidade} × {m.mensagem}</p>)}</div>}
+        {!!resultado.conflitos && <p className="text-warning">{resultado.conflitos} conflitos aguardam escolha planilha/sistema na lista.</p>}
+        <DialogFooter className="gap-2">
+          {resultado.leituraNova ? <Button onClick={() => void fecharResultado()}>Recarregar</Button> : !!resultado.idsErro.length && <Button disabled={resolver.isPending} onClick={() => { if (previa) { const ids = new Set(resultado.idsErro); confirmar({ ...previa, plano: { sncf: [], fop: resultado.idsErro }, celulas: previa.celulas.filter(c => ids.has(c.id)) }); } }}>Reenviar {resultado.idsErro.length} com erro</Button>}
+          <Button variant="outline" onClick={() => void fecharResultado()}>Fechar</Button>
+        </DialogFooter>
+      </div> : <>
+        {previa?.acao === 'aplicar' && !!previa.plano.fop.length && <p className="text-sm text-muted-foreground">{previa.plano.fop.length} células (Produto e fiscais) serão gravadas no FOP; só ficam aplicadas quando o FOP confirmar.</p>}
+        <div className="max-h-80 overflow-auto text-sm">{previa?.celulas.map(c => { const d = previa.plano.sncf.find(d => d.ids.includes(c.id)); const vaiPlanilha = previa.plano.fop.includes(c.id) || d?.escolha === 'planilha'; return <p key={c.id} className="border-b py-2">{c.cod_cadastro} · {rotulos[c.campo] ?? 'Campo não identificado na matriz'}: {texto(c.valor_sistema)} → {texto(vaiPlanilha ? c.valor_planilha : c.valor_sistema)}</p>; })}</div>
+        <DialogFooter><Button variant="outline" disabled={resolver.isPending} onClick={() => setPrevia(null)}>Voltar</Button><Button disabled={resolver.isPending} onClick={() => { if (previa) confirmar(previa); }}>Confirmar</Button></DialogFooter>
+      </>}
+    </DialogContent></Dialog>
   </section>;
 }
