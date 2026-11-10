@@ -7,10 +7,6 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EstoqueAbas } from "@/components/estoque/EstoqueAbas";
-import { FilaOperacionalEstoque } from "@/components/estoque/FilaOperacionalEstoque";
-import { AcoesAlertasEstoque } from "@/components/estoque/AcoesAlertasEstoque";
-import { useFilaOperacionalEstoque } from "@/hooks/estoque/useFilaOperacionalEstoque";
-import { skusDoCard } from "@/lib/estoque/filaOperacionalEstoque";
 import { FilterInput } from "@/components/ui/filter-input";
 import { FilterSelectTrigger } from "@/components/ui/filter-select-trigger";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
@@ -270,9 +266,7 @@ async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]
 export default function EstoqueVirtual() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, visão, ordem e página na URL.
   // ordem "" = padrão da visão; "nenhum" = sem ordenação.
-  const [nav, setNav] = useEstadoTela({ busca: "", fase: "todos", colecao: "todos", centro: "todos", situacao: "todos", visao: "estoque", ordem: "", pagina: 1, card: "" });
-  const fila = useFilaOperacionalEstoque();
-  const skusCard = skusDoCard(fila, nav.card);
+  const [nav, setNav] = useEstadoTela({ busca: "", fase: "todos", colecao: "todos", centro: "todos", situacao: "todos", visao: "estoque", ordem: "", pagina: 1 });
   const busca = nav.busca;
   const setBusca = (v: string) => setNav({ busca: v });
   const faseFiltro = nav.fase;
@@ -435,7 +429,6 @@ export default function EstoqueVirtual() {
   const recorteSemCentro = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (skusCard && (!l.sku || !skusCard.has(l.sku))) return false;
       if (faseFiltro !== "todos" && l.fase !== faseFiltro) return false;
       if (colecaoFiltro !== "todos" && l.colecao !== colecaoFiltro) return false;
       if (situacaoFiltro !== "todos" && l.situacao !== situacaoFiltro) return false;
@@ -447,7 +440,7 @@ export default function EstoqueVirtual() {
         (l.cor_nome ?? "").toLowerCase().includes(q)
       );
     });
-  }, [linhas, busca, faseFiltro, colecaoFiltro, situacaoFiltro, skusCard]);
+  }, [linhas, busca, faseFiltro, colecaoFiltro, situacaoFiltro]);
 
   // Linhas produto×centro do recorte (todos os filtros).
   const recorte = useMemo(
@@ -668,7 +661,6 @@ export default function EstoqueVirtual() {
   }
 
   function limparFiltros() {
-    setNav({ card: "" });
     setBusca("");
     setFaseFiltro("todos");
     setColecaoFiltro("todos");
@@ -718,7 +710,7 @@ export default function EstoqueVirtual() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { void fila.refetch(); void cockpitQuery.refetch(); void conciliacaoQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); void onboardingQuery.refetch(); }}
+            onClick={() => { void cockpitQuery.refetch(); void conciliacaoQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); void onboardingQuery.refetch(); }}
             disabled={cockpitQuery.isFetching}
             className="gap-2"
           >
@@ -769,8 +761,6 @@ export default function EstoqueVirtual() {
           Falha ao carregar o progresso da migração: {formatError(onboardingQuery.error)}
         </div>
       )}
-
-      <FilaOperacionalEstoque fila={fila} ativo={nav.card} onCard={card => setNav({ card, pagina: 1 })} />
 
       {centrosQuery.isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -852,8 +842,6 @@ export default function EstoqueVirtual() {
           {filtroSelect(situacaoFiltro, setSituacaoFiltro, "Todas as situações", opcoes.situacoes, "w-[170px]", rotuloStatusVenda)}
         </div>
       </div>
-
-      <div className="flex flex-wrap gap-2"><AcoesAlertasEstoque card={nav.card} alertas={fila.alertas.filter(a => a.sku && tabela.some(p => p.sku === a.sku))} /></div>
 
       {cockpitQuery.isLoading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>
