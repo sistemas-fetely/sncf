@@ -24,7 +24,6 @@ import { filtrarCelulas, contarOpcoes, celulaSelecionavel, resumoSelecao, nature
 import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 import { detectarColecoesNovas, colecaoNaoCadastrada } from '@/lib/acervo/colecoesCatalogo';
 import { ColecoesNovasCatalogo } from './ColecoesNovasCatalogo';
-import { ValoresNaoCadastradosFop } from './ValoresNaoCadastradosFop';
 import { agruparMensagens, ErroCatalogo, deveAtualizarLeitura } from '@/lib/acervo/mensagensCatalogo';
 import { executarLotesCatalogo, FalhaLoteCatalogo, motivosAgrupados, resultadoVazio, type ProgressoAplicacao, type ResultadoAplicacao, type RespostaLote } from '@/lib/acervo/aplicacaoCatalogo';
 
@@ -47,6 +46,11 @@ export function AtualizacaoCatalogoDia() {
   const [semCadastroAberto, setSemCadastroAberto] = useState(false);
   const [errosAberto, setErrosAberto] = useState(false);
   const { ultima, referencia, lista } = useCatalogoLeitura();
+  const autoDimensoes = useQuery({ queryKey: ['catalogo-dimensoes-automaticas', referencia.data?.id], enabled: !!referencia.data?.id, queryFn: async () => {
+    const r = await supabase.from('audit_log').select('id', { count: 'exact', head: true }).eq('acao', 'catalogo_dimensao_automatica').eq('justificativa', `Leitura ${referencia.data?.id}`);
+    if (r.error) throw r.error;
+    return r.count ?? 0;
+  } });
   const colecoes = useQuery({ queryKey: ['catalogo-colecoes-dim'], queryFn: async () => {
     const out = [];
     for (let de = 0; ; de += 1000) {
@@ -242,12 +246,13 @@ export function AtualizacaoCatalogoDia() {
   const alguns = elegiveis.some(c => selecionados.has(c.id));
   const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
   const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading || colecoes.isLoading;
-  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
+  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, autoDimensoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
   const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => { setProgresso(null); setResultado(null); setPrevia({ acao, plano, celulas: selecionadas, leituraId: referencia.data?.id }); };
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="space-y-1"><h2 className="text-lg font-semibold">Atualização do dia</h2>
+        {!!autoDimensoes.data && <p className="text-xs text-muted-foreground">{autoDimensoes.data} valores cadastrados automaticamente</p>}
         {ultima.data && <p className="text-sm font-medium">{texto(totais.mudanca ?? 0)} mudanças (Operações {mudancasDono.operacoes} · Produto {mudancasDono.produto}) · <span className="text-warning">{texto(totais.conflito ?? 0)} conflitos</span> · <span className="text-destructive">{texto(totais.erro ?? 0)} erros</span> · {texto(totais.sem_cadastro ?? 0)} sem cadastro</p>}
         {!!blocos.length && <p className="text-xs text-muted-foreground">{blocos.map(b => `${legivel(b)}: ${porBloco[b]}`).join(' · ')}</p>}
         <p className="text-xs text-muted-foreground">{ultima.isLoading ? 'Lendo…' : ultima.data ? `${ultima.data.status.replace(/_/g, ' ')} · ${fmtDataHora(ultima.data.lida_em)}` : 'Nenhuma leitura.'}</p>
@@ -257,10 +262,6 @@ export function AtualizacaoCatalogoDia() {
     </div>
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
     <ColecoesNovasCatalogo novas={novasColecoes} />
-    <ValoresNaoCadastradosFop celulas={pendentesTodas} rotulos={rotulos} leituraId={referencia.data?.id} bloqueado={resolver.isPending} aplicar={(celulas, leituraId) => {
-      const p: Previa = { acao: 'aplicar', leituraId, celulas, plano: { sncf: [], fop: celulas.map(c => c.id) } };
-      setProgresso(null); setResultado(null); setPrevia(p); confirmar(p);
-    }} descartar={(celulas, leituraId) => resolver.mutateAsync({ acao: 'descartar', leituraId, celulas, plano: planoCatalogo(celulas, 'descartar', {}) })} />
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
       <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />

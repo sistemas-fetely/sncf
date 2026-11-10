@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Catalog missing-dimension retries use the shared strict-equivalence provisioner under the existing lease; resend whole product groups and link automatic registrations through audit_log so color guards and per-reading counts remain intact.
 - Customer-return NF backing uses `fn_devolucao_nf_cliente_confirmada` and the protected confirmed-link trigger calling the existing TRS creator; Fiscal uses one confirmed-link hook so failures never undo confirmation or prompt duplicate issuance.
 - Partner UF normalization belongs to the database trigger calling `fn_uf_sigla`; retain its exact function definitions in migrations so integrations share one validation rule.
 - All product scanners use the tested GTIN-14 resolver and shared paginated query cache; barcode namespaces preserve EAN/code/SKU/DUN precedence and cartons join inner by normalized DUN, because UPC/EAN equivalence and physical units must agree across screens.
