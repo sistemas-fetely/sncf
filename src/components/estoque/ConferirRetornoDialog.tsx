@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { resolverCodigoRetorno, unidadesBipeRetorno, origemDunRetorno, type ProdutoRetorno } from "@/lib/estoque/codigoRetorno";
 
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -39,7 +40,7 @@ interface Props {
 }
 
 interface Condicao { codigo: string; rotulo: string; rotulo_conferencia: string | null; dica_conferencia: string | null }
-interface Contado { sku: string; cod: string | null; condicao: string; qtd: number; nome: string | null; ordem: number }
+interface Contado { sku: string; cod: string | null; condicao: string; qtd: number; nome: string | null; ordem: number; origemDun?: string }
 interface ProdutoCodigo { sku: string; ean: string | null; cod_cadastro: string | null; nome_comercial: string | null }
 interface BipPendente { codigo: string; qtd: number; sessao: number }
 
@@ -150,6 +151,8 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const [qtdBip, setQtdBip] = useState("1");
   const [codigoErro, setCodigoErro] = useState(false);
   const [filaPendente, setFilaPendente] = useState(0);
+  const [unidadesPendentes, setUnidadesPendentes] = useState<ProdutoRetorno[]>([]);
+  const [unidadesInformadas, setUnidadesInformadas] = useState("");
   const [contados, setContados] = useState<Contado[]>([]);
   const [ultimoChave, setUltimoChave] = useState<string | null>(null);
   const [docNumero, setDocNumero] = useState("");
@@ -180,6 +183,8 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     setQtdBip("1");
     setCodigoErro(false);
     setFilaPendente(0);
+    setUnidadesPendentes([]);
+    setUnidadesInformadas("");
     filaRef.current = [];
     sessaoRef.current += 1;
     setContados([]);
@@ -208,6 +213,15 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   useEffect(() => {
     if (open && etapa === 1) setTimeout(() => codigoRef.current?.focus(), 50);
   }, [open, etapa]);
+
+  const pendenteUnidades = unidadesPendentes[0];
+  useEffect(() => {
+    if (pendenteUnidades) {
+      setUnidadesInformadas("");
+      const t = setTimeout(() => qtdRef.current?.focus(), 0);
+      return () => clearTimeout(t);
+    }
+  }, [pendenteUnidades]);
 
   const itensPorSku = useMemo(() => {
     const m = new Map<string, { nome: string | null; pendente: number }>();
@@ -246,14 +260,14 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     return sku.length > 10 ? `${sku.slice(0, 10)}…` : sku;
   }
 
-  function adicionarContagem(produto: { sku: string; cod: string | null; nome: string | null }, qtd: number) {
+  function adicionarContagem(produto: ProdutoRetorno, qtd: number) {
     const k = `${produto.sku}|${COND_QUARENTENA}`;
     ordemRef.current += 1;
     const ordem = ordemRef.current;
     setContados((prev) => {
       const existente = prev.find((item) => `${item.sku}|${item.condicao}` === k);
       if (existente) {
-        return prev.map((item) => item === existente ? { ...item, qtd: item.qtd + qtd, ordem } : item);
+        return prev.map((item) => item === existente ? { ...item, qtd: item.qtd + qtd, ordem, origemDun: origemDunRetorno(produto) ?? item.origemDun } : item);
       }
       return [...prev, {
         sku: produto.sku,
@@ -262,6 +276,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         qtd,
         nome: produto.nome ?? itensPorSku.get(produto.sku)?.nome ?? null,
         ordem,
+        origemDun: origemDunRetorno(produto),
       }];
     });
     setUltimoChave(k);
@@ -276,30 +291,16 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         const bip = filaRef.current.shift();
         if (!bip) continue;
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const sb = supabase as any;
-          let produto: ProdutoCodigo | null = null;
-          const porEan = await sb.from("sncf_produtos").select("sku,ean,cod_cadastro,nome_comercial").eq("ean", bip.codigo).limit(1);
-          if (porEan.error) throw porEan.error;
-          produto = porEan.data?.[0] ?? null;
-          if (!produto) {
-            const porCod = await sb.from("sncf_produtos").select("sku,ean,cod_cadastro,nome_comercial").eq("cod_cadastro", bip.codigo).limit(1);
-            if (porCod.error) throw porCod.error;
-            produto = porCod.data?.[0] ?? null;
-          }
-          if (!produto) {
-            const esc = bip.codigo.replace(/[\\%_]/g, (caractere) => `\\${caractere}`);
-            const porSku = await sb.from("sncf_produtos").select("sku,ean,cod_cadastro,nome_comercial").ilike("sku", esc).limit(1);
-            if (porSku.error) throw porSku.error;
-            produto = porSku.data?.[0] ?? null;
-          }
+          const produto = await resolverCodigoRetorno(bip.codigo);
           if (bip.sessao !== sessaoRef.current) continue;
           if (!produto) {
             setCodigoErro(true);
             toast.error(`Código não encontrado: ${bip.codigo}`);
             continue;
           }
-          adicionarContagem({ sku: produto.sku, cod: produto.cod_cadastro, nome: produto.nome_comercial }, bip.qtd);
+          const unidades = unidadesBipeRetorno(produto, bip.qtd);
+          if (unidades === null) setUnidadesPendentes((prev) => [...prev, produto]);
+          else adicionarContagem(produto, unidades);
         } catch (erro) {
           if (bip.sessao === sessaoRef.current) toast.error(formatError(erro));
         } finally {
@@ -312,6 +313,19 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   }
 
   function bipar(codigoCapturado: string, qtdCapturada: string) {
+    if (pendenteUnidades) {
+      const unidades = Number(qtdRef.current?.value ?? unidadesInformadas);
+      if (!Number.isInteger(unidades) || unidades < 1) {
+        toast.error("Informe a quantidade total de unidades.");
+        qtdRef.current?.focus();
+        return;
+      }
+      adicionarContagem(pendenteUnidades, unidades);
+      setUnidadesPendentes((prev) => prev.slice(1));
+      setUnidadesInformadas("");
+      setTimeout(() => codigoRef.current?.focus(), 0);
+      return;
+    }
     const cod = codigoCapturado.trim();
     if (!cod) return;
     const qtd = Number(qtdCapturada);
@@ -623,18 +637,20 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 }}
               >
                 <div className="flex-1 space-y-1.5">
-                  <Label>Código (EAN, cód. ou SKU)</Label>
+                  <Label htmlFor="retorno-codigo">Código (EAN, DUN, cód. ou SKU)</Label>
                   <div className="relative">
                     <ScanBarcode className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       ref={codigoRef}
+                      id="retorno-codigo"
+                      disabled={!!pendenteUnidades}
                       autoFocus
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
                       enterKeyHint="enter"
-                      value={codigo}
+                      value={pendenteUnidades?.dun ?? codigo}
                       onChange={(e) => { setCodigo(e.target.value); setCodigoErro(false); }}
                       onKeyDown={(e) => {
                         const finaliza = e.key === "Enter" || e.code === "NumpadEnter"
@@ -644,20 +660,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                         bipar(e.currentTarget.value, qtdRef.current?.value ?? qtdBip);
                       }}
                       className={`pl-8 font-mono ${codigoErro ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                      placeholder="Bipe ou digite e tecle Enter"
+                      placeholder="Código (EAN, DUN, cód. ou SKU)"
                     />
                   </div>
                 </div>
-                <div className="w-20 space-y-1.5">
-                  <Label>Qtd</Label>
+                <div className={`${pendenteUnidades ? "w-28" : "w-20"} space-y-1.5`}>
+                  <Label htmlFor="retorno-qtd">{pendenteUnidades ? "Unidades" : "Qtd"}</Label>
                   <Input
                     ref={qtdRef}
+                    id="retorno-qtd"
                     inputMode="numeric"
                     autoComplete="off"
                     enterKeyHint="enter"
                     className="text-center"
-                    value={qtdBip}
-                    onChange={(e) => setQtdBip(e.target.value)}
+                    value={pendenteUnidades ? unidadesInformadas : qtdBip}
+                    onChange={(e) => pendenteUnidades ? setUnidadesInformadas(e.target.value) : setQtdBip(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter" && e.code !== "NumpadEnter") return;
                       e.preventDefault();
@@ -675,6 +692,12 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                   </span>
                 )}
               </form>
+              {pendenteUnidades && (
+                <p className="text-sm text-warning-strong" role="status">
+                  {pendenteUnidades.nome ?? pendenteUnidades.sku} · DUN sem conteúdo de caixa definido. Informe o total de unidades para lançar.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Caixa fechada: bipe o DUN. Caixa aberta: bipe as unidades (EAN).</p>
               <p className="text-xs text-muted-foreground">
                 Todo bip entra como {condQuarentena ? rotuloConferencia(condQuarentena) : "Íntegro"}. Ajuste na linha se houver avaria.
               </p>
@@ -722,6 +745,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                         <TableCell className="px-2 text-sm min-w-0">
                           <span className="block truncate" title={c.nome ?? undefined}>{c.nome ?? "—"}</span>
                           <span className="block text-[11px] text-muted-foreground font-mono truncate" title={`SKU — ${c.nome ?? c.sku}`}>{c.sku}</span>
+                          {c.origemDun && <span className="block text-[11px] text-muted-foreground">{c.origemDun}</span>}
                           {fora && (
                             <Badge variant="outline" className="mt-0.5 text-[10px] border-destructive/40 text-destructive">
                               fora da devolução
@@ -845,7 +869,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-              <Button onClick={() => setEtapa(2)} disabled={contados.length === 0 || filaPendente > 0}>
+              <Button onClick={() => setEtapa(2)} disabled={contados.length === 0 || filaPendente > 0 || unidadesPendentes.length > 0}>
                 Finalizar contagem
               </Button>
             </DialogFooter>

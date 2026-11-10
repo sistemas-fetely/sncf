@@ -1,4 +1,5 @@
 # Roadmap
+- [x] DEV-BIPE-DUN: resolução front por DUN + inner_qtd vinculado pelo DUN; 18 testes passaram. Preview autenticado: 3 caixas × 6 = 18 unidades; inner nulo pede foco/unidades (7); inner 1 simulado pede total explícito (5, não 3×5); EAN soma 1; fora da devolução em unidades e celular conferidos. Sem registrar retorno, banco, edge ou publicação.
 - [x] Mesa SP: troca individual volta a Documentos, guarda/marcações por ciclo do modal no banco, agência explícita e aviso CC-e; 32 testes passaram. PED-2402 trocado realmente para CORREIOS pela tela e documentos antigos descartados; função de troca, edge e lote intactos; sem publicar.
 - [ ] Mesa SP PED-2402: concluir geração real da etiqueta (Correios RTL-076: UF enviada "Rio Grande do Sul" vira RI, CEP exige RS; sem alterar endereço ou edge fora do escopo). Pedido permanece em Documentos, sem pré-postagem criada e sem despacho.
 - [x] Catálogo: fechamento antes do limite adaptativo restaurado, fronteiras/reenvio/parada conferidos e AGENTS.md incluído; 80 testes passaram. Com 904 células em produtos de 4: 11 lotes adaptativos (limite 91), ou 10 com limite explícito 100; sem banco, edge ou publicação.
