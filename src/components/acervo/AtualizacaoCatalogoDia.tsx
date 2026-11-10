@@ -24,6 +24,7 @@ import { filtrarCelulas, contarOpcoes, celulaSelecionavel, resumoSelecao, nature
 import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 import { detectarColecoesNovas, colecaoNaoCadastrada } from '@/lib/acervo/colecoesCatalogo';
 import { ColecoesNovasCatalogo } from './ColecoesNovasCatalogo';
+import { ValoresNaoCadastradosFop } from './ValoresNaoCadastradosFop';
 import { agruparMensagens, ErroCatalogo, deveAtualizarLeitura } from '@/lib/acervo/mensagensCatalogo';
 import { executarLotesCatalogo, FalhaLoteCatalogo, motivosAgrupados, resultadoVazio, type ProgressoAplicacao, type ResultadoAplicacao, type RespostaLote } from '@/lib/acervo/aplicacaoCatalogo';
 
@@ -248,6 +249,10 @@ export function AtualizacaoCatalogoDia() {
     </div>
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
     <ColecoesNovasCatalogo novas={novasColecoes} />
+    <ValoresNaoCadastradosFop celulas={pendentesTodas} rotulos={rotulos} leituraId={referencia.data?.id} bloqueado={resolver.isPending} aplicar={(celulas, leituraId) => {
+      const p: Previa = { acao: 'aplicar', leituraId, celulas, plano: { sncf: [], fop: celulas.map(c => c.id) } };
+      setProgresso(null); setResultado(null); setPrevia(p); confirmar(p);
+    }} descartar={(celulas, leituraId) => resolver.mutateAsync({ acao: 'descartar', leituraId, celulas, plano: planoCatalogo(celulas, 'descartar', {}) })} />
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
       <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />
