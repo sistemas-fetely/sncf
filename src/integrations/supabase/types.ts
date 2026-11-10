@@ -142878,6 +142878,7 @@ export type Database = {
           qtd_kit: number | null
           saldo_disponivel: number | null
           shopify_sku_diverge: boolean | null
+          shopify_status: string | null
           sku: string | null
           sugestao: string | null
           tamanho_numero: string | null
@@ -157708,6 +157709,15 @@ export type Database = {
           p_tarefa_id: string
         }
         Returns: undefined
+      }
+      condicao_pagamento_criar_rapida: {
+        Args: {
+          p_dias: number[]
+          p_forma: string
+          p_preview?: boolean
+          p_rotulo?: string
+        }
+        Returns: Json
       }
       condicao_pagamento_salvar: {
         Args: {

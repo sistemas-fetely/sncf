@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Condições de pagamento: cadastro rápido exclusivo do Super Admin, prévia real e validação conferidas, salvamento/reativação por Enter e recarga simulados no celular, 18 testes; tipos regenerados, sem SQL, cadastro real ou publicação.
 - [x] Catálogo: cadastro confirmado de dimensões novas no FOP, agrupamento, semelhantes e aplicação/descarte por grupo; 38 testes, Deno check e fluxo autenticado com respostas simuladas, sem cadastro/descarte real, SQL ou publicação.
 - [ ] Dimensões FOP: conferir função hospedada e disponibilidade da nova rota do FOP (consulta de validação retornou 404; cadastro real não executado).
 - [x] Catálogo: aplicação frontal em lotes por produto, modal protegido, progresso, pausa/reenvio e resumo; 35 testes e fluxo autenticado simulado (pausa, repetição do lote, erro isolado, 409, parar e celular), sem aplicação real, edge, banco ou publicação.

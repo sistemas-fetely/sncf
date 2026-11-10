@@ -18,7 +18,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Zap } from "lucide-react";
+import { CondicaoPagamentoRapidaDialog } from "./CondicaoPagamentoRapidaDialog";
 
 interface CondicaoPagamento {
   id: string;
@@ -176,6 +177,7 @@ function FormDialog({
 export default function ParametrosCondicoesPagamento() {
   const qc = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
+  const [rapidaOpen, setRapidaOpen] = useState(false);
   const [editing, setEditing] = useState<CondicaoPagamento | null>(null);
 
   const { data: linhas = [], isLoading } = useQuery({
@@ -218,16 +220,21 @@ export default function ParametrosCondicoesPagamento() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle className="text-lg">Condições de Pagamento</CardTitle>
           <p className="text-sm text-muted-foreground">
             Modelos canônicos apresentados no editor de condição do pedido. Apenas Super Admin.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setRapidaOpen(true)} className="gap-2">
+          <Zap className="h-4 w-4" /> Cadastro rápido
+        </Button>
         <Button size="sm" onClick={openNew} className="gap-2">
           <Plus className="h-4 w-4" /> Nova condição
         </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -276,6 +283,7 @@ export default function ParametrosCondicoesPagamento() {
           </Table>
         )}
       </CardContent>
+      {rapidaOpen && <CondicaoPagamentoRapidaDialog onClose={() => setRapidaOpen(false)} />}
       {formOpen && (
         <FormDialog
           open={formOpen}
