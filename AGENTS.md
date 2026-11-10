@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Partner UF normalization belongs to the database trigger calling `fn_uf_sigla`; retain its exact function definitions in migrations so integrations share one validation rule.
 - Return blind scanning resolves in the tested `codigoRetorno` helper, joining carton contents by DUN rather than the barcode view's SKU join, because counts must use physical units rather than sales multiples.
 - Catalog application uses an adaptive hard cap per batch in `lotesPorProduto`, closing before overflow and keeping products whole (only a single oversized product may exceed the cap), because the FOP edge accepts at most 100 cells otherwise; retain the 600 ms completed-progress display only for uninterrupted completion.
 <!-- LOVABLE:END -->

@@ -7898,6 +7898,24 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_parceiros_uf_20261110: {
+        Row: {
+          backup_em: string | null
+          id: string | null
+          uf: string | null
+        }
+        Insert: {
+          backup_em?: string | null
+          id?: string | null
+          uf?: string | null
+        }
+        Update: {
+          backup_em?: string | null
+          id?: string | null
+          uf?: string | null
+        }
+        Relationships: []
+      }
       backup_pedido_rastreamento_limpeza_20261028: {
         Row: {
           atualizado_em: string | null
@@ -161792,6 +161810,7 @@ export type Database = {
         Returns: string
       }
       fn_uf_por_cep: { Args: { p_cep: string }; Returns: string }
+      fn_uf_sigla: { Args: { p: string }; Returns: string }
       fn_upsert_catalogo: { Args: { p_produtos: Json }; Returns: Json }
       fn_url_publica: { Args: never; Returns: string }
       fn_url_sem_signin_token: { Args: { p_url: string }; Returns: string }
