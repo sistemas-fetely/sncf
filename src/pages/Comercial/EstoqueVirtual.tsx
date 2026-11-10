@@ -116,9 +116,6 @@ function somarDisp(a: DispCentro | undefined, b: DispCentro): DispCentro {
     a_caminho: a.a_caminho + b.a_caminho, real: a.real == null && b.real == null ? null : (a.real ?? 0) + (b.real ?? 0),
   };
 }
-function totalDisp(p: LinhaTabela) {
-  return Object.values(p.por_centro_disp).reduce((s, v) => s + v.disp, 0);
-}
 
 interface CentroAtivo {
   codigo: string;
@@ -568,11 +565,11 @@ export default function EstoqueVirtual() {
     if (col && (col === "total" || col === "giro_total" || col.startsWith("c:") || col.startsWith("g:"))) {
       const val =
         col === "total"
-          ? (p: LinhaTabela) => totalDisp(p)
+          ? (p: LinhaTabela) => totalCentros(p)
           : col === "giro_total"
             ? (p: LinhaTabela) => giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias) ?? -1
             : col.startsWith("c:")
-              ? (p: LinhaTabela) => p.por_centro_disp[col.slice(2)]?.disp ?? 0
+              ? (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0
               : (p: LinhaTabela) => giroAnual(p.por_centro_vendas[col.slice(2)] ?? 0, p.por_centro[col.slice(2)] ?? 0, p.janela_dias) ?? -1;
       const f = sort!.direction === "asc" ? 1 : -1;
       return [...tabela].sort((a, b) => (val(a) - val(b)) * f);
@@ -911,7 +908,7 @@ export default function EstoqueVirtual() {
                       colSpan={2}
                       className="border-l border-border/60 text-center font-semibold"
                       title={c.vende === false
-                        ? `${c.nome ?? c.codigo} — Não vende pelo SNCF — Disp. é sempre 0; saldo no tooltip`
+                        ? `${c.nome ?? c.codigo} — não vende pelo SNCF`
                         : (c.nome ?? c.codigo)}
                     >
                       {c.rotulo_curto ?? c.codigo}
@@ -921,11 +918,11 @@ export default function EstoqueVirtual() {
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
-                  {cabecalho("total", "Disp.", "!px-1.5 border-l border-border/60", true)}
+                  {cabecalho("total", "Qtd", "!px-1.5 border-l border-border/60", true, "Saldo fiscal no centro")}
                   {cabecalho("giro_total", "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                   {centros.map((c) => (
                     <Fragment key={c.codigo}>
-                      {cabecalho(`c:${c.codigo}`, "Disp.", "!px-1.5 border-l border-border/60", true)}
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 border-l border-border/60", true, "Saldo fiscal no centro")}
                       {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
@@ -1061,7 +1058,7 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
                 </>}
                 {visao === "centros" && <>
-                  <TableCell className={cn("!px-1.5 text-right tabular-nums font-medium border-l border-border/60", totalDisp(p) < 0 && "text-destructive")}>{formatNum(totalDisp(p))}</TableCell>
+                  <TableCell className={cn("!px-1.5 text-right tabular-nums font-medium border-l border-border/60", totalCentros(p) < 0 && "text-destructive")}>{formatNum(totalCentros(p))}</TableCell>
                   <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                     {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
                   </TableCell>
@@ -1078,16 +1075,17 @@ export default function EstoqueVirtual() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span
-                                  className={cn("cursor-help", c.vende === false && dc.disp === 0 && dc.contabil > 0 && "text-muted-foreground")}
+                                  className="cursor-help"
                                   tabIndex={0}
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  {c.vende === false && dc.disp === 0 && dc.contabil > 0 ? "—" : formatNum(dc.disp)}
+                                  {formatNum(v)}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="text-xs tabular-nums">
                                 <div className="grid grid-cols-[auto_auto] gap-x-3">
                                   <span className="text-muted-foreground">Contábil</span><span className="text-right">{formatNum(dc.contabil)}</span>
+                                  <span className="text-muted-foreground">Disponível</span><span className="text-right">{formatNum(dc.disp)}</span>
                                   <span className="text-muted-foreground">Reservado</span><span className="text-right">{formatNum(dc.reservado)}</span>
                                   <span className="text-muted-foreground">A caminho</span><span className="text-right">{formatNum(dc.a_caminho)}</span>
                                   <span className="text-muted-foreground">Real</span><span className="text-right">{dc.real == null ? "—" : formatNum(dc.real)}</span>
