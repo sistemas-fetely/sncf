@@ -218,7 +218,8 @@ serve(async (req) => {
         // FAIL-LOUD: a varredura de NF de entrada pode explodir inteira sem deixar rastro.
         // Enquanto os contadores nao apareciam aqui, ela ficou 3 dias quebrada sem alarme.
         if (r.entradasEncontradas === undefined) return base;
-        return `${base} | entrada: ${r.entradasEncontradas}f/${r.entradasGravadas}g/${r.entradasComReferencia}ref/${r.entradasComErro}e`;
+        const cabeca = r.cabecaPaginas === undefined ? "" : ` | cabeça: ${r.cabecaNovos}n/${r.cabecaAtualizados}a (${r.cabecaPaginas}p)`;
+        return `${base}${cabeca} | entrada: ${r.entradasEncontradas}f/${r.entradasGravadas}g/${r.entradasComReferencia}ref/${r.entradasComErro}e`;
       }).join(" | ");
 
       if (logId) await supabase.from("integracoes_sync_log").update({

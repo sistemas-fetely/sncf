@@ -10,7 +10,19 @@ import { sleep, parseBlingDate, novoEstadoNfe, processarNfItem, type EstadoNfe }
 export { sincronizarNfePorId, type EstadoNfe } from "../_shared/bling/nfe-item.ts";
 
 
-export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
+export type DepsSyncNfe = {
+  processar: (supabase: any, client: BlingClient, nf: any, st: EstadoNfe) => Promise<unknown>;
+  entradas: typeof syncNfeEntradas;
+  dormir: (ms: number) => Promise<unknown>;
+};
+const DEPS_PADRAO: DepsSyncNfe = { processar: processarNfItem, entradas: syncNfeEntradas, dormir: sleep };
+const CABECA_PAGINAS_MAX = 2;
+
+function ordenarPorEmissao(itemsRaw: any[]) {
+  return [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
+}
+
+export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, deps: DepsSyncNfe = DEPS_PADRAO, ) { let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
 const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const st = novoEstadoNfe(limite90d);
 
@@ -23,7 +35,7 @@ const st = novoEstadoNfe(limite90d);
 // o sync de saida que ja funciona. Teto de 3 paginas dentro de syncNfeEntradas.
 let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
 try {
-  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
+  const r = await deps.entradas(supabase, client, timeUp, limite90d);
   entradasEncontradas = r.encontradas;
   entradasGravadas = r.gravadas;
   entradasComReferencia = r.comReferencia;
@@ -33,12 +45,36 @@ try {
   console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
 }
 
-while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
+// CABECA-PRIMEIRO (11/11/2026): o cursor anda para notas antigas 1 pagina por execucao e
+// so relia a pagina 1 ao dar a volta (~3h) — NF recem-emitida ficava fora de nfs_emitidas.
+// Antes do cursor, le a pagina 1 (e a 2 se a 1 inteira for nova/alterada). NAO mexe no
+// cursor e nunca le uma pagina que o laco do cursor vai ler nesta execucao.
+let cabecaPaginas = 0, cabecaNovos = 0, cabecaAtualizados = 0;
+for (let p = 1; p <= CABECA_PAGINAS_MAX && p < pagina && !timeUp(); p++) {
+  try {
+    const data: any = await client.get(`/nfe?limite=100&pagina=${p}`);
+    const items = ordenarPorEmissao(data?.data || []);
+    if (items.length === 0) break;
+    const c0 = st.criados, a0 = st.atualizados;
+    for (const nf of items) await deps.processar(supabase, client, nf, st);
+    cabecaPaginas++;
+    const novos = st.criados - c0, alterados = st.atualizados - a0;
+    cabecaNovos += novos; cabecaAtualizados += alterados;
+    await deps.dormir(300);
+    if (novos + alterados < items.length) break; // ja encostou em nota existente
+  } catch (e) {
+    ultimoErro = `cabeca pagina ${p}: ${(e as Error).message}`;
+    console.error(ultimoErro);
+    break;
+  }
+}
+
+while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = [ultimoErro, `pagina ${pagina}: ${(e as Error).message}`].filter(Boolean).join(" · "); break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
 // Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
-const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
+const items = ordenarPorEmissao(itemsRaw);
 
 for (const nf of items) {
-  await processarNfItem(supabase, client, nf, st);
+  await deps.processar(supabase, client, nf, st);
 }
 
 await supabase.from("integracoes_sync_cursor")
@@ -46,7 +82,7 @@ await supabase.from("integracoes_sync_cursor")
   .eq("sistema", "bling").eq("entidade", "nfe");
 
 pagina++;
-await sleep(300);
+await deps.dormir(300);
 
 
 }
@@ -54,6 +90,7 @@ await sleep(300);
 console.log(`sync nfe: revalidacoes de cancelamento=${st.revalidados}, canceladas detectadas=${st.canceladasDetectadas}, erros de detalhe=${st.errosDetalhe}`);
 
 return { criados: st.criados, atualizados: st.atualizados, erros: st.erros, ultimoErro: ultimoErro || st.ultimoErro, proximaPagina: pagina, revalidados: st.revalidados, canceladasDetectadas: st.canceladasDetectadas, errosDetalhe: st.errosDetalhe,
+  cabecaPaginas, cabecaNovos, cabecaAtualizados,
   entradasEncontradas, entradasGravadas, entradasComReferencia, entradasComErro }; }
 
 // O endpoint /nfe/{id} NAO expoe nota referenciada nem a finalidade no JSON: refNFe,
@@ -78,7 +115,7 @@ async function lerXmlNfe(
   };
 }
 
-async function syncNfeEntradas(
+export async function syncNfeEntradas(
   supabase: any,
   client: BlingClient,
   timeUp: () => boolean,
