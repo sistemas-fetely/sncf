@@ -8,6 +8,8 @@ import { KpiPill } from "@/components/shared/KpiPill";
 import { cn } from "@/lib/utils";
 import { useDocumentosFrete, type DocumentoFreteRow } from "@/hooks/logistica/useLogisticaRemessas";
 import { brl, dataBr, ddmmHora, isoDiasAtras, NUM } from "@/lib/logistica/formato";
+import { cobradoTransp, divergenciaFatura } from "@/lib/logistica/documentoFrete";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BadgeAuditoria, ComposicaoFrete } from "./ComposicaoFrete";
 
 type Nat = "todos" | "normal" | "reentrega" | "devolucao" | "outros";
@@ -28,13 +30,20 @@ const EXTRA: Record<Exclude<Extra, null>, (d: DocumentoFreteRow) => boolean> = {
   sem_ref: (d) => d.auditoria_status === "sem_referencia",
 };
 
-type Col = "tipo" | "numero" | "data" | "natureza" | "nf" | "pedido" | "destino" | "peso" | "valor_nf" | "valor_doc" | "pct" | "auditoria";
+type Col = "tipo" | "numero" | "data" | "natureza" | "nf" | "pedido" | "destino" | "peso" | "valor_nf" | "cotacao" | "pago_cliente" | "valor_doc" | "pct" | "auditoria";
 const VAL: Record<Col, (d: DocumentoFreteRow) => string | number | null> = {
   tipo: (d) => d.tipo_doc, numero: (d) => d.numero, data: (d) => d.data_doc, natureza: (d) => d.natureza,
   nf: (d) => d.nf_numero, pedido: (d) => d.pedido_ref, destino: (d) => `${d.uf_destino ?? ""}${d.cidade_destino ?? ""}`,
-  peso: (d) => d.peso_taxado, valor_nf: (d) => d.valor_nf, valor_doc: (d) => d.valor_doc, pct: (d) => d.pct_frete_nf,
+  peso: (d) => d.peso_taxado, valor_nf: (d) => d.valor_nf, cotacao: (d) => d.frete_cotacao, pago_cliente: (d) => d.frete_cliente,
+  valor_doc: (d) => cobradoTransp(d), pct: (d) => d.pct_frete_nf,
   auditoria: (d) => d.auditoria_status,
 };
+
+/** Valor em BRL; null (reentrega/devolução/sem pedido) vira traço em cinza claro. */
+function ValorBrl({ v }: { v: number | null }) {
+  if (v == null) return <span className="text-muted-foreground">—</span>;
+  return <>{brl(v)}</>;
+}
 
 export function DocumentosFrete({ transportadoraId }: { transportadoraId: string }) {
   const [dias, setDias] = useState(90);
@@ -107,6 +116,7 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
         <div className="rounded-lg border p-10 text-center text-sm text-muted-foreground">Nenhum documento no filtro.</div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
+          <TooltipProvider delayDuration={200}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -120,7 +130,9 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
                 <SortableTableHead column="destino" sort={sort} onSort={setSort}>Destino</SortableTableHead>
                 <SortableTableHead column="peso" sort={sort} onSort={setSort} align="right">Peso taxado (kg)</SortableTableHead>
                 <SortableTableHead column="valor_nf" sort={sort} onSort={setSort} align="right">Valor NF</SortableTableHead>
-                <SortableTableHead column="valor_doc" sort={sort} onSort={setSort} align="right">Valor do documento</SortableTableHead>
+                <SortableTableHead column="cotacao" sort={sort} onSort={setSort} align="right">Cotação</SortableTableHead>
+                <SortableTableHead column="pago_cliente" sort={sort} onSort={setSort} align="right">Pago cliente</SortableTableHead>
+                <SortableTableHead column="valor_doc" sort={sort} onSort={setSort} align="right">Cobrado transp.</SortableTableHead>
                 <SortableTableHead column="pct" sort={sort} onSort={setSort} align="right">% NF</SortableTableHead>
                 <SortableTableHead column="auditoria" sort={sort} onSort={setSort}>Auditoria</SortableTableHead>
               </TableRow>
@@ -128,6 +140,8 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
             <TableBody>
               {linhas.map((d) => {
                 const exp = aberto === d.doc_id;
+                const cobrado = cobradoTransp(d);
+                const divergente = divergenciaFatura(d);
                 return (
                   <Fragment key={d.doc_id}>
                     <TableRow className="cursor-pointer" onClick={() => setAberto(exp ? null : d.doc_id)}>
@@ -148,13 +162,37 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
                       <TableCell className="whitespace-nowrap">{d.cidade_destino ?? "—"}/{d.uf_destino ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{d.peso_taxado == null ? "—" : NUM.format(d.peso_taxado)}</TableCell>
                       <TableCell className="text-right tabular-nums">{brl(d.valor_nf)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{brl(d.valor_doc)}</TableCell>
+                      <TableCell className="text-right tabular-nums"><ValorBrl v={d.frete_cotacao} /></TableCell>
+                      <TableCell className="text-right tabular-nums"><ValorBrl v={d.frete_cliente} /></TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <span className={cn("block", divergente && "text-warning")}>
+                          {divergente ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">{brl(cobrado)}</span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                CT-e {brl(divergente.valor_cte)} · Fatura {brl(divergente.valor_fatura)}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            brl(cobrado)
+                          )}
+                        </span>
+                        {d.fatura_numero && (
+                          <div className="mt-1">
+                            <span className="inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] border-border text-muted-foreground bg-muted/40">
+                              Fat. {d.fatura_numero}
+                            </span>
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{d.pct_frete_nf == null ? "—" : `${NUM.format(d.pct_frete_nf)}%`}</TableCell>
                       <TableCell><BadgeAuditoria status={d.auditoria_status} motivo={d.auditoria_motivo} /></TableCell>
                     </TableRow>
                     {exp && (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={13} className="space-y-2">
+                        <TableCell colSpan={15} className="space-y-2">
                           <ComposicaoFrete composicao={d.composicao} />
                           {(d.ocorrencia_texto || d.ocorrencia_codigo) && (
                             <div className="text-xs">Ocorrência: {d.ocorrencia_codigo ? `${d.ocorrencia_codigo} — ` : ""}{d.ocorrencia_texto ?? ""} {d.ocorrencia_em ? `(${ddmmHora(d.ocorrencia_em)})` : ""}</div>
@@ -171,6 +209,7 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
               })}
             </TableBody>
           </Table>
+          </TooltipProvider>
         </div>
       )}
       <div className="text-xs text-muted-foreground">{NUM.format(linhas.length)} documentos · {brl(soma)}</div>
