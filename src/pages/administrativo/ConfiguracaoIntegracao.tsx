@@ -483,17 +483,18 @@ export default function ConfiguracaoIntegracao() {
         estado="Configure as integrações externas do sistema."
       />
 
-      <ImpressaoZebraQz />
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="bling">Bling</TabsTrigger>
           <TabsTrigger value="email">Email Externo</TabsTrigger>
           <TabsTrigger value="xpm">XPM / ZenLOG</TabsTrigger>
           <TabsTrigger value="mercado_pago">Mercado Pago</TabsTrigger>
           <TabsTrigger value="microsoft_365">Microsoft 365</TabsTrigger>
+          <TabsTrigger value="impressao_zebra">Impressão Zebra</TabsTrigger>
         </TabsList>
 
         <TabsContent value="microsoft_365"><AbaMicrosoft365 /></TabsContent>
+        <TabsContent value="impressao_zebra"><ImpressaoZebraQz /></TabsContent>
         {/* ABA BLING */}
         <TabsContent value="bling" className="space-y-6">
           <div className="flex justify-end">{statusBadge()}</div>
