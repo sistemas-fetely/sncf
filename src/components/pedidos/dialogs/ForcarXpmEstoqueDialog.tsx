@@ -12,6 +12,7 @@ import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
 import { BlocoFaltaEstoqueXpm } from "@/components/pedidos/BlocoFaltaEstoqueXpm";
+import { LinhasResumoEstoque } from "@/components/pedidos/ResumoBloqueiosXpm";
 import type { PreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import {
   placeholderMotivoEstoque, rotuloAlcadaNivel, rotuloBotaoOverrideEstoque,
@@ -75,7 +76,8 @@ export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split, tri
         )}
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg">
+      {/* BLOQUEIO-COM-TETO: teto de altura + miolo rolável, rodapé sempre visível. */}
+      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Estoque não cobre {idExterno}</DialogTitle>
           <DialogDescription>
@@ -83,7 +85,11 @@ export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split, tri
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
         <div className="space-y-3">
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            <LinhasResumoEstoque itens={previa.itens} fotoEm={previa.foto_em} />
+          </div>
           <BlocoFaltaEstoqueXpm itens={previa.itens} fotoEm={previa.foto_em} />
 
           {faltaReal ? (
@@ -133,6 +139,7 @@ export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split, tri
               {motivo.trim().length}/{MIN_MOTIVO} caracteres mínimos
             </p>
           </div>
+        </div>
         </div>
 
         <DialogFooter>

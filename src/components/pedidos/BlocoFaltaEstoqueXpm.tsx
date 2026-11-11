@@ -8,7 +8,7 @@ interface Props {
   fotoEm: string | null;
 }
 
-function fmtFoto(iso: string | null): string | null {
+export function fmtFoto(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
@@ -24,7 +24,8 @@ function fmtData(iso: string | null): string | null {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-const ROTULO_FALLBACK: Record<string, string> = {
+/** Rótulos por veredito — fonte única, usada também pelo ResumoBloqueiosXpm. */
+export const ROTULO_FALLBACK: Record<string, string> = {
   falta_real: "Falta nas duas leituras",
   foto_nao_cobre: "Foto do armazém atrasada",
   fila_disputada: "Peça prometida a outro pedido",

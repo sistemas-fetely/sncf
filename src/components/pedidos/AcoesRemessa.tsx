@@ -16,6 +16,7 @@ import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingD
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 import { ForcarXpmEstoqueDialog } from "@/components/pedidos/dialogs/ForcarXpmEstoqueDialog";
 import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
+import { ResumoBloqueiosXpm } from "@/components/pedidos/ResumoBloqueiosXpm";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
 import { CancelarExpedicaoXpmDialog } from "@/components/pedidos/dialogs/CancelarExpedicaoXpmDialog";
 import { PREFIXO_PRE_VOO } from "@/lib/pedidos/xpm";
@@ -258,9 +259,13 @@ export function AcoesRemessa({
           <AlertTriangle className="h-4 w-4 text-destructive" />
           <AlertDescription className="text-destructive text-xs space-y-1">
             <p className="font-medium">Bloqueado antes do envio</p>
-            {previa!.bloqueios.map((b) => (
-              <p key={b} className="tabular-nums">{b}</p>
-            ))}
+            {/* BLOQUEIO-COM-TETO: resumo agrupado por tipo; a lista completa
+                fica atrás de "ver itens" com rolagem própria. */}
+            <ResumoBloqueiosXpm
+              bloqueios={previa!.bloqueios}
+              itens={previaEstoque?.itens ?? []}
+              fotoEm={previaEstoque?.foto_em ?? null}
+            />
             {temFaltaEstoque && !soEstoqueBloqueia && (
               <p className="text-muted-foreground">
                 Resolva os outros bloqueios primeiro — forçar só o estoque falharia de novo.

@@ -16,6 +16,7 @@ import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 import { BlocoFaltaEstoqueXpm } from "@/components/pedidos/BlocoFaltaEstoqueXpm";
+import { LinhasResumoEstoque, ResumoBloqueiosXpm } from "@/components/pedidos/ResumoBloqueiosXpm";
 import {
   PREFIXO_PRE_VOO, placeholderMotivoEstoque, rotuloAlcadaNivel,
   rotuloBotaoOverrideEstoque,
@@ -109,7 +110,8 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      {/* BLOQUEIO-COM-TETO: teto de altura + miolo rolável, rodapé sempre visível. */}
+      <DialogContent className="max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Empurrar pra XPM</DialogTitle>
           <DialogDescription>
@@ -119,6 +121,7 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
         {checkingPrevia ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -140,16 +143,23 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
 
             {/* A tabela de falta diz o que falta com mais precisão que o card genérico. */}
             {temFaltaEstoque && (
-              <BlocoFaltaEstoqueXpm itens={itensFalta} fotoEm={previaEstoque?.foto_em ?? null} />
+              <>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <LinhasResumoEstoque itens={itensFalta} fotoEm={previaEstoque?.foto_em ?? null} />
+                </div>
+                <BlocoFaltaEstoqueXpm itens={itensFalta} fotoEm={previaEstoque?.foto_em ?? null} />
+              </>
             )}
 
             {bloqueios.length > 0 && !overrideEstoque && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="space-y-1">
-                  {bloqueios.map((b) => (
-                    <p key={b}>{b}</p>
-                  ))}
+                  <ResumoBloqueiosXpm
+                    bloqueios={bloqueios}
+                    itens={itensFalta}
+                    fotoEm={previaEstoque?.foto_em ?? null}
+                  />
                   {outrosBloqueios && (
                     <p className="font-medium">
                       Resolva os outros bloqueios primeiro — forçar só o estoque
@@ -222,6 +232,7 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
             )}
           </div>
         )}
+        </div>
 
         <DialogFooter>
           <Button
