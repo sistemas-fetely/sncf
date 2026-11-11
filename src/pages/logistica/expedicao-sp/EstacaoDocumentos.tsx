@@ -11,6 +11,7 @@ import { formatError } from "@/lib/format-error";
 import { supabase } from "@/integrations/supabase/client";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 import { confirmarEtiquetaMarketplace, type EtiquetaMarketplace } from "@/lib/logistica/etiquetaMarketplace";
+import { escolherImpressora, imprimirZpl, listarImpressoras, qzDisponivel } from "@/lib/impressao/qz";
 import { imprimirPdfBase64 } from "./useMesaSp";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
@@ -47,7 +48,6 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   const [etiquetaMkt, setEtiquetaMkt] = useState<{ documento: DocumentoMesa; etiqueta: EtiquetaMarketplace } | null>(null);
   const [erroMkt, setErroMkt] = useState<string | null>(null);
   const [ocupadoMkt, setOcupadoMkt] = useState(false);
-  const [zplDiagnostico, setZplDiagnostico] = useState<string | null>(null);
   const rastreio = useRegistrarRastreio();
   const concluir = useConcluirDocumentos();
   const postar = usePostarAgencia();
@@ -156,7 +156,6 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
           {ocupadoMkt ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}Imprimir etiqueta
         </Button>
         {erroMkt && <p role="alert" className="break-words text-sm text-destructive">{erroMkt}</p>}
-        {zplDiagnostico && <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">{zplDiagnostico}</pre>}
       </div>
     );
     switch (d.tipo) {
@@ -331,23 +330,47 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   }
 
   async function imprimirMarketplace(documento: DocumentoMesa) {
+    // Reserve the PDF fallback window in the click gesture; QZ success closes it.
     const janela = window.open("", "_blank");
-    if (!janela) { setErroMkt("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página."); return; }
-    setOcupadoMkt(true); setErroMkt(null); setZplDiagnostico(null); setEtiquetaMkt(null);
+    setOcupadoMkt(true); setErroMkt(null); setEtiquetaMkt(null);
     try {
-      const { data, error } = await supabase.functions.invoke<EtiquetaMarketplace>("bling-marketplace-sync", { body: { acao: "etiqueta_zpl", pedido_id: pedido.id } });
-      if (error) {
-        const resposta = error.context instanceof Response ? await error.context.clone().json().catch(() => null) : null;
-        throw new Error(resposta?.erro ?? resposta?.error ?? formatError(error));
-      }
-      if (!data?.ok) throw new Error(data?.erro ?? "Bling não retornou a etiqueta.");
+      const buscar = async (formato_preferido: "ZPL" | "PDF") => {
+        const { data, error } = await supabase.functions.invoke<EtiquetaMarketplace>("bling-marketplace-sync", { body: { acao: "etiqueta_zpl", pedido_id: pedido.id, formato_preferido } });
+        if (error) {
+          const resposta = error.context instanceof Response ? await error.context.clone().json().catch(() => null) : null;
+          throw new Error(resposta?.erro ?? resposta?.error ?? formatError(error));
+        }
+        if (!data?.ok) throw new Error(data?.erro ?? "Bling não retornou a etiqueta.");
+        return data;
+      };
+      let data = await buscar("ZPL");
+      if (data.formato === "ZPL" && data.zpl) {
+        let impressa = false;
+        try {
+          if (!await qzDisponivel()) throw new Error("QZ Tray não encontrado");
+          const impressora = escolherImpressora(await listarImpressoras());
+          if (!impressora) throw new Error("Impressora Zebra não encontrada");
+          await imprimirZpl(impressora, data.zpl);
+          impressa = true;
+        } catch (e) { toast.warning(`${formatError(e)} — abrindo PDF`); }
+        if (impressa) {
+          janela?.close();
+          // A registration error must not fall back to a second physical print.
+          await confirmarEtiquetaMarketplace(data,
+            (descricao, metadata) => registrarEvento.mutateAsync({ pedido_id: pedido.id, tipo_evento: "anotacao", descricao, metadata }),
+            () => marcar.mutateAsync({ p_pedido_id: pedido.id, p_documento_id: documento.documento_id, p_marcado: true }));
+          toast.success("Etiqueta enviada à Zebra.");
+          return;
+        }
+        data = await buscar("PDF");
+      } else { toast.info("Etiqueta disponível em PDF — abrindo PDF"); }
       if (data.formato !== "PDF" || !data.pdf_base64) {
-        setZplDiagnostico(data.zpl ?? null);
         throw new Error("Bling retornou somente ZPL. A etiqueta PDF não está disponível para impressão.");
       }
+      if (!janela) throw new Error("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página.");
       if (!imprimirPdfBase64(data.pdf_base64, janela)) throw new Error("A janela de impressão foi fechada. Tente novamente.");
       setEtiquetaMkt({ documento, etiqueta: data });
-    } catch (e) { janela.close(); const mensagem = formatError(e); setErroMkt(mensagem); toast.error(mensagem); }
+    } catch (e) { janela?.close(); const mensagem = formatError(e); setErroMkt(mensagem); toast.error(mensagem); }
     finally { setOcupadoMkt(false); }
   }
 

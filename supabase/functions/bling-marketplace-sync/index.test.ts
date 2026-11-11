@@ -58,14 +58,31 @@ describe("marketplace diagnostic actions", () => {
     expect(r.status).toBe(200); expect((await r.json()).objetos[0].raw.data.id).toBe(9);
     expect(paths).toEqual(['/pedidos/vendas/123', '/logisticas/objetos/9']); expect(writes).toEqual([]); expect(tables).toEqual(['integracoes_config']);
   });
-  test("etiqueta_zpl reads destination id and requests PDF first without writes", async () => {
+  test("etiqueta_zpl reads destination id and requests ZPL first without writes", async () => {
     const paths: string[] = [];
     const { handler, writes } = await handlerFor(async (path) => { paths.push(path); return { data: [{ link: "https://bucket.s3.amazonaws.com/label.zip" }] }; });
     const response = await handler(request({ acao: "etiqueta_zpl", pedido_id: "12345678-1234-1234-1234-123456789012" }));
     expect(response.status).toBe(200);
     expect((await response.json()).formato).toBe("PDF");
-    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123&formato=PDF"]);
+    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123&formato=ZPL"]);
     expect(writes).toEqual([]);
+  });
+  test("preferred format falls back only on Bling 400, in both directions", async () => {
+    for (const formato of ["ZPL", "PDF"]) {
+      const paths: string[] = [];
+      const { handler, writes } = await handlerFor(async path => {
+        paths.push(path);
+        if (paths.length === 1) throw new BlingHttpError("Formato inválido", 400, "{}");
+        return { data: [{ link: "https://bucket.s3.amazonaws.com/label.zip" }] };
+      });
+      expect((await handler(request({ acao: "etiqueta_zpl", pedido_id: "12345678-1234-1234-1234-123456789012", formato_preferido: formato }))).status).toBe(200);
+      expect(paths.map(p => new URL(`https://example.com${p}`).searchParams.get("formato"))).toEqual([formato, formato === "ZPL" ? "PDF" : "ZPL"]);
+      expect(writes).toEqual([]);
+    }
+  });
+  test("rejects unsupported preferred format before Bling access", async () => {
+    const { handler } = await handlerFor(async () => { throw new Error("Must not call Bling"); });
+    expect((await handler(request({ acao: "etiqueta_zpl", pedido_id: "12345678-1234-1234-1234-123456789012", formato_preferido: "PNG" }))).status).toBe(400);
   });
   test("etiqueta_zpl refuses invalid UUID and orders without Bling destination", async () => {
     const { handler } = await handlerFor(async () => { throw new Error("Must not call Bling"); }, [], { bling_id_destino: "", recebido_via: "marketplace" });

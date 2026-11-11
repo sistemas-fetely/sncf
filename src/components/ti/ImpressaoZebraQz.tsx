@@ -1,0 +1,69 @@
+import { useEffect, useState } from "react";
+import { Download, Loader2, Printer, RefreshCw, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { escolherImpressora, gerarCertificadoQz, imprimirZpl, listarImpressoras, obterCertificadoQz, qzDisponivel, salvarImpressora, ZPL_TESTE } from "@/lib/impressao/qz";
+
+export function ImpressaoZebraQz() {
+  const { hasAnyRole } = useAuth();
+  const [status, setStatus] = useState("Não conectado");
+  const [impressoras, setImpressoras] = useState<string[]>([]);
+  const [impressora, setImpressora] = useState<string | null>(null);
+  const [certificado, setCertificado] = useState<string | null>(null);
+  const [semCertificado, setSemCertificado] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const admin = hasAnyRole(["super_admin", "admin_ti", "admin_rh"]);
+
+  useEffect(() => {
+    if (!admin) return;
+    let ativo = true;
+    void obterCertificadoQz().then(pem => { if (ativo) setCertificado(pem); }).catch(e => {
+      if (!ativo) return;
+      if (e instanceof Error && e.message.includes("ainda não gerado")) setSemCertificado(true);
+      else setErro(e instanceof Error ? e.message : String(e));
+    });
+    return () => { ativo = false; };
+  }, [admin]);
+
+  async function executar(fn: () => Promise<void>) {
+    setOcupado(true); setErro(null);
+    try { await fn(); } catch (e) { const msg = e instanceof Error ? e.message : String(e); setErro(msg); toast.error(msg); }
+    finally { setOcupado(false); }
+  }
+  async function conectar() {
+    if (!await qzDisponivel()) { setStatus("QZ Tray não encontrado"); return; }
+    setStatus("Conectado");
+    const lista = await listarImpressoras(); setImpressoras(lista); setImpressora(escolherImpressora(lista));
+  }
+  if (!admin) return null;
+  return <section className="space-y-4 border-b border-border pb-6" aria-label="Impressão Zebra (QZ Tray)">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><h2 className="text-lg font-semibold">Impressão Zebra (QZ Tray)</h2><p className="text-sm text-muted-foreground" role="status">{status}</p></div>
+      <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void executar(conectar)}><RefreshCw className="size-4" />Conectar QZ</Button>
+    </div>
+    <div className="max-w-md space-y-2"><Label htmlFor="impressora-zebra">Impressora da estação</Label>
+      <Select value={impressora ?? ""} onValueChange={nome => { setImpressora(nome); salvarImpressora(nome); }} disabled={ocupado || !impressoras.length}>
+        <SelectTrigger id="impressora-zebra"><SelectValue placeholder="Selecionar impressora" /></SelectTrigger>
+        <SelectContent>{impressoras.map(nome => <SelectItem key={nome} value={nome}>{nome}</SelectItem>)}</SelectContent>
+      </Select>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {semCertificado && <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void executar(async () => { setCertificado(await gerarCertificadoQz()); setSemCertificado(false); toast.success("Certificado QZ gerado."); })}><ShieldCheck className="size-4" />Gerar certificado</Button>}
+      <Button variant="outline" size="sm" disabled={ocupado || !certificado} onClick={() => {
+        if (!certificado) return;
+        const url = URL.createObjectURL(new Blob([certificado], { type: "application/x-pem-file" }));
+        const link = document.createElement("a"); link.href = url; link.download = "override.crt"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }}><Download className="size-4" />Baixar override.crt</Button>
+      <Button variant="outline" size="sm" disabled={ocupado || !impressora || !certificado} onClick={() => void executar(async () => {
+        if (!impressora) return;
+        await imprimirZpl(impressora, ZPL_TESTE); toast.success("Teste enviado à Zebra.");
+      })}><Printer className="size-4" />Imprimir teste</Button>
+      {ocupado && <Loader2 className="size-4 animate-spin self-center text-muted-foreground" />}
+    </div>
+    {erro && <p role="alert" className="break-words text-sm text-destructive">{erro}</p>}
+  </section>;
+}

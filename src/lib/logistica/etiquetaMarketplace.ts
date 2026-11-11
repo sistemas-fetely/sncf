@@ -13,7 +13,7 @@ export async function confirmarEtiquetaMarketplace(
   anotar: (descricao: string, metadata: { origem: string; formato: string }) => Promise<unknown>,
   marcar: () => Promise<unknown>,
 ) {
-  if (etiqueta.formato !== "PDF" || !etiqueta.pdf_base64) throw new Error("Bling retornou somente ZPL; a etiqueta PDF não foi impressa.");
+  if (etiqueta.formato === "PDF" ? !etiqueta.pdf_base64 : !etiqueta.zpl) throw new Error("Etiqueta sem conteúdo para confirmar impressão.");
   // Anotação primeiro: falha de registro nunca libera o documento sem evidência.
   await anotar(`Etiqueta do marketplace impressa (Bling id ${etiqueta.bling_pedido_id})`, { origem: "bling", formato: etiqueta.formato });
   await marcar();

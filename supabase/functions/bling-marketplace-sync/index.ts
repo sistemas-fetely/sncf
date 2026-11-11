@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     const negadoSessao = await gateCronOuSessao(new Request(req.url, { headers }), sb, cors);
     if (negadoSessao) return negadoSessao;
     if (typeof body.pedido_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.pedido_id)) return json({ ok: false, erro: "pedido_id deve ser um UUID válido." }, 400);
+    if (body.formato_preferido !== undefined && !["ZPL", "PDF"].includes(body.formato_preferido)) return json({ ok: false, erro: "formato_preferido deve ser ZPL ou PDF." }, 400);
   }
 
   const { data: cfg, error: eCfg } = await sb.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
     catch (e) { return json({ ok: false, erro: errMsg(e) }, 500); }
   }
 
-  // PDF primeiro; ZPL continua disponível apenas para diagnóstico.
+  // Formato preferido primeiro (ZPL por padrão); em Bling 400, tenta o outro.
   if (acao === "etiqueta_zpl") {
     try {
       const { data: pedido, error } = await sb.from("pedidos").select("bling_id_destino, recebido_via").eq("id", body.pedido_id).maybeSingle();
@@ -73,11 +74,12 @@ Deno.serve(async (req) => {
       if (!pedido || pedido.recebido_via !== "marketplace" || !pedido.bling_id_destino) return json({ ok: false, erro: "Pedido marketplace sem vínculo de venda no Bling." }, 409);
       const blingId = String(pedido.bling_id_destino);
       const query = `idsVendas%5B%5D=${encodeURIComponent(blingId)}`;
+      const formato = body.formato_preferido ?? "ZPL";
       let response;
-      try { response = await client.get(`/logisticas/etiquetas?${query}&formato=PDF`); }
+      try { response = await client.get(`/logisticas/etiquetas?${query}&formato=${formato}`); }
       catch (e) {
         if (!(e instanceof BlingHttpError) || e.status !== 400) throw e;
-        response = await client.get(`/logisticas/etiquetas?${query}&formato=ZPL`);
+        response = await client.get(`/logisticas/etiquetas?${query}&formato=${formato === "ZPL" ? "PDF" : "ZPL"}`);
       }
       const links = response?.data;
       if (!Array.isArray(links) || !links.length) throw new Error("Bling não retornou etiqueta; confira se o pedido está pronto para envio no marketplace.");

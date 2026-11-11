@@ -21,6 +21,7 @@ import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Se
 import { toast } from "sonner";
 import { AbaMercadoPago } from "@/components/ti/AbaMercadoPago";
 import { AbaMicrosoft365 } from "@/components/ti/AbaMicrosoft365";
+import { ImpressaoZebraQz } from "@/components/ti/ImpressaoZebraQz";
 import { PUBLIC_APP_URL } from "@/lib/urls";
 import { fmtDataHora } from "@/lib/data";
 import { formatDistanceToNow, format } from "date-fns";
@@ -482,6 +483,7 @@ export default function ConfiguracaoIntegracao() {
         estado="Configure as integrações externas do sistema."
       />
 
+      <ImpressaoZebraQz />
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
           <TabsTrigger value="bling">Bling</TabsTrigger>

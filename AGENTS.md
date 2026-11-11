@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- QZ printing shares one in-memory connection/certificate and server-only Vault signing; marketplace ZPL success marks through the existing evidence helper, PDF fallback retains manual confirmation, and printer preference alone uses sanctioned station storage so other documents stay unchanged.
 - XPM push refreshes caller sessions before sending and retries only pre-send 401; all edge network stages share one 110s total budget (each fetch gets only the remaining budget, no per-stage cap) with path-only diagnostics, because timeout must never trigger a duplicate dispatch.
 - Marketplace orders use their own route and URL filters; share PipelineFases and PedidoCanalDrawer with B2C and reuse its table/header controls so both queues retain one visual system; transport writes use existing RPCs and await invalidation.
 - Physical receipt UI belongs to Chegada Recebimento and reads the center/door-neutral summary view; the manual XLSX form is shared only there while XPM keeps pre-arrival registration, so ingestion logic and receipt reporting have one home.
