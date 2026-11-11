@@ -79,13 +79,21 @@ Deno.serve(async (req) => {
         if (Date.now() - inicioMs > 40000) break;
         try {
           const resolvido = await resolverProduto(codigoBling({ ...p.fonte, sku: p.sku }), cache.get(p.sku), p.bling_id, get);
+          let espelhoErro: string | null = null;
+          if (resolvido.detalhe && resolvido.bling_id != null) {
+            try {
+              const espelhoR = await sb.from("produtos").update({ detalhe_payload: resolvido.detalhe, detalhe_lido_em: new Date().toISOString(), detalhe_erro: null }).eq("bling_id", String(resolvido.bling_id));
+              if (espelhoR.error) espelhoErro = `Espelho Bling: ${espelhoR.error.message}`;
+            } catch (e) { espelhoErro = `Espelho Bling: ${msg(e)}`; }
+            if (espelhoErro) console.warn(espelhoErro, p.sku);
+          }
           const fonte = { ...await fonteComInner(sb, p.fonte), resolucao_bling: { ...resolvido.resolucao, unidade_medida: resolvido.detalhe?.dimensoes?.unidadeMedida ?? null } };
-          check(await sb.from("bling_produto_sync_produto").update({ bling_id: resolvido.bling_id, fonte, sem_vinculo: !resolvido.detalhe, status: resolvido.detalhe ? "pendente" : "ignorado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
+          check(await sb.from("bling_produto_sync_produto").update({ bling_id: resolvido.bling_id, fonte, sem_vinculo: !resolvido.detalhe, status: resolvido.detalhe ? "pendente" : "ignorado", lido_em: new Date().toISOString(), erro: espelhoErro }).eq("execucao_id", execucaoId).eq("sku", p.sku));
           const atual = resolvido.detalhe;
           if (!atual) continue;
           const itens = comparar(fonte, atual, campos);
           if (itens.length) check(await sb.from("bling_produto_sync_item").upsert(itens.map((i) => ({ ...i, execucao_id: execucaoId, sku: p.sku, bling_id: resolvido.bling_id })), { onConflict: "execucao_id,sku,campo" }));
-          check(await sb.from("bling_produto_sync_produto").update({ status: "comparado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
+          check(await sb.from("bling_produto_sync_produto").update({ status: "comparado", lido_em: new Date().toISOString(), erro: espelhoErro }).eq("execucao_id", execucaoId).eq("sku", p.sku));
         } catch (e) {
           check(await sb.from("bling_produto_sync_produto").update({ status: "erro", erro: msg(e), lido_em: new Date().toISOString() }).eq("execucao_id", execucaoId).eq("sku", p.sku));
         }

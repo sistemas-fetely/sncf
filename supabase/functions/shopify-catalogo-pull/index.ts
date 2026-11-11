@@ -1,9 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
+import { atributosProduto, atributosInventory, custoExcedido } from "./atributos.ts";
 
 const API_VERSION = "2026-04";
 const MAX_PAGES = 100;
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 const UPSERT_BATCH = 100;
 const COST_MIN_AVAILABLE = 200;
 
@@ -82,11 +83,14 @@ function extrairIdNumerico(gid: unknown): string | null {
 }
 
 const QUERY = `
-query($cursor: String) {
-  products(first: ${PAGE_SIZE}, after: $cursor) {
+query($cursor: String, $pageSize: Int!) {
+  products(first: $pageSize, after: $cursor) {
     pageInfo { hasNextPage endCursor }
     nodes {
       id handle title status vendor productType tags createdAt updatedAt
+      descriptionHtml seo { title description } category { fullName } templateSuffix
+      collections(first: 25) { pageInfo { hasNextPage } nodes { title } }
+      metafields(first: 50) { pageInfo { hasNextPage } nodes { namespace key value } }
       hasVariantsThatRequiresComponents
       variants(first: 100) {
         pageInfo { hasNextPage endCursor }
@@ -94,7 +98,7 @@ query($cursor: String) {
           id sku barcode price compareAtPrice position title
           inventoryPolicy
           selectedOptions { name value }
-          inventoryItem { id measurement { weight { unit value } } }
+          inventoryItem { id tracked requiresShipping countryCodeOfOrigin harmonizedSystemCode unitCost { amount currencyCode } measurement { weight { unit value } } }
           inventoryQuantity
         }
       }
@@ -105,21 +109,21 @@ query($cursor: String) {
 // Produto com mais de 100 variantes: busca o restante paginando no próprio produto.
 // Sem isso o espelho perde variantes (caso real: velas numéricas, 25/09/2026).
 const VARIANTS_QUERY = `
-query($id: ID!, $cursor: String) {
+query($id: ID!, $cursor: String, $pageSize: Int!) {
   product(id: $id) {
-    variants(first: 250, after: $cursor) {
+    variants(first: $pageSize, after: $cursor) {
       pageInfo { hasNextPage endCursor }
       nodes {
         id sku barcode price compareAtPrice position title
         inventoryPolicy
         selectedOptions { name value }
-        inventoryItem { id measurement { weight { unit value } } }
+        inventoryItem { id tracked requiresShipping countryCodeOfOrigin harmonizedSystemCode unitCost { amount currencyCode } measurement { weight { unit value } } }
         inventoryQuantity
       }
     }
   }
 }`;
-const MAX_VARIANT_PAGES = 20; // 20 x 250 = 5.000 variantes por produto (teto do Shopify é 2.048)
+const MAX_VARIANT_PAGES = 100; // Mantém cobertura ao reduzir páginas por custo (teto Shopify: 2.048 variantes).
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -207,6 +211,8 @@ Deno.serve(async (req) => {
 
     let cursor: string | null = null;
     let paginas = 0;
+    let pageSize = PAGE_SIZE;
+    let variantPageSize = 250;
     let ignorados = 0;
     let variantesTotais = 0;
     let produtosGravados = 0;
@@ -216,6 +222,8 @@ Deno.serve(async (req) => {
     const espelhoRows: any[] = [];
     // Peso das variantes (inventoryItem.measurement.weight) em gramas → shopify_variante_peso.
     const pesoRows: any[] = [];
+    const atributosRows: NonNullable<ReturnType<typeof atributosProduto>>[] = [];
+    const inventoryRows: NonNullable<ReturnType<typeof atributosInventory>>[] = [];
     const FATOR_G: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.349523125, POUNDS: 453.59237 };
 
     const flush = async () => {
@@ -236,7 +244,12 @@ Deno.serve(async (req) => {
       if (paginas >= MAX_PAGES) {
         throw new Error(`limite de ${MAX_PAGES} paginas atingido — abortado apos processar ${paginas} paginas`);
       }
-      const res = await gqlWithRetry(domain, token, QUERY, { cursor });
+      const res = await gqlWithRetry(domain, token, QUERY, { cursor, pageSize });
+      if (custoExcedido(res.body) && pageSize > 1) {
+        pageSize = Math.max(1, Math.floor(pageSize / 2));
+        console.warn("Shopify custo da query excedido; reduzindo produtos por página", pageSize);
+        continue;
+      }
       if (res.status !== 200 || res.body?.errors) {
         throw new Error(`graphql falhou: status=${res.status} errors=${JSON.stringify(res.body?.errors ?? res.body).slice(0, 500)}`);
       }
@@ -249,6 +262,10 @@ Deno.serve(async (req) => {
         const shopifyId = extrairIdNumerico(p?.id);
         if (!shopifyId) { ignorados++; continue; }
         vistos.add(shopifyId);
+        if (p.collections?.pageInfo?.hasNextPage) console.warn("Shopify coleções truncadas em 25", p.id);
+        if (p.metafields?.pageInfo?.hasNextPage) console.warn("Shopify metafields truncados em 50", p.id);
+        const atributos = atributosProduto(p, pullEm);
+        if (atributos) atributosRows.push(atributos);
 
         let variantNodes: any[] = p?.variants?.nodes ?? [];
         // FAIL-LOUD: se não conseguir completar as variantes, aborta o pull (espelho incompleto é pior que pull falho).
@@ -258,7 +275,12 @@ Deno.serve(async (req) => {
           if (vPaginas >= MAX_VARIANT_PAGES) {
             throw new Error(`produto ${p?.id}: mais de ${MAX_VARIANT_PAGES} paginas de variantes — abortado`);
           }
-          const rv = await gqlWithRetry(domain, token, VARIANTS_QUERY, { id: p.id, cursor: vPage.endCursor });
+          const rv = await gqlWithRetry(domain, token, VARIANTS_QUERY, { id: p.id, cursor: vPage.endCursor, pageSize: variantPageSize });
+          if (custoExcedido(rv.body) && variantPageSize > 1) {
+            variantPageSize = Math.max(1, Math.floor(variantPageSize / 2));
+            console.warn("Shopify custo da query excedido; reduzindo variantes por página", variantPageSize);
+            continue;
+          }
           if (rv.status !== 200 || rv.body?.errors) {
             throw new Error(`variantes de ${p?.id} falharam: status=${rv.status} errors=${JSON.stringify(rv.body?.errors ?? rv.body).slice(0, 500)}`);
           }
@@ -299,6 +321,8 @@ Deno.serve(async (req) => {
           const invId = extrairIdNumerico(v?.inventoryItem?.id);
           const w = v?.inventoryItem?.measurement?.weight;
           if (!invId) continue;
+          const inventory = atributosInventory(v.inventoryItem, skuInterno(v), pullEm);
+          if (inventory) inventoryRows.push(inventory);
           const unidade = w?.unit ? String(w.unit) : null;
           const valor = typeof w?.value === "number" ? w.value : (w?.value != null ? Number(w.value) : null);
           const fator = unidade ? FATOR_G[unidade] : undefined;
@@ -380,6 +404,17 @@ Deno.serve(async (req) => {
       const lote = pesoRows.slice(i, i + 500);
       const { error } = await supabase.from("shopify_variante_peso").upsert(lote, { onConflict: "inventory_item_id" });
       if (error) erros.push({ etapa: "peso_upsert", tamanho: lote.length, message: error.message });
+    }
+    // Mesmo contrato do peso: o dry_run impede reconciliação, não a captura dos espelhos de leitura.
+    for (let i = 0; i < atributosRows.length; i += 500) {
+      const lote = atributosRows.slice(i, i + 500);
+      const { error } = await supabase.from("shopify_produto_atributos").upsert(lote, { onConflict: "shopify_id" });
+      if (error) erros.push({ etapa: "shopify_produto_atributos_upsert", tamanho: lote.length, message: error.message });
+    }
+    for (let i = 0; i < inventoryRows.length; i += 500) {
+      const lote = inventoryRows.slice(i, i + 500);
+      const { error } = await supabase.from("shopify_inventory_item").upsert(lote, { onConflict: "inventory_item_id" });
+      if (error) erros.push({ etapa: "shopify_inventory_item_upsert", tamanho: lote.length, message: error.message });
     }
 
     // deno-lint-ignore no-explicit-any
@@ -475,6 +510,8 @@ Deno.serve(async (req) => {
       produtos_gravados: produtosGravados,
       variantes_totais: variantesTotais,
       pesos_gravados: pesoRows.length,
+      atributos_capturados: atributosRows.length,
+      inventory_capturados: inventoryRows.length,
       ignorados,
       duracao_ms: Date.now() - inicio,
       erros,
