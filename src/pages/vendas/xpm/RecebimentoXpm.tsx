@@ -263,6 +263,7 @@ export default function RecebimentoXpm() {
         </CardContent>
       </Card>
 
+      <PainelSyncEstoque />
 
     </PageShell>
   );
