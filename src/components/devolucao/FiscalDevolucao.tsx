@@ -16,6 +16,8 @@ import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 import { podeGerarNfSubstituta, textoReenvio, type StatusNfSub } from "./correcaoNf";
 import { chamarEdge } from "@/lib/pedidos/edgePagamento";
 import { useNfClienteDevolucao } from "@/hooks/useNfClienteDevolucao";
+import { estadoFiscalCliente } from "@/lib/devolucao/fiscalCliente";
+import { linhaTrsRetorno, type TrsRetorno } from "@/lib/devolucao/trsRetorno";
 
 type FiscalDevolucao = {
   id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | "nota_credito" | null; pedido_ref: string | null;
@@ -66,9 +68,10 @@ type PropsBloco = {
 };
 
 function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinculoId: string; nfNumero: string | null; grauSugerido: string | null; onMudou?: () => Promise<void> | void }) {
-  const inicial = grauSugerido === "parcial" ? "parcial" : "total";
+  const qc = useQueryClient();
+  const inicial = estadoFiscalCliente(vinculoId, false, grauSugerido).grau;
   const [aberto, setAberto] = useState(false);
-  const [grau, setGrau] = useState(inicial);
+  const [grau, setGrau] = useState<string>(inicial);
   const [motivo, setMotivo] = useState("");
   const [rodando, setRodando] = useState(false);
   const confirmar = async () => {
@@ -76,15 +79,17 @@ function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinc
     try {
       const { data, error } = await sb.rpc("fn_devolucao_confirmar_vinculo", { p_vinculo_id: vinculoId, p_grau: grau, p_motivo: motivo.trim() || null });
       if (error) throw error;
-      if (data?.ok === false) { toast.error(data.erro ?? "O banco recusou a confirmação."); return; }
+      if (data?.ok !== true) throw new Error(data?.erro ?? "O banco recusou a confirmação.");
+      if (data.anulacao?.bloqueado) toast.warning(data.anulacao.motivo_bloqueio ?? "Anulação bloqueada — trate manualmente.");
       toast.success(`NF de retorno ${nfNumero ?? ""} confirmada (${grau})`);
       setAberto(false);
+      await qc.invalidateQueries();
       await onMudou?.();
     } catch (e) { toast.error(rawMessage(e)); } finally { setRodando(false); }
   };
   return (
-    <div className="space-y-2 rounded-md border bg-muted/30 p-2 text-sm">
-      <div>NF de retorno <span className="font-semibold">{nfNumero ?? "?"}</span> capturada do Bling — aguardando confirmação</div>
+    <div className="space-y-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+      <div className="font-medium">NF do cliente nº {nfNumero ?? "?"} capturada — Confirmar NF de retorno</div>
       <Button size="sm" onClick={() => { setGrau(inicial); setMotivo(""); setAberto(true); }}>Confirmar NF de retorno</Button>
       <Dialog open={aberto} onOpenChange={(o) => { if (!o && !rodando) setAberto(false); }}>
         <DialogContent>
@@ -96,6 +101,7 @@ function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinc
                 <label className="flex items-center gap-2"><RadioGroupItem value="parcial" />Parcial</label>
               </RadioGroup>
             </div>
+            {grau === "total" && <Alert variant="destructive"><AlertDescription>A confirmação total anula a venda.</AlertDescription></Alert>}
             <div className="space-y-1"><Label>Motivo (opcional)</Label><Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
           </div>
           <DialogFooter>
@@ -111,18 +117,34 @@ function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinc
 export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida, vinculoSugeridoId, nfRetornoSugerida, grauSugerido, onMudou }: PropsBloco) {
   const q = useFiscalDevolucao(devolucaoId);
   const clienteQ = useNfClienteDevolucao(devolucaoId);
-  const temCapturada = !!vinculoSugeridoId && !nfResolvida;
+  const trsQ = useQuery({
+    queryKey: ["devolucao-trs-fiscal", devolucaoId],
+    enabled: !!clienteQ.data,
+    queryFn: async (): Promise<TrsRetorno | null> => {
+      const { data, error } = await sb.from("vw_devolucao_trs_retorno").select("id,trs_numero,situacao,nf_numero,erro").eq("id", devolucaoId).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const estado = estadoFiscalCliente(vinculoSugeridoId, !!clienteQ.data, grauSugerido);
+  const temCapturada = estado.ocultarGerar;
   const refaturar = q.data?.finalidade === "refaturar";
-  const confirmar = temCapturada && vinculoSugeridoId && !refaturar ? <ConfirmarVinculo vinculoId={vinculoSugeridoId} nfNumero={nfRetornoSugerida ?? null} grauSugerido={grauSugerido ?? null} onMudou={onMudou} /> : null;
-  const mudou = async () => { await q.refetch(); await onMudou?.(); };
+  const mudou = async () => { await Promise.all([q.refetch(), clienteQ.refetch()]); await onMudou?.(); };
+  const confirmar = estado.confirmar && vinculoSugeridoId ? <ConfirmarVinculo key={vinculoSugeridoId} vinculoId={vinculoSugeridoId} nfNumero={nfRetornoSugerida ?? null} grauSugerido={grauSugerido ?? null} onMudou={mudou} /> : null;
   if (q.isLoading || clienteQ.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
   if (clienteQ.isError) return <div className="text-sm text-destructive">{rawMessage(clienteQ.error)}</div>;
   if (q.isError) return <div className="text-sm text-destructive">{rawMessage(q.error)}</div>;
   const f = q.data;
   if (!f) return <div className="text-sm text-destructive">Devolução não encontrada.</div>;
   const nf = f.nf_numero ?? "?";
+  if (clienteQ.data) return <div className="space-y-2 text-sm">
+    <div className="text-success">NF do cliente nº {clienteQ.data.nfs_stage?.nf_numero ?? "?"} vinculada</div>
+    {trsQ.isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+    {trsQ.isError && <div className="text-destructive">{rawMessage(trsQ.error)}</div>}
+    {trsQ.data && <div className={trsQ.data.erro ? "text-destructive" : "text-muted-foreground"}>{linhaTrsRetorno(trsQ.data).texto}</div>}
+  </div>;
+  if (confirmar) return confirmar;
   if (refaturar) return <BlocoRefaturar f={f} nfResolvida={nfResolvida} mudou={mudou} />;
-  if (clienteQ.data) return <div className="text-sm text-success">NF do cliente nº {clienteQ.data.nfs_stage?.nf_numero ?? "?"} vinculada</div>;
   if (f.fiscal_acao === "cancelar_nf") {
     const cancelada = nfResolvida || f.nf_situacao === "cancelada";
     const expirou = !cancelada && !!f.prazo && Date.now() > new Date(f.prazo).getTime();

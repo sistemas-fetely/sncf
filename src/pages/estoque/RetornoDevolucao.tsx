@@ -233,7 +233,7 @@ export default function RetornoDevolucao() {
   const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: busca (`q`, link antigo), canal, só abertas e página na URL.
-  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1, cor: "abertas" }, { replaceKeys: ["q"] });
+  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1, cor: "abertas", detalhe: "" }, { replaceKeys: ["q"] });
   const busca = nav.q;
   const setBusca = (v: string) => setNav({ q: v });
   const canal = nav.canal as "todos" | "b2b" | "b2c" | "site_sp";
@@ -243,7 +243,8 @@ export default function RetornoDevolucao() {
   const setMostrarFinalizados = (v: boolean) => setNav({ fin: v });
   const cardAtivo = nav.card as "" | "abertas" | "paradas";
   const clicarCard = (c: "abertas" | "paradas") => setNav({ card: cardAtivo === c ? "" : c });
-  const [expandido, setExpandido] = useState<string | null>(null);
+  const expandido = nav.detalhe || null;
+  const setExpandido = (id: string | null) => setNav({ detalhe: id ?? "" });
   const [conferirId, setConferirId] = useState<string | null>(null);
   const [receber, setReceber] = useState<Funil | null>(null);
   const [reversa, setReversa] = useState<Funil | null>(null);
@@ -647,9 +648,9 @@ export default function RetornoDevolucao() {
                               )}
                             </div>
                           </div>
-                          {(d.fiscal_acao || d.canal === "site_sp") && (
+                          {(d.fiscal_acao || d.nf_vinculo_sugerido_id || d.nf_vinculo_confirmado || d.canal === "site_sp") && (
                             <div className="mx-2 mb-2 grid gap-3 md:grid-cols-2">
-                              {d.fiscal_acao && (
+                              {(d.fiscal_acao || d.nf_vinculo_sugerido_id || d.nf_vinculo_confirmado) && (
                                 <div className="space-y-2 rounded-md border bg-card p-3">
                                   <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
                                   <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} vinculoSugeridoId={d.nf_vinculo_sugerido_id} nfRetornoSugerida={d.nf_retorno_sugerida} grauSugerido={d.grau_sugerido ?? null} onMudou={invalidar} />

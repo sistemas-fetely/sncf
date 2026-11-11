@@ -645,6 +645,13 @@
       "when": 1794355698171,
       "tag": "0091_bling_produto_sync_fase1",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1794411445979,
+      "tag": "0092_dev_vinculo_no_processo",
+      "breakpoints": true
     }
   ]
 }

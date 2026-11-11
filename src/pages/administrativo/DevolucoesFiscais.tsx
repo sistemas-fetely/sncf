@@ -56,6 +56,8 @@ type ItemDevolvido = Record<string, unknown>;
 
 interface VinculoMesa {
   id: string;
+  devolucao_id: string | null;
+  devolucao_numero: string | null;
   status: string;
   grau_sugerido: string | null;
   grau: string | null;
@@ -236,7 +238,7 @@ export default function DevolucoesFiscais() {
   });
 
   const ocupado = confirmar.isPending || descartar.isPending;
-  const visiveis = porAba[aba];
+  const visiveis = aba === "sugerido" ? [...porAba[aba]].sort((a, b) => Number(!!b.devolucao_id) - Number(!!a.devolucao_id)) : porAba[aba];
 
   return (
     <PageShell>
@@ -301,6 +303,10 @@ export default function DevolucoesFiscais() {
         </Card>
       ) : (
         <div className="space-y-3">
+          {aba === "sugerido" && <div className="flex flex-wrap gap-3 text-sm">
+            <span className="font-medium text-primary">Com devolução: {visiveis.filter(v => v.devolucao_id).length}</span>
+            <span className="text-muted-foreground">Sem devolução aberta: {visiveis.filter(v => !v.devolucao_id).length}</span>
+          </div>}
           {visiveis.map((v) => (
             <CardVinculo
               key={v.id}
@@ -446,6 +452,11 @@ function CardVinculo({
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
+        {aba === "sugerido" && (v.devolucao_id ? <div className="flex flex-wrap items-center gap-2 border-b border-primary/20 pb-3 text-sm">
+          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">Com devolução</Badge>
+          <Button variant="link" size="sm" asChild><Link to={`/devolucoes?q=${encodeURIComponent(v.devolucao_numero ?? "")}&detalhe=${v.devolucao_id}&fin=true`}>Abrir devolução {v.devolucao_numero ?? ""}</Link></Button>
+          <span className="text-muted-foreground">Confirme a NF de retorno no processo.</span>
+        </div> : <Badge variant="outline">Sem devolução aberta</Badge>)}
         {/* Linha 1 — o encontro das duas notas */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           <span className="font-medium">NF de retorno {v.retorno_numero ?? "—"}</span>

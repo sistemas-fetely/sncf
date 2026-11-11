@@ -1,4 +1,6 @@
 # Roadmap
+- [x] DEV-VINCULO-NO-PROCESSO: nascimento/view corrigidos; backup 30 vínculos, backfill 15 (DEV-2326 incluída), zero outros campos alterados e todos sugeridos; Fiscal/triagem validados autenticados com NF42515 parcial, aviso total e link; 13 testes passaram, sem publicação ou confirmação.
+- [ ] DEV-2326 confirmação real e TRS: aguarda Flávio confirmar pelo card; nenhuma confirmação autorizada nesta tarefa.
 - [x] QZ Integrações: aba própria com card e passo a passo; certificado/download independentes da conexão, seletor/teste só conectado; 6 testes passaram e preview autenticado desktop/mobile conferido com certificado simulado e download real, sem publicação.
 - [x] Zebra QZ: preferred ZPL with PDF fallback, authenticated Vault certificate/signing edges, station selector and raw test. 26 Bun + 9 Vitest + crypto/5 extraction cases passed; Deno check/build OK; authenticated admin panel and ZPL→mark/PDF→manual confirmation verified with simulated QZ/responses, no real writes or printing, no deploy/publication.
 - [ ] Zebra physical validation: requires deploying the reviewed functions, generating the certificate as authorized admin, installing QZ Tray/override.crt on the workstation and testing the real ZD220; no workstation is accessible in this sandbox. New action census/catalog registration must follow the authorized database front.
