@@ -9,19 +9,13 @@ import { alertaDevolucoes, alertaNoPrazo, analisarPeriodo, type GrupoPeriodo } f
 import { ddmm } from "@/lib/logistica/formato";
 import type { RemessaRow } from "@/hooks/logistica/useLogisticaRemessas";
 import { cn } from "@/lib/utils";
+import { Indicador } from "@/components/shared/Indicador";
 
 const decimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const num = (n: number | null) => n == null ? "—" : decimal.format(n);
 const dias = (n: number | null) => n == null ? "—" : `${num(n)} dias`;
 const pct = (n: number | null) => n == null ? "—" : `${num(n)}%`;
 const destino = (r: RemessaRow) => [r.cidade_destino, r.uf_destino].filter(Boolean).join("/") || "—";
-function Indicador({ titulo, valor, subtexto, alerta = false }: { titulo: string; valor: string | number; subtexto?: string; alerta?: boolean }) {
-  return <div className={cn("rounded-lg border bg-card p-3 min-w-0", alerta && "border-warning/40")}>
-    <div className="text-xs text-muted-foreground">{titulo}</div>
-    <div className={cn("text-xl font-medium tabular-nums", alerta && "text-warning", valor === "—" && "text-muted-foreground")}>{valor}</div>
-    {subtexto && <div className="text-xs text-muted-foreground">{subtexto}</div>}
-  </div>;
-}
 type ColGrupo = "chave" | "remessas" | "entregues" | "prazoMedio" | "pctNoPrazo" | "atrasoMedio";
 const valoresGrupo = {
   chave: (r: GrupoPeriodo) => r.chave, remessas: (r: GrupoPeriodo) => r.remessas,

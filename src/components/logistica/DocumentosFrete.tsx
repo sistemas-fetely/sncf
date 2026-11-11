@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SortableTableHead, type SortState } from "@/components/shared/SortableTableHead";
 import { KpiPill } from "@/components/shared/KpiPill";
 import { cn } from "@/lib/utils";
@@ -11,9 +11,11 @@ import { brl, dataBr, ddmmHora, isoDiasAtras, NUM } from "@/lib/logistica/format
 import { cobradoTransp, divergenciaFatura, formatarDesvioCotacao } from "@/lib/logistica/documentoFrete";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BadgeAuditoria, ComposicaoFrete } from "./ComposicaoFrete";
+import { Indicador } from "@/components/shared/Indicador";
+import { acimaDoTeto, analisarCustoFrete, brlComSinal, percentualComSinal, totaisCustoFrete } from "@/lib/logistica/custoFrete";
 
 type Nat = "todos" | "normal" | "reentrega" | "devolucao" | "outros";
-type Extra = "sem_pedido" | "acima" | "sem_ref" | null;
+type Extra = "sem_pedido" | "acima" | "teto" | "sem_ref" | null;
 const PERIODOS = [{ v: 90, l: "90 dias" }, { v: 180, l: "180 dias" }, { v: 0, l: "Tudo" }];
 
 function natureza(d: DocumentoFreteRow): Exclude<Nat, "todos"> {
@@ -27,6 +29,7 @@ function natureza(d: DocumentoFreteRow): Exclude<Nat, "todos"> {
 const EXTRA: Record<Exclude<Extra, null>, (d: DocumentoFreteRow) => boolean> = {
   sem_pedido: (d) => d.status_vinculo !== "ok",
   acima: (d) => d.auditoria_status === "acima_referencia",
+  teto: acimaDoTeto,
   sem_ref: (d) => d.auditoria_status === "sem_referencia",
 };
 
@@ -69,7 +72,7 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
   const [aberto, setAberto] = useState<string | null>(null);
 
   const cont = useMemo(() => {
-    const c: Record<string, number> = { todos: data.length, normal: 0, reentrega: 0, devolucao: 0, outros: 0, sem_pedido: 0, acima: 0, sem_ref: 0 };
+    const c: Record<string, number> = { todos: data.length, normal: 0, reentrega: 0, devolucao: 0, outros: 0, sem_pedido: 0, acima: 0, teto: 0, sem_ref: 0 };
     for (const d of data) {
       c[natureza(d)]++;
       for (const k of Object.keys(EXTRA) as (keyof typeof EXTRA)[]) if (EXTRA[k](d)) c[k]++;
@@ -90,12 +93,14 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
     });
   }, [data, nat, extra, sort]);
   const soma = linhas.reduce((t, d) => t + Number(d.valor_doc ?? 0), 0);
+  const gestao = useMemo(() => analisarCustoFrete(data), [data]);
+  const totais = useMemo(() => totaisCustoFrete(linhas), [linhas]);
 
   const natPills: { k: Nat; l: string }[] = [
     { k: "todos", l: "Todos" }, { k: "normal", l: "Normal" }, { k: "reentrega", l: "Reentrega" }, { k: "devolucao", l: "Devolução" }, { k: "outros", l: "Outros" },
   ];
   const extraPills: { k: Exclude<Extra, null>; l: string; c: "amber" | "gray" }[] = [
-    { k: "sem_pedido", l: "Sem pedido", c: "gray" }, { k: "acima", l: "Acima da tabela", c: "amber" }, { k: "sem_ref", l: "Sem referência", c: "gray" },
+    { k: "sem_pedido", l: "Sem pedido", c: "gray" }, { k: "acima", l: "Acima da tabela", c: "amber" }, { k: "teto", l: "Acima do teto", c: "amber" }, { k: "sem_ref", l: "Sem referência", c: "gray" },
   ];
 
   return (
@@ -108,15 +113,30 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
           </button>
         ))}
       </div>
+      {!isLoading && !error && <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <Indicador compacto titulo="Cobrado" valor={brl(gestao.cobrado)} subtexto={`${gestao.documentos} documentos`} />
+        <Indicador compacto titulo="Cotado" valor={brl(gestao.cotacao)} subtexto={`${gestao.comCotacao} com cotação`} />
+        <Indicador compacto titulo="Δ cotação" valor={brlComSinal(gestao.delta)} subtexto={gestao.deltaPct == null ? undefined : `${percentualComSinal(gestao.deltaPct)} sobre o cotado`} alerta={gestao.alertaDelta} />
+        <Indicador compacto titulo="Pago pelo cliente" valor={brl(gestao.cliente)} subtexto={`${gestao.pedidos} pedidos, ${gestao.gratis} com frete grátis`} />
+        <Indicador compacto titulo="Resultado do frete" valor={brlComSinal(gestao.resultado)} subtexto="cliente − transportadora" alerta={gestao.alertaResultado} />
+        <Indicador compacto titulo="Custo extra" valor={brl(gestao.custoExtra)} subtexto={`${gestao.extras} reentregas/devoluções/outros`} />
+      </div>}
       <div className="flex flex-wrap items-center gap-2">
         {natPills.map((p) => (
           <KpiPill key={p.k} label={p.l} count={cont[p.k]} color={p.k === "todos" ? "admin" : "blue"} active={nat === p.k}
             onClick={() => setNat(p.k === nat ? "todos" : p.k)} />
         ))}
         <span className="mx-1 h-10 w-px bg-border" aria-hidden />
-        {extraPills.map((p) => (
-          <KpiPill key={p.k} label={p.l} count={cont[p.k]} color={p.c} active={extra === p.k} onClick={() => setExtra(extra === p.k ? null : p.k)} />
+        {extraPills.filter(p => p.k === "sem_pedido").map(p => <KpiPill key={p.k} label={p.l} count={cont[p.k]} color={p.c} active={extra === p.k} onClick={() => setExtra(extra === p.k ? null : p.k)} />)}
+        <div className="inline-flex gap-2">
+        {extraPills.filter(p => p.k === "acima" || p.k === "teto").map((p) => (
+          p.k === "teto" ? <TooltipProvider key={p.k} delayDuration={200}><Tooltip>
+            <TooltipTrigger asChild><span className="inline-flex"><KpiPill label={p.l} count={cont[p.k]} color={p.c} active={extra === p.k} onClick={() => setExtra(extra === p.k ? null : p.k)} /></span></TooltipTrigger>
+            <TooltipContent>Cobrado acima do teto de desvio sobre a cotação do pedido</TooltipContent>
+          </Tooltip></TooltipProvider> : <KpiPill key={p.k} label={p.l} count={cont[p.k]} color={p.c} active={extra === p.k} onClick={() => setExtra(extra === p.k ? null : p.k)} />
         ))}
+        </div>
+        {extraPills.filter(p => p.k === "sem_ref").map(p => <KpiPill key={p.k} label={p.l} count={cont[p.k]} color={p.c} active={extra === p.k} onClick={() => setExtra(extra === p.k ? null : p.k)} />)}
       </div>
 
       {isLoading ? (
@@ -132,7 +152,7 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
           <TooltipProvider delayDuration={200}>
-          <Table>
+          <Table containerClassName="max-h-[70vh]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-6" />
@@ -225,6 +245,15 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
                 );
               })}
             </TableBody>
+            <TableFooter className="sticky bottom-0 z-10 bg-muted">
+              <TableRow>
+                <TableCell colSpan={10}>Total · {NUM.format(linhas.length)} documentos</TableCell>
+                <TableCell className="text-right tabular-nums whitespace-nowrap">{brl(totais.cotacao)}</TableCell>
+                <TableCell className="text-right tabular-nums whitespace-nowrap">{brl(totais.cliente)}</TableCell>
+                <TableCell className="text-right tabular-nums whitespace-nowrap">{brl(totais.cobrado)}</TableCell>
+                <TableCell colSpan={3} />
+              </TableRow>
+            </TableFooter>
           </Table>
           </TooltipProvider>
         </div>

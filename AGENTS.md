@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Freight cost management uses tested pure document aggregates with shared invoice precedence and cent-based sums; positive-quote comparisons exclude unmatched documents, filtered table totals remain separate from full-scope indicators, and both logistics analyses share the same Indicador presentation.
 - Period delivery analytics derive exclusively from the existing scoped period rows through tested pure helpers; weekly dispatch buckets use calendar Mondays and missing measurement stays null, while UF list filtering and group sorting live in the URL so analysis never depends on list filters.
 - Marketplace pipeline reads the active visible B2C channel catalog (excluding received), joins stage deviation/final flags, and shares B2C icons unchanged; legacy stage URLs normalize through the tested marketplace rules so old task links retain their meaning.
 - Logistics delivery sub-tabs share the existing shell; the operational queue uses a separately paginated, date-free open-order query and a tested exclusive priority selector, preserving the period view unchanged across all carrier/channel scopes.
