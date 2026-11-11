@@ -11106,6 +11106,527 @@ export type Database = {
           },
         ]
       }
+      bling_pedido_fila_mkt: {
+        Row: {
+          bling_numero: string | null
+          bling_pedido_id: string
+          criado_em: string
+          id: string
+          loja_bling_id: number | null
+          marketplace_codigo: string | null
+          numero_loja: string | null
+          pedido_id: string | null
+          processado_em: string | null
+          raw: Json | null
+          situacao_bling: Json | null
+          status: string
+          tentativas: number
+          ultimo_erro: string | null
+        }
+        Insert: {
+          bling_numero?: string | null
+          bling_pedido_id: string
+          criado_em?: string
+          id?: string
+          loja_bling_id?: number | null
+          marketplace_codigo?: string | null
+          numero_loja?: string | null
+          pedido_id?: string | null
+          processado_em?: string | null
+          raw?: Json | null
+          situacao_bling?: Json | null
+          status?: string
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Update: {
+          bling_numero?: string | null
+          bling_pedido_id?: string
+          criado_em?: string
+          id?: string
+          loja_bling_id?: number | null
+          marketplace_codigo?: string | null
+          numero_loja?: string | null
+          pedido_id?: string | null
+          processado_em?: string | null
+          raw?: Json | null
+          situacao_bling?: Json | null
+          status?: string
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_marketplace_codigo_fkey"
+            columns: ["marketplace_codigo"]
+            isOneToOne: false
+            referencedRelation: "marketplace_loja"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_simples_remessas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_b2c_fila_alerta"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_b2c_fila_alerta_contagem"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_bonificacao_sem_registro"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_vinculo_mesa"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_empenho_vivo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_aguardando_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_b2b_embarcado_sem_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_b2b_embarcado_sem_nf"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_b2b_faturado_parado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_b2b_faturado_parado"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_b2b_transporte_sem_noticia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_b2b_transporte_sem_noticia"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cobranca_materializar"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_mesa_sp_aguardando_nf"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nf_fora_do_cd"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mesa_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mesa_entrega"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mesa_sp_quadro"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_orfa_candidata"
+            referencedColumns: ["sugestao_pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial_contagem"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_aguardando_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_base"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_consolidavel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_delta_snapshot"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_desfecho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_destino_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_entrega"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_frete_real"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_haver_disponivel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_liberacao_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_origens"
+            referencedColumns: ["origem_pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_para_vinculo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_portao_regra"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_prova_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_risco"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_situacao_financeira"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_export_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_nf_sem_baixa"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_trs_nf_natureza_divergente"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_trs_transito_atrasado"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_validacao_cartao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_divergencia_estagio"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_mkt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_risco_atraso"
+            referencedColumns: ["pedido_id"]
+          },
+        ]
+      }
       bling_planilha_stage: {
         Row: {
           altura: number | null
@@ -11153,6 +11674,473 @@ export type Database = {
           unidade?: string | null
         }
         Relationships: []
+      }
+      bling_produto_sync_config: {
+        Row: {
+          atualizado_em: string
+          automatico_habilitado: boolean
+          campos: Json
+          escrita_habilitada: boolean
+          id: boolean
+          lease_ate: string | null
+          lease_token: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          automatico_habilitado?: boolean
+          campos?: Json
+          escrita_habilitada?: boolean
+          id?: boolean
+          lease_ate?: string | null
+          lease_token?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          automatico_habilitado?: boolean
+          campos?: Json
+          escrita_habilitada?: boolean
+          id?: boolean
+          lease_ate?: string | null
+          lease_token?: string | null
+        }
+        Relationships: []
+      }
+      bling_produto_sync_execucao: {
+        Row: {
+          atualizado_em: string
+          concluido_em: string | null
+          criado_em: string
+          criado_por: string | null
+          erro: string | null
+          id: string
+          origem: string
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          concluido_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          origem?: string
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          concluido_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          origem?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      bling_produto_sync_fila: {
+        Row: {
+          enfileirado_em: string
+          erro: string | null
+          execucao_id: string | null
+          origem: string
+          sku: string
+          status: string
+          versao: number
+        }
+        Insert: {
+          enfileirado_em?: string
+          erro?: string | null
+          execucao_id?: string | null
+          origem?: string
+          sku: string
+          status?: string
+          versao?: number
+        }
+        Update: {
+          enfileirado_em?: string
+          erro?: string | null
+          execucao_id?: string | null
+          origem?: string
+          sku?: string
+          status?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_produto_sync_fila_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "bling_produto_sync_execucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "ic_vw_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_bling_card_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_central_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_alerta_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_bloqueio_venda"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_fop_status_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_conciliacao_360"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_formato_alerta"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_imagem_final"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_reposicao_classe_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_reposicao_sp"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_xpm_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_xpm_card_medidas"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
+      bling_produto_sync_item: {
+        Row: {
+          atualizado_em: string
+          bling_id: string | null
+          campo: string
+          destino: string
+          erro: string | null
+          execucao_id: string
+          id: string
+          sku: string
+          status: string
+          valor_bling: Json | null
+          valor_sncf: Json | null
+        }
+        Insert: {
+          atualizado_em?: string
+          bling_id?: string | null
+          campo: string
+          destino: string
+          erro?: string | null
+          execucao_id: string
+          id?: string
+          sku: string
+          status?: string
+          valor_bling?: Json | null
+          valor_sncf?: Json | null
+        }
+        Update: {
+          atualizado_em?: string
+          bling_id?: string | null
+          campo?: string
+          destino?: string
+          erro?: string | null
+          execucao_id?: string
+          id?: string
+          sku?: string
+          status?: string
+          valor_bling?: Json | null
+          valor_sncf?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_produto_sync_item_execucao_id_sku_fkey"
+            columns: ["execucao_id", "sku"]
+            isOneToOne: false
+            referencedRelation: "bling_produto_sync_produto"
+            referencedColumns: ["execucao_id", "sku"]
+          },
+        ]
+      }
+      bling_produto_sync_produto: {
+        Row: {
+          bling_id: string | null
+          erro: string | null
+          execucao_id: string
+          fonte: Json
+          lido_em: string | null
+          produto_id: string | null
+          sem_dimensao: boolean
+          sem_peso: boolean
+          sem_vinculo: boolean
+          sku: string
+          status: string
+        }
+        Insert: {
+          bling_id?: string | null
+          erro?: string | null
+          execucao_id: string
+          fonte: Json
+          lido_em?: string | null
+          produto_id?: string | null
+          sem_dimensao?: boolean
+          sem_peso?: boolean
+          sem_vinculo?: boolean
+          sku: string
+          status?: string
+        }
+        Update: {
+          bling_id?: string | null
+          erro?: string | null
+          execucao_id?: string
+          fonte?: Json
+          lido_em?: string | null
+          produto_id?: string | null
+          sem_dimensao?: boolean
+          sem_peso?: boolean
+          sem_vinculo?: boolean
+          sku?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_produto_sync_produto_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "bling_produto_sync_execucao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bling_produtos_cache: {
         Row: {
@@ -14194,6 +15182,13 @@ export type Database = {
             columns: ["centro_codigo"]
             isOneToOne: false
             referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "centro_canal_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
             referencedColumns: ["centro_codigo"]
           },
           {
@@ -45183,6 +46178,361 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_loja: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          centro_codigo: string
+          codigo: string
+          intermediador_cnpj: string | null
+          modo_entrega: string
+          nome: string
+          observacao: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          centro_codigo: string
+          codigo: string
+          intermediador_cnpj?: string | null
+          modo_entrega: string
+          nome: string
+          observacao?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          centro_codigo?: string
+          codigo?: string
+          intermediador_cnpj?: string | null
+          modo_entrega?: string
+          nome?: string
+          observacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["cd_expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "v_simples_remessas"
+            referencedColumns: ["destino_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "v_simples_remessas"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["destino_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_baixa_uso"
+            referencedColumns: ["origem"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["destino_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_bling_sync"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_canais_centro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_centro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_entradas"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_posicao"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_shopify_sync"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_triade_centro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cd_saldo_a_corrigir"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nf_fora_do_cd"
+            referencedColumns: ["cd_da_nf"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nf_fora_do_cd"
+            referencedColumns: ["cd_do_pedido"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c_pedido"
+            referencedColumns: ["cd_escolhido_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_mesa_sp_quadro"
+            referencedColumns: ["cd_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_quarentena_fila"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_reg_remessa_saldo"
+            referencedColumns: ["centro_sugerido_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_regularizacao_lote"
+            referencedColumns: ["centro_destino"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sugerida"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sugerida"
+            referencedColumns: ["origem"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_interna"
+            referencedColumns: ["destino"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_interna"
+            referencedColumns: ["origem"]
+          },
+          {
+            foreignKeyName: "marketplace_loja_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_nf_sem_baixa"
+            referencedColumns: ["destino_pedido"]
+          },
+        ]
+      }
+      marketplace_loja_bling: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          descricao: string | null
+          loja_bling_id: number
+          marketplace_codigo: string
+          tipo_bling: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          descricao?: string | null
+          loja_bling_id: number
+          marketplace_codigo: string
+          tipo_bling?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          descricao?: string | null
+          loja_bling_id?: number
+          marketplace_codigo?: string
+          tipo_bling?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_loja_bling_marketplace_codigo_fkey"
+            columns: ["marketplace_codigo"]
+            isOneToOne: false
+            referencedRelation: "marketplace_loja"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      marketplace_modo_modal: {
+        Row: {
+          modal_codigo: string
+          modo: string
+          observacao: string | null
+        }
+        Insert: {
+          modal_codigo: string
+          modo: string
+          observacao?: string | null
+        }
+        Update: {
+          modal_codigo?: string
+          modo?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
+      marketplace_sequencia: {
+        Row: {
+          codigo: string
+          proximo_numero: number
+        }
+        Insert: {
+          codigo: string
+          proximo_numero?: number
+        }
+        Update: {
+          codigo?: string
+          proximo_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_sequencia_codigo_fkey"
+            columns: ["codigo"]
+            isOneToOne: true
+            referencedRelation: "marketplace_loja"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       meios_pagamento: {
         Row: {
           ativo: boolean
@@ -48683,6 +50033,13 @@ export type Database = {
             columns: ["centro_codigo"]
             isOneToOne: false
             referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_cd_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
             referencedColumns: ["centro_codigo"]
           },
           {
@@ -99245,6 +100602,67 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_termo_email_log: {
+        Row: {
+          assunto: string | null
+          data_email: string | null
+          erro: string | null
+          id: string
+          linhas_lidas: number | null
+          recebido_em: string
+          remetente: string | null
+          resend_email_id: string
+          resultado: Json | null
+          termo_entrada_id: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          data_email?: string | null
+          erro?: string | null
+          id?: string
+          linhas_lidas?: number | null
+          recebido_em?: string
+          remetente?: string | null
+          resend_email_id: string
+          resultado?: Json | null
+          termo_entrada_id?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          data_email?: string | null
+          erro?: string | null
+          id?: string
+          linhas_lidas?: number | null
+          recebido_em?: string
+          remetente?: string | null
+          resend_email_id?: string
+          resultado?: Json | null
+          termo_entrada_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_termo_email_log_termo_entrada_id_fkey"
+            columns: ["termo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "termo_entrada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_email_log_termo_entrada_id_fkey"
+            columns: ["termo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_email_log_termo_entrada_id_fkey"
+            columns: ["termo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
+            referencedColumns: ["termo_entrada_id"]
+          },
+        ]
+      }
       xpm_termo_linha: {
         Row: {
           aritmetica_ok: boolean | null
@@ -99703,6 +101121,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_termo_entrada"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_termo_entrada_id_fkey"
+            columns: ["termo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
+            referencedColumns: ["termo_entrada_id"]
           },
         ]
       }
@@ -100367,6 +101792,13 @@ export type Database = {
             columns: ["centro_codigo"]
             isOneToOne: false
             referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "centro_canal_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
             referencedColumns: ["centro_codigo"]
           },
           {
@@ -132919,14 +134351,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -150099,14 +151531,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -150535,6 +151967,48 @@ export type Database = {
             referencedRelation: "vw_nf_fetely_orfa"
             referencedColumns: ["origem_centro_id"]
           },
+          {
+            foreignKeyName: "termo_entrada_porta_codigo_fkey"
+            columns: ["porta_codigo"]
+            isOneToOne: false
+            referencedRelation: "termo_entrada_porta_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      vw_termo_entrada_resumo: {
+        Row: {
+          arquivo_path: string | null
+          avarias: number | null
+          centro_codigo: string | null
+          centro_nome: string | null
+          data_recebimento: string | null
+          declarado: number | null
+          documento_ref: string | null
+          email_assunto: string | null
+          email_recebido_em: string | null
+          excesso: number | null
+          excessos_sem_nf: number | null
+          falta: number | null
+          ingerido_em: string | null
+          ingerido_por: string | null
+          linhas: number | null
+          linhas_sem_nf: number | null
+          nao_conforme: number | null
+          nf_faltantes: number | null
+          nfs: number | null
+          nfs_lista: string | null
+          numero: string | null
+          pedidos: number[] | null
+          porta_codigo: string | null
+          porta_rotulo: string | null
+          recebido: number | null
+          skus: number | null
+          status: string | null
+          tarefas_abertas: number | null
+          termo_entrada_id: string | null
+        }
+        Relationships: [
           {
             foreignKeyName: "termo_entrada_porta_codigo_fkey"
             columns: ["porta_codigo"]
@@ -158938,6 +160412,18 @@ export type Database = {
         Args: { p_dry_run?: boolean }
         Returns: Json
       }
+      fn_bling_produto_sync_iniciar: {
+        Args: { p_origem?: string; p_skus?: string[]; p_usuario: string }
+        Returns: string
+      }
+      fn_bling_produto_sync_lease: {
+        Args: { p_liberar?: boolean; p_token: string }
+        Returns: boolean
+      }
+      fn_bling_produto_sync_resumo: {
+        Args: { p_execucao: string }
+        Returns: Json
+      }
       fn_bling_resolver_produto: { Args: { p_codigo: string }; Returns: Json }
       fn_bling_situacao_enfileirar: {
         Args: { p_motivo: string; p_pedido_id: string; p_situacao_nome: string }
@@ -160672,6 +162158,10 @@ export type Database = {
       }
       fn_nascer_pedido_b2c: {
         Args: { p_dry_run?: boolean; p_shopify_id: string }
+        Returns: Json
+      }
+      fn_nascer_pedido_marketplace: {
+        Args: { p_dry_run?: boolean; p_parceiro_id?: string; p_raw: Json }
         Returns: Json
       }
       fn_nascer_produto: {

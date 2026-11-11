@@ -6,6 +6,7 @@ import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { XpmCadastroPainel } from "@/components/acervo/XpmCadastroPainel";
 import { ShopifyCadastroPainel } from "@/components/acervo/ShopifyCadastroPainel";
 import { BlingCardPainel } from "@/components/acervo/BlingCardPainel";
+import { CadastroBlingSync } from "@/components/acervo/CadastroBlingSync";
 import { BlocoSincronizacao, ROTINAS_CADASTRO_SHOPIFY } from "@/components/acervo/PainelSyncEstoque";
 
 export default function DestinosCadastro() {
@@ -27,7 +28,8 @@ export default function DestinosCadastro() {
           <TabsTrigger value="shopify">Shopify</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="bling" className="mt-4">
+        <TabsContent value="bling" className="mt-4 space-y-6">
+          <CadastroBlingSync />
           <BlingCardPainel />
         </TabsContent>
 

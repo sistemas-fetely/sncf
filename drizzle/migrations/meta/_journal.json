@@ -638,6 +638,13 @@
       "when": 1794328580322,
       "tag": "0090_dev_trs_nf_cliente_lastro",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794355698171,
+      "tag": "0091_bling_produto_sync_fase1",
+      "breakpoints": true
     }
   ]
 }
