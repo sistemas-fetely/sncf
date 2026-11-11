@@ -4,6 +4,7 @@ import { z } from "npm:zod@3.25.76";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { comparar, montarPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, type Campo } from "./regras.ts";
 import { resolverProduto, codigoBling } from "./resolver.ts";
+import { fonteComInner } from "./inner.ts";
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const Body = z.object({ acao: z.enum(["diff", "aplicar", "automatico", "consultar"]).default("diff"), execucao_id: z.string().uuid().optional(), skus: z.array(z.string().min(1).max(255)).max(1000).optional(), campos: z.array(z.string().min(1).max(255)).max(100).optional() });
 const msg = (e: unknown) => {
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
         await sleep(350);
         const detalhe = (await client.get(`/produtos/${encodeURIComponent(p.bling_id)}`))?.data;
         confirmarCodigo(detalhe, codigoBling({ ...p.fonte, sku: p.sku }), p.bling_id);
-        produtos.push({ sku: p.sku, bling_id: p.bling_id, codigo: detalhe.codigo, dimensoes: detalhe.dimensoes });
+        produtos.push({ sku: p.sku, bling_id: p.bling_id, codigo: detalhe.codigo, dimensoes: detalhe.dimensoes, itensPorCaixa: detalhe.itensPorCaixa });
       }
       return json({ ok: true, produtos });
     }
@@ -78,11 +79,11 @@ Deno.serve(async (req) => {
         if (Date.now() - inicioMs > 40000) break;
         try {
           const resolvido = await resolverProduto(codigoBling({ ...p.fonte, sku: p.sku }), cache.get(p.sku), p.bling_id, get);
-          const fonte = { ...p.fonte, resolucao_bling: { ...resolvido.resolucao, unidade_medida: resolvido.detalhe?.dimensoes?.unidadeMedida ?? null } };
+          const fonte = { ...await fonteComInner(sb, p.fonte), resolucao_bling: { ...resolvido.resolucao, unidade_medida: resolvido.detalhe?.dimensoes?.unidadeMedida ?? null } };
           check(await sb.from("bling_produto_sync_produto").update({ bling_id: resolvido.bling_id, fonte, sem_vinculo: !resolvido.detalhe, status: resolvido.detalhe ? "pendente" : "ignorado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
           const atual = resolvido.detalhe;
           if (!atual) continue;
-          const itens = comparar(p.fonte, atual, campos);
+          const itens = comparar(fonte, atual, campos);
           if (itens.length) check(await sb.from("bling_produto_sync_item").upsert(itens.map((i) => ({ ...i, execucao_id: execucaoId, sku: p.sku, bling_id: resolvido.bling_id })), { onConflict: "execucao_id,sku,campo" }));
           check(await sb.from("bling_produto_sync_produto").update({ status: "comparado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
         } catch (e) {
@@ -109,10 +110,16 @@ Deno.serve(async (req) => {
       if (Date.now() - inicioMs > 40000) break;
       const itens = (pendentes.data ?? []).filter((i: any) => i.sku === sku && dentroDoFiltro(i, body));
       if (!itens.length) continue;
-      const camposSelecionados = itens.map((i: any) => i.campo);
+      let camposSelecionados = itens.map((i: any) => i.campo);
       try {
         const fonteR = await sb.from("sncf_produtos").select("*").eq("sku", sku).single(); check(fonteR);
         if (!fonteR.data?.ativo) throw new Error("Produto inativo no SNCF; refaça a comparação.");
+        const fonte = await fonteComInner(sb, fonteR.data);
+        if (!fonte.inner_confirmado && camposSelecionados.includes("itensPorCaixa")) {
+          check(await sb.from("bling_produto_sync_item").update({ status: "ignorado", erro: "Inner não confirmado; nenhum envio deste campo.", atualizado_em: new Date().toISOString() }).eq("execucao_id", execucaoId).eq("sku", sku).eq("campo", "itensPorCaixa").eq("status", "pendente"));
+          camposSelecionados = camposSelecionados.filter((c: string) => c !== "itensPorCaixa");
+          if (!camposSelecionados.length) { resultados.push({ sku, status: "ignorado", motivo: "Inner não confirmado" }); continue; }
+        }
         const execProdutoR = await sb.from("bling_produto_sync_produto").select("bling_id").eq("execucao_id", execucaoId).eq("sku", sku).single(); check(execProdutoR);
         const blingId = execProdutoR.data?.bling_id;
         if (!blingId || itens.some((i: any) => String(i.bling_id) !== String(blingId))) throw new Error("ID resolvido inconsistente na execução; refaça a comparação.");
@@ -120,9 +127,9 @@ Deno.serve(async (req) => {
         await sleep(350);
         const atual = (await client.get(`/produtos/${encodeURIComponent(blingId)}`))?.data;
         confirmarCodigo(atual, codigo, blingId);
-        const frescas = comparar(fonteR.data, atual, campos);
-        const aplicar = frescas.filter((d) => itens.some((i: any) => i.campo === d.campo));
-        const patch = montarPatch(aplicar, fonteR.data);
+        const frescas = comparar(fonte, atual, campos);
+        const aplicar = frescas.filter((d) => camposSelecionados.includes(d.campo));
+        const patch = montarPatch(aplicar, fonte);
         let detalhe = atual;
         if (Object.keys(patch).length) {
           await sleep(350);
@@ -131,7 +138,7 @@ Deno.serve(async (req) => {
         }
         if (!detalhe?.id) throw new Error("PATCH concluído, mas leitura de confirmação vazia.");
         confirmarCodigo(detalhe, codigo, blingId);
-        const restantesBling = comparar(fonteR.data, detalhe, campos).filter((i) => camposSelecionados.includes(i.campo));
+        const restantesBling = comparar(fonte, detalhe, campos).filter((i) => camposSelecionados.includes(i.campo));
         if (restantesBling.length) throw new Error(`Bling não confirmou os campos: ${restantesBling.map((i) => i.campo).join(", ")}`);
         let espelhoAviso: string | null = null;
         const vincR = await sb.from("produtos").select("id").eq("codigo", codigo).order("created_at").limit(1).maybeSingle();
@@ -145,7 +152,7 @@ Deno.serve(async (req) => {
         check(await sb.from("bling_produto_sync_item").update({ status: "aplicado", erro: null, atualizado_em: new Date().toISOString() }).eq("execucao_id", execucaoId).eq("sku", sku).eq("status", "pendente").in("campo", camposSelecionados));
         const saldoR = await sb.from("bling_produto_sync_item").select("campo", { count: "exact", head: true }).eq("execucao_id", execucaoId).eq("sku", sku).neq("status", "aplicado"); check(saldoR);
         check(await sb.from("bling_produto_sync_produto").update({ status: saldoR.count ? "comparado" : "aplicado", erro: espelhoAviso }).eq("execucao_id", execucaoId).eq("sku", sku));
-        resultados.push({ sku, bling_id: blingId, antes: atual.dimensoes, depois: detalhe.dimensoes, patch, status: "aplicado", espelho_aviso: espelhoAviso });
+        resultados.push({ sku, bling_id: blingId, antes: atual.dimensoes, depois: detalhe.dimensoes, itensPorCaixa_antes: atual.itensPorCaixa, itensPorCaixa_depois: detalhe.itensPorCaixa, patch, status: "aplicado", espelho_aviso: espelhoAviso });
         const filaSku = fila.find((f) => f.sku === sku);
         if (filaSku) check(await sb.from("bling_produto_sync_fila").update({ status: "aplicado", execucao_id: execucaoId }).eq("sku", sku).eq("versao", filaSku.versao));
       } catch (e) {

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { comparar, montarPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, type Campo } from "./regras.ts";
+import { innerConfirmado } from "./inner.ts";
 const campos: Campo[] = [
   { campo: "pesoBruto", origem: "peso_g", destino: "pesoBruto", tipo: "numero", divisor: 1000 },
   { campo: "pesoLiquido", origem: "peso_g", destino: "pesoLiquido", tipo: "numero", divisor: 1000 },
@@ -9,7 +10,7 @@ const campos: Campo[] = [
   { campo: "ncm", origem: "ncm", destino: "tributacao.ncm", tipo: "digitos" },
   { campo: "cest", origem: "cest", destino: "tributacao.cest", tipo: "digitos" },
   { campo: "marca", origem: "marca", destino: "marca", tipo: "texto" },
-  { campo: "itensPorCaixa", origem: "multiplos", destino: "itensPorCaixa", tipo: "numero" },
+  { campo: "itensPorCaixa", origem: "inner_qtd", destino: "itensPorCaixa", tipo: "numero" },
 ];
 describe("Cadastro SNCF → Bling F1", () => {
   test("peso_g/1000 vai nos dois pesos em kg", () => { expect(montarPatch(comparar({ peso_g: 250 }, {}, campos))).toEqual({ pesoBruto: 0.25, pesoLiquido: 0.25 }); });
@@ -19,7 +20,14 @@ describe("Cadastro SNCF → Bling F1", () => {
   test("NCM normaliza sem pontos e fica dentro de tributacao", () => { expect(comparar({ ncm: "3406.00.00" }, { tributacao: { ncm: "34060000" } }, campos)).toEqual([]); expect(montarPatch(comparar({ ncm: "3406.00.00" }, {}, campos))).toEqual({ tributacao: { ncm: "34060000" } }); });
   test("CEST normaliza sem pontos", () => { expect(montarPatch(comparar({ cest: "28.001.00" }, {}, campos))).toEqual({ tributacao: { cest: "2800100" } }); });
   test("marca vai somente em marca", () => { expect(montarPatch(comparar({ marca: "Fetély" }, {}, campos))).toEqual({ marca: "Fetély" }); });
-  test("multiplos vai em itensPorCaixa", () => { expect(montarPatch(comparar({ multiplos: 6 }, {}, campos))).toEqual({ itensPorCaixa: 6 }); });
+  test("inner confirmado 12 envia 12 e nunca múltiplo 6", () => { expect(montarPatch(comparar({ multiplos: 6, inner_qtd: 12, inner_confirmado: true }, {}, campos))).toEqual({ itensPorCaixa: 12 }); });
+  test("inner maior que 1 é confirmado sem importação", () => { expect(innerConfirmado(24, false)).toBe(true); });
+  test("inner 1 exige evidência da importação", () => { expect(innerConfirmado(1, false)).toBe(false); expect(innerConfirmado(1, true)).toBe(true); });
+  test("inner não confirmado é ignorado", () => { expect(comparar({ inner_qtd: 1, inner_confirmado: false, multiplos: 24 }, { itensPorCaixa: 24 }, campos)).toEqual([]); });
+  test("inner 1 confirmado pode substituir 24", () => { expect(montarPatch(comparar({ inner_qtd: 1, inner_confirmado: true }, { itensPorCaixa: 24 }, campos))).toEqual({ itensPorCaixa: 1 }); });
+  test("origem comercial é recusada mesmo se configurada", () => { expect(() => comparar({ multiplos: 6 }, {}, [{ campo: "itensPorCaixa", origem: "multiplos", destino: "itensPorCaixa", tipo: "numero" }])).toThrow("exige origem inner_qtd"); });
+  test("inner ausente zero ou inválido nunca confirma", () => { for (const n of [null, 0, -1, 1.5, "x"]) expect(innerConfirmado(n, true)).toBe(false); });
+  test("envio restrito a itensPorCaixa exclui cest e dimensões", () => { const i = comparar({ inner_qtd: 24, inner_confirmado: true, cest: "2800100", altura_cm: 2 }, {}, campos).filter((d) => dentroDoFiltro({ sku: "A", campo: d.campo }, { campos: ["itensPorCaixa"] })); expect(montarPatch(i)).toEqual({ itensPorCaixa: 24 }); });
   test("vazio/nulo/zero nunca apagam Bling", () => { for (const v of [null, "", "  ", 0, "0"]) expect(comparar(Object.fromEntries(campos.map((c) => [c.origem, v])), { pesoBruto: 12, gtin: "123" }, campos)).toEqual([]); });
   test("tolerância numérica 0,001", () => { expect(comparar({ peso_g: 1000 }, { pesoBruto: 1.001, pesoLiquido: 1.001 }, campos)).toEqual([]); expect(comparar({ peso_g: 1000 }, { pesoBruto: 1.002, pesoLiquido: 1 }, campos)).toHaveLength(1); });
   test("campos proibidos nunca entram em PATCH", () => { expect(() => montarPatch([{ campo: "nome", destino: "nome", valor_sncf: "A", valor_bling: "B" }])).toThrow("fora da Fase 1"); });

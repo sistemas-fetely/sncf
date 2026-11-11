@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Inner etapa A: arquivo atual validado em somente leitura, 1.242/1.242 corretas, nenhuma divergência; layout real cabeçalho 3/dados 5, coluna E.
+- [ ] Inner etapa B: origem cartório confirmada, testes, diff novo e aplicar somente itensPorCaixa em lotes; escrita desligada ao terminar e exemplos relidos no Bling.
 - [x] Ajuste rastreio marketplace: situações Bling 8/1/3, descrição vazia e data zerada; 38 testes Bun + 5 casos Deno e Deno check passaram; redeploy confirmado somente de bling-marketplace-sync, sem banco/tela/publicação.
 - [x] Bling envio aprovado: filtros SKU/campo, dimensões completas e vínculo pelo código real; 29 testes + Deno check, deploy só bling-produto-sync; três unidadeMedida aplicadas (21.2 × 6.9 × 3.1 preservados, 2 → 1), nova leitura Bling confirmou; escrita/automação false, 714 itensPorCaixa e 2 cest pendentes, sem publicação.
 - [x] Marketplace reformulação: rota/fila/gaveta, portadores em dialog, campos B2C compartilhados e rastreio/objeto; testes e preview autenticado com pedidos reais conferidos, objeto real consultado sem gravar, edge redeploy, sem SQL/cron/publicação. Retorno real aguarda pedido em transporte/entregue (nenhum atual).

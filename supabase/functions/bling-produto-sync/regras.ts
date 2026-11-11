@@ -10,6 +10,10 @@ export function valor(v: unknown, c: Campo): unknown {
 export function comparar(fonte: Record<string, any>, bling: Record<string, any>, campos: Campo[]): Diferenca[] {
   const diferencas = campos.flatMap((c) => {
     if (!DESTINOS.has(c.destino)) throw new Error(`Campo fora da Fase 1: ${c.destino}`);
+    if (c.destino === "itensPorCaixa") {
+      if (c.origem !== "inner_qtd") throw new Error("itensPorCaixa exige origem inner_qtd; múltiplo comercial nunca pode ser enviado.");
+      if (fonte.inner_confirmado !== true) return [];
+    }
     const sncf = valor(fonte[c.origem], c); if (sncf == null) return [];
     const bruto = ler(bling, c.destino) ?? null;
     let atual = c.tipo === "numero" ? Number(bruto) : c.tipo === "digitos" ? String(bruto ?? "").replace(/\D/g, "") : String(bruto ?? "").trim();
