@@ -10,6 +10,7 @@ import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { resolverParceiroBling } from "../_shared/bling/parceiro-resolver.ts";
 import { baixarEtiqueta, extrairEtiqueta } from "./etiqueta.ts";
+import { lerObjetos, sincronizarRastreio } from "./rastreio.ts";
 
 const cors = {
   ...corsHeaders,
@@ -37,8 +38,11 @@ Deno.serve(async (req) => {
   if (negado) return negado;
 
   let body: any = {}; try { body = await req.json(); } catch { body = {}; }
-  const acao: string = body?.acao ?? "pedidos";
+  const acao: string = body?.acao ?? new URL(req.url).searchParams.get('acao') ?? 'pedidos';
   const diasJanela: number = Number(body?.dias ?? 7);
+  if (!['lojas', 'pedidos', 'rastreio', 'objeto', 'detalhe', 'etiqueta', 'etiqueta_zpl'].includes(acao)) return json({ ok: false, erro: 'acao inválida.' }, 400);
+  if (!Number.isInteger(diasJanela) || diasJanela < 1 || diasJanela > 365) return json({ ok: false, erro: 'dias deve estar entre 1 e 365.' }, 400);
+  if (acao === 'objeto' && !((typeof body.bling_pedido_id === 'string' || typeof body.bling_pedido_id === 'number') && /^\d+$/.test(String(body.bling_pedido_id)))) return json({ ok: false, erro: 'bling_pedido_id deve ser numérico.' }, 400);
 
   if (acao === "etiqueta_zpl") {
     const headers = new Headers(req.headers);
@@ -52,6 +56,14 @@ Deno.serve(async (req) => {
   if (eCfg || !cfg) return json({ ok: false, erro: `Configuração do Bling: ${eCfg?.message ?? "ausente"}` }, 500);
   if (!cfg.access_token) return json({ ok: false, erro: "Bling não conectado." }, 409);
   const client = makeBlingClient(sb, cfg as any, await ensureFreshToken(sb, cfg as any));
+  if (acao === 'objeto') {
+    try { return json({ ok: true, ...await lerObjetos(String(body.bling_pedido_id), path => client.get(path)) }); }
+    catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
+  }
+  if (acao === 'rastreio') {
+    try { return json(await sincronizarRastreio(sb, path => client.get(path))); }
+    catch (e) { return json({ ok: false, erro: errMsg(e) }, 500); }
+  }
 
   // PDF primeiro; ZPL continua disponível apenas para diagnóstico.
   if (acao === "etiqueta_zpl") {

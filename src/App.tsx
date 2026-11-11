@@ -245,6 +245,7 @@ const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 
 
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
+const PedidosMarketplace = lazy(() => import("@/pages/vendas/marketplace/PedidosMarketplace"));
 const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
 const ShopifyProdutos = lazy(() => import("@/pages/vendas/shopify/ShopifyProdutos"));
 const ShopifyClientes = lazy(() => import("@/pages/vendas/shopify/ShopifyClientes"));
@@ -532,6 +533,7 @@ const App = () => (
                 
                 
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
+                <Route path="/vendas/marketplace" element={<RotaGate><PedidosMarketplace /></RotaGate>} />
                 <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
                 <Route path="/vendas/shopify/produtos" element={<ShopifyProdutos />} />
                 <Route path="/vendas/shopify/clientes" element={<ShopifyClientes />} />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { DesfechoDevolucaoCampo, MotivoDevolucaoCampos } from "./MotivoDevolucaoCampos";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -469,11 +470,8 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label>Motivo</Label>
-                  <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
-                    <SelectTrigger><SelectValue placeholder="Escolha o motivo (recomendado)" /></SelectTrigger>
-                    <SelectContent>
+                <MotivoDevolucaoCampos codigo={motivoCodigo} onCodigo={setMotivoCodigo} motivo={motivo} onMotivo={setMotivo}
+                  opcoes={<>
                       {interno ? motivosTransferenciaQ.data?.map((x) => (
                         <SelectItem key={x.codigo} value={x.codigo}>{x.rotulo}</SelectItem>
                       )) : motivosAgrupados.map(([g, lst]) => (
@@ -482,19 +480,14 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                           {lst.map((x) => <SelectItem key={x.valor} value={x.valor}>{x.label}</SelectItem>)}
                         </SelectGroup>
                       ))}
-                    </SelectContent>
-                  </Select>
+                  </>}>
                   {interno && motivosTransferenciaQ.isLoading && <p className="text-xs text-muted-foreground">Carregando motivos…</p>}
                   {interno && motivosTransferenciaQ.isError && <p className="text-xs text-destructive">{motivosTransferenciaQ.error.message}</p>}
-                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva o que aconteceu (mínimo 5 caracteres)" rows={3} />
-                </div>
+                </MotivoDevolucaoCampos>
 
                 {mostrarDesfecho && (
                   <div className="space-y-2">
-                    <Label>Desfecho para o cliente</Label>
-                    <Select value={desfecho} onValueChange={setDesfecho}>
-                      <SelectTrigger><SelectValue placeholder="Escolha o desfecho" /></SelectTrigger>
-                      <SelectContent>
+                    <DesfechoDevolucaoCampo value={desfecho} onChange={setDesfecho}>
                         {b2bParcial && <SelectItem value="nenhum">A definir</SelectItem>}
                         {b2bParcial && <SelectItem value="abater_divida">Abater dívida</SelectItem>}
                         {bloqueiaCredito ? (
@@ -510,8 +503,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
                               <TooltipContent className="max-w-xs">{dicaCredito}</TooltipContent></Tooltip>
                           </TooltipProvider>
                         ) : <SelectItem value="reembolso">Reembolso</SelectItem>}
-                      </SelectContent>
-                    </Select>
+                    </DesfechoDevolucaoCampo>
                     {haverQ.isError && <p className="text-xs text-destructive">{(haverQ.error as Error).message}</p>}
                   </div>
                 )}

@@ -10,13 +10,19 @@ export type PedidoMarketplace = {
   pedido_id: string; id_externo: string; marketplace_codigo: string; marketplace_nome: string;
   numero_marketplace: string | null; cliente_nome: string | null; cidade: string | null; uf: string | null;
   valor_liquido: number | null; estagio: string | null; cd_codigo: string | null; nf_numero: string | null;
-  rastreio_marketplace: string | null; transportadora_id: string | null; transportadora_nome: string | null;
+  rastreio_codigo: string | null; transportadora_id: string | null; transportadora_nome: string | null;
   custo_transporte: number | null; comissao_marketplace: number | null; frete_marketplace: number | null;
   transportes: Transporte[] | null;
+  bling_numero: string | null; data_pedido: string | null; estagio_rotulo: string | null; estagio_ordem: number;
+  area_responsavel: string | null; proxima_acao: string | null; eh_final: boolean; cd_nome: string | null;
+  subetapa: string | null; horas_no_estagio: number | null; alerta: string | null; faturado_em: string | null;
+  xpm_expedicao_codigo: string | null; servico_marketplace: string | null; rastreio_status: string | null;
+  devolucao_numero: string | null; devolucao_status: string | null; cancelado_em: string | null;
+  entregue_em: string | null; liquido_estimado: number | null;
 };
 export type Portador = { id: string; nome: string };
 export type Loja = { codigo: string; nome: string; centro_codigo: string | null; parceiro_id: string | null; portador_nome: string | null };
-export type Estagio = { canal: string; estagio_codigo: string; rotulo: string; ordem: number };
+export type Estagio = { codigo: string; rotulo: string; ordem: number; eh_final: boolean };
 
 async function lerTudo<T>(tabela: string, colunas = '*', ordenar = 'pedido_id'): Promise<T[]> {
   const linhas: T[] = [];
@@ -29,7 +35,7 @@ async function lerTudo<T>(tabela: string, colunas = '*', ordenar = 'pedido_id'):
 }
 
 export function useMarketplace() {
-  return useQuery({ queryKey: ['marketplace', 'pedidos'], queryFn: () => lerTudo<PedidoMarketplace>('vw_pedidos_marketplace', '*', 'recebido_em') });
+  return useQuery({ queryKey: ['marketplace', 'pedidos'], queryFn: () => lerTudo<PedidoMarketplace>('vw_gestao_marketplace', '*', 'pedido_id') });
 }
 export function useCadastroMarketplace() {
   return useQuery({ queryKey: ['marketplace', 'cadastros'], queryFn: async () => {
@@ -38,7 +44,7 @@ export function useCadastroMarketplace() {
       lerTudo<any>('marketplace_transportadora_padrao', 'marketplace_codigo,parceiro_id', 'marketplace_codigo'),
       db.from('transportadora_perfil').select('transportadora_id').eq('ativo', true),
       lerTudo<any>('parceiros_comerciais', 'id,razao_social,nome_fantasia', 'id'),
-      db.from('pedido_estagio_canal').select('canal,estagio_codigo,rotulo,ordem').eq('ativo', true).eq('canal', 'B2C').order('ordem'),
+      db.from('marketplace_estagio').select('codigo,rotulo,ordem,eh_final').order('ordem'),
     ]);
     if (perfis.error) throw perfis.error;
     if (estagios.error) throw estagios.error;
