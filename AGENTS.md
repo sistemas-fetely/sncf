@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Logistics delivery sub-tabs share the existing shell; the operational queue uses a separately paginated, date-free open-order query and a tested exclusive priority selector, preserving the period view unchanged across all carrier/channel scopes.
 - Product-system XLSX exports are client-only and read-only: paginate every view, derive fields exclusively from the ordered header view, and serialize through the tested export helper so new fields need no frontend list and read failures never produce partial files.
 - QZ printing shares one in-memory connection/certificate and server-only Vault signing; marketplace ZPL success marks through the existing evidence helper, PDF fallback retains manual confirmation, and printer preference alone uses sanctioned station storage so other documents stay unchanged.
 - XPM push refreshes caller sessions before sending and retries only pre-send 401; all edge network stages share one 110s total budget (each fetch gets only the remaining budget, no per-stage cap) with path-only diagnostics, because timeout must never trigger a duplicate dispatch.

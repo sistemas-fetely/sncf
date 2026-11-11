@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Logística Entregas: sub-abas na URL, consulta aberta paginada sem data, 10 testes e typecheck aprovados; preview todas 79/Ícaro 3, busca/filtros/Período e recarga conferidos; sem banco/publicação.
+- [ ] Entregas detalhe real: drawer existente abre, mas fn_logistica_remessa_detalhe retorna statement timeout para PED-2354; banco/detalhe fora do escopo, leitura completa não validada.
 - [x] Exportar campos por sistema: botão na Central, XLSX dinâmico paginado; 12 testes e download real (1205/934/1275) validados, falha de leitura sem arquivo parcial, sem banco/publicação.
 - [ ] Exportação de campos: registrar censo da ação (MesaProduto.tsx + ExportarCamposPorSistemaButton.tsx) e slug acao.produto_exportar_campos_por_sistema; banco fora do escopo, acesso segue a guarda nominal com bypass existente de super_admin.
 - [x] QZ fail-loud: resultado ok/erro com mensagem original e console; erro na aba e toast Mesa SP, preservando PDF; 7 testes passaram, preview autenticado e fallback ZPL→PDF com resposta Bling simulada conferidos sem gravação, sem publicar.

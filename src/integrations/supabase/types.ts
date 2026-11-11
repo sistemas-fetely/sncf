@@ -12152,6 +12152,13 @@ export type Database = {
             foreignKeyName: "bling_produto_sync_fila_sku_fkey"
             columns: ["sku"]
             isOneToOne: true
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -37821,6 +37828,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -43121,6 +43135,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -43616,6 +43637,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {
@@ -44791,6 +44819,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -45658,6 +45693,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {
@@ -72312,6 +72354,57 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_export_campo: {
+        Row: {
+          aba: string
+          ativo: boolean
+          atualizado_em: string
+          bloco: string | null
+          campo_tecnico: string
+          coluna: string
+          criado_em: string
+          id: number
+          integracao: string | null
+          obrigatoriedade: string | null
+          ordem: number
+          owner: string
+          rotulo: string
+          sistema: string
+        }
+        Insert: {
+          aba: string
+          ativo?: boolean
+          atualizado_em?: string
+          bloco?: string | null
+          campo_tecnico: string
+          coluna: string
+          criado_em?: string
+          id?: number
+          integracao?: string | null
+          obrigatoriedade?: string | null
+          ordem: number
+          owner: string
+          rotulo: string
+          sistema: string
+        }
+        Update: {
+          aba?: string
+          ativo?: boolean
+          atualizado_em?: string
+          bloco?: string | null
+          campo_tecnico?: string
+          coluna?: string
+          criado_em?: string
+          id?: number
+          integracao?: string | null
+          obrigatoriedade?: string | null
+          ordem?: number
+          owner?: string
+          rotulo?: string
+          sistema?: string
+        }
+        Relationships: []
+      }
       produto_fase_destino: {
         Row: {
           ativo: boolean
@@ -76301,6 +76394,13 @@ export type Database = {
             foreignKeyName: "regularizacao_item_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -77435,6 +77535,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {
@@ -81549,6 +81656,13 @@ export type Database = {
             columns: ["sku_canonico"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {
@@ -102846,6 +102960,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -113376,6 +113497,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {
@@ -128752,6 +128880,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -131696,6 +131831,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -132109,6 +132251,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -132396,6 +132545,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {
@@ -134099,6 +134255,7 @@ export type Database = {
       }
       vw_logistica_remessa: {
         Row: {
+          atrasada: boolean | null
           canal: string | null
           cidade_destino: string | null
           cliente: string | null
@@ -134111,6 +134268,7 @@ export type Database = {
           custo_postagem: number | null
           custo_real: boolean | null
           data_despacho: string | null
+          dias_atraso: number | null
           dias_entrega: number | null
           dias_sem_movimento: number | null
           docs_custo: number | null
@@ -134127,6 +134285,7 @@ export type Database = {
           nfs: number | null
           no_prazo: boolean | null
           ordem_urgencia: number | null
+          parada: boolean | null
           parceiro_id: string | null
           pedido_id: string | null
           previsao_entrega: string | null
@@ -141002,14 +141161,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -147384,6 +147543,336 @@ export type Database = {
           tem_saldo: boolean | null
         }
         Relationships: []
+      }
+      vw_produto_export_bling: {
+        Row: {
+          actionestoque: Json | null
+          artigoperigoso: Json | null
+          camposcustomizados: Json | null
+          categoria_id: Json | null
+          cod_cadastro: string | null
+          codigo: Json | null
+          condicao: Json | null
+          datavalidade: Json | null
+          descricaocomplementar: Json | null
+          descricaocurta: Json | null
+          descricaoembalagemdiscreta: Json | null
+          dimensoes_altura: Json | null
+          dimensoes_largura: Json | null
+          dimensoes_profundidade: Json | null
+          dimensoes_unidademedida: Json | null
+          duns: Json | null
+          estoque_crossdocking: Json | null
+          estoque_localizacao: Json | null
+          estoque_maximo: Json | null
+          estoque_minimo: Json | null
+          estoque_saldovirtualtotal: Json | null
+          estrutura_componentes: Json | null
+          estrutura_lancamentoestoque: Json | null
+          estrutura_tipoestoque: Json | null
+          formato: Json | null
+          fornecedor_codigo: Json | null
+          fornecedor_contato_id: Json | null
+          fornecedor_contato_nome: Json | null
+          fornecedor_id: Json | null
+          fornecedor_precocompra: Json | null
+          fornecedor_precocusto: Json | null
+          fretegratis: Json | null
+          gtin: Json | null
+          gtinembalagem: Json | null
+          id: Json | null
+          itensporcaixa: Json | null
+          lido_em: string | null
+          linhaproduto_id: Json | null
+          linkexterno: Json | null
+          marca: Json | null
+          midia_imagens_externas: Json | null
+          midia_imagens_imagensurl: Json | null
+          midia_imagens_internas: Json | null
+          midia_video_url: Json | null
+          nome: Json | null
+          observacoes: Json | null
+          pesobruto: Json | null
+          pesoliquido: Json | null
+          preco: Json | null
+          situacao: Json | null
+          tipo: Json | null
+          tipoproducao: Json | null
+          tributacao_cest: Json | null
+          tributacao_classeenquadramentoipi: Json | null
+          tributacao_codigoanp: Json | null
+          tributacao_codigoexcecaotipi: Json | null
+          tributacao_codigoitem: Json | null
+          tributacao_codigolistaservicos: Json | null
+          tributacao_codigoseloipi: Json | null
+          tributacao_dadosadicionais: Json | null
+          tributacao_descricaoanp: Json | null
+          tributacao_descricaocompletaarmamento: Json | null
+          tributacao_grupoproduto_id: Json | null
+          tributacao_ncm: Json | null
+          tributacao_nfci: Json | null
+          tributacao_origem: Json | null
+          tributacao_percentualgasimportado: Json | null
+          tributacao_percentualgasnacional: Json | null
+          tributacao_percentualglp: Json | null
+          tributacao_percentualtributos: Json | null
+          tributacao_spedtipoitem: Json | null
+          tributacao_tipoarmamento: Json | null
+          tributacao_valorbasestretencao: Json | null
+          tributacao_valorcofinsfixo: Json | null
+          tributacao_valoricmssubstituto: Json | null
+          tributacao_valoripifixo: Json | null
+          tributacao_valorpartida: Json | null
+          tributacao_valorpisfixo: Json | null
+          tributacao_valorstretencao: Json | null
+          unidade: Json | null
+          variacoes: Json | null
+          volumes: Json | null
+        }
+        Relationships: []
+      }
+      vw_produto_export_cabecalho: {
+        Row: {
+          aba: string | null
+          bloco: string | null
+          campo_tecnico: string | null
+          coluna: string | null
+          integracao: string | null
+          obrigatoriedade: string | null
+          ordem: number | null
+          owner: string | null
+          rotulo: string | null
+          sistema: string | null
+        }
+        Insert: {
+          aba?: string | null
+          bloco?: string | null
+          campo_tecnico?: string | null
+          coluna?: string | null
+          integracao?: never
+          obrigatoriedade?: string | null
+          ordem?: number | null
+          owner?: string | null
+          rotulo?: string | null
+          sistema?: string | null
+        }
+        Update: {
+          aba?: string | null
+          bloco?: string | null
+          campo_tecnico?: string | null
+          coluna?: string | null
+          integracao?: never
+          obrigatoriedade?: string | null
+          ordem?: number | null
+          owner?: string | null
+          rotulo?: string | null
+          sistema?: string | null
+        }
+        Relationships: []
+      }
+      vw_produto_export_shopify: {
+        Row: {
+          cod_cadastro: string | null
+          inventoryitem_countrycodeoforigin: string | null
+          inventoryitem_harmonizedsystemcode: string | null
+          inventoryitem_id: Json | null
+          inventoryitem_requiresshipping: string | null
+          inventoryitem_tracked: string | null
+          inventoryitem_unitcost: string | null
+          inventoryitem_weight: number | null
+          inventorylevel_por_local: string | null
+          mf_custom_codigo: string | null
+          mf_custom_colecao: string | null
+          mf_custom_linha: string | null
+          mf_custom_marca: string | null
+          mf_custom_material: string | null
+          mf_custom_medida: string | null
+          mf_custom_nome_produto: string | null
+          mf_custom_produto: string | null
+          mf_custom_tipo_produto: string | null
+          mf_meucorreios_altura: string | null
+          mf_meucorreios_comprimento: string | null
+          mf_meucorreios_largura: string | null
+          product_category: string | null
+          product_collections: string | null
+          product_createdat: string | null
+          product_descriptionhtml: string | null
+          product_handle: string | null
+          product_hasvariantsthatrequirescomponents: boolean | null
+          product_id: string | null
+          product_image: string | null
+          product_images_qtd: number | null
+          product_media_qtd: number | null
+          product_options: string | null
+          product_producttype: string | null
+          product_publishedat: string | null
+          product_publishedscope: string | null
+          product_seo_description: string | null
+          product_seo_title: string | null
+          product_status: string | null
+          product_tags: Json | null
+          product_templatesuffix: string | null
+          product_title: string | null
+          product_updatedat: string | null
+          product_vendor: string | null
+          variant_barcode: Json | null
+          variant_compareatprice: Json | null
+          variant_createdat: Json | null
+          variant_id: Json | null
+          variant_image_id: Json | null
+          variant_inventorypolicy: Json | null
+          variant_inventoryquantity: Json | null
+          variant_option1: Json | null
+          variant_option2: Json | null
+          variant_option3: Json | null
+          variant_position: Json | null
+          variant_price: Json | null
+          variant_sku: Json | null
+          variant_taxable: Json | null
+          variant_title: Json | null
+          variant_updatedat: Json | null
+        }
+        Relationships: []
+      }
+      vw_produto_export_sncf_fop: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          atualizado_em: string | null
+          bling_id: string | null
+          canal_venda: string | null
+          categoria: string | null
+          cest: string | null
+          cod_cadastro: string | null
+          codigo_externo: string | null
+          colecao: string | null
+          cor: string | null
+          cor_nome: string | null
+          curvavel_embalagem: boolean | null
+          departamento: string | null
+          descricao_colecao: string | null
+          descricao_produto: string | null
+          dun: string | null
+          ean: string | null
+          estampa: string | null
+          estoque_fop: number | null
+          familia: string | null
+          fase: string | null
+          fase_alterada_motivo: string | null
+          fase_alterada_por: string | null
+          fop_id: string | null
+          foto_principal: string | null
+          grupo: string | null
+          grupo_tributario_bling: string | null
+          inner_qtd: number | null
+          is_vela_numerica: boolean | null
+          largura_cm: number | null
+          linha: string | null
+          marca: string | null
+          material: string | null
+          material_descritivo: string | null
+          meta_descricao: string | null
+          multiplos: number | null
+          n_fotos: number | null
+          n_hist_preco: number | null
+          n_precos_vigencia: number | null
+          ncm: string | null
+          nome_comercial: string | null
+          nome_completo: string | null
+          nome_operacional: string | null
+          numero_vela: number | null
+          origem_fisc: string | null
+          origem_prod: string | null
+          peso_g: number | null
+          preco_atacado: number | null
+          preco_custo: number | null
+          preco_site: number | null
+          preco_varejo: number | null
+          profundidade_cm: number | null
+          pronta_fop: boolean | null
+          qtd_kit: number | null
+          sku: string | null
+          status_estoque_fop: string | null
+          sub_colecao: string | null
+          sub_colecao2: string | null
+          tamanho_numero: string | null
+          tamanho_ref: string | null
+          tipo: string | null
+          tipo_embalagem: string | null
+          xpm_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_canal_venda"
+            columns: ["canal_venda"]
+            isOneToOne: false
+            referencedRelation: "produto_canal_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_embalagem"
+            columns: ["tipo_embalagem"]
+            isOneToOne: false
+            referencedRelation: "produto_embalagem_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_marca"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "produto_marca_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_material"
+            columns: ["material"]
+            isOneToOne: false
+            referencedRelation: "produto_material_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_fisc"
+            columns: ["origem_fisc"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_fiscal_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_prod"
+            columns: ["origem_prod"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_tipo"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_tipo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_produto_ficha_pendencias: {
         Row: {
@@ -154976,14 +155465,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -160917,6 +161406,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
             referencedColumns: ["sku"]
           },
@@ -161817,6 +162313,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
             referencedColumns: ["sku"]
           },
           {

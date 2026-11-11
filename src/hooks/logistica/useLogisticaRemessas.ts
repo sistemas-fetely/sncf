@@ -16,8 +16,32 @@ export interface RemessaRow {
   estado_canonico: string | null; estado_rotulo: string | null; eh_problema: boolean; ordem_urgencia: number | null;
   ultima_ocorrencia_em: string | null; ultima_ocorrencia_texto: string | null; dias_sem_movimento: number | null;
   no_prazo: boolean | null; dias_entrega: number | null; tem_nf: boolean; tem_rastreio: boolean;
+  atrasada: boolean | null; dias_atraso: number | null; parada: boolean | null;
 }
 export interface FiltroRemessas { transportadoraId?: string | null; canal?: "b2b" | "b2c" | "interno" | null; de?: string | null; ate?: string | null; soPedidos?: boolean }
+
+/** Operational queue: all open orders in scope, never restricted by dispatch date. */
+export function useLogisticaRemessasAndamento(f: Pick<FiltroRemessas, "transportadoraId" | "canal">) {
+  return useQuery({
+    queryKey: ["logistica", "remessas-andamento", f.transportadoraId ?? null, f.canal ?? null],
+    queryFn: async (): Promise<RemessaRow[]> => {
+      const linhas: RemessaRow[] = [];
+      for (let inicio = 0; ; inicio += 1000) {
+        let q = supabase.from("vw_logistica_remessa").select("*")
+          .eq("grao", "pedido").is("entregue_em", null)
+          .or("estado_canonico.is.null,estado_canonico.neq.entregue")
+          .order("pedido_id");
+        if (f.transportadoraId) q = q.eq("transportadora_id", f.transportadoraId);
+        if (f.canal) q = q.eq("canal", f.canal);
+        const { data, error } = await q.range(inicio, inicio + 999);
+        if (error) throw new Error(error.message);
+        linhas.push(...(data ?? []) as RemessaRow[]);
+        if ((data ?? []).length < 1000) return linhas;
+      }
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+}
 
 export function useLogisticaRemessas(f: FiltroRemessas) {
   return useQuery({

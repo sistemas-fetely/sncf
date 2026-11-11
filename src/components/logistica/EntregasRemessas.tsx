@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { useLogisticaRemessas, type RemessaRow } from "@/hooks/logistica/useLogisticaRemessas";
 import { brl, ddmm, isoDiasAtras, ROTULO_FONTE_REMESSA } from "@/lib/logistica/formato";
 import { RemessaDetalheDrawer } from "./RemessaDetalheDrawer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EntregasAndamento } from "./EntregasAndamento";
 
 type Status = "todas" | "transito" | "atencao" | "entregues" | "devolucao" | "sem_rastreio";
 const EM_TRANSITO = new Set(["postado_coletado", "em_transito", "custodia_transferida", "etiqueta"]);
@@ -72,6 +74,19 @@ const Ref = ({ r }: { r: RemessaRow }) =>
   ) : <span>{r.referencia}</span>;
 
 export function EntregasRemessas({ transportadoraId = null, canal = "total" }: { transportadoraId?: string | null; canal?: "total" | "b2b" | "b2c" }) {
+  const [nav, setNav] = useEstadoTela({ sub: "andamento" });
+  const sub = nav.sub === "periodo" ? "periodo" : "andamento";
+  return <Tabs value={sub} onValueChange={v => setNav({ sub: v })}>
+    <div className="min-w-0 overflow-x-auto"><TabsList className="w-max">
+      <TabsTrigger value="andamento">Em andamento</TabsTrigger>
+      <TabsTrigger value="periodo">Período</TabsTrigger>
+    </TabsList></div>
+    <TabsContent value="andamento" className="mt-4"><EntregasAndamento transportadoraId={transportadoraId} canal={canal} /></TabsContent>
+    <TabsContent value="periodo" className="mt-4"><EntregasPeriodo transportadoraId={transportadoraId} canal={canal} /></TabsContent>
+  </Tabs>;
+}
+
+function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string | null; canal: "total" | "b2b" | "b2c" }) {
   const [dias, setDias] = useState(90);
   const de = dias ? isoDiasAtras(dias) : null;
   const { data = [], isLoading, error, refetch } = useLogisticaRemessas({ transportadoraId, canal: canal === "total" ? null : canal, de });
