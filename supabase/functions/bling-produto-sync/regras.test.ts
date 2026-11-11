@@ -24,4 +24,12 @@ describe("Cadastro SNCF → Bling F1", () => {
   test("tolerância numérica 0,001", () => { expect(comparar({ peso_g: 1000 }, { pesoBruto: 1.001, pesoLiquido: 1.001 }, campos)).toEqual([]); expect(comparar({ peso_g: 1000 }, { pesoBruto: 1.002, pesoLiquido: 1 }, campos)).toHaveLength(1); });
   test("campos proibidos nunca entram em PATCH", () => { expect(() => montarPatch([{ campo: "nome", destino: "nome", valor_sncf: "A", valor_bling: "B" }])).toThrow("fora da Fase 1"); });
   test("escrita desligada impede aplicação", () => { expect(() => exigirEscrita({ escrita_habilitada: false })).toThrow("Nenhum produto foi enviado"); expect(() => exigirEscrita({ escrita_habilitada: true })).not.toThrow(); });
+  test("21.2/6.9/3.1 iguais com unidade 2 divergem só em unidadeMedida", () => {
+    const d = comparar({ altura_cm: 21.2, largura_cm: 6.9, profundidade_cm: 3.1 }, { dimensoes: { altura: 21.2, largura: 6.9, profundidade: 3.1, unidadeMedida: 2 } }, campos);
+    expect(d).toEqual([{ campo: "unidadeMedida", destino: "dimensoes.unidadeMedida", valor_sncf: 1, valor_bling: 2 }]);
+    expect(montarPatch(d)).toEqual({ dimensoes: { unidadeMedida: 1 } });
+  });
+  test("dimensões iguais em cm não divergem", () => { expect(comparar({ altura_cm: 21.2, largura_cm: 6.9, profundidade_cm: 3.1 }, { dimensoes: { altura: 21.2, largura: 6.9, profundidade: 3.1, unidadeMedida: 1 } }, campos)).toEqual([]); });
+  test("sem dimensão SNCF não altera unidade Bling", () => { expect(comparar({ altura_cm: 0, largura_cm: null, profundidade_cm: "" }, { dimensoes: { unidadeMedida: 2 } }, campos)).toEqual([]); });
+  test("dimensão realmente diferente e unidade incorreta são diferenças separadas", () => { expect(comparar({ altura_cm: 21.2 }, { dimensoes: { altura: 20, unidadeMedida: 2 } }, campos).map((i) => i.campo)).toEqual(["altura", "unidadeMedida"]); });
 });

@@ -1,4 +1,7 @@
 type Consulta = (endpoint: string) => Promise<any>;
+export function codigoBling(fonte: { sku: string; codigo_externo?: unknown }): string {
+  return fonte.codigo_externo != null && String(fonte.codigo_externo) !== "" ? String(fonte.codigo_externo) : fonte.sku;
+}
 export function erro404(e: unknown): boolean { return typeof e === "object" && e !== null && "status" in e && e.status === 404; }
 export async function resolverProduto(sku: string, idCache: unknown, idOriginal: unknown, get: Consulta) {
   const candidatos = [...new Set([idCache, idOriginal].filter((id) => id != null && String(id) !== "").map(String))];
@@ -25,5 +28,5 @@ export async function resolverProduto(sku: string, idCache: unknown, idOriginal:
   }
   const id = detalhe?.id == null ? null : String(detalhe.id);
   return { detalhe, bling_id: id, resolucao: { fonte: id ? fonte : "sem_vinculo", id_cache: idCache ?? null, id_original: idOriginal ?? null, id_resolvido: id,
-    id_desatualizado: !!idOriginal && String(idOriginal) !== id } };
+    codigo_usado: sku, id_desatualizado: !!idOriginal && String(idOriginal) !== id } };
 }

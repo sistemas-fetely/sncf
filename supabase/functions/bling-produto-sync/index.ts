@@ -3,7 +3,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.25.76";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { comparar, montarPatch, exigirEscrita, type Campo } from "./regras.ts";
-import { resolverProduto } from "./resolver.ts";
+import { resolverProduto, codigoBling } from "./resolver.ts";
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const Body = z.object({ acao: z.enum(["diff", "aplicar", "automatico"]).default("diff"), execucao_id: z.string().uuid().optional() });
 const msg = (e: unknown) => {
@@ -65,8 +65,8 @@ Deno.serve(async (req) => {
       for (const p of page.data ?? []) {
         if (Date.now() - inicioMs > 40000) break;
         try {
-          const resolvido = await resolverProduto(p.sku, cache.get(p.sku), p.bling_id, get);
-          const fonte = { ...p.fonte, resolucao_bling: resolvido.resolucao };
+          const resolvido = await resolverProduto(codigoBling({ ...p.fonte, sku: p.sku }), cache.get(p.sku), p.bling_id, get);
+          const fonte = { ...p.fonte, resolucao_bling: { ...resolvido.resolucao, unidade_medida: resolvido.detalhe?.dimensoes?.unidadeMedida ?? null } };
           check(await sb.from("bling_produto_sync_produto").update({ bling_id: resolvido.bling_id, fonte, sem_vinculo: !resolvido.detalhe, status: resolvido.detalhe ? "pendente" : "ignorado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
           const atual = resolvido.detalhe;
           if (!atual) continue;

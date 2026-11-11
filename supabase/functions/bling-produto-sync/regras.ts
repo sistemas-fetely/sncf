@@ -1,6 +1,6 @@
 export type Campo = { campo: string; origem: string; destino: string; tipo: "numero" | "texto" | "digitos"; divisor?: number };
 export type Diferenca = { campo: string; destino: string; valor_sncf: unknown; valor_bling: unknown };
-const DESTINOS = new Set(["pesoBruto", "pesoLiquido", "dimensoes.altura", "dimensoes.largura", "dimensoes.profundidade", "gtin", "gtinEmbalagem", "tributacao.ncm", "tributacao.cest", "marca", "itensPorCaixa"]);
+const DESTINOS = new Set(["pesoBruto", "pesoLiquido", "dimensoes.altura", "dimensoes.largura", "dimensoes.profundidade", "dimensoes.unidadeMedida", "gtin", "gtinEmbalagem", "tributacao.ncm", "tributacao.cest", "marca", "itensPorCaixa"]);
 export function ler(obj: Record<string, any>, path: string): unknown { return path.split(".").reduce((o, k) => o?.[k], obj); }
 export function valor(v: unknown, c: Campo): unknown {
   if (v == null || String(v).trim() === "" || Number(v) === 0) return null;
@@ -8,15 +8,19 @@ export function valor(v: unknown, c: Campo): unknown {
   return c.tipo === "digitos" ? String(v).replace(/\D/g, "") || null : String(v).trim();
 }
 export function comparar(fonte: Record<string, any>, bling: Record<string, any>, campos: Campo[]): Diferenca[] {
-  return campos.flatMap((c) => {
+  const diferencas = campos.flatMap((c) => {
     if (!DESTINOS.has(c.destino)) throw new Error(`Campo fora da Fase 1: ${c.destino}`);
     const sncf = valor(fonte[c.origem], c); if (sncf == null) return [];
     const bruto = ler(bling, c.destino) ?? null;
     let atual = c.tipo === "numero" ? Number(bruto) : c.tipo === "digitos" ? String(bruto ?? "").replace(/\D/g, "") : String(bruto ?? "").trim();
-    if (c.destino.startsWith("dimensoes.") && Number(bling.dimensoes?.unidadeMedida) === 2) atual = Number(atual) * 100;
     const igual = c.tipo === "numero" ? Math.abs(Number(sncf) - Number(atual)) <= 0.001 + Number.EPSILON : sncf === atual;
     return igual ? [] : [{ campo: c.campo, destino: c.destino, valor_sncf: sncf, valor_bling: bruto }];
   });
+  const temDimensao = campos.some((c) => c.destino.startsWith("dimensoes.") && c.destino !== "dimensoes.unidadeMedida" && valor(fonte[c.origem], c) != null);
+  if (temDimensao && Number(bling.dimensoes?.unidadeMedida) !== 1) {
+    diferencas.push({ campo: "unidadeMedida", destino: "dimensoes.unidadeMedida", valor_sncf: 1, valor_bling: bling.dimensoes?.unidadeMedida ?? null });
+  }
+  return diferencas;
 }
 export function montarPatch(itens: Diferenca[]): Record<string, any> {
   const patch: Record<string, any> = {};
