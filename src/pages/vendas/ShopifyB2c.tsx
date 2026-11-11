@@ -55,6 +55,7 @@ import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
+import { MarketplaceTab } from "./marketplace/MarketplaceTab";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
@@ -67,7 +68,7 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 // retorno à operação. O dado continua: shopify_checkouts alimenta
 // /vendas/shopify/checkouts e devolucao vive em Devoluções Fiscais.
 // Link salvo com ?aba=carrinhos cai em fila pela guarda abaixo.
-const ABAS = ["fila", "dash"] as const;
+const ABAS = ["fila", "marketplace", "dash"] as const;
 type Aba = (typeof ABAS)[number];
 
 type ColunaB2c =
@@ -255,6 +256,7 @@ export default function ShopifyB2c() {
   // Guarda nominal por aba.
   const permFila = usePodeVerAba("tela.b2c");
   const permDash = usePodeVerAba("tela.dash_b2c");
+  const permMarketplace = usePodeVerAba("tela.pedidos_marketplace");
 
   // Guarda de escrita: devolver pedido à fila é ação nomeada. Enquanto carrega,
   // o botão nasce desabilitado — default seguro. Nunca some, só trava com dica.
@@ -270,6 +272,7 @@ export default function ShopifyB2c() {
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
+    marketplace: permMarketplace,
   };
 
   const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
@@ -966,6 +969,9 @@ export default function ShopifyB2c() {
             </AbaPermitida>
             <AbaPermitida slug="tela.dash_b2c">
               <TabsTrigger value="dash">Dash</TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.pedidos_marketplace">
+              <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             </AbaPermitida>
           </TabsList>
 
@@ -1715,6 +1721,9 @@ export default function ShopifyB2c() {
           </ConteudoAba>
         </TabsContent>
 
+        <TabsContent value="marketplace">
+          <ConteudoAba slug="tela.pedidos_marketplace"><MarketplaceTab /></ConteudoAba>
+        </TabsContent>
         <TabsContent value="dash">
           <ConteudoAba slug="tela.dash_b2c">
             <DashB2c pedidos={lista} isLoading={isLoading} />
