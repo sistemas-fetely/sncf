@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
+import { criarFetchLimitado } from "./tempo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -16,9 +17,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   const t0 = Date.now();
+  const fetchLimitado = criarFetchLimitado(t0);
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { global: { fetch: fetchLimitado } },
   );
 
   // AUTORIA-NAO-SE-PERDE: service role não tem auth.uid(), então o evento de
@@ -27,7 +30,7 @@ Deno.serve(async (req) => {
   const sbUser = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    { global: { fetch: fetchLimitado, headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
   );
 
 
@@ -142,7 +145,8 @@ Deno.serve(async (req) => {
     const { data: cfgRow, error: eCfg } = await sb
       .from("integracoes_config").select("config").eq("sistema", sistema).single();
     if (eCfg) throw new Error(`config ${sistema}: ${eCfg.message}`);
-    const cfg = cfgRow!.config as Record<string, string>;
+    if (!cfgRow?.config) throw new Error(`config ${sistema}: configuração ausente`);
+    const cfg = cfgRow.config as Record<string, string>;
 
     const { data: pat, error: ePat } = await sb.rpc("get_vault_secret", {
       p_name: cfg.pat_vault_key,
@@ -153,7 +157,7 @@ Deno.serve(async (req) => {
     const base = cfg.base_url;
 
     // 4. Autenticar (ZENLOG-TENANT-OBRIGATORIO: tenantName é exigido)
-    const authRes = await fetch(`${base}/api/TokenAuth/AuthenticatePAT`, {
+    const authRes = await fetchLimitado(`${base}/api/TokenAuth/AuthenticatePAT`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ personalAccessToken: pat, tenantName: cfg.tenant_name }),
@@ -171,7 +175,7 @@ Deno.serve(async (req) => {
     let erroMsg: string | null = null;
 
     try {
-      const r = await fetch(
+      const r = await fetchLimitado(
         `${base}/api/services/app/LayoutUnificadoPedidoExpedicao/Create`,
         {
           method: "POST",
@@ -200,11 +204,11 @@ Deno.serve(async (req) => {
     let confirmado = false;
     if (sucesso) {
       const qs = new URLSearchParams({
-        CpfCnpjOperadorLogistico: String(payload!.cpfCnpj),
-        CpfCnpjDepositante: String(payload!.cpfCnpjDepositante),
+        CpfCnpjOperadorLogistico: String(payload?.cpfCnpj),
+        CpfCnpjDepositante: String(payload?.cpfCnpjDepositante),
         CodigoExpedicao: codigo,
       });
-      const v = await fetch(
+      const v = await fetchLimitado(
         `${base}/api/services/app/Expedicao/GetEventosExpedicao?${qs}`,
         { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } },
       );
@@ -315,7 +319,10 @@ Deno.serve(async (req) => {
     return json({ sucesso: false, erro: erroMsg, duracao_ms: Date.now() - t0 }, 502);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[empurrar-pedido-xpm] falha +${Date.now() - t0}ms: ${msg}`);
     if (pedido_id) {
+      // Se o orçamento de rede acabou, a gravação de erro não pode impedir a resposta.
+      try {
       await sb.from("xpm_envios_log").insert({
         pedido_id,
         operacao: "create",
@@ -326,6 +333,9 @@ Deno.serve(async (req) => {
         duracao_ms: Date.now() - t0,
       });
       await sb.from("pedidos").update({ xpm_envio_erro: msg }).eq("id", pedido_id);
+      } catch (registroErro) {
+        console.error("[empurrar-pedido-xpm] falha ao registrar erro:", registroErro instanceof Error ? registroErro.message : String(registroErro));
+      }
     }
     return json({ sucesso: false, erro: msg }, 500);
   }

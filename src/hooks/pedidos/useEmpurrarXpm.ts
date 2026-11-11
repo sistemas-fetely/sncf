@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { tokenEnvioXpm } from "@/lib/pedidos/sessaoXpm";
 
 interface EmpurrarXpmResponse {
   sucesso: boolean;
@@ -40,9 +41,11 @@ export function useEmpurrarXpm() {
   return useMutation({
     mutationFn: async ({ pedido_id, forcar, motivo }: EmpurrarXpmParams): Promise<EmpurrarXpmResponse> => {
       const overrides = forcar ?? [];
-      const { data, error } = await supabase.functions.invoke<EmpurrarXpmResponse>(
+      const token = await tokenEnvioXpm(supabase.auth);
+      const invocar = (accessToken: string) => supabase.functions.invoke<EmpurrarXpmResponse>(
         "empurrar-pedido-xpm",
         {
+          headers: { Authorization: `Bearer ${accessToken}` },
           body: {
             pedido_id,
             ...(overrides.length > 0 ? { forcar: overrides } : {}),
@@ -50,6 +53,12 @@ export function useEmpurrarXpm() {
           },
         },
       );
+      let { data, error } = await invocar(token);
+      // 401 é anterior ao envio; timeout nunca autoriza repetição automática.
+      if (error && "context" in error && error.context instanceof Response && error.context.status === 401) {
+        const renovado = await tokenEnvioXpm(supabase.auth, true);
+        ({ data, error } = await invocar(renovado));
+      }
       if (error) {
         // A edge devolve 422 com a lista de bloqueios no corpo; sem isso o
         // operador só veria "erro genérico" e não saberia o que corrigir.
@@ -61,6 +70,10 @@ export function useEmpurrarXpm() {
             msg = b.bloqueios.join(" · ");
           } else if (b?.erro) {
             msg = b.erro;
+          } else if (b?.code === "IDLE_TIMEOUT") {
+            msg = "O envio excedeu o tempo de espera. Confira a expedição na XPM antes de tentar novamente.";
+          } else if (b?.message) {
+            msg = b.message;
           }
         } catch { /* mantém mensagem genérica */ }
         throw new Error(msg);
@@ -68,7 +81,7 @@ export function useEmpurrarXpm() {
       if (!data?.sucesso) throw new Error(data?.erro || "Falha ao empurrar pra XPM");
       return data;
     },
-    onSuccess: (data, vars) => {
+    onSuccess: async (data, vars) => {
       const amb = data.ambiente === "producao" ? "" : ` · ${data.ambiente}`;
       const avisos = data.avisos ?? [];
       if (avisos.length > 0) {
@@ -102,12 +115,12 @@ export function useEmpurrarXpm() {
           variant: "destructive",
         });
       }
-      invalidarPedido(qc, vars.pedido_id);
+      await invalidarPedido(qc, vars.pedido_id);
     },
-    onError: (e: Error, vars) => {
+    onError: async (e: Error, vars) => {
       toast({ title: "Erro ao empurrar pra XPM", description: e.message, variant: "destructive" });
       // O erro fica gravado em pedidos.xpm_envio_erro: recarrega pra exibir.
-      invalidarPedido(qc, vars.pedido_id);
+      await invalidarPedido(qc, vars.pedido_id);
     },
   });
 }
