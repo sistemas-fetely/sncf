@@ -17,13 +17,17 @@ export function extrairRastreio(raw: any, agora: string) {
   const codigo = r.codigo ?? r.codigoRastreio ?? objeto.codigoRastreio;
   if (typeof codigo !== 'string' || !codigo.trim()) return null;
   const situacao = r.situacao;
-  const descricao = r.descricao ?? (typeof situacao === 'string' ? situacao : situacao?.descricao) ?? r.status;
-  if (typeof descricao !== 'string' || !descricao.trim()) return null;
-  const dataRaw = r.data ?? r.dataHora ?? r.ultimaAlteracao ?? situacao?.data;
+  const descricaoRaw = r.descricao ?? (typeof situacao === 'string' ? situacao : situacao?.descricao) ?? r.status;
+  const rotulos: Record<number, string> = { 8: 'Etiqueta gerada', 1: 'Em trânsito', 3: 'Entregue' };
+  const descricao = typeof descricaoRaw === 'string' && descricaoRaw.trim()
+    ? descricaoRaw
+    : typeof situacao === 'number' ? rotulos[situacao] ?? `Situação Bling ${situacao}` : null;
+  if (!descricao) return null;
+  const dataRaw = r.ultimaAlteracao ?? r.data ?? r.dataHora ?? situacao?.data;
   const dataTexto = typeof dataRaw === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dataRaw) ? `${dataRaw.replace(' ', 'T')}-03:00` : dataRaw;
   const timestamp = typeof dataTexto === 'string' ? Date.parse(dataTexto) : NaN;
   const data = Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
-  const entregue = entregaConcluida(descricao);
+  const entregue = situacao === 3 || entregaConcluida(descricao);
   return { codigo_rastreio: codigo.trim(), servico: objeto.servico?.descricao ?? objeto.servico?.nome ?? (typeof objeto.servico === 'string' ? objeto.servico : null), status_atual: descricao, data_ultima_atualizacao: data ?? agora, atualizado_em: agora,
     ...(entregue && data ? { entregue: true, entregue_fonte: 'marketplace', entregue_confirmado_em: data } : {}),
   };

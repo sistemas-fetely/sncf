@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Ajuste rastreio marketplace: situações Bling 8/1/3, descrição vazia e data zerada; 38 testes Bun + 5 casos Deno e Deno check passaram; redeploy confirmado somente de bling-marketplace-sync, sem banco/tela/publicação.
 - [x] Bling envio aprovado: filtros SKU/campo, dimensões completas e vínculo pelo código real; 29 testes + Deno check, deploy só bling-produto-sync; três unidadeMedida aplicadas (21.2 × 6.9 × 3.1 preservados, 2 → 1), nova leitura Bling confirmou; escrita/automação false, 714 itensPorCaixa e 2 cest pendentes, sem publicação.
 - [x] Marketplace reformulação: rota/fila/gaveta, portadores em dialog, campos B2C compartilhados e rastreio/objeto; testes e preview autenticado com pedidos reais conferidos, objeto real consultado sem gravar, edge redeploy, sem SQL/cron/publicação. Retorno real aguarda pedido em transporte/entregue (nenhum atual).
 - [ ] Marketplace menu: falta nó /vendas/marketplace em sncf_navegacao; fn_nascer_tela deve registrar com tela.pedidos_marketplace, pai sops.operacao e ordem logo após Pedidos B2C (40). Banco fora do escopo; sidebar continua inteiramente via tabela.

@@ -1,6 +1,31 @@
 import { describe, it, expect } from 'bun:test';
 import { entregaConcluida, extrairRastreio, lerObjetos, sincronizarRastreio } from './rastreio';
 describe('Rastreio marketplace', () => {
+  const agora = '2026-11-11T07:11:00.000Z';
+  it('situação real 8 preserva etiqueta sem descrição e usa agora para data zerada', () => {
+    const r = extrairRastreio({ data: { rastreamento: { codigo: 'ABC', situacao: 8, descricao: '', ultimaAlteracao: '0000-00-00 00:00:00' } } }, agora);
+    expect(r).toMatchObject({ codigo_rastreio: 'ABC', status_atual: 'Etiqueta gerada', data_ultima_atualizacao: agora, atualizado_em: agora });
+    expect(r).not.toHaveProperty('entregue');
+  });
+  it('situação real 1 registra encaminhamento sem confirmar entrega', () => {
+    const r = extrairRastreio({ data: { rastreamento: { codigo: 'ABC', situacao: 1, descricao: 'Objeto encaminhado', ultimaAlteracao: '2026-11-10 12:18:40' } } }, agora);
+    expect(r).toMatchObject({ status_atual: 'Objeto encaminhado', data_ultima_atualizacao: '2026-11-10T15:18:40.000Z' });
+    expect(r).not.toHaveProperty('entregue');
+  });
+  it('situação real 3 confirma entrega com a data da última alteração', () => {
+    expect(extrairRastreio({ data: { rastreamento: { codigo: 'ABC', situacao: 3, descricao: 'Objeto entregue ao destinatário', ultimaAlteracao: '2026-11-10 12:18:40', data: agora } } }, agora)).toMatchObject({ status_atual: 'Objeto entregue ao destinatário', entregue: true, entregue_fonte: 'marketplace', entregue_confirmado_em: '2026-11-10T15:18:40.000Z' });
+  });
+  it('situação 3 confirma entrega mesmo sem texto indicativo', () => {
+    expect(extrairRastreio({ rastreamento: { codigo: 'ABC', situacao: 3, descricao: 'Concluído', ultimaAlteracao: '2026-11-10 12:18:40' } }, agora)).toMatchObject({ entregue: true, entregue_confirmado_em: '2026-11-10T15:18:40.000Z' });
+  });
+  it.each([[1, 'Em trânsito'], [3, 'Entregue'], [9, 'Situação Bling 9']])('situação %s sem descrição usa rótulo %s', (situacao, status) => {
+    expect(extrairRastreio({ rastreamento: { codigo: 'ABC', situacao, descricao: '', ultimaAlteracao: '2026-11-10 12:18:40' } }, agora)).toMatchObject({ status_atual: status });
+  });
+  it('situação 3 com data zerada não inventa confirmação de entrega', () => {
+    const r = extrairRastreio({ rastreamento: { codigo: 'ABC', situacao: 3, descricao: '', ultimaAlteracao: '0000-00-00 00:00:00' } }, agora);
+    expect(r).toMatchObject({ status_atual: 'Entregue', data_ultima_atualizacao: agora });
+    expect(r).not.toHaveProperty('entregue_confirmado_em');
+  });
   it('formato real Bling usa ultimaAlteracao no horário brasileiro', () => expect(extrairRastreio({ data: { rastreamento: { codigo: 'ABC', descricao: 'Entregue', situacao: 1, ultimaAlteracao: '2026-11-10 12:18:40' } } }, '2026-11-11T02:00:00Z')).toMatchObject({ entregue: true, entregue_confirmado_em: '2026-11-10T15:18:40.000Z' }));
   it('limita 50 em transporte, registra cru e faz upsert por código', async () => {
     const writes: any[] = []; const filters: any[] = [];
