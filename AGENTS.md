@@ -1,6 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
-- Marketplace orders belong to the Loja B2C shell with dedicated tab/action slugs and URL-prefixed filters; transport writes use existing RPCs and await invalidation, preserving Shopify flows and database ownership.
+- Marketplace orders use their own route and URL filters; share PipelineFases and PedidoCanalDrawer with B2C and reuse its table/header controls so both queues retain one visual system; transport writes use existing RPCs and await invalidation.
 - Physical receipt UI belongs to Chegada Recebimento and reads the center/door-neutral summary view; the manual XLSX form is shared only there while XPM keeps pre-arrival registration, so ingestion logic and receipt reporting have one home.
 - SNCF-to-Bling F1 uses its own config-driven field mapping, snapshot execution tables and SKU queue; only allowlisted partial PATCH fields are permitted, leases serialize requests and database flags default writes/automation off, so legacy destination correction rules remain unchanged.
 - Catalog missing-dimension retries use the shared strict-equivalence provisioner under the existing lease; resend whole product groups and link automatic registrations through audit_log so color guards and per-reading counts remain intact.

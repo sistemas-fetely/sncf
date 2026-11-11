@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Marketplace visual B2C: PipelineFases e PedidoCanalDrawer compartilhados, cabeçalho/filtros/tabela/paginação B2C reutilizados; prints das filas/gavetas autenticadas em 1280 px conferidos, fase/busca/recarga/Portadores verificados, 13 testes passaram e build OK; sem banco/publicação.
 - [x] Inner etapa A: arquivo atual validado em somente leitura, 1.242/1.242 corretas, nenhuma divergência; layout real cabeçalho 3/dados 5, coluna E.
 - [ ] Inner etapa B: origem cartório confirmada, testes, diff novo e aplicar somente itensPorCaixa em lotes; escrita desligada ao terminar e exemplos relidos no Bling.
 - [x] Ajuste rastreio marketplace: situações Bling 8/1/3, descrição vazia e data zerada; 38 testes Bun + 5 casos Deno e Deno check passaram; redeploy confirmado somente de bling-marketplace-sync, sem banco/tela/publicação.

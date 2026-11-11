@@ -2,7 +2,7 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { useLocation, useNavigate } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { ExternalLink, ArrowRight } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { PedidoCanalDrawer, BlocoPedidoCanal as Bloco, LinhaPedidoCanal as Linha } from "./PedidoCanalDrawer";
 import { Button } from "@/components/ui/button";
 import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,24 +30,6 @@ function useEnderecoEntrega(pedidoId: string | null | undefined, ativo: boolean)
 
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
-}
-
-function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-2">
-      <h3 className="text-[11px] font-medium uppercase tracking-[2px] text-muted-foreground">{titulo}</h3>
-      {children}
-    </section>
-  );
-}
-
-function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start justify-between gap-3 text-xs">
-      <span className="text-muted-foreground">{rotulo}</span>
-      <span className="text-right">{children}</span>
-    </div>
-  );
 }
 
 interface Props {
@@ -92,14 +74,10 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
   const itensRemovidos = (itens ?? []).filter((it) => qtdVigente(it) === 0);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-xl">
-        <SheetHeader className="pb-3">
-          <SheetTitle className="font-mono text-base">{txt(pedido?.order_name)}</SheetTitle>
-          <SheetDescription>
-            {txt(pedido?.cliente)} · {formatDateBR(pedido?.data_pedido)} ·{" "}
-            {pedido?.estagio_rotulo ?? "—"}
-          </SheetDescription>
+    <PedidoCanalDrawer open={open} onOpenChange={onOpenChange}
+      titulo={txt(pedido?.order_name)}
+      descricao={<>{txt(pedido?.cliente)} · {formatDateBR(pedido?.data_pedido)} · {pedido?.estagio_rotulo ?? "—"}</>}
+      cabecalho={<>
           {pedido && (
             <div className="pt-2">
               <EncerrarCasoB2c pedido={pedido} variante="botao" onFeito={() => onOpenChange(false)} />
@@ -117,9 +95,8 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
               {pedido.entregue_motivo && <p>{pedido.entregue_motivo}</p>}
             </div>
           )}
-        </SheetHeader>
-
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
+      </>}
+    >
           {/* Pedido */}
           <Bloco titulo="Pedido">
             <div className="rounded-md border border-border">
@@ -278,9 +255,7 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
               </Button>
             </Bloco>
           )}
-        </div>
-      </SheetContent>
-    </Sheet>
+    </PedidoCanalDrawer>
   );
 }
 
