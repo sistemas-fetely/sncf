@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Settings2, AlertTriangle, FileText, Package, Truck, PackageCheck, RotateCcw, Ban } from 'lucide-react';
+import { Settings2, AlertTriangle } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { CasaPageHeader } from '@/components/casa/CasaPageHeader';
 import { PipelineFases } from '@/components/vendas/PipelineFases';
+import { ICONES_ESTAGIO_B2C } from '@/components/vendas/iconesEstagioB2c';
 import { ordenarPor, type SortState } from '@/components/shared/SortableTableHead';
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from '@/components/tabela/CabecalhoOrdenavel';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,17 +24,12 @@ import { formatBRL } from '@/lib/format-currency';
 import { fmtDataHora } from '@/lib/data';
 import { formatError } from '@/lib/format-error';
 import { useMarketplace, useCadastroMarketplace } from './useMarketplace';
-import { filtrarPedidos } from './regras';
+import { filtrarPedidos, normalizarEstagioMarketplace } from './regras';
 import { MarketplaceDrawer } from './MarketplaceDrawer';
 import { TransporteDialog } from './TransporteDialog';
 import { DevolucaoMarketplaceDialog } from './DevolucaoMarketplaceDialog';
 import { PortadoresDialog } from './PortadoresDialog';
 
-const ICONES: Record<string, JSX.Element> = {
-  aguardando_nf: <FileText className="h-4 w-4" />, no_cd: <Package className="h-4 w-4" />,
-  em_transporte: <Truck className="h-4 w-4" />, entregue: <PackageCheck className="h-4 w-4" />,
-  devolucao: <RotateCcw className="h-4 w-4" />, cancelado: <Ban className="h-4 w-4" />,
-};
 type Coluna = 'id_externo' | 'bling_numero' | 'data_pedido' | 'cliente_nome' | 'cd_nome' | 'valor_liquido' | 'estagio_ordem' | 'area_responsavel' | 'proxima_acao' | 'rastreio_codigo';
 const colunas: [Coluna, string][] = [
   ['id_externo', 'Pedido'], ['bling_numero', 'Bling'], ['data_pedido', 'Data / Idade'], ['cliente_nome', 'Cliente'],
@@ -44,6 +40,10 @@ const descendentes: Coluna[] = ['id_externo', 'bling_numero', 'data_pedido', 'va
 export default function PedidosMarketplace() {
   const pedidos = useMarketplace(); const cadastro = useCadastroMarketplace();
   const [estado, setEstado] = useEstadoTela({ busca: '', marketplace: 'todos', estagio: 'todos', comAlerta: false, ordem: '', pagina: 1, detalhe: '' }, { replaceKeys: ['busca'] });
+  const estagioAtivo = normalizarEstagioMarketplace(estado.estagio);
+  useEffect(() => {
+    if (estagioAtivo !== estado.estagio) setEstado({ estagio: estagioAtivo });
+  }, [estado.estagio, estagioAtivo, setEstado]);
   const { preferencias, salvar } = usePreferenciaTela('tela.pedidos_marketplace', { tamanho: 20 });
   const tamanho = preferencias.tamanho;
   const [config, setConfig] = useState(false); const [acao, setAcao] = useState<'transporte' | 'devolucao' | null>(null);
@@ -69,9 +69,9 @@ export default function PedidosMarketplace() {
   }), [base, estado, sort?.column, sort?.direction]);
   const fases = useMemo(() => (cadastro.data?.estagios ?? []).map(f => {
     const lista = base.filter(p => p.estagio === f.codigo);
-    return { codigo: f.codigo, rotulo: f.rotulo, proxima_acao: lista.find(p => p.proxima_acao)?.proxima_acao,
+    return { codigo: f.codigo, rotulo: f.rotulo, proxima_acao: f.proxima_acao,
       qtd: lista.length, valor: lista.reduce((v, p) => v + Number(p.valor_liquido ?? 0), 0),
-      alertas: lista.filter(p => p.alerta != null).length, icone: ICONES[f.codigo] };
+      alertas: lista.filter(p => p.alerta != null).length, icone: ICONES_ESTAGIO_B2C[f.codigo], eh_desvio: f.eh_desvio };
   }), [base, cadastro.data?.estagios]);
   const emAndamento = base.filter(p => !p.eh_final);
   const pagina = Math.min(Math.max(1, estado.pagina), Math.max(1, Math.ceil(filtrados.length / tamanho)));
@@ -92,7 +92,7 @@ export default function PedidosMarketplace() {
       actions={<Button variant="outline" size="sm" onClick={() => setConfig(true)}><Settings2 className="h-4 w-4" />Portadores</Button>} />
     <div className="space-y-4" style={{ '--fila-topo-colado': `${64 + alturaPipeline}px` } as CSSProperties}>
       <div ref={pipelineRef} className="sticky top-16 z-20 -mx-6 border-b bg-background px-6 py-2">
-        <PipelineFases fases={fases} estagioAtivo={estado.estagio === 'todos' ? null : estado.estagio}
+        <PipelineFases fases={fases} estagioAtivo={estagioAtivo === 'todos' ? null : estagioAtivo}
           onClickEstagio={estagio => setEstado({ estagio, pagina: 1 })}
           onLimparFiltro={() => setEstado({ estagio: 'todos', pagina: 1 })}
           carregando={pedidos.isPending || cadastro.isPending} erro={erro ? formatError(erro) : null} />

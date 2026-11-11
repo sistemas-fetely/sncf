@@ -1,4 +1,4 @@
-import { AlertTriangle, Inbox, Receipt, Clock, Package, FileText, Truck, PackageCheck, Ban } from "lucide-react";
+import { ICONES_ESTAGIO_B2C } from "./iconesEstagioB2c";
 import { PipelineFases } from "./PipelineFases";
 import { usePipelineB2c } from "@/hooks/vendas/useB2c";
 
@@ -10,20 +10,6 @@ import { usePipelineB2c } from "@/hooks/vendas/useB2c";
  * ENTRADA-B2C-POR-FASES (19/09/2026): a régua é só de FASES. "Fila ativa" e
  * "incluir cancelados" não são fase — saíram para a linha de filtros.
  */
-
-const ICONES: Record<string, JSX.Element> = {
-  recebido: <Inbox className="h-4 w-4" />,
-  cobranca: <Receipt className="h-4 w-4" />,
-  aguardando_pagamento: <Clock className="h-4 w-4" />,
-  pre_separacao: <Clock className="h-4 w-4" />,
-  em_separacao: <Package className="h-4 w-4" />,
-  pre_faturamento: <FileText className="h-4 w-4" />,
-  faturado: <FileText className="h-4 w-4" />,
-  travado: <AlertTriangle className="h-4 w-4" />,
-  em_transporte: <Truck className="h-4 w-4" />,
-  entregue: <PackageCheck className="h-4 w-4" />,
-  cancelado: <Ban className="h-4 w-4" />,
-};
 
 export interface ContagemEstagio {
   qtd: number;
@@ -70,7 +56,7 @@ export function PipelineB2c({
         qtd: c ? c.qtd : Number(f.qtd ?? 0),
         valor: c ? c.valor : Number(f.soma_valor ?? 0),
         alertas: c ? c.alerta : Math.max(0, Number(f.com_alerta ?? 0) - (reducaoAlerta?.[f.estagio] ?? 0)),
-        icone: ICONES[f.estagio],
+        icone: ICONES_ESTAGIO_B2C[f.estagio],
         eh_desvio: !!f.eh_desvio,
         alertaSemCd: f.estagio === "recebido" ? alertaSemCd : 0,
       };

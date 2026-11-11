@@ -3,9 +3,10 @@ export type PedidoFiltro = { marketplace_codigo: string; estagio: string | null;
 
 export function filtrarPedidos<T extends PedidoFiltro>(pedidos: T[], filtros: FiltrosMarketplace): T[] {
   const busca = filtros.busca.trim().toLocaleLowerCase('pt-BR');
+  const estagio = normalizarEstagioMarketplace(filtros.estagio);
   return pedidos.filter(p =>
     (filtros.marketplace === 'todos' || p.marketplace_codigo === filtros.marketplace) &&
-    (filtros.estagio === 'todos' || p.estagio === filtros.estagio) &&
+    (estagio === 'todos' || p.estagio === estagio) &&
     (!filtros.comAlerta || p.alerta != null) &&
     (!filtros.semTransportadora || !p.transportadora_id) &&
     (!filtros.semCusto || p.custo_transporte == null || Number(p.custo_transporte) === 0) &&
@@ -18,7 +19,14 @@ export function podeAbrirDevolucao(p: { estagio: string | null; devolucao_numero
     !(p.devolucao_numero && p.devolucao_status !== 'cancelada');
 }
 export function podeIrMesaSp(p: { estagio: string | null; cd_codigo: string | null }): boolean {
-  return p.estagio === 'no_cd' && p.cd_codigo != null && p.cd_codigo !== 'XPM-SC';
+  return ['faturado', 'pre_separacao', 'em_separacao'].includes(p.estagio ?? '') && p.cd_codigo != null && p.cd_codigo !== 'XPM-SC';
+}
+
+export function normalizarEstagioMarketplace(estagio: string): string {
+  if (estagio === 'aguardando_nf') return 'pre_faturamento';
+  if (estagio === 'no_cd') return 'todos';
+  if (estagio === 'devolucao') return 'devolvido';
+  return estagio;
 }
 
 export function valorTransporte(texto: string): number | null {

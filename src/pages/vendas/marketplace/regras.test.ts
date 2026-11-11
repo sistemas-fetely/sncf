@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filtrarPedidos, valorTransporte, hojeSaoPaulo, exigirSucesso, podeAbrirDevolucao, podeIrMesaSp } from './regras';
+import { filtrarPedidos, valorTransporte, hojeSaoPaulo, exigirSucesso, podeAbrirDevolucao, podeIrMesaSp, normalizarEstagioMarketplace } from './regras';
 const filtros = { marketplace: 'todos', estagio: 'todos', semTransportadora: false, semCusto: false, busca: '' };
 const pedidos = [
   { id_externo: 'TIK-0001', marketplace_codigo: 'TIK', estagio: 'pre_faturamento', transportadora_id: null, custo_transporte: null, cliente_nome: 'Maria', numero_marketplace: '123' },
@@ -7,9 +7,26 @@ const pedidos = [
   { id_externo: 'SPE-0001', marketplace_codigo: 'SPE', estagio: 'entregue', transportadora_id: 'portador', custo_transporte: 20, cliente_nome: 'João', numero_marketplace: '789' },
 ];
 describe('Marketplace transporte', () => {
-  it('devolução em transporte ou entregue', () => { for (const estagio of ['em_transporte', 'entregue']) expect(podeAbrirDevolucao({ estagio, devolucao_numero: null, devolucao_status: null })).toBe(true); expect(podeAbrirDevolucao({ estagio: 'no_cd', devolucao_numero: null, devolucao_status: null })).toBe(false); });
+  it('devolução em transporte ou entregue', () => { for (const estagio of ['em_transporte', 'entregue']) expect(podeAbrirDevolucao({ estagio, devolucao_numero: null, devolucao_status: null })).toBe(true); expect(podeAbrirDevolucao({ estagio: 'pre_faturamento', devolucao_numero: null, devolucao_status: null })).toBe(false); });
   it('devolução viva impede outra; cancelada permite', () => { expect(podeAbrirDevolucao({ estagio: 'entregue', devolucao_numero: 'DEV-1', devolucao_status: 'concluida' })).toBe(false); expect(podeAbrirDevolucao({ estagio: 'entregue', devolucao_numero: 'DEV-1', devolucao_status: 'cancelada' })).toBe(true); });
-  it('Mesa SP só no CD fora XPM-SC', () => { expect(podeIrMesaSp({ estagio: 'no_cd', cd_codigo: 'SITE-SP' })).toBe(true); expect(podeIrMesaSp({ estagio: 'no_cd', cd_codigo: 'XPM-SC' })).toBe(false); expect(podeIrMesaSp({ estagio: 'entregue', cd_codigo: 'SITE-SP' })).toBe(false); });
+  it.each(['faturado', 'pre_separacao', 'em_separacao'])('Mesa SP permite %s apenas com CD fora XPM-SC', estagio => {
+    expect(podeIrMesaSp({ estagio, cd_codigo: 'SITE-SP' })).toBe(true);
+    expect(podeIrMesaSp({ estagio, cd_codigo: 'XPM-SC' })).toBe(false);
+    expect(podeIrMesaSp({ estagio, cd_codigo: null })).toBe(false);
+  });
+  it.each(['pre_faturamento', 'em_transporte', 'entregue', 'devolvido', 'cancelado', 'encerrado', 'travado'])('Mesa SP não permite %s', estagio => {
+    expect(podeIrMesaSp({ estagio, cd_codigo: 'SITE-SP' })).toBe(false);
+  });
+  it('link aguardando_nf aponta para pre_faturamento e preserva o filtro real', () => {
+    expect(normalizarEstagioMarketplace('aguardando_nf')).toBe('pre_faturamento');
+    expect(filtrarPedidos(pedidos, { ...filtros, estagio: 'aguardando_nf' }).map(p => p.id_externo)).toEqual(['TIK-0001']);
+  });
+  it('link no_cd limpa o filtro', () => {
+    expect(normalizarEstagioMarketplace('no_cd')).toBe('todos');
+    expect(filtrarPedidos(pedidos, { ...filtros, estagio: 'no_cd' })).toHaveLength(3);
+  });
+  it('devolucao antiga aponta para devolvido', () => expect(normalizarEstagioMarketplace('devolucao')).toBe('devolvido'));
+
   it('alerta filtra pela presença não nula', () => expect(filtrarPedidos([{ ...pedidos[0], alerta: 'Falha' }, { ...pedidos[1], alerta: null }], { ...filtros, comAlerta: true })).toHaveLength(1));
   it('filtra marketplace', () => expect(filtrarPedidos(pedidos, { ...filtros, marketplace: 'TIK' }).map(p => p.id_externo)).toEqual(['TIK-0001']));
   it('filtra estágio', () => expect(filtrarPedidos(pedidos, { ...filtros, estagio: 'entregue' })).toHaveLength(2));

@@ -18,11 +18,11 @@ export type PedidoMarketplace = {
   subetapa: string | null; horas_no_estagio: number | null; alerta: string | null; faturado_em: string | null;
   xpm_expedicao_codigo: string | null; servico_marketplace: string | null; rastreio_status: string | null;
   devolucao_numero: string | null; devolucao_status: string | null; cancelado_em: string | null;
-  entregue_em: string | null; liquido_estimado: number | null;
+  entregue_em: string | null; liquido_estimado: number | null; eh_desvio: boolean | null;
 };
 export type Portador = { id: string; nome: string };
 export type Loja = { codigo: string; nome: string; centro_codigo: string | null; parceiro_id: string | null; portador_nome: string | null };
-export type Estagio = { codigo: string; rotulo: string; ordem: number; eh_final: boolean };
+export type Estagio = { codigo: string; rotulo: string; ordem: number; eh_final: boolean; eh_desvio: boolean; proxima_acao: string | null };
 
 async function lerTudo<T>(tabela: string, colunas = '*', ordenar = 'pedido_id'): Promise<T[]> {
   const linhas: T[] = [];
@@ -44,14 +44,19 @@ export function useCadastroMarketplace() {
       lerTudo<any>('marketplace_transportadora_padrao', 'marketplace_codigo,parceiro_id', 'marketplace_codigo'),
       db.from('transportadora_perfil').select('transportadora_id').eq('ativo', true),
       lerTudo<any>('parceiros_comerciais', 'id,razao_social,nome_fantasia', 'id'),
-      db.from('marketplace_estagio').select('codigo,rotulo,ordem,eh_final').order('ordem'),
+      db.from('pedido_estagio_canal').select('estagio_codigo,rotulo,ordem,proxima_acao,pedido_estagio!inner(eh_final,eh_desvio)')
+        .eq('canal', 'B2C').eq('ativo', true).eq('visivel_no_pipeline', true).neq('estagio_codigo', 'recebido').order('ordem'),
     ]);
     if (perfis.error) throw perfis.error;
     if (estagios.error) throw estagios.error;
     const ids = new Set((perfis.data ?? []).map((p: { transportadora_id: string }) => p.transportadora_id));
     const nomes = new Map<string, string>(parceiros.map(p => [p.id, nomeExibicao(p.razao_social, p.nome_fantasia)]));
     const portadores: Portador[] = parceiros.filter(p => ids.has(p.id)).map(p => ({ id: p.id, nome: nomes.get(p.id) ?? p.id })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    return { portadores, estagios: (estagios.data ?? []) as Estagio[], lojas: lojas.map(l => {
+    const fases: Estagio[] = (estagios.data ?? []).map((e: { estagio_codigo: string; rotulo: string; ordem: number; proxima_acao: string | null; pedido_estagio: { eh_final: boolean; eh_desvio: boolean } }) => ({
+      codigo: e.estagio_codigo, rotulo: e.rotulo, ordem: e.ordem, proxima_acao: e.proxima_acao,
+      eh_final: e.pedido_estagio.eh_final, eh_desvio: e.pedido_estagio.eh_desvio,
+    }));
+    return { portadores, estagios: fases, lojas: lojas.map(l => {
       const parceiro_id = padroes.find(p => p.marketplace_codigo === l.codigo)?.parceiro_id ?? null;
       return { ...l, parceiro_id, portador_nome: parceiro_id ? nomes.get(parceiro_id) ?? parceiro_id : null } as Loja;
     }) };

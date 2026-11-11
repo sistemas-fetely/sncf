@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Marketplace estágios B2C: catálogo ativo/visível sem Recebido, ícones e desvios compartilhados, selo mantém regra idêntica B2C; Mesa/links/gaveta conferidos, 25 testes/typecheck aprovados e prints lado a lado a 1280px; sem SQL/publicação.
 - [x] Logística Entregas: sub-abas na URL, consulta aberta paginada sem data, 10 testes e typecheck aprovados; preview todas 79/Ícaro 3, busca/filtros/Período e recarga conferidos; sem banco/publicação.
 - [ ] Entregas detalhe real: drawer existente abre, mas fn_logistica_remessa_detalhe retorna statement timeout para PED-2354; banco/detalhe fora do escopo, leitura completa não validada.
 - [x] Exportar campos por sistema: botão na Central, XLSX dinâmico paginado; 12 testes e download real (1205/934/1275) validados, falha de leitura sem arquivo parcial, sem banco/publicação.
