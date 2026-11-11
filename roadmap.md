@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Exportar campos por sistema: botão na Central, XLSX dinâmico paginado; 12 testes e download real (1205/934/1275) validados, falha de leitura sem arquivo parcial, sem banco/publicação.
+- [ ] Exportação de campos: registrar censo da ação (MesaProduto.tsx + ExportarCamposPorSistemaButton.tsx) e slug acao.produto_exportar_campos_por_sistema; banco fora do escopo, acesso segue a guarda nominal com bypass existente de super_admin.
 - [x] QZ fail-loud: resultado ok/erro com mensagem original e console; erro na aba e toast Mesa SP, preservando PDF; 7 testes passaram, preview autenticado e fallback ZPL→PDF com resposta Bling simulada conferidos sem gravação, sem publicar.
 - [x] DEV-VINCULO-NO-PROCESSO: nascimento/view corrigidos; backup 30 vínculos, backfill 15 (DEV-2326 incluída), zero outros campos alterados e todos sugeridos; Fiscal/triagem validados autenticados com NF42515 parcial, aviso total e link; 13 testes passaram, sem publicação ou confirmação.
 - [ ] DEV-2326 confirmação real e TRS: aguarda Flávio confirmar pelo card; nenhuma confirmação autorizada nesta tarefa.
