@@ -8,7 +8,7 @@ import { KpiPill } from "@/components/shared/KpiPill";
 import { cn } from "@/lib/utils";
 import { useDocumentosFrete, type DocumentoFreteRow } from "@/hooks/logistica/useLogisticaRemessas";
 import { brl, dataBr, ddmmHora, isoDiasAtras, NUM } from "@/lib/logistica/formato";
-import { cobradoTransp, divergenciaFatura } from "@/lib/logistica/documentoFrete";
+import { cobradoTransp, divergenciaFatura, formatarDesvioCotacao } from "@/lib/logistica/documentoFrete";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BadgeAuditoria, ComposicaoFrete } from "./ComposicaoFrete";
 
@@ -30,12 +30,12 @@ const EXTRA: Record<Exclude<Extra, null>, (d: DocumentoFreteRow) => boolean> = {
   sem_ref: (d) => d.auditoria_status === "sem_referencia",
 };
 
-type Col = "tipo" | "numero" | "data" | "natureza" | "nf" | "pedido" | "destino" | "peso" | "valor_nf" | "cotacao" | "pago_cliente" | "valor_doc" | "pct" | "auditoria";
+type Col = "tipo" | "numero" | "data" | "natureza" | "nf" | "pedido" | "destino" | "peso" | "valor_nf" | "cotacao" | "pago_cliente" | "valor_doc" | "desvio" | "pct" | "auditoria";
 const VAL: Record<Col, (d: DocumentoFreteRow) => string | number | null> = {
   tipo: (d) => d.tipo_doc, numero: (d) => d.numero, data: (d) => d.data_doc, natureza: (d) => d.natureza,
   nf: (d) => d.nf_numero, pedido: (d) => d.pedido_ref, destino: (d) => `${d.uf_destino ?? ""}${d.cidade_destino ?? ""}`,
   peso: (d) => d.peso_taxado, valor_nf: (d) => d.valor_nf, cotacao: (d) => d.frete_cotacao, pago_cliente: (d) => d.frete_cliente,
-  valor_doc: (d) => cobradoTransp(d), pct: (d) => d.pct_frete_nf,
+  valor_doc: (d) => cobradoTransp(d), desvio: (d) => d.pct_desvio_cotacao, pct: (d) => d.pct_frete_nf,
   auditoria: (d) => d.auditoria_status,
 };
 
@@ -43,6 +43,21 @@ const VAL: Record<Col, (d: DocumentoFreteRow) => string | number | null> = {
 function ValorBrl({ v }: { v: number | null }) {
   if (v == null) return <span className="text-muted-foreground">—</span>;
   return <>{brl(v)}</>;
+}
+
+/** Desvio × cotação: null vira traço em cinza claro; alerta do banco pinta de âmbar e explica no tooltip. */
+function DesvioCotacao({ v, alerta }: { v: number | null; alerta: boolean }) {
+  const texto = formatarDesvioCotacao(v);
+  if (texto == null) return <span className="text-muted-foreground">—</span>;
+  if (!alerta) return <span className="block">{texto}</span>;
+  return (
+    <span className="block text-warning">
+      <Tooltip>
+        <TooltipTrigger asChild><span className="cursor-help">{texto}</span></TooltipTrigger>
+        <TooltipContent className="max-w-xs">Acima do teto de desvio da cotação</TooltipContent>
+      </Tooltip>
+    </span>
+  );
 }
 
 export function DocumentosFrete({ transportadoraId }: { transportadoraId: string }) {
@@ -133,6 +148,7 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
                 <SortableTableHead column="cotacao" sort={sort} onSort={setSort} align="right">Cotação</SortableTableHead>
                 <SortableTableHead column="pago_cliente" sort={sort} onSort={setSort} align="right">Pago cliente</SortableTableHead>
                 <SortableTableHead column="valor_doc" sort={sort} onSort={setSort} align="right">Cobrado transp.</SortableTableHead>
+                <SortableTableHead column="desvio" sort={sort} onSort={setSort} align="right">Δ cotação</SortableTableHead>
                 <SortableTableHead column="pct" sort={sort} onSort={setSort} align="right">% NF</SortableTableHead>
                 <SortableTableHead column="auditoria" sort={sort} onSort={setSort}>Auditoria</SortableTableHead>
               </TableRow>
@@ -187,12 +203,13 @@ export function DocumentosFrete({ transportadoraId }: { transportadoraId: string
                           </div>
                         )}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums"><DesvioCotacao v={d.pct_desvio_cotacao} alerta={d.desvio_cotacao_alerta === true} /></TableCell>
                       <TableCell className="text-right tabular-nums">{d.pct_frete_nf == null ? "—" : `${NUM.format(d.pct_frete_nf)}%`}</TableCell>
                       <TableCell><BadgeAuditoria status={d.auditoria_status} motivo={d.auditoria_motivo} /></TableCell>
                     </TableRow>
                     {exp && (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={15} className="space-y-2">
+                        <TableCell colSpan={16} className="space-y-2">
                           <ComposicaoFrete composicao={d.composicao} />
                           {(d.ocorrencia_texto || d.ocorrencia_codigo) && (
                             <div className="text-xs">Ocorrência: {d.ocorrencia_codigo ? `${d.ocorrencia_codigo} — ` : ""}{d.ocorrencia_texto ?? ""} {d.ocorrencia_em ? `(${ddmmHora(d.ocorrencia_em)})` : ""}</div>

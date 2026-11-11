@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cobradoTransp, divergenciaFatura } from "./documentoFrete";
+import { cobradoTransp, divergenciaFatura, formatarDesvioCotacao } from "./documentoFrete";
 
 describe("cobradoTransp", () => {
   it("usa a fatura quando ela existe", () => {
@@ -34,5 +34,22 @@ describe("divergenciaFatura", () => {
 
   it("não alerta sem documento", () => {
     expect(divergenciaFatura({ valor_doc: null, valor_fatura: 21.9 })).toBeNull();
+  });
+});
+
+describe("formatarDesvioCotacao", () => {
+  it("mostra o sinal e uma casa decimal", () => {
+    expect(formatarDesvioCotacao(59.1)).toBe("+59,1%");
+    expect(formatarDesvioCotacao(-13.5)).toBe("−13,5%");
+    expect(formatarDesvioCotacao(8.24)).toBe("+8,2%");
+  });
+
+  it("zero fica sem sinal", () => {
+    expect(formatarDesvioCotacao(0)).toBe("0,0%");
+    expect(formatarDesvioCotacao(-0.04)).toBe("0,0%");
+  });
+
+  it("sem cotação não inventa desvio", () => {
+    expect(formatarDesvioCotacao(null)).toBeNull();
   });
 });

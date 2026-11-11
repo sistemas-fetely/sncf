@@ -133674,6 +133674,7 @@ export type Database = {
           composicao: Json | null
           data_doc: string | null
           destinatario: string | null
+          desvio_cotacao_alerta: boolean | null
           doc_id: string | null
           emissao: string | null
           fatura_numero: string | null
@@ -133689,6 +133690,7 @@ export type Database = {
           ocorrencia_codigo: string | null
           ocorrencia_em: string | null
           ocorrencia_texto: string | null
+          pct_desvio_cotacao: number | null
           pct_frete_nf: number | null
           pedido_id: string | null
           pedido_ref: string | null

@@ -26,3 +26,19 @@ export function divergenciaFatura(d: DocumentoComFatura): { valor_cte: number; v
   if (Math.abs(Math.round(fatura * 100) - Math.round(cte * 100)) <= 1) return null;
   return { valor_cte: cte, valor_fatura: fatura };
 }
+
+const DESVIO = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/**
+ * Desvio do cobrado × cotação, com sinal explícito e 1 casa: "+8,2%", "−13,5%", "0,0%".
+ * O teto que gera o alerta é do banco (desvio_cotacao_alerta); aqui só se formata.
+ * null (sem cotação) devolve null — a tela mostra o traço.
+ */
+export function formatarDesvioCotacao(v: number | null | undefined): string | null {
+  if (v == null) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  const arred = Math.round(n * 10) / 10;
+  if (arred === 0) return "0,0%";
+  return `${arred > 0 ? "+" : "−"}${DESVIO.format(Math.abs(arred))}%`;
+}

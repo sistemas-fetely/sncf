@@ -65,6 +65,7 @@ export interface DocumentoFreteRow {
   destinatario: string | null; cidade_destino: string | null; uf_destino: string | null;
   volumes: number | null; peso_real: number | null; peso_taxado: number | null; valor_nf: number | null; valor_doc: number | null;
   frete_cotacao: number | null; frete_cliente: number | null; fatura_numero: string | null; valor_fatura: number | null;
+  pct_desvio_cotacao: number | null; desvio_cotacao_alerta: boolean | null;
   composicao: Record<string, number | string>; pct_frete_nf: number | null;
   ocorrencia_codigo: string | null; ocorrencia_texto: string | null; ocorrencia_em: string | null;
   auditoria_status: "ok" | "acima_referencia" | "sem_referencia" | "justificar" | null; auditoria_motivo: string | null;
