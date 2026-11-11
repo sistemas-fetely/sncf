@@ -10,11 +10,15 @@ import { escolherImpressora, imprimirZpl, listarImpressoras, qzDisponivel, salva
 beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); mock.active.mockReturnValue(false); mock.connect.mockResolvedValue(undefined); });
 describe("QZ da estação", () => {
   it("indisponibilidade não lança erro e permite fallback", async () => {
-    mock.connect.mockRejectedValue(new Error("sem QZ")); expect(await qzDisponivel()).toBe(false);
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mock.connect.mockRejectedValue(new Error("Unable to establish connection"));
+    expect(await qzDisponivel()).toEqual({ ok: false, erro: "Unable to establish connection" });
+    expect(log).toHaveBeenCalledWith("[QZ Tray] Falha de conexão:", "Unable to establish connection");
+    log.mockRestore();
   });
   it("compartilha conexão concorrente e reutiliza a ativa", async () => {
     await Promise.all([qzDisponivel(), qzDisponivel()]); expect(mock.connect).toHaveBeenCalledTimes(1);
-    mock.active.mockReturnValue(true); await qzDisponivel(); expect(mock.connect).toHaveBeenCalledTimes(1);
+    mock.active.mockReturnValue(true); expect(await qzDisponivel()).toEqual({ ok: true, erro: null }); expect(mock.connect).toHaveBeenCalledTimes(1);
   });
   it("prefere estação salva, senão a primeira ZDesigner/ZD220", () => {
     const lista = ["A4", "ZDesigner ZD220", "Outra Zebra"];

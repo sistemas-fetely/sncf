@@ -347,12 +347,13 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
       if (data.formato === "ZPL" && data.zpl) {
         let impressa = false;
         try {
-          if (!await qzDisponivel()) throw new Error("QZ Tray não encontrado");
+          const disponibilidade = await qzDisponivel();
+          if (!disponibilidade.ok) throw new Error(disponibilidade.erro);
           const impressora = escolherImpressora(await listarImpressoras());
           if (!impressora) throw new Error("Impressora Zebra não encontrada");
           await imprimirZpl(impressora, data.zpl);
           impressa = true;
-        } catch (e) { toast.warning(`${formatError(e)} — abrindo PDF`); }
+        } catch (e) { const mensagem = e instanceof Error ? e.message : String(e); console.error("[QZ Tray] Impressão marketplace:", mensagem); toast.warning(`${mensagem} — abrindo PDF`); }
         if (impressa) {
           janela?.close();
           // A registration error must not fall back to a second physical print.

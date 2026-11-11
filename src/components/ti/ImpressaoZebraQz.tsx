@@ -27,18 +27,19 @@ export function ImpressaoZebraQz() {
     void obterCertificadoQz().then(pem => { if (ativo) setCertificado(pem); }).catch(e => {
       if (!ativo) return;
       if (e instanceof Error && e.message.includes("ainda não gerado")) setSemCertificado(true);
-      else setErro(e instanceof Error ? e.message : String(e));
+      else { const msg = e instanceof Error ? e.message : String(e); setErro(msg); console.error("[QZ Tray] Certificado:", msg); }
     });
     return () => { ativo = false; };
   }, [admin]);
 
   async function executar(fn: () => Promise<void>) {
     setOcupado(true); setErro(null);
-    try { await fn(); } catch (e) { const msg = e instanceof Error ? e.message : String(e); setErro(msg); toast.error(msg); }
+    try { await fn(); } catch (e) { const msg = e instanceof Error ? e.message : String(e); setErro(msg); console.error("[QZ Tray]", msg); toast.error(msg); }
     finally { setOcupado(false); }
   }
   async function conectar() {
-    if (!await qzDisponivel()) { setConectado(false); setImpressoras([]); setStatus("QZ Tray não encontrado"); return; }
+    const resultado = await qzDisponivel();
+    if (!resultado.ok) { setConectado(false); setImpressoras([]); setStatus("Falha na conexão"); throw new Error(resultado.erro); }
     setConectado(true);
     setStatus("Conectado");
     const lista = await listarImpressoras(); setImpressoras(lista); setImpressora(escolherImpressora(lista));
@@ -50,6 +51,7 @@ export function ImpressaoZebraQz() {
         <CardTitle>Impressão Zebra (QZ Tray)</CardTitle>
         <Badge variant="outline" className={conectado ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"} role="status">{status}</Badge>
       </div>
+      {erro && <p role="alert" className="break-words text-sm text-destructive">{erro}</p>}
       <CardDescription>Certificado de impressão e impressora Zebra desta estação.</CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
@@ -83,7 +85,6 @@ export function ImpressaoZebraQz() {
       })}><Printer className="size-4" />Imprimir teste</Button>
       {ocupado && <Loader2 className="size-4 animate-spin self-center text-muted-foreground" />}
     </div>
-    {erro && <p role="alert" className="break-words text-sm text-destructive">{erro}</p>}
     </CardContent>
   </Card>;
 }

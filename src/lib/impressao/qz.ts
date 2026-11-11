@@ -34,8 +34,14 @@ async function conectar() {
   if (!conectando) conectando = qz.websocket.connect({ retries: 0, delay: 0 }).finally(() => { conectando = null; });
   await conectando;
 }
-export async function qzDisponivel(): Promise<boolean> {
-  try { await conectar(); return true; } catch { return false; }
+export type DisponibilidadeQz = { ok: true; erro: null } | { ok: false; erro: string };
+export async function qzDisponivel(): Promise<DisponibilidadeQz> {
+  try { await conectar(); return { ok: true, erro: null }; }
+  catch (e) {
+    const erro = e instanceof Error ? e.message : typeof e === "object" && e !== null && "message" in e ? String(e.message) : String(e);
+    console.error("[QZ Tray] Falha de conexão:", erro);
+    return { ok: false, erro };
+  }
 }
 export async function listarImpressoras(): Promise<string[]> {
   await conectar();

@@ -1,4 +1,5 @@
 # Roadmap
+- [x] QZ fail-loud: resultado ok/erro com mensagem original e console; erro na aba e toast Mesa SP, preservando PDF; 7 testes passaram, preview autenticado e fallback ZPL→PDF com resposta Bling simulada conferidos sem gravação, sem publicar.
 - [x] DEV-VINCULO-NO-PROCESSO: nascimento/view corrigidos; backup 30 vínculos, backfill 15 (DEV-2326 incluída), zero outros campos alterados e todos sugeridos; Fiscal/triagem validados autenticados com NF42515 parcial, aviso total e link; 13 testes passaram, sem publicação ou confirmação.
 - [ ] DEV-2326 confirmação real e TRS: aguarda Flávio confirmar pelo card; nenhuma confirmação autorizada nesta tarefa.
 - [x] QZ Integrações: aba própria com card e passo a passo; certificado/download independentes da conexão, seletor/teste só conectado; 6 testes passaram e preview autenticado desktop/mobile conferido com certificado simulado e download real, sem publicação.
