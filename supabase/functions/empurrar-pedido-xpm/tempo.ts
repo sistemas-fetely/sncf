@@ -10,7 +10,7 @@ export function criarFetchLimitado(inicio: number, original: typeof fetch = fetc
     const abortar = () => controller.abort();
     anterior?.addEventListener("abort", abortar, { once: true });
     if (anterior?.aborted) abortar();
-    const timer = setTimeout(abortar, Math.min(30_000, restante));
+    const timer = setTimeout(abortar, restante);
     console.info(`[empurrar-pedido-xpm] início ${etapa}`);
     try {
       const resposta = await original(input, { ...init, signal: controller.signal });

@@ -1,5 +1,5 @@
 # Roadmap
-- [x] XPM 401/504: sessão renovada antes do envio e após 401, rede/corpo limitados com diagnóstico de etapa sem repetição por timeout; 8 testes, typecheck/Deno check e PED-2378 com timeout simulado conferidos sem envio real. Etapa do timeout original não registrada nos logs antigos.
+- [x] XPM 401/504: sessão renovada antes do envio e após 401, rede/corpo limitados por orçamento total de 110s (sem teto por etapa — Create real já levou 78s) com diagnóstico de etapa e sem repetição por timeout; typecheck/Deno check e PED-2378 conferidos sem envio real.
 - [x] Marketplace visual B2C: PipelineFases e PedidoCanalDrawer compartilhados, cabeçalho/filtros/tabela/paginação B2C reutilizados; prints das filas/gavetas autenticadas em 1280 px conferidos, fase/busca/recarga/Portadores verificados, 13 testes passaram e build OK; sem banco/publicação.
 - [x] Inner etapa A: arquivo atual validado em somente leitura, 1.242/1.242 corretas, nenhuma divergência; layout real cabeçalho 3/dados 5, coluna E.
 - [x] Inner etapa B: execução a54e8a4a concluída em 928/928 (907 comparados, 21 sem vínculo); 440 itensPorCaixa aplicados, incluindo os 28 finais, zero erros/pendentes Inner; 2 CEST preservados pendentes. Escrita/automação false; nova leitura Bling confirmou VNRSL.FG.5.0 = 12, VELBASMED.LM.12/01588 = 24 e PRTJANGD.AG.26/01493 = 1; sem publicação.

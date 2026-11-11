@@ -1,6 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
-- XPM push refreshes caller sessions before sending and retries only pre-send 401; all edge network stages share bounded fetch/body deadlines with path-only diagnostics, because timeout must never trigger a duplicate dispatch.
+- XPM push refreshes caller sessions before sending and retries only pre-send 401; all edge network stages share one 110s total budget (each fetch gets only the remaining budget, no per-stage cap) with path-only diagnostics, because timeout must never trigger a duplicate dispatch.
 - Marketplace orders use their own route and URL filters; share PipelineFases and PedidoCanalDrawer with B2C and reuse its table/header controls so both queues retain one visual system; transport writes use existing RPCs and await invalidation.
 - Physical receipt UI belongs to Chegada Recebimento and reads the center/door-neutral summary view; the manual XLSX form is shared only there while XPM keeps pre-arrival registration, so ingestion logic and receipt reporting have one home.
 - SNCF-to-Bling F1 uses its own config-driven field mapping, snapshot execution tables and SKU queue; only allowlisted partial PATCH fields are permitted, leases serialize requests and database flags default writes/automation off, so legacy destination correction rules remain unchanged.
