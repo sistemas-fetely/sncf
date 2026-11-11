@@ -9,6 +9,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { resolverParceiroBling } from "../_shared/bling/parceiro-resolver.ts";
+import { baixarEtiqueta, extrairEtiqueta } from "./etiqueta.ts";
 
 const cors = {
   ...corsHeaders,
@@ -39,10 +40,42 @@ Deno.serve(async (req) => {
   const acao: string = body?.acao ?? "pedidos";
   const diasJanela: number = Number(body?.dias ?? 7);
 
+  if (acao === "etiqueta_zpl") {
+    const headers = new Headers(req.headers);
+    headers.delete("x-cron-secret");
+    const negadoSessao = await gateCronOuSessao(new Request(req.url, { headers }), sb, cors);
+    if (negadoSessao) return negadoSessao;
+    if (typeof body.pedido_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.pedido_id)) return json({ ok: false, erro: "pedido_id deve ser um UUID válido." }, 400);
+  }
+
   const { data: cfg, error: eCfg } = await sb.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
   if (eCfg || !cfg) return json({ ok: false, erro: `Configuração do Bling: ${eCfg?.message ?? "ausente"}` }, 500);
   if (!cfg.access_token) return json({ ok: false, erro: "Bling não conectado." }, 409);
   const client = makeBlingClient(sb, cfg as any, await ensureFreshToken(sb, cfg as any));
+
+  // PDF primeiro; ZPL continua disponível apenas para diagnóstico.
+  if (acao === "etiqueta_zpl") {
+    try {
+      const { data: pedido, error } = await sb.from("pedidos").select("bling_id_destino, recebido_via").eq("id", body.pedido_id).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!pedido || pedido.recebido_via !== "marketplace" || !pedido.bling_id_destino) return json({ ok: false, erro: "Pedido marketplace sem vínculo de venda no Bling." }, 409);
+      const blingId = String(pedido.bling_id_destino);
+      const query = `idsVendas%5B%5D=${encodeURIComponent(blingId)}`;
+      let response;
+      try { response = await client.get(`/logisticas/etiquetas?${query}&formato=PDF`); }
+      catch (e) {
+        if (!(e instanceof BlingHttpError) || e.status !== 400) throw e;
+        response = await client.get(`/logisticas/etiquetas?${query}&formato=ZPL`);
+      }
+      const links = response?.data;
+      if (!Array.isArray(links) || !links.length) throw new Error("Bling não retornou etiqueta; confira se o pedido está pronto para envio no marketplace.");
+      // O ZIP de uma venda contém todos os volumes da etiqueta.
+      const link = links[0]?.link;
+      if (typeof link !== "string" || !link) throw new Error("Bling não retornou o link da etiqueta.");
+      const etiqueta = await extrairEtiqueta(await baixarEtiqueta(link));
+      return json({ ok: true, ...etiqueta, bling_pedido_id: blingId });
+    } catch (e) { return json({ ok: false, erro: errMsg(e) }, 502); }
+  }
 
   // ---------- acao: lojas ----------
   if (acao === "lojas") {

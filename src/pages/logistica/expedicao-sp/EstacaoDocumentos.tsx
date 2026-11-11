@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
+import { supabase } from "@/integrations/supabase/client";
+import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
+import { confirmarEtiquetaMarketplace, type EtiquetaMarketplace } from "@/lib/logistica/etiquetaMarketplace";
+import { imprimirPdfBase64 } from "./useMesaSp";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
@@ -39,6 +43,11 @@ interface Props {
 export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Props) {
   const docsQ = useDocumentosMesa(pedido.id);
   const marcar = useMarcarDocumento();
+  const registrarEvento = useRegistrarEventoPedido();
+  const [etiquetaMkt, setEtiquetaMkt] = useState<{ documento: DocumentoMesa; etiqueta: EtiquetaMarketplace } | null>(null);
+  const [erroMkt, setErroMkt] = useState<string | null>(null);
+  const [ocupadoMkt, setOcupadoMkt] = useState(false);
+  const [zplDiagnostico, setZplDiagnostico] = useState<string | null>(null);
   const rastreio = useRegistrarRastreio();
   const concluir = useConcluirDocumentos();
   const postar = usePostarAgencia();
@@ -141,6 +150,15 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   }
 
   function acao(d: DocumentoMesa) {
+    if (d.codigo === "etiqueta_marketplace") return (
+      <div className="space-y-2">
+        <Button size="sm" variant="outline" disabled={bloqueado || ocupadoMkt} onClick={() => void imprimirMarketplace(d)}>
+          {ocupadoMkt ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}Imprimir etiqueta
+        </Button>
+        {erroMkt && <p role="alert" className="break-words text-sm text-destructive">{erroMkt}</p>}
+        {zplDiagnostico && <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">{zplDiagnostico}</pre>}
+      </div>
+    );
     switch (d.tipo) {
       case "nf":
         return d.url ? (
@@ -312,9 +330,49 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
     }
   }
 
+  async function imprimirMarketplace(documento: DocumentoMesa) {
+    const janela = window.open("", "_blank");
+    if (!janela) { setErroMkt("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página."); return; }
+    setOcupadoMkt(true); setErroMkt(null); setZplDiagnostico(null); setEtiquetaMkt(null);
+    try {
+      const { data, error } = await supabase.functions.invoke<EtiquetaMarketplace>("bling-marketplace-sync", { body: { acao: "etiqueta_zpl", pedido_id: pedido.id } });
+      if (error) {
+        const resposta = error.context instanceof Response ? await error.context.clone().json().catch(() => null) : null;
+        throw new Error(resposta?.erro ?? resposta?.error ?? formatError(error));
+      }
+      if (!data?.ok) throw new Error(data?.erro ?? "Bling não retornou a etiqueta.");
+      if (data.formato !== "PDF" || !data.pdf_base64) {
+        setZplDiagnostico(data.zpl ?? null);
+        throw new Error("Bling retornou somente ZPL. A etiqueta PDF não está disponível para impressão.");
+      }
+      if (!imprimirPdfBase64(data.pdf_base64, janela)) throw new Error("A janela de impressão foi fechada. Tente novamente.");
+      setEtiquetaMkt({ documento, etiqueta: data });
+    } catch (e) { janela.close(); const mensagem = formatError(e); setErroMkt(mensagem); toast.error(mensagem); }
+    finally { setOcupadoMkt(false); }
+  }
+
+  async function confirmarMarketplace() {
+    if (!etiquetaMkt) return;
+    setOcupadoMkt(true); setErroMkt(null);
+    try {
+      await confirmarEtiquetaMarketplace(etiquetaMkt.etiqueta,
+        (descricao, metadata) => registrarEvento.mutateAsync({ pedido_id: pedido.id, tipo_evento: "anotacao", descricao, metadata }),
+        () => marcar.mutateAsync({ p_pedido_id: pedido.id, p_documento_id: etiquetaMkt.documento.documento_id, p_marcado: true }));
+      setEtiquetaMkt(null);
+    } catch (e) { const mensagem = formatError(e); setErroMkt(mensagem); toast.error(mensagem); }
+    finally { setOcupadoMkt(false); }
+  }
+
   return (
     <Card>
       <CardContent className="space-y-4 p-4">
+        <AlertDialog open={!!etiquetaMkt} onOpenChange={(open) => { if (!open && !ocupadoMkt) setEtiquetaMkt(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader><AlertDialogTitle>Etiqueta do marketplace impressa?</AlertDialogTitle><AlertDialogDescription>Confirme somente se a etiqueta saiu corretamente na impressora.</AlertDialogDescription></AlertDialogHeader>
+            {erroMkt && <p role="alert" className="text-sm text-destructive">{erroMkt}</p>}
+            <AlertDialogFooter><AlertDialogCancel disabled={ocupadoMkt}>Não imprimiu</AlertDialogCancel><Button disabled={bloqueado || ocupadoMkt} onClick={() => void confirmarMarketplace()}>{ocupadoMkt && <Loader2 className="animate-spin" />}Confirmar impressão</Button></AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <p className="text-sm font-medium">Documentos do pedido</p>
         {modaisQ.error && <p role="alert" className="text-sm text-destructive">{formatError(modaisQ.error)}</p>}
         {erroGerar && <p role="alert" className="whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{erroGerar}</p>}

@@ -941,14 +941,16 @@ export function usePrepostagemViva(pedidoId: string | null) {
 }
 
 /** Abre o PDF do rótulo (10x15) numa janela própria e manda imprimir. */
-export function imprimirPdfBase64(b64: string): boolean {
+export function imprimirPdfBase64(b64: string, janela?: Window): boolean {
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-  const w = window.open(url, "_blank");
-  if (!w) return false;
+  const w = janela ?? window.open("", "_blank");
+  if (!w || w.closed) { URL.revokeObjectURL(url); return false; }
   w.addEventListener("load", () => { try { w.print(); } catch { /* visualizador do PDF imprime */ } });
+  w.location.href = url;
+  window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
   return true;
 }
 

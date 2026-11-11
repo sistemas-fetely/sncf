@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { BlingHttpError, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
-async function handlerFor(get: (path: string) => Promise<unknown>, channels: Record<string, any>[] = []) {
+async function handlerFor(get: (path: string) => Promise<unknown>, channels: Record<string, any>[] = [], pedido = { bling_id_destino: "123", recebido_via: "marketplace" }) {
   const source = await Bun.file(new URL("./index.ts", import.meta.url)).text();
   const js = new Bun.Transpiler({ loader: "ts" }).transformSync(source.replace(/^import .*;\n/gm, ""));
   const tables: string[] = [];
@@ -12,6 +12,7 @@ async function handlerFor(get: (path: string) => Promise<unknown>, channels: Rec
     from(table: string) {
       tables.push(table);
       if (table === "integracoes_config") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { access_token: "test", token_expires_at: null } }) }) }) };
+      if (table === "pedidos") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: pedido, error: null }) }) }) };
       if (table === "marketplace_loja_bling") return {
         select: (columns: string) => {
           let id: unknown;
@@ -35,11 +36,12 @@ async function handlerFor(get: (path: string) => Promise<unknown>, channels: Rec
     },
     rpc() { throw new Error("No RPC allowed"); },
   };
-  new Function("createClient", "corsHeaders", "gateCronOuSessao", "BlingHttpError", "ensureFreshToken", "makeBlingClient", "resolverParceiroBling", "Deno", js)(
+  new Function("createClient", "corsHeaders", "gateCronOuSessao", "BlingHttpError", "ensureFreshToken", "makeBlingClient", "resolverParceiroBling", "Deno", "baixarEtiqueta", "extrairEtiqueta", js)(
     () => sb, { "Access-Control-Allow-Headers": "content-type" }, async () => null,
     BlingHttpError, async () => "test", () => ({ get }),
     () => { throw new Error("No partner resolution allowed"); },
     { env: { get: () => "test" }, serve: (fn: typeof handler) => { handler = fn; } },
+    async () => new TextEncoder().encode("%PDF-label"), async () => ({ formato: "PDF", pdf_base64: btoa("%PDF-label"), arquivos: ["etiqueta.pdf"] }),
   );
   return { handler, tables, writes, filters };
 }
@@ -47,6 +49,26 @@ async function handlerFor(get: (path: string) => Promise<unknown>, channels: Rec
 const request = (body: unknown) => new Request("http://localhost", { method: "POST", body: JSON.stringify(body) });
 
 describe("marketplace diagnostic actions", () => {
+  test("etiqueta_zpl reads destination id and requests PDF first without writes", async () => {
+    const paths: string[] = [];
+    const { handler, writes } = await handlerFor(async (path) => { paths.push(path); return { data: [{ link: "https://bucket.s3.amazonaws.com/label.zip" }] }; });
+    const response = await handler(request({ acao: "etiqueta_zpl", pedido_id: "12345678-1234-1234-1234-123456789012" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).formato).toBe("PDF");
+    expect(paths).toEqual(["/logisticas/etiquetas?idsVendas%5B%5D=123&formato=PDF"]);
+    expect(writes).toEqual([]);
+  });
+  test("etiqueta_zpl refuses invalid UUID and orders without Bling destination", async () => {
+    const { handler } = await handlerFor(async () => { throw new Error("Must not call Bling"); }, [], { bling_id_destino: "", recebido_via: "marketplace" });
+    expect((await handler(request({ acao: "etiqueta_zpl", pedido_id: "abc" }))).status).toBe(400);
+    expect((await handler(request({ acao: "etiqueta_zpl", pedido_id: "12345678-1234-1234-1234-123456789012" }))).status).toBe(409);
+  });
+  test("etiqueta_zpl preserves readable Bling errors", async () => {
+    const { handler } = await handlerFor(async () => { throw new BlingHttpError("Falha", 409, '{"error":{"message":"Pedido ainda não pronto para envio"}}'); });
+    const response = await handler(request({ acao: "etiqueta_zpl", pedido_id: "12345678-1234-1234-1234-123456789012" }));
+    expect(response.status).toBe(502);
+    expect((await response.json()).erro).toBe("Bling 409: Pedido ainda não pronto para envio");
+  });
   test("etiqueta returns raw labels and then raw objects without writes", async () => {
     const paths: string[] = [];
     const labels = { data: [{ url: "https://example.com/etiqueta" }], extra: "raw" };
