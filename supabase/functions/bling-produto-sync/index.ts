@@ -3,6 +3,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.25.76";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { comparar, montarPatch, exigirEscrita, type Campo } from "./regras.ts";
+import { resolverProduto } from "./resolver.ts";
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const Body = z.object({ acao: z.enum(["diff", "aplicar", "automatico"]).default("diff"), execucao_id: z.string().uuid().optional() });
 const msg = (e: unknown) => {
@@ -56,21 +57,30 @@ Deno.serve(async (req) => {
     const inicioMs = Date.now();
     const diff = body.acao === "diff" || body.acao === "automatico";
     if (diff) {
+      if (!body.execucao_id) check(await sb.from("bling_produto_sync_produto").update({ status: "pendente" }).eq("execucao_id", execucaoId).eq("status", "ignorado"));
       const page = await sb.from("bling_produto_sync_produto").select("*").eq("execucao_id", execucaoId).eq("status", "pendente").order("sku").limit(40); check(page);
+      const cacheR = await sb.from("bling_produtos_cache").select("sku,bling_produto_id").in("sku", (page.data ?? []).map((p: any) => p.sku)); check(cacheR);
+      const cache = new Map((cacheR.data ?? []).map((p: any) => [p.sku, p.bling_produto_id]));
+      const get = async (endpoint: string) => { await sleep(350); return client.get(endpoint); };
       for (const p of page.data ?? []) {
         if (Date.now() - inicioMs > 40000) break;
-        await sleep(350);
         try {
-          const atual = (await client.get(`/produtos/${encodeURIComponent(p.bling_id)}`))?.data;
-          if (!atual?.id) throw new Error("Bling retornou detalhe vazio.");
+          const resolvido = await resolverProduto(p.sku, cache.get(p.sku), p.bling_id, get);
+          const fonte = { ...p.fonte, resolucao_bling: resolvido.resolucao };
+          check(await sb.from("bling_produto_sync_produto").update({ bling_id: resolvido.bling_id, fonte, sem_vinculo: !resolvido.detalhe, status: resolvido.detalhe ? "pendente" : "ignorado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
+          const atual = resolvido.detalhe;
+          if (!atual) continue;
           const itens = comparar(p.fonte, atual, campos);
-          if (itens.length) check(await sb.from("bling_produto_sync_item").upsert(itens.map((i) => ({ ...i, execucao_id: execucaoId, sku: p.sku, bling_id: p.bling_id })), { onConflict: "execucao_id,sku,campo" }));
+          if (itens.length) check(await sb.from("bling_produto_sync_item").upsert(itens.map((i) => ({ ...i, execucao_id: execucaoId, sku: p.sku, bling_id: resolvido.bling_id })), { onConflict: "execucao_id,sku,campo" }));
           check(await sb.from("bling_produto_sync_produto").update({ status: "comparado", lido_em: new Date().toISOString(), erro: null }).eq("execucao_id", execucaoId).eq("sku", p.sku));
         } catch (e) {
           check(await sb.from("bling_produto_sync_produto").update({ status: "erro", erro: msg(e), lido_em: new Date().toISOString() }).eq("execucao_id", execucaoId).eq("sku", p.sku));
         }
       }
       const resumoR = await sb.rpc("fn_bling_produto_sync_resumo", { p_execucao: execucaoId }); check(resumoR);
+      const produtosR = await sb.from("bling_produto_sync_produto").select("status,fonte").eq("execucao_id", execucaoId); check(produtosR);
+      resumoR.data.comparados = (produtosR.data ?? []).filter((p: any) => p.status === "comparado").length;
+      resumoR.data.ids_desatualizados = (produtosR.data ?? []).filter((p: any) => p.fonte?.resolucao_bling?.id_desatualizado).length;
       if (resumoR.data.restantes === 0) check(await sb.from("bling_produto_sync_execucao").update({ status: "comparado", atualizado_em: new Date().toISOString() }).eq("id", execucaoId));
       if (body.acao === "diff") return json({ ok: true, execucao_id: execucaoId, concluido: resumoR.data.restantes === 0, resumo: resumoR.data });
     }

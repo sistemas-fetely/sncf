@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Bling product diffs resolve fresh details through a tested cache → legacy ID → exact code helper and persist resolution only in execution snapshots, because legacy product IDs may be stale and must not be repaired during comparison.
 - Marketplace orders belong to the Loja B2C shell with dedicated tab/action slugs and URL-prefixed filters; transport writes use existing RPCs and await invalidation, preserving Shopify flows and database ownership.
 - Physical receipt UI belongs to Chegada Recebimento and reads the center/door-neutral summary view; the manual XLSX form is shared only there while XPM keeps pre-arrival registration, so ingestion logic and receipt reporting have one home.
 - SNCF-to-Bling F1 uses its own config-driven field mapping, snapshot execution tables and SKU queue; only allowlisted partial PATCH fields are permitted, leases serialize requests and database flags default writes/automation off, so legacy destination correction rules remain unchanged.

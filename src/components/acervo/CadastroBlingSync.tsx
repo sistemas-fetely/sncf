@@ -60,6 +60,7 @@ export function CadastroBlingSync() {
     finally { setOcupado(false); await qc.invalidateQueries({ queryKey: ["bling-sync"] }); }
   }
   const resumo = progresso ?? resumoQ.data;
+  const resolucaoQ = useQuery({ queryKey: ["bling-sync", "resolucao", id], enabled: !!id, refetchInterval: ocupado ? 3000 : false, queryFn: async () => { const r = await sb.from("bling_produto_sync_produto").select("status,fonte").eq("execucao_id", id); if (r.error) throw r.error; return { comparados: (r.data ?? []).filter((p) => p.status === "comparado").length, desatualizados: (r.data ?? []).filter((p) => p.fonte?.resolucao_bling?.id_desatualizado).length }; } });
   const falha = erro ?? [configQ.error, execQ.error, resumoQ.error, listaQ.error].filter(Boolean).map(formatError).join(" · ");
   const paginaMax = Math.max(1, Math.ceil((listaQ.data?.total ?? 0) / 50));
   return <section className="space-y-4 border-b border-border pb-6">
@@ -69,6 +70,8 @@ export function CadastroBlingSync() {
       <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Enviar ao Bling" variant="outline" disabled={ocupado || !configQ.data?.escrita_habilitada || !resumo?.pendentes || execucao?.status === "comparando"} onClick={() => setConfirmar(true)}><Send />Enviar ao Bling</BotaoGuardado>
     </div></div>
     <p className="text-sm text-muted-foreground">Envio {configQ.data?.escrita_habilitada ? "habilitado" : "desligado"} · Automação {configQ.data?.automatico_habilitado ? "habilitada" : "desligada"}</p>
+    {resolucaoQ.data && <p className="text-sm text-muted-foreground">{resolucaoQ.data.comparados} comparados · {resolucaoQ.data.desatualizados} IDs desatualizados em Produtos</p>}
+    {resolucaoQ.error && <p role="alert" className="text-sm text-destructive">{formatError(resolucaoQ.error)}</p>}
     {falha && <p role="alert" className="whitespace-pre-wrap break-words text-sm text-destructive">{falha}</p>}
     {ocupado && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" />{resumo?.lidos ?? 0} / {resumo?.total ?? "—"} produtos · {resumo?.restantes ?? "—"} restantes</p>}
     {resumo && <><div className="flex flex-wrap gap-x-6 gap-y-2 border-y border-border py-3 text-sm"><span><strong>{resumo.produtos_divergentes}</strong> produtos divergentes</span><span><strong>{resumo.campos_divergentes}</strong> campos</span><span><strong>{resumo.sem_vinculo}</strong> sem vínculo</span><span><strong>{resumo.sem_peso}</strong> sem peso</span><span><strong>{resumo.sem_dimensao}</strong> sem dimensão</span><span className={resumo.erros ? "text-destructive" : "text-muted-foreground"}>{resumo.erros} erros</span></div>

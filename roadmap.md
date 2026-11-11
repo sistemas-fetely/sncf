@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Bling diff recovery and corrections: reconstruct lost resolution, fix external-code lookup/unit comparison, test/deploy only bling-produto-sync and complete read-only diff; exact lost deployed source cannot be recovered with available tools.
 - [x] Marketplace F3 frontend: aba na Loja B2C, filtros na URL, detalhe com retorno, transporte e portador padrão; 9 testes, pedidos reais e gravações simuladas conferidos, sem banco/publicação.
 - [ ] Marketplace F3 permissões: catálogo não contém tela.pedidos_marketplace, acao.pedido_transporte_registrar ou acao.marketplace_transportadora_padrao_set, nem censo das ações; registro depende da frente de banco autorizada. Super Admin acessa pela regra existente; demais usuários dependem dos registros/concessões.
 - [x] Recebimento físico na Chegada: KPIs, filtros, detalhe, e-mails e formulário movido; Cadastro XPM reduzido e porta xpm_email na edge. 20 testes, Deno check e deploy só da edge; TE-2026-0023 real conferido (274 linhas, 599.328 recebidas, 288 em falta), divergências primeiro e formulário disponível; sem ingestão real, banco/publicação.
