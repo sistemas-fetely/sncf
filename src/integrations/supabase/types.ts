@@ -131230,6 +131230,7 @@ export type Database = {
           data_pedido: string | null
           devolucao_numero: string | null
           devolucao_status: string | null
+          eh_desvio: boolean | null
           eh_final: boolean | null
           entregue_em: string | null
           estagio: string | null
@@ -134290,6 +134291,7 @@ export type Database = {
           pedido_id: string | null
           previsao_entrega: string | null
           receita_frete: number | null
+          reentregas: number | null
           referencia: string | null
           tem_nf: boolean | null
           tem_rastreio: boolean | null

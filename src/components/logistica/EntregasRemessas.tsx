@@ -17,6 +17,8 @@ import { brl, ddmm, isoDiasAtras, ROTULO_FONTE_REMESSA } from "@/lib/logistica/f
 import { RemessaDetalheDrawer } from "./RemessaDetalheDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EntregasAndamento } from "./EntregasAndamento";
+import { AnaliseEntregasPeriodo } from "./AnaliseEntregasPeriodo";
+import { filtrarUfPeriodo } from "@/lib/logistica/entregasPeriodo";
 
 type Status = "todas" | "transito" | "atencao" | "entregues" | "devolucao" | "sem_rastreio";
 const EM_TRANSITO = new Set(["postado_coletado", "em_transito", "custodia_transferida", "etiqueta"]);
@@ -34,11 +36,12 @@ const TESTE: Record<Status, (r: RemessaRow) => boolean> = {
 };
 
 type Col = "referencia" | "cliente" | "transportadora" | "canal" | "destino" | "despacho" | "estado" | "previsao"
-  | "entregue" | "prazo" | "parado" | "receita" | "custo";
+  | "entregue" | "dias" | "prazo" | "parado" | "receita" | "custo";
 const VAL: Record<Col, (r: RemessaRow) => string | number | null> = {
   referencia: (r) => r.referencia, cliente: (r) => r.cliente, transportadora: (r) => r.transportadora, canal: (r) => r.canal,
   destino: (r) => `${r.uf_destino ?? ""}${r.cidade_destino ?? ""}`, despacho: (r) => r.data_despacho, estado: (r) => r.estado_rotulo,
   previsao: (r) => r.previsao_entrega, entregue: (r) => r.entregue_em, prazo: (r) => (r.no_prazo == null ? null : r.no_prazo ? 1 : 0),
+  dias: (r) => r.dias_entrega,
   parado: (r) => (ehEntregue(r) ? null : r.dias_sem_movimento), receita: (r) => r.receita_frete, custo: (r) => r.custo_frete,
 };
 
@@ -91,7 +94,8 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
   const de = dias ? isoDiasAtras(dias) : null;
   const { data = [], isLoading, error, refetch } = useLogisticaRemessas({ transportadoraId, canal: canal === "total" ? null : canal, de });
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
-  const [nav, setNav] = useEstadoTela({ status: "todas", transp: null, busca: "", cobrado: false }, { prefixo: "en", replaceKeys: ["busca"] });
+  const [nav, setNav] = useEstadoTela({ status: "todas", transp: null, busca: "", cobrado: false, uf: null }, { prefixo: "en", replaceKeys: ["busca"] });
+  const uf = nav.uf as string | null;
   const status = nav.status as Status; const setStatus = (v: SetStateAction<typeof status>) => setNav({ status: resolverAcao(v, status) as never });
   const transp = nav.transp as string | null; const setTransp = (v: SetStateAction<typeof transp>) => setNav({ transp: resolverAcao(v, transp) as never });
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
@@ -102,13 +106,13 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
 
   const base = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return data.filter((r) => {
+    return filtrarUfPeriodo(data, uf).filter((r) => {
       if (transp && r.transportadora !== transp) return false;
       if (soCobrado && !(r.receita_frete > 0)) return false;
       if (q && ![r.referencia, r.cliente, r.cidade_destino].some((v) => (v ?? "").toLowerCase().includes(q))) return false;
       return true;
     });
-  }, [data, transp, soCobrado, busca]);
+  }, [data, transp, soCobrado, busca, uf]);
 
   const contagem = useMemo(() => {
     const c = {} as Record<Status, number>;
@@ -158,6 +162,8 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
         ))}
       </div>
 
+      {!isLoading && !error && <AnaliseEntregasPeriodo linhas={data} filtroUf={uf} selecionarUf={v => setNav({ uf: uf === v ? null : v })} abrirRemessa={setAberto} />}
+
       <div className="flex flex-wrap gap-2">
         {pills.map((p) => (
           <KpiPill key={p.k} label={p.l} count={contagem[p.k] ?? 0} color={p.c} active={status === p.k}
@@ -166,6 +172,7 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {uf != null && <Button size="sm" variant="outline" onClick={() => setNav({ uf: null })} aria-label={`Limpar filtro UF ${uf}`}>UF: {uf}<X className="ml-1 h-3 w-3" /></Button>}
         {!transportadoraId && transportadoras.map((t) => (
           <button key={t} onClick={() => setTransp(transp === t ? null : t)}
             className={cn("rounded-full px-3 py-1 text-xs border", transp === t ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted")}>
@@ -216,6 +223,7 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
                 <SortableTableHead column="estado" sort={sort} onSort={setSort}>Estado</SortableTableHead>
                 <SortableTableHead column="previsao" sort={sort} onSort={setSort}>Previsão</SortableTableHead>
                 <SortableTableHead column="entregue" sort={sort} onSort={setSort}>Entregue em</SortableTableHead>
+                <SortableTableHead column="dias" sort={sort} onSort={setSort} align="right">Dias</SortableTableHead>
                 <SortableTableHead column="prazo" sort={sort} onSort={setSort}>Prazo</SortableTableHead>
                 <SortableTableHead column="parado" sort={sort} onSort={setSort} align="right">Parado há</SortableTableHead>
                 <TableHead>Última ocorrência</TableHead>
@@ -235,6 +243,7 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
                   <TableCell><BadgeEstado r={r} /></TableCell>
                   <TableCell className="tabular-nums">{ddmm(r.previsao_entrega)}</TableCell>
                   <TableCell className="tabular-nums">{ddmm(r.entregue_em)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", r.dias_entrega == null && "text-muted-foreground")}>{r.dias_entrega ?? "—"}</TableCell>
                   <TableCell><Prazo v={r.no_prazo} /></TableCell>
                   <TableCell className="text-right"><Parado r={r} /></TableCell>
                   <TableCell className="max-w-[200px] truncate text-xs" title={r.ultima_ocorrencia_texto ?? undefined}>{r.ultima_ocorrencia_texto ?? "—"}</TableCell>

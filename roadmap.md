@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Logística Período: análise pura, indicadores/gráfico/agrupamentos/atrasos, filtro UF na URL e coluna Dias; Ícaro 90 dias 65 entregues/5,1 dias/54 de 62/7 reentregas/0 devoluções e Total conferidos, UF sobrevive recarga, PED-2286 lido na gaveta; sem banco/publicação.
 - [x] Marketplace estágios B2C: catálogo ativo/visível sem Recebido, ícones e desvios compartilhados, selo mantém regra idêntica B2C; Mesa/links/gaveta conferidos, 25 testes/typecheck aprovados e prints lado a lado a 1280px; sem SQL/publicação.
 - [x] Logística Entregas: sub-abas na URL, consulta aberta paginada sem data, 10 testes e typecheck aprovados; preview todas 79/Ícaro 3, busca/filtros/Período e recarga conferidos; sem banco/publicação.
 - [ ] Entregas detalhe real: drawer existente abre, mas fn_logistica_remessa_detalhe retorna statement timeout para PED-2354; banco/detalhe fora do escopo, leitura completa não validada.

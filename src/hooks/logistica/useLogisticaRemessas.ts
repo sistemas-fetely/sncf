@@ -17,6 +17,7 @@ export interface RemessaRow {
   ultima_ocorrencia_em: string | null; ultima_ocorrencia_texto: string | null; dias_sem_movimento: number | null;
   no_prazo: boolean | null; dias_entrega: number | null; tem_nf: boolean; tem_rastreio: boolean;
   atrasada: boolean | null; dias_atraso: number | null; parada: boolean | null;
+  reentregas: number | null;
 }
 export interface FiltroRemessas { transportadoraId?: string | null; canal?: "b2b" | "b2c" | "interno" | null; de?: string | null; ate?: string | null; soPedidos?: boolean }
 

@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Period delivery analytics derive exclusively from the existing scoped period rows through tested pure helpers; weekly dispatch buckets use calendar Mondays and missing measurement stays null, while UF list filtering and group sorting live in the URL so analysis never depends on list filters.
 - Marketplace pipeline reads the active visible B2C channel catalog (excluding received), joins stage deviation/final flags, and shares B2C icons unchanged; legacy stage URLs normalize through the tested marketplace rules so old task links retain their meaning.
 - Logistics delivery sub-tabs share the existing shell; the operational queue uses a separately paginated, date-free open-order query and a tested exclusive priority selector, preserving the period view unchanged across all carrier/channel scopes.
 - Product-system XLSX exports are client-only and read-only: paginate every view, derive fields exclusively from the ordered header view, and serialize through the tested export helper so new fields need no frontend list and read failures never produce partial files.
