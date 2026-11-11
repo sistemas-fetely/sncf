@@ -157,6 +157,7 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
                 <AlertDescription className="space-y-1">
                   <ResumoBloqueiosXpm
                     bloqueios={bloqueios}
+                    vereditoRotulo={previaEstoque?.veredito_rotulo ?? null}
                     itens={itensFalta}
                     fotoEm={previaEstoque?.foto_em ?? null}
                   />

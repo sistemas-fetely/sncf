@@ -5,10 +5,13 @@ import { ROTULO_FALLBACK, fmtFoto } from "@/components/pedidos/BlocoFaltaEstoque
 import type { ItemPreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 
 /**
- * BLOQUEIO-COM-TETO (11/11/2026): a lista de bloqueios do envio XPM crescia um
- * parágrafo por item (100+ itens = tela inteira de rolagem). Aqui os bloqueios
- * de estoque viram UMA linha de resumo por tipo, com contagem; a lista completa
- * fica atrás de "ver itens", num container com teto e rolagem própria.
+ * BLOQUEIO-COM-TETO (11/11/2026): o estoque entra em `bloqueios` como UMA única
+ * string ("<rótulo do veredito>: <frase com os SKUs>"), apensada depois dos
+ * demais bloqueios — com dezenas de itens ela vira uma parede de texto. Aqui
+ * esse bloqueio é substituído por linhas de resumo agrupadas por veredito_item
+ * (com contagem); a string longa fica atrás de "ver itens", quebrada por " · "
+ * num container com teto e rolagem própria. Os demais bloqueios (poucos e
+ * curtos) continuam listados como sempre.
  * Só apresentação — os textos e as regras continuam vindo da prévia do banco.
  */
 
@@ -53,25 +56,45 @@ export function LinhasResumoEstoque({
   );
 }
 
+/** O bloqueio de estoque é a string que começa com "<rótulo do veredito>:". */
+function ehBloqueioEstoque(texto: string, vereditoRotulo: string | null): boolean {
+  if (vereditoRotulo && texto.startsWith(`${vereditoRotulo}:`)) return true;
+  return Object.values(ROTULO_FALLBACK).some((r) => texto.startsWith(`${r}:`));
+}
+
 interface Props {
-  /** Textos de bloqueio da prévia — os primeiros `itens.length` são os de estoque. */
+  /** Textos de bloqueio da prévia — o de estoque é UMA string longa com os SKUs. */
   bloqueios: string[];
-  /** Itens da prévia de estoque (com veredito por item). */
+  /** Rótulo do veredito da prévia de estoque (prefixo do bloqueio de estoque). */
+  vereditoRotulo?: string | null;
+  /** Itens da prévia de estoque (com veredito por item) — base do resumo. */
   itens?: ItemPreviaEstoqueXpm[];
   fotoEm?: string | null;
 }
 
-export function ResumoBloqueiosXpm({ bloqueios, itens = [], fotoEm = null }: Props) {
+export function ResumoBloqueiosXpm({ bloqueios, vereditoRotulo = null, itens = [], fotoEm = null }: Props) {
   const [aberto, setAberto] = useState(false);
-  const outros = bloqueios.slice(itens.length);
+  const bloqueioEstoque = bloqueios.find((b) => ehBloqueioEstoque(b, vereditoRotulo)) ?? null;
+  const outros = bloqueios.filter((b) => b !== bloqueioEstoque);
+  // Sem itens detalhados, o resumo cai para o rótulo puro (texto antes do ":").
+  const rotuloEstoque = bloqueioEstoque?.split(":")[0] ?? null;
+  const linhasEstoque = bloqueioEstoque
+    ? bloqueioEstoque.split(" · ").map((l) => l.trim()).filter(Boolean)
+    : [];
 
   return (
     <>
-      <LinhasResumoEstoque itens={itens} fotoEm={fotoEm} />
+      {bloqueioEstoque && (
+        itens.length > 0 ? (
+          <LinhasResumoEstoque itens={itens} fotoEm={fotoEm} />
+        ) : (
+          <p className="tabular-nums">{rotuloEstoque}</p>
+        )
+      )}
       {outros.map((b) => (
         <p key={b} className="tabular-nums">{b}</p>
       ))}
-      {bloqueios.length > 0 && (
+      {bloqueioEstoque && (
         <Collapsible open={aberto} onOpenChange={setAberto}>
           <CollapsibleTrigger asChild>
             <button
@@ -86,8 +109,8 @@ export function ResumoBloqueiosXpm({ bloqueios, itens = [], fotoEm = null }: Pro
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="max-h-48 overflow-y-auto space-y-1 pr-1 pt-1">
-              {bloqueios.map((b) => (
-                <p key={b} className="tabular-nums">{b}</p>
+              {linhasEstoque.map((l, i) => (
+                <p key={`${i}-${l}`} className="tabular-nums">{l}</p>
               ))}
             </div>
           </CollapsibleContent>

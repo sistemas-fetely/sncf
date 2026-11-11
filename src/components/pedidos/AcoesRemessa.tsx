@@ -263,6 +263,7 @@ export function AcoesRemessa({
                 fica atrás de "ver itens" com rolagem própria. */}
             <ResumoBloqueiosXpm
               bloqueios={previa!.bloqueios}
+              vereditoRotulo={previaEstoque?.veredito_rotulo ?? null}
               itens={previaEstoque?.itens ?? []}
               fotoEm={previaEstoque?.foto_em ?? null}
             />
