@@ -11,6 +11,7 @@ import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
 import NfsSemPedidoTab from "@/components/compras/NfsSemPedidoTab";
 import ImportarPI from "@/pages/acervo/ImportarPI";
 import { selecaoChegada } from "@/lib/compras/abas-chegada";
+import RecebimentoTab from "./chegada/RecebimentoTab";
 
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -54,6 +55,7 @@ const ABAS: AbaMercadoria[] = [
   { value: "painel", label: "Painel", grupo: "gestao", render: () => <PainelTab /> },
   { value: "pendencias", label: "Pendências", grupo: "gestao", render: () => <PendenciasTab /> },
   { value: "nfs-sem-pedido", label: "Documentos de entrada", grupo: "gestao", render: () => <NfsSemPedidoTab /> },
+  { value: "recebimento", label: "Recebimento", grupo: "gestao", render: () => <RecebimentoTab /> },
   { value: "novo", label: "Novo pedido", grupo: "ferramenta", render: () => <CadastroPedidoCompra vista="novo" /> },
   { value: "importacao-pi", label: "Importação (PI)", grupo: "ferramenta", render: () => <AbasInternas grupo="pi" /> },
   { value: "ferramentas", label: "Ferramentas", grupo: "ferramenta", render: () => <AbasInternas grupo="ferramenta" /> },

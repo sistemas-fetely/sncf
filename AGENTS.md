@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Physical receipt UI belongs to Chegada Recebimento and reads the center/door-neutral summary view; the manual XLSX form is shared only there while XPM keeps pre-arrival registration, so ingestion logic and receipt reporting have one home.
 - SNCF-to-Bling F1 uses its own config-driven field mapping, snapshot execution tables and SKU queue; only allowlisted partial PATCH fields are permitted, leases serialize requests and database flags default writes/automation off, so legacy destination correction rules remain unchanged.
 - Catalog missing-dimension retries use the shared strict-equivalence provisioner under the existing lease; resend whole product groups and link automatic registrations through audit_log so color guards and per-reading counts remain intact.
 - Customer-return NF backing uses `fn_devolucao_nf_cliente_confirmada` and the protected confirmed-link trigger calling the existing TRS creator; Fiscal uses one confirmed-link hook so failures never undo confirmation or prompt duplicate issuance.

@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     log.linhas_lidas = rows.length;
     const { data: resultado, error } = await sb.rpc("ingerir_termo_conferencia", {
       p_termo: String(log.assunto).replace(/^(?:\s*(?:ENC|FW|FWD|RES|RE|TR)\s*:\s*)+/i, ""), p_rows: rows, p_data_recebimento: dataRecebimento,
-      p_centro_codigo: "XPM-SC", p_porta: "xpm",
+      p_centro_codigo: "XPM-SC", p_porta: "xpm_email",
     });
     log.resultado = resultado;
     log.termo_entrada_id = resultado?.termo_entrada_id ?? null;

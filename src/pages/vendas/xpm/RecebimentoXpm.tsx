@@ -123,10 +123,11 @@ export default function RecebimentoXpm() {
   return (
     <PageShell className="md:px-8">
       <PageHeader
-        titulo="Recebimento XPM"
-        estado="Envie a planilha de cadastro pra XPM e ingira o Termo de Conferência de volta pra dar entrada no estoque."
+        titulo="Cadastro XPM"
+        estado="Planilha de cadastro (SKU × NF) e pesos que a XPM exige antes da chegada. O recebimento físico vive em Chegada de Mercadoria → Recebimento."
       />
 
+      <Button asChild variant="link"><Link to="/vendas/produto/chegada-mercadoria?aba=recebimento">Chegada de Mercadoria → Recebimento</Link></Button>
       <EntradaXpm pedidoRef={pedidoRef} onPedidoRefChange={setPedidoRef} />
 
       {/* PESOS DE PRODUTO */}
@@ -262,7 +263,6 @@ export default function RecebimentoXpm() {
         </CardContent>
       </Card>
 
-      <PainelSyncEstoque />
 
     </PageShell>
   );

@@ -19,7 +19,7 @@ const TABS = [
   { value: "operacao", slug: "tela.wms_operacao", label: "Operação", component: <OperacaoXpm /> },
   { value: "expedicoes", slug: "tela.wms_expedicoes", label: "Expedições", component: <ExpedicoesXpm /> },
   { value: "painel", slug: "tela.wms_painel", label: "Painel XPM", component: <PainelXpm /> },
-  { value: "recebimento", slug: "tela.wms_recebimento", label: "Recebimento XPM", component: <RecebimentoXpm /> },
+  { value: "recebimento", slug: "tela.wms_recebimento", label: "Cadastro XPM", component: <RecebimentoXpm /> },
   { value: "estoque", slug: "tela.wms_estoque", label: "Estoque XPM", component: <EstoqueXpm /> },
   { value: "importar-fases", slug: "tela.wms_expedicoes", label: "Importar fases", component: <ImportarFasesXpm /> },
   { value: "funil", slug: "tela.wms_expedicoes", label: "Funil API × Arquivo", component: <ComparativoFontesXpm /> },

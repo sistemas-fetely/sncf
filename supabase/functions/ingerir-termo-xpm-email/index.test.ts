@@ -63,7 +63,7 @@ test("authenticated ingestion sends required RPC arguments and persists result",
   const { response, logs, calls } = await executar();
   expect(response.status).toBe(200);
   expect(calls.find((c) => c.name === "ingerir_termo_conferencia")?.args).toEqual({ p_termo: "NF 178804/178805",
-    p_rows: parsearTermoEmail(html), p_data_recebimento: "2026-11-10", p_centro_codigo: "XPM-SC", p_porta: "xpm" });
+    p_rows: parsearTermoEmail(html), p_data_recebimento: "2026-11-10", p_centro_codigo: "XPM-SC", p_porta: "xpm_email" });
   expect(logs[0].termo_entrada_id).toBe("termo-1");
   expect(logs[0].erro).toBeNull();
 });
