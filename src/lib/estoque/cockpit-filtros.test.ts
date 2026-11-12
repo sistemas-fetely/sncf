@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contarOpcoesCockpit, filtrarCockpit, SEM_GRUPO, type FiltrosCockpit, type ProdutoFiltroCockpit } from "./cockpit-filtros";
 
-const filtros: FiltrosCockpit = { busca: "", fase: "todos", grupos: [], colecoes: [], centro: "todos", situacao: "todos" };
+const filtros: FiltrosCockpit = { busca: "", fase: [], grupos: [], colecoes: [], centro: "todos", situacao: [] };
 const produto = (sku: string, grupo: string | null, colecao: string, centro = "SP"): ProdutoFiltroCockpit => ({
   sku, grupo, colecao, centro, cod_cadastro: sku, nome_comercial: sku, cor_nome: null, fase: "Ativo", situacao: "Disponível",
 });
@@ -23,8 +23,24 @@ describe("filtros múltiplos do Cockpit", () => {
   });
   it("contagens respeitam centro, fase, situação e busca", () => {
     expect([...contarOpcoesCockpit(linhas, { ...filtros, centro: "SC" }, "grupo")]).toEqual([["Vela", 1]]);
-    for (const patch of [{ fase: "Outra" }, { situacao: "Outra" }, { busca: "inexistente" }]) {
+    for (const patch of [{ fase: ["Outra"] }, { situacao: ["Outra"] }, { busca: "inexistente" }]) {
       expect(contarOpcoesCockpit(linhas, { ...filtros, ...patch }, "colecao").size).toBe(0);
     }
+  });
+  it("fase aceita múltiplos valores e combina com coleção", () => {
+    const dados = [...linhas, { ...produto("5", "Vela", "A"), fase: "Nova" }, { ...produto("6", "Vela", "A"), fase: "Antiga" }];
+    expect(filtrarCockpit(dados, { ...filtros, fase: ["Ativo", "Nova"], colecoes: ["A"] }).map((l) => l.sku)).toEqual(["1", "1", "3", "5"]);
+  });
+  it("situação aceita múltiplos valores e combina com fase e grupo", () => {
+    const dados = [...linhas, { ...produto("5", "Vela", "A"), situacao: "Esgotado" }, { ...produto("6", "Vela", "A"), situacao: "Outro" }];
+    expect(filtrarCockpit(dados, { ...filtros, fase: ["Ativo"], situacao: ["Disponível", "Esgotado"], grupos: ["Vela"] }).map((l) => l.sku)).toEqual(["1", "1", "4", "5"]);
+  });
+  it("contagem de fase ignora só fase e deduplica centros", () => {
+    expect([...contarOpcoesCockpit(linhas, { ...filtros, fase: ["Outra"], grupos: ["Vela"], colecoes: ["A"], situacao: ["Disponível"] }, "fase")]).toEqual([["Ativo", 1]]);
+    expect(contarOpcoesCockpit(linhas, { ...filtros, situacao: ["Outra"] }, "fase").size).toBe(0);
+  });
+  it("contagem de situação ignora só situação e respeita fase e centro", () => {
+    expect([...contarOpcoesCockpit(linhas, { ...filtros, situacao: ["Outra"], fase: ["Ativo"], centro: "SC" }, "situacao")]).toEqual([["Disponível", 1]]);
+    expect(contarOpcoesCockpit(linhas, { ...filtros, fase: ["Outra"] }, "situacao").size).toBe(0);
   });
 });

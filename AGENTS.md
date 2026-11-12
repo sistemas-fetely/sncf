@@ -1,6 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
-- Cockpit group/collection filters share a generic multi-select and URL list codecs; pure selectors count unique products with every other filter applied so center rows never inflate option counts. Shared tested selection helpers own search-visible bulk toggles, tri-state and summaries without normalizing explicit full selections.
+- Cockpit phase/group/collection/status filters share a generic multi-select and URL list codecs (legacy "todos" means empty); pure selectors count unique products with every other filter applied so center rows never inflate option counts. Shared tested selection helpers own search-visible bulk toggles, tri-state and summaries without normalizing explicit full selections.
 - Accountant entry-invoice summaries share one typed XML-to-PDF/storage helper across retrofit and package generation; cursor batches advance past per-note errors, simulation stays read-only, and tested pure helpers own entry subfolders/counters and account-bound payment-report paths.
 - VD delivery-address correction is isolated in the drawer's address action/dialog and writes only through its existing RPC; presentation helpers own visibility, motive length and CEP warnings, while awaited order/management invalidation refreshes the address and history.
 - Store refunds live as a read-only returns tab sharing one paginated view query with its counter; tested pure helpers own filtering, summaries and blank-last sorting, and order navigation carries the tab-specific focus key.

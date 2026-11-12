@@ -14,21 +14,21 @@ export interface ProdutoFiltroCockpit {
 
 export interface FiltrosCockpit {
   busca: string;
-  fase: string;
+  fase: string[];
   grupos: string[];
   colecoes: string[];
   centro: string;
-  situacao: string;
+  situacao: string[];
 }
 
 export function filtrarCockpit<T extends ProdutoFiltroCockpit>(linhas: T[], filtros: FiltrosCockpit): T[] {
   const busca = filtros.busca.trim().toLowerCase();
   return linhas.filter((linha) =>
-    (filtros.fase === "todos" || linha.fase === filtros.fase) &&
+    (!filtros.fase.length || (linha.fase !== null && filtros.fase.includes(linha.fase))) &&
     (!filtros.grupos.length || filtros.grupos.includes(linha.grupo ?? SEM_GRUPO)) &&
     (!filtros.colecoes.length || (linha.colecao !== null && filtros.colecoes.includes(linha.colecao))) &&
     (filtros.centro === "todos" || linha.centro === filtros.centro) &&
-    (filtros.situacao === "todos" || linha.situacao === filtros.situacao) &&
+    (!filtros.situacao.length || (linha.situacao !== null && filtros.situacao.includes(linha.situacao))) &&
     (!busca || [linha.sku, linha.cod_cadastro, linha.nome_comercial, linha.cor_nome]
       .some((valor) => (valor ?? "").toLowerCase().includes(busca))),
   );
@@ -36,12 +36,13 @@ export function filtrarCockpit<T extends ProdutoFiltroCockpit>(linhas: T[], filt
 
 /** Uma opção conta produtos, não as linhas repetidas por centro; ignora só seu próprio filtro. */
 export function contarOpcoesCockpit(
-  linhas: ProdutoFiltroCockpit[], filtros: FiltrosCockpit, campo: "grupo" | "colecao",
+  linhas: ProdutoFiltroCockpit[], filtros: FiltrosCockpit, campo: "grupo" | "colecao" | "fase" | "situacao",
 ): Map<string, number> {
-  const recorte = filtrarCockpit(linhas, { ...filtros, ...(campo === "grupo" ? { grupos: [] } : { colecoes: [] }) });
+  const chave = campo === "grupo" ? "grupos" : campo === "colecao" ? "colecoes" : campo;
+  const recorte = filtrarCockpit(linhas, { ...filtros, [chave]: [] });
   const produtos = new Map<string, Set<string>>();
   for (const linha of recorte) {
-    const valor = campo === "grupo" ? linha.grupo ?? SEM_GRUPO : linha.colecao;
+    const valor = campo === "grupo" ? linha.grupo ?? SEM_GRUPO : linha[campo];
     if (valor === null) continue;
     const conjunto = produtos.get(valor) ?? new Set<string>();
     conjunto.add(linha.sku ?? linha.cod_cadastro ?? "");

@@ -269,14 +269,12 @@ export default function EstoqueVirtual() {
   const [nav, setNav] = useEstadoTela({ busca: "", fase: "todos", colecao: "todos", grupo: "", centro: "todos", situacao: "todos", visao: "estoque", ordem: "", pagina: 1 });
   const busca = nav.busca;
   const setBusca = (v: string) => setNav({ busca: v });
-  const faseFiltro = nav.fase;
-  const setFaseFiltro = (v: string) => setNav({ fase: v });
+  const faseFiltro = useMemo(() => nav.fase === "todos" ? [] : lerLista(nav.fase), [nav.fase]);
   const colecoesFiltro = useMemo(() => nav.colecao === "todos" ? [] : lerLista(nav.colecao), [nav.colecao]);
   const gruposFiltro = useMemo(() => lerLista(nav.grupo), [nav.grupo]);
   const centroFiltro = nav.centro;
   const setCentroFiltro = (v: string) => setNav({ centro: v });
-  const situacaoFiltro = nav.situacao;
-  const setSituacaoFiltro = (v: string) => setNav({ situacao: v });
+  const situacaoFiltro = useMemo(() => nav.situacao === "todos" ? [] : lerLista(nav.situacao), [nav.situacao]);
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const visao = nav.visao as Visao;
   const setVisao = (v: Visao) => setNav({ visao: v, ordem: "" });
@@ -454,6 +452,14 @@ export default function EstoqueVirtual() {
     const contagens = contarOpcoesCockpit(linhas, filtros, "colecao");
     return opcoes.colecoes.map((rotulo) => ({ valor: rotulo, rotulo, contagem: contagens.get(rotulo) ?? 0 }));
   }, [linhas, filtros, opcoes.colecoes]);
+  const opcoesFases = useMemo(() => {
+    const contagens = contarOpcoesCockpit(linhas, filtros, "fase");
+    return opcoes.fases.map((valor) => ({ valor, rotulo: valor, contagem: contagens.get(valor) ?? 0 }));
+  }, [linhas, filtros, opcoes.fases]);
+  const opcoesSituacoes = useMemo(() => {
+    const contagens = contarOpcoesCockpit(linhas, filtros, "situacao");
+    return opcoes.situacoes.map((valor) => ({ valor, rotulo: rotuloStatusVenda(valor), contagem: contagens.get(valor) ?? 0 }));
+  }, [linhas, filtros, opcoes.situacoes]);
 
   // Linhas produto×centro com todos os filtros exceto Centro.
   const recorteSemCentro = useMemo(() => filtrarCockpit(linhas, { ...filtros, centro: "todos" }), [linhas, filtros]);
@@ -678,10 +684,8 @@ export default function EstoqueVirtual() {
 
   function limparFiltros() {
     setBusca("");
-    setFaseFiltro("todos");
-    setNav({ colecao: "todos", grupo: "" });
+    setNav({ fase: "todos", situacao: "todos", colecao: "todos", grupo: "" });
     setCentroFiltro("todos");
-    setSituacaoFiltro("todos");
     setPagina(1);
   }
 
@@ -859,13 +863,15 @@ export default function EstoqueVirtual() {
           />
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-3">
-          {filtroSelect(faseFiltro, setFaseFiltro, "Todas as fases", opcoes.fases, "w-[160px]")}
+          <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFases} selecionados={faseFiltro}
+            onChange={(valores) => setNav({ fase: valores.length ? escreverLista(valores) : "todos", pagina: 1 })} className="w-[160px]" />
           <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesGrupos} selecionados={gruposFiltro}
             onChange={(valores) => setNav({ grupo: escreverLista(valores), pagina: 1 })} className="w-[180px]" />
           <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesColecoes} selecionados={colecoesFiltro}
             onChange={(valores) => setNav({ colecao: valores.length ? escreverLista(valores) : "todos", pagina: 1 })} className="w-[180px]" />
           {filtroSelect(centroFiltro, setCentroFiltro, "Todos os centros", opcoes.centros, "w-[180px]")}
-          {filtroSelect(situacaoFiltro, setSituacaoFiltro, "Todas as situações", opcoes.situacoes, "w-[170px]", rotuloStatusVenda)}
+          <MultiSelectFilter label="Todas as situações" plural="situações" opcoes={opcoesSituacoes} selecionados={situacaoFiltro}
+            onChange={(valores) => setNav({ situacao: valores.length ? escreverLista(valores) : "todos", pagina: 1 })} className="w-[170px]" />
         </div>
       </div>
 
