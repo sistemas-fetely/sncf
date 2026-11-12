@@ -1,8 +1,8 @@
 import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
-import { filtrarDimensoesProduto, opcoesFiltroProduto } from "@/lib/produto/filtrosMultiplos";
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
+import { useEstadoTela, resolverAcao, escreverLista } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,13 +52,23 @@ type SortDir = "asc" | "desc";
 
 export default function PainelMargem() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
-  const [nav, setNav] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"] });
+  const [nav, setNav] = useEstadoTela({ busca: "", grupo: "todos", colecao: "todas", abaixo: "0", ordem: "", dir: "asc" }, { replaceKeys: ["busca"] });
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
-  const [grupo, setGrupo] = useState<string[]>([]);
-  const [colecao, setColecao] = useState<string[]>([]);
-  const [soAbaixo, setSoAbaixo] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const grupoFiltro = nav.grupo; const setGrupoFiltro = (v: SetStateAction<typeof grupoFiltro>) => setNav({ grupo: resolverAcao(v, grupoFiltro) as never });
+  const colecaoFiltro = nav.colecao; const setColecaoFiltro = (v: SetStateAction<typeof colecaoFiltro>) => setNav({ colecao: resolverAcao(v, colecaoFiltro) as never });
+  const abaixoFiltro = nav.abaixo; const setAbaixoFiltro = (v: SetStateAction<typeof abaixoFiltro>) => setNav({ abaixo: resolverAcao(v, abaixoFiltro) as never });
+  const ordemFiltro = nav.ordem; const setOrdemFiltro = (v: SetStateAction<typeof ordemFiltro>) => setNav({ ordem: resolverAcao(v, ordemFiltro) as never });
+  const dirFiltro = nav.dir; const setDirFiltro = (v: SetStateAction<typeof dirFiltro>) => setNav({ dir: resolverAcao(v, dirFiltro) as never });
+  const grupo = useMemo(() => lerFiltroProduto(grupoFiltro), [grupoFiltro]);
+  const setGrupo = (v: string[]) => setGrupoFiltro(v.length ? escreverLista(v) : "todos");
+  const colecao = useMemo(() => lerFiltroProduto(colecaoFiltro), [colecaoFiltro]);
+  const setColecao = (v: string[]) => setColecaoFiltro(v.length ? escreverLista(v) : "todas");
+  const soAbaixo = abaixoFiltro === "1";
+  const setSoAbaixo = (v: boolean) => setAbaixoFiltro(v ? "1" : "0");
+  const sortKey: SortKey = ordemFiltro === "margem_b2b" || ordemFiltro === "margem_b2c" ? ordemFiltro : null;
+  const setSortKey = (v: SortKey) => setOrdemFiltro(v ?? "");
+  const sortDir: SortDir = dirFiltro === "desc" ? "desc" : "asc";
+  const setSortDir = (v: SortDir) => setDirFiltro(v);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["painel-margem"],
