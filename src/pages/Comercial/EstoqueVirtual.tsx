@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { useEstadoTela, resolverAcao, lerOrdemKD, escreverOrdemKD } from "@/lib/navegacao";
+import { useEstadoTela, resolverAcao, lerOrdemKD, escreverOrdemKD, lerLista, escreverLista } from "@/lib/navegacao";
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { contarOpcoesCockpit, filtrarCockpit, SEM_GRUPO } from "@/lib/estoque/cockpit-filtros";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -40,6 +42,7 @@ interface LinhaCockpit {
   cor_nome: string | null;
   fase: string | null;
   colecao: string | null;
+  grupo: string | null;
   centro: string | null;
   contabil: number | null;
   /** Vendável (fiscal sadio). */
@@ -65,7 +68,7 @@ interface LinhaCockpit {
 }
 
 const COLS =
-  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fiscal_sadio,a_caminho,virtual,reservado,fisico,real_centro,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
+  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,grupo,centro,contabil,fiscal_sadio,a_caminho,virtual,reservado,fisico,real_centro,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
 
 /** Linha exibida: produto (Centro = Todos) ou produto no centro escolhido. */
 interface LinhaTabela {
@@ -263,13 +266,13 @@ async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]
 export default function EstoqueVirtual() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, visão, ordem e página na URL.
   // ordem "" = padrão da visão; "nenhum" = sem ordenação.
-  const [nav, setNav] = useEstadoTela({ busca: "", fase: "todos", colecao: "todos", centro: "todos", situacao: "todos", visao: "estoque", ordem: "", pagina: 1 });
+  const [nav, setNav] = useEstadoTela({ busca: "", fase: "todos", colecao: "todos", grupo: "", centro: "todos", situacao: "todos", visao: "estoque", ordem: "", pagina: 1 });
   const busca = nav.busca;
   const setBusca = (v: string) => setNav({ busca: v });
   const faseFiltro = nav.fase;
   const setFaseFiltro = (v: string) => setNav({ fase: v });
-  const colecaoFiltro = nav.colecao;
-  const setColecaoFiltro = (v: string) => setNav({ colecao: v });
+  const colecoesFiltro = useMemo(() => nav.colecao === "todos" ? [] : lerLista(nav.colecao), [nav.colecao]);
+  const gruposFiltro = useMemo(() => lerLista(nav.grupo), [nav.grupo]);
   const centroFiltro = nav.centro;
   const setCentroFiltro = (v: string) => setNav({ centro: v });
   const situacaoFiltro = nav.situacao;
@@ -407,7 +410,21 @@ export default function EstoqueVirtual() {
     },
   });
 
-  const linhas = cockpitQuery.data ?? [];
+  const linhas = useMemo(() => cockpitQuery.data ?? [], [cockpitQuery.data]);
+
+  const gruposQuery = useQuery({
+    queryKey: ["produto_grupo_dim", "cockpit"],
+    queryFn: async () => {
+      const grupos: { rotulo: string }[] = [];
+      for (let inicio = 0; ; inicio += 1000) {
+        const { data, error } = await supabase.from("produto_grupo_dim").select("rotulo")
+          .eq("ativo", true).order("ordem").order("rotulo").range(inicio, inicio + 999);
+        if (error) throw error;
+        grupos.push(...(data ?? []));
+        if (!data || data.length < 1000) return grupos;
+      }
+    },
+  });
 
   const opcoes = useMemo(() => {
     const uniq = (f: (l: LinhaCockpit) => string | null) =>
@@ -426,22 +443,20 @@ export default function EstoqueVirtual() {
     return m;
   }, [canaisQuery.data]);
 
+  const filtros = useMemo(() => ({ busca, fase: faseFiltro, grupos: gruposFiltro, colecoes: colecoesFiltro, centro: centroFiltro, situacao: situacaoFiltro }),
+    [busca, faseFiltro, gruposFiltro, colecoesFiltro, centroFiltro, situacaoFiltro]);
+  const opcoesGrupos = useMemo(() => {
+    const contagens = contarOpcoesCockpit(linhas, filtros, "grupo");
+    return [...(gruposQuery.data ?? []).map(({ rotulo }) => ({ valor: rotulo, rotulo, contagem: contagens.get(rotulo) ?? 0 })),
+      { valor: SEM_GRUPO, rotulo: "(sem grupo)", contagem: contagens.get(SEM_GRUPO) ?? 0 }];
+  }, [linhas, filtros, gruposQuery.data]);
+  const opcoesColecoes = useMemo(() => {
+    const contagens = contarOpcoesCockpit(linhas, filtros, "colecao");
+    return opcoes.colecoes.map((rotulo) => ({ valor: rotulo, rotulo, contagem: contagens.get(rotulo) ?? 0 }));
+  }, [linhas, filtros, opcoes.colecoes]);
+
   // Linhas produto×centro com todos os filtros exceto Centro.
-  const recorteSemCentro = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return linhas.filter((l) => {
-      if (faseFiltro !== "todos" && l.fase !== faseFiltro) return false;
-      if (colecaoFiltro !== "todos" && l.colecao !== colecaoFiltro) return false;
-      if (situacaoFiltro !== "todos" && l.situacao !== situacaoFiltro) return false;
-      if (!q) return true;
-      return (
-        (l.sku ?? "").toLowerCase().includes(q) ||
-        (l.cod_cadastro ?? "").toLowerCase().includes(q) ||
-        (l.nome_comercial ?? "").toLowerCase().includes(q) ||
-        (l.cor_nome ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [linhas, busca, faseFiltro, colecaoFiltro, situacaoFiltro]);
+  const recorteSemCentro = useMemo(() => filtrarCockpit(linhas, { ...filtros, centro: "todos" }), [linhas, filtros]);
 
   // Linhas produto×centro do recorte (todos os filtros).
   const recorte = useMemo(
@@ -643,8 +658,8 @@ export default function EstoqueVirtual() {
     return () => ro.disconnect();
   }, [visao, centros.length, cockpitQuery.isLoading]);
 
-  const totalProdutos = useMemo(() => new Set(linhas.map(chaveProduto)).size, [linhas]);
-  const totalVirtual = linhas.reduce((s, l) => s + n(l.virtual), 0);
+  const totalProdutos = useMemo(() => new Set(recorte.map(chaveProduto)).size, [recorte]);
+  const totalVirtual = recorte.reduce((s, l) => s + n(l.virtual), 0);
   const estadoCabecalho = cockpitQuery.isLoading
     ? "Carregando…"
     : `${formatNum(totalProdutos)} produtos · ${formatNum(totalVirtual)} un virtuais · ${
@@ -664,7 +679,7 @@ export default function EstoqueVirtual() {
   function limparFiltros() {
     setBusca("");
     setFaseFiltro("todos");
-    setColecaoFiltro("todos");
+    setNav({ colecao: "todos", grupo: "" });
     setCentroFiltro("todos");
     setSituacaoFiltro("todos");
     setPagina(1);
@@ -768,6 +783,11 @@ export default function EstoqueVirtual() {
           Falha ao carregar os centros: {formatError(centrosQuery.error)}
         </div>
       )}
+      {gruposQuery.isError && (
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar os grupos de produto: {formatError(gruposQuery.error)}
+        </div>
+      )}
       {centros.length > 0 && (
         <section
           className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
@@ -840,7 +860,10 @@ export default function EstoqueVirtual() {
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           {filtroSelect(faseFiltro, setFaseFiltro, "Todas as fases", opcoes.fases, "w-[160px]")}
-          {filtroSelect(colecaoFiltro, setColecaoFiltro, "Todas as coleções", opcoes.colecoes, "w-[180px]")}
+          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesGrupos} selecionados={gruposFiltro}
+            onChange={(valores) => setNav({ grupo: escreverLista(valores), pagina: 1 })} className="w-[180px]" />
+          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesColecoes} selecionados={colecoesFiltro}
+            onChange={(valores) => setNav({ colecao: valores.length ? escreverLista(valores) : "todos", pagina: 1 })} className="w-[180px]" />
           {filtroSelect(centroFiltro, setCentroFiltro, "Todos os centros", opcoes.centros, "w-[180px]")}
           {filtroSelect(situacaoFiltro, setSituacaoFiltro, "Todas as situações", opcoes.situacoes, "w-[170px]", rotuloStatusVenda)}
         </div>
