@@ -40,6 +40,9 @@ import {
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getEstagioMeta } from "@/lib/despesas/estagios";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MesaClassificacao } from "@/components/despesas/MesaClassificacao";
+import { useGruposMesa } from "@/hooks/despesas/useMesaClassificacao";
 
 type DespesaV2 = {
   id: string;
@@ -127,6 +130,9 @@ function BadgeEstagio({ estagio }: { estagio: string | null }) {
 export default function Despesas() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ busca: "", mes: "todos", pagina: 1 }, { replaceKeys: ["busca"] });
+  const [abaNav, setAbaNav] = useEstadoTela({ aba: "lista" });
+  const gruposMesa = useGruposMesa();
+  const pendentesMesa = (gruposMesa.data ?? []).filter((g) => g.itens_sem_plano > 0).length;
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [origem, setOrigem] = useState<string>("todas");
   const mes = nav.mes as string; const setMes = (v: SetStateAction<typeof mes>) => setNav({ mes: resolverAcao(v, mes) as never });
@@ -270,6 +276,13 @@ export default function Despesas() {
         estado="Registro único de despesas — todas as origens, por competência."
       />
 
+      <Tabs value={abaNav.aba as string} onValueChange={(v) => setAbaNav({ aba: v })}>
+        <TabsList>
+          <TabsTrigger value="lista">Lista</TabsTrigger>
+          <TabsTrigger value="classificar">A classificar{gruposMesa.isSuccess ? ` · ${pendentesMesa}` : ""}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="classificar" className="mt-4"><MesaClassificacao /></TabsContent>
+        <TabsContent value="lista" className="mt-4 space-y-4">
       {error && (
         <Card className="border-destructive">
           <CardContent className="p-4 flex items-start gap-2 text-destructive">
@@ -518,6 +531,8 @@ export default function Despesas() {
           </div>
         </div>
       )}
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
