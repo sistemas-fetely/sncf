@@ -20,6 +20,7 @@ export interface NfEntrada {
   pedido_id: string | null;
   pedido_ref: string | null;
   tem_xml: boolean;
+  xml_path: string | null;
 }
 
 export type ColunaEntrada = "numero" | "data_emissao" | "emitida_por" | "contraparte" | "tipo_rotulo" | "valor" | "nf_venda_numero" | "pedido_ref";

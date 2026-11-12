@@ -241,11 +241,6 @@ const NfsVenda = lazy(() => import("@/pages/administrativo/contabilidade/NfsVend
 
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const PedidosMarketplace = lazy(() => import("@/pages/vendas/marketplace/PedidosMarketplace"));
-const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
-const ShopifyProdutos = lazy(() => import("@/pages/vendas/shopify/ShopifyProdutos"));
-const ShopifyClientes = lazy(() => import("@/pages/vendas/shopify/ShopifyClientes"));
-const ShopifyFulfillments = lazy(() => import("@/pages/vendas/shopify/ShopifyFulfillments"));
-const ShopifyEstoque = lazy(() => import("@/pages/vendas/shopify/ShopifyEstoque"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const Chamados = lazy(() => import("@/pages/Chamados"));
@@ -530,11 +525,6 @@ const App = () => (
                 
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
                 <Route path="/vendas/marketplace" element={<RotaGate><PedidosMarketplace /></RotaGate>} />
-                <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
-                <Route path="/vendas/shopify/produtos" element={<ShopifyProdutos />} />
-                <Route path="/vendas/shopify/clientes" element={<ShopifyClientes />} />
-                <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
-                <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/logistica/chegada-mercadoria" element={<ChegadaMercadoriaRedirect />} />
                 <Route path="/logistica/chegada-mercadoria/:id" element={<ChegadaMercadoriaIdRedirect />} />
@@ -994,6 +984,11 @@ const App = () => (
                 ═══════════════════════════════════════════════ */}
             {/* TRANSFERENCIA-E-UM-PROCESSO (06/10/2026): criar e receber são abas de Transferências Internas */}
             <Route path="/administrativo/devolucoes-fiscais" element={<Navigate replace to="/devolucoes?aba=nf-retorno" />} />
+            <Route path="/vendas/shopify/checkouts" element={<Navigate replace to="/vendas/shopify" />} />
+            <Route path="/vendas/shopify/clientes" element={<Navigate replace to="/vendas/shopify" />} />
+            <Route path="/vendas/shopify/fulfillments" element={<Navigate replace to="/vendas/shopify" />} />
+            <Route path="/vendas/shopify/produtos" element={<Navigate replace to="/vendas/produto/mesa" />} />
+            <Route path="/vendas/shopify/estoque" element={<Navigate replace to="/vendas/produto/estoque/central" />} />
             <Route path="/vendas/shopify/reembolsos" element={<Navigate replace to="/devolucoes?aba=reembolsos-loja" />} />
             <Route path="/vendas/nfs" element={<NfsVendaRedirect />} />
             <Route path="/vendas/bling-pedidos" element={<NfsVendaRedirect pedidos />} />

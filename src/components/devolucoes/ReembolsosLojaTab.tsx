@@ -21,7 +21,7 @@ import { useReembolsosLoja } from "./useReembolsosLoja";
 import { destinoDevolucaoLoja, filtrarReembolsosLoja, ordenarReembolsosLoja, resumirReembolsosLoja, type ColunaReembolso } from "./reembolsosLoja";
 
 const PREFERENCIA = "devolucoes.reembolsos-loja";
-const ESTORNOS = { pago: "Pago", pendente: "Pendente", sem_valor: "Sem valor" };
+const ESTORNOS = { pago: "Pago", pendente: "Pendente" };
 const SITUACOES = { com_devolucao: "Com devolução", cancelamento: "Cancelado antes do envio", sem_devolucao: "Sem devolução" };
 const COLUNAS: { coluna: ColunaReembolso | "motivo"; rotulo: string; classe: string }[] = [
   { coluna: "pedido_ref", rotulo: "Pedido", classe: "w-[10%]" },
@@ -85,7 +85,7 @@ export default function ReembolsosLojaTab() {
           <TableCell className="text-sm truncate" title={r.cliente ?? undefined}>{r.cliente || "—"}</TableCell>
           <TableCell className="text-right font-mono text-xs">{formatBRL(Number(r.valor ?? 0))}{r.valor_pedido != null && Number(r.valor_pedido) !== Number(r.valor) && <p className="text-xs text-muted-foreground mt-1">de {formatBRL(Number(r.valor_pedido))}</p>}</TableCell>
           <TableCell className="text-xs truncate" title={r.meio ?? undefined}>{r.meio || "—"}</TableCell>
-          <TableCell><Badge variant="outline" className={cn("font-normal text-xs max-w-full", r.estorno === "pago" ? "bg-success/10 text-success border-success/20" : r.estorno === "pendente" ? "bg-warning/10 text-warning border-warning/20" : "bg-muted text-muted-foreground")}><span className="break-words">{ESTORNOS[r.estorno]}</span></Badge></TableCell>
+          <TableCell><Badge variant="outline" className={cn("font-normal text-xs max-w-full", r.estorno === "pago" ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20")}><span className="break-words">{ESTORNOS[r.estorno]}</span></Badge></TableCell>
           <TableCell><p className="truncate text-xs" title={r.motivo ?? undefined}>{r.motivo || "—"}</p>{r.voltou_estoque && <p className="text-xs text-muted-foreground mt-1">Voltou ao estoque</p>}</TableCell>
           <TableCell>{r.situacao === "com_devolucao" ? <>{r.devolucao_numero ? <Button variant="link" size="sm" className="h-auto p-0 max-w-full font-mono text-xs" title={r.devolucao_numero} onClick={() => { if (r.devolucao_numero) navigate(destinoDevolucaoLoja(r.devolucao_numero)); }}><span className="truncate">{r.devolucao_numero}</span></Button> : "—"}{r.nf_dev_numero && <p className="text-xs text-muted-foreground mt-1">NF {r.nf_dev_numero}</p>}</> : <Badge variant="outline" className={cn("font-normal text-xs max-w-full", r.situacao === "sem_devolucao" ? "bg-warning/10 text-warning border-warning/20" : "bg-muted text-muted-foreground")}><span className="break-words">{SITUACOES[r.situacao]}</span></Badge>}</TableCell>
         </TableRow>)}</TableBody>

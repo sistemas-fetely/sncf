@@ -7,7 +7,7 @@ export interface ReembolsoLoja {
   data_reembolso: string | null;
   valor: number | null;
   meio: string | null;
-  estorno: "pago" | "pendente" | "sem_valor";
+  estorno: "pago" | "pendente";
   motivo: string | null;
   voltou_estoque: boolean;
   itens: number | null;

@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Download, Loader2, Search } from "lucide-react";
+import { Download, FileCode, Loader2, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { abrirDetalhe, useEstadoTela, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { fmtData, hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useNfsEntrada } from "./useNfsEntrada";
 import { destinoVendaEntrada, filtrarNfsEntrada, ordenarNfsEntrada, resumirNfsEntrada, type ColunaEntrada } from "./nfsEntrada";
 
@@ -24,12 +26,12 @@ const percentual = (valor: number) => new Intl.NumberFormat("pt-BR", { maximumFr
 const nf = (serie: string | null, numero: string | null) => numero ? (serie ? `${serie}-${numero}` : numero) : "—";
 const COLUNAS: { coluna: ColunaEntrada; rotulo: string; classe: string }[] = [
   { coluna: "numero", rotulo: "NF", classe: "w-[8%]" },
-  { coluna: "data_emissao", rotulo: "Data", classe: "w-[10%]" },
-  { coluna: "emitida_por", rotulo: "Emitida por", classe: "w-[11%]" },
-  { coluna: "contraparte", rotulo: "Cliente", classe: "w-[19%]" },
-  { coluna: "tipo_rotulo", rotulo: "Tipo", classe: "w-[18%]" },
-  { coluna: "valor", rotulo: "Valor", classe: "w-[12%] text-right" },
-  { coluna: "nf_venda_numero", rotulo: "NF de venda", classe: "w-[13%]" },
+  { coluna: "data_emissao", rotulo: "Data", classe: "w-[9%]" },
+  { coluna: "emitida_por", rotulo: "Emitida por", classe: "w-[10%]" },
+  { coluna: "contraparte", rotulo: "Cliente", classe: "w-[18%]" },
+  { coluna: "tipo_rotulo", rotulo: "Tipo", classe: "w-[17%]" },
+  { coluna: "valor", rotulo: "Valor", classe: "w-[11%] text-right" },
+  { coluna: "nf_venda_numero", rotulo: "NF de venda", classe: "w-[12%]" },
   { coluna: "pedido_ref", rotulo: "Pedido", classe: "w-[9%]" },
 ];
 
@@ -52,6 +54,25 @@ export function AbaEntradas() {
   const itens = filtrados.slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina);
   useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: itens.map((n) => n.id), focoParam: "en_foco" });
   useRestaurarScroll(null, !isLoading);
+
+  const [baixando, setBaixando] = useState<string | null>(null);
+  const baixarXml = async (n: { id: string; serie: string | null; numero: string | null; xml_path: string | null }) => {
+    if (!n.xml_path) return;
+    setBaixando(n.id);
+    try {
+      const { data, error: erro } = await supabase.storage.from("contabil").download(n.xml_path);
+      if (erro) throw erro;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url; a.download = `nf-${n.serie ? `${n.serie}-` : ""}${n.numero ?? n.id}.xml`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(`Não foi possível baixar o XML — ${formatError(e)}`);
+    } finally {
+      setBaixando(null);
+    }
+  };
 
   const ordenar = (nova: ColunaEntrada) => {
     const inicial = ["numero", "data_emissao", "valor", "nf_venda_numero"].includes(nova) ? "desc" : "asc";
@@ -95,11 +116,11 @@ export function AbaEntradas() {
     </div>
     <div className="rounded-md border bg-card min-w-0">
       <Table className="table-fixed w-full [&_td]:px-2 [&_th]:px-2" containerClassName="overflow-visible">
-        <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>{COLUNAS.map((c) => <CabecalhoOrdenavel key={c.coluna} rotulo={c.rotulo} className={c.classe} alinharDireita={c.coluna === "valor"} dir={coluna === c.coluna ? direcao : null} onOrdenar={() => ordenar(c.coluna)} />)}</TableRow></TableHeader>
+        <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>{COLUNAS.map((c) => <CabecalhoOrdenavel key={c.coluna} rotulo={c.rotulo} className={c.classe} alinharDireita={c.coluna === "valor"} dir={coluna === c.coluna ? direcao : null} onOrdenar={() => ordenar(c.coluna)} />)}<TableHead className="w-[7%] text-right">Ações</TableHead></TableRow></TableHeader>
         <TableBody>
-          {isLoading ? <TableRow><TableCell colSpan={8} className="py-12 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-            : error ? <TableRow><TableCell colSpan={8} className="py-12 text-center text-destructive">Não foi possível carregar as notas — {formatError(error)}</TableCell></TableRow>
-              : !itens.length ? <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">Nenhuma nota de devolução ou entrada encontrada.</TableCell></TableRow>
+          {isLoading ? <TableRow><TableCell colSpan={9} className="py-12 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+            : error ? <TableRow><TableCell colSpan={9} className="py-12 text-center text-destructive">Não foi possível carregar as notas — {formatError(error)}</TableCell></TableRow>
+              : !itens.length ? <TableRow><TableCell colSpan={9} className="py-12 text-center text-muted-foreground">Nenhuma nota de devolução ou entrada encontrada.</TableCell></TableRow>
                 : itens.map((n) => <TableRow key={n.id} data-foco-id={n.id}>
                   <TableCell className="font-mono text-xs truncate" title={nf(n.serie, n.numero)}>{nf(n.serie, n.numero)}</TableCell>
                   <TableCell className="text-xs">{fmtData(n.data_emissao)}</TableCell>
@@ -109,6 +130,7 @@ export function AbaEntradas() {
                   <TableCell className="text-right text-xs font-mono">{moeda(n.valor)}</TableCell>
                   <TableCell>{n.nf_venda_numero ? <><Button variant="link" size="sm" className="h-auto p-0 max-w-full font-mono text-xs" title={nf(n.nf_venda_serie, n.nf_venda_numero)} onClick={() => { if (n.nf_venda_numero) navigate(destinoVendaEntrada(n.nf_venda_numero)); }}><span className="truncate">{nf(n.nf_venda_serie, n.nf_venda_numero)}</span></Button>{n.pct_devolvido != null && <p className="text-xs text-muted-foreground mt-1">{percentual(n.pct_devolvido)}% devolvido</p>}</> : "—"}</TableCell>
                   <TableCell>{n.pedido_id && n.pedido_ref ? <Button variant="link" size="sm" className="h-auto p-0 max-w-full font-mono text-xs" title={n.pedido_ref} onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_id}`, { foco: n.id, label: "Notas fiscais", focoParam: "en_foco" })}><span className="truncate">{n.pedido_ref}</span></Button> : "—"}</TableCell>
+                  <TableCell className="text-right">{n.xml_path && <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar XML" aria-label="Baixar XML" disabled={baixando === n.id} onClick={() => baixarXml(n)}>{baixando === n.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCode className="h-4 w-4" />}</Button>}</TableCell>
                 </TableRow>)}
         </TableBody>
       </Table>

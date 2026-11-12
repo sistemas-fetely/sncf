@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { carregarNfsEntrada, destinoVendaEntrada, filtrarNfsEntrada, ordenarNfsEntrada, resumirNfsEntrada, type NfEntrada } from "./nfsEntrada";
 
-const nota = (patch: Partial<NfEntrada>): NfEntrada => ({ id: "1", numero: null, serie: null, data_emissao: null, emitida_por: "fetely", contraparte: null, contraparte_documento: null, valor: null, natureza_operacao: null, tipo_codigo: null, tipo_rotulo: null, tipo_cor: null, nf_venda_id: null, nf_venda_numero: null, nf_venda_serie: null, nf_venda_valor: null, pct_devolvido: null, vinculo_status: null, pedido_id: null, pedido_ref: null, tem_xml: false, ...patch });
+const nota = (patch: Partial<NfEntrada>): NfEntrada => ({ id: "1", numero: null, serie: null, data_emissao: null, emitida_por: "fetely", contraparte: null, contraparte_documento: null, valor: null, natureza_operacao: null, tipo_codigo: null, tipo_rotulo: null, tipo_cor: null, nf_venda_id: null, nf_venda_numero: null, nf_venda_serie: null, nf_venda_valor: null, pct_devolvido: null, vinculo_status: null, pedido_id: null, pedido_ref: null, tem_xml: false, xml_path: null, ...patch });
 describe("notas de devolução e entrada", () => {
   it("carrega todas as páginas de 1000", async () => {
     const ranges: number[][] = [];

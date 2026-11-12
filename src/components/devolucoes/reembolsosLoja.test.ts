@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { carregarReembolsosLoja, destinoDevolucaoLoja, filtrarReembolsosLoja, ordenarReembolsosLoja, resumirReembolsosLoja, type ReembolsoLoja } from "./reembolsosLoja";
 
-const linha = (patch: Partial<ReembolsoLoja> = {}): ReembolsoLoja => ({ id: "1", pedido_loja: null, pedido_id: null, pedido_ref: null, cliente: null, data_reembolso: null, valor: null, meio: null, estorno: "sem_valor", motivo: null, voltou_estoque: false, itens: null, valor_pedido: null, pedido_enviado: false, devolucao_id: null, devolucao_numero: null, devolucao_status: null, nf_dev_numero: null, situacao: "cancelamento", ...patch });
+const linha = (patch: Partial<ReembolsoLoja> = {}): ReembolsoLoja => ({ id: "1", pedido_loja: null, pedido_id: null, pedido_ref: null, cliente: null, data_reembolso: null, valor: null, meio: null, estorno: "pendente", motivo: null, voltou_estoque: false, itens: null, valor_pedido: null, pedido_enviado: false, devolucao_id: null, devolucao_numero: null, devolucao_status: null, nf_dev_numero: null, situacao: "cancelamento", ...patch });
 
 describe("reembolsos da loja", () => {
   it("lê páginas de 1000 até esgotar", async () => {
@@ -21,7 +21,7 @@ describe("reembolsos da loja", () => {
     expect(ordenarReembolsosLoja([linha({ id: "vazia" }), linha({ id: "antiga", data_reembolso: "2026-10-01" }), linha({ id: "nova", data_reembolso: "2026-11-12" })], "data_reembolso", dir).map((r) => r.id)).toEqual(dir === "desc" ? ["nova", "antiga", "vazia"] : ["antiga", "nova", "vazia"]);
   });
   it("separa valores pagos e pendentes e conta só os sem devolução", () => {
-    expect(resumirReembolsosLoja([linha({ valor: 100, estorno: "pago", situacao: "com_devolucao" }), linha({ valor: 50, estorno: "pendente", situacao: "sem_devolucao" }), linha({ valor: 0, estorno: "sem_valor" })])).toEqual({ total: 150, pagos: 1, valorPago: 100, pendentes: 1, valorPendente: 50, semDevolucao: 1 });
+    expect(resumirReembolsosLoja([linha({ valor: 100, estorno: "pago", situacao: "com_devolucao" }), linha({ valor: 50, estorno: "pendente", situacao: "sem_devolucao" }), linha({ valor: 0, estorno: "pago", situacao: "cancelamento" })])).toEqual({ total: 150, pagos: 2, valorPago: 100, pendentes: 1, valorPendente: 50, semDevolucao: 1 });
   });
   it("abre o funil buscando a devolução", () => {
     expect(destinoDevolucaoLoja("DEV-2318")).toBe("/devolucoes?aba=funil&q=DEV-2318");
