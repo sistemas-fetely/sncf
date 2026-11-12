@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { getEstagioMeta } from "@/lib/despesas/estagios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MesaClassificacao } from "@/components/despesas/MesaClassificacao";
+import { HojeTab } from "@/components/despesas/HojeTab";
 import { useGruposMesa } from "@/hooks/despesas/useMesaClassificacao";
 
 type DespesaV2 = {
@@ -130,7 +131,7 @@ function BadgeEstagio({ estagio }: { estagio: string | null }) {
 export default function Despesas() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ busca: "", mes: "todos", pagina: 1 }, { replaceKeys: ["busca"] });
-  const [abaNav, setAbaNav] = useEstadoTela({ aba: "lista" });
+  const [abaNav, setAbaNav] = useEstadoTela({ aba: "hoje" });
   const gruposMesa = useGruposMesa();
   const pendentesMesa = (gruposMesa.data ?? []).filter((g) => g.itens_sem_plano > 0).length;
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
@@ -278,9 +279,11 @@ export default function Despesas() {
 
       <Tabs value={abaNav.aba as string} onValueChange={(v) => setAbaNav({ aba: v })}>
         <TabsList>
+          <TabsTrigger value="hoje">Hoje</TabsTrigger>
           <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="classificar">A classificar{gruposMesa.isSuccess ? ` · ${pendentesMesa}` : ""}</TabsTrigger>
         </TabsList>
+        <TabsContent value="hoje" className="mt-4"><HojeTab abrirClassificar={() => setAbaNav({ aba: "classificar" })} /></TabsContent>
         <TabsContent value="classificar" className="mt-4"><MesaClassificacao /></TabsContent>
         <TabsContent value="lista" className="mt-4 space-y-4">
       {error && (
