@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useLancamentos } from "@/hooks/useLancamentos";
 import { TituloFaturaFrete } from "@/components/logistica/TituloFaturaFrete";
+import { resumirContestacao, temAlgoAContestar } from "@/lib/logistica/contestacaoFatura";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -93,6 +95,10 @@ function useLinhasConciliacao(transportadoraId: string) {
         valor_lancado: r.valor_lancado == null ? null : Number(r.valor_lancado),
         diferenca: r.diferenca == null ? null : Number(r.diferenca),
         status_conciliacao: r.status_conciliacao ?? null,
+        auditoria_status: r.auditoria_status ?? null,
+        auditoria_referencia: r.auditoria_referencia == null ? null : Number(r.auditoria_referencia),
+        auditoria_diferenca: r.auditoria_diferenca == null ? null : Number(r.auditoria_diferenca),
+        auditoria_motivo: r.auditoria_motivo ?? null,
       }));
     },
   });
@@ -143,6 +149,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
   const { data: linhas = [], isLoading: loadingLinhas } = useLinhasConciliacao(transportadoraId);
   const [expandida, setExpandida] = useState<string | null>(null);
   const [importando, setImportando] = useState(false);
+  const [soContestar, setSoContestar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const qc = useQueryClient();
 
@@ -228,15 +235,15 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
 
   const resumoFatura = (faturaId: string) => {
     const arr = linhasPorFatura.get(faturaId) ?? [];
-    let ok = 0, div = 0, sem = 0, aj = 0, contestar = 0;
+    let ok = 0, div = 0, sem = 0, aj = 0;
+    const contestacao = resumirContestacao(arr);
     for (const l of arr) {
-      if (l.auditoria_status === "acima_referencia" || l.auditoria_status === "justificar") contestar++;
       if (l.status_conciliacao === "ok") ok++;
       else if (l.status_conciliacao === "divergente") div++;
       else if (l.status_conciliacao === "fatura_sem_lancado") sem++;
       else if (l.status_conciliacao === "ajuste") aj++;
     }
-    return { total: arr.length, ok, div, sem, aj, contestar };
+    return { total: arr.length, ok, div, sem, aj, contestacao };
   };
 
   const kpis = useMemo(() => {
@@ -247,7 +254,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
       else if (l.status_conciliacao === "fatura_sem_lancado") sem++;
     }
     const valorTotal = faturas.reduce((s, f) => s + f.valor_total, 0);
-    return { qtdFaturas: faturas.length, valorTotal, ok, div, sem };
+    return { qtdFaturas: faturas.length, valorTotal, ok, div, sem, contestacao: resumirContestacao(linhas) };
   }, [linhas, faturas]);
 
   if (loadingFat || loadingLinhas) {
@@ -276,17 +283,28 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
       <div className="flex items-center justify-end">{ImportButton}</div>
 
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <KpiCard label="Faturas" value={String(kpis.qtdFaturas)} />
         <KpiCard label="Valor total" value={formatBRL(kpis.valorTotal)} />
         <KpiCard label="OK" value={String(kpis.ok)} tone="ok" />
         <KpiCard label="Divergentes" value={String(kpis.div)} tone="warn" />
         <KpiCard label="Sem lançado" value={String(kpis.sem)} tone="danger" />
+        <KpiCard
+          label="A contestar"
+          value={formatBRL(kpis.contestacao.acimaExcedente)}
+          tone={kpis.contestacao.acimaExcedente > 0 ? "warn" : undefined}
+          sub={`${kpis.contestacao.acimaQtd} acima da tabela · ${kpis.contestacao.justificarQtd} a justificar`}
+        />
       </div>
+
+      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Switch checked={soContestar} onCheckedChange={setSoContestar} />
+        Só com algo a contestar
+      </label>
 
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="divide-y">
-          {faturas.map((f) => {
+          {faturas.filter((f) => !soContestar || temAlgoAContestar(resumoFatura(f.id).contestacao)).map((f) => {
             const r = resumoFatura(f.id);
             const aberta = expandida === f.id;
             const arr = linhasPorFatura.get(f.id) ?? [];
@@ -300,7 +318,10 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
               : partes.length === 1 && r.ok === r.total
                 ? `${r.ok}/${r.total} conciliados`
                 : partes.join(" · ");
-            const contestarTxt = r.contestar > 0 ? `${r.contestar} p/ contestar` : null;
+            const cp: string[] = [];
+            if (r.contestacao.acimaQtd > 0) cp.push(`${r.contestacao.acimaQtd} acima da tabela (${formatBRL(r.contestacao.acimaExcedente)})`);
+            if (r.contestacao.justificarQtd > 0) cp.push(`${r.contestacao.justificarQtd} a justificar (${formatBRL(r.contestacao.justificarValor)})`);
+            const contestarTxt = cp.length ? cp.join(" · ") : null;
             return (
               <Collapsible key={f.id} open={aberta} onOpenChange={(o) => setExpandida(o ? f.id : null)}>
                 <div className={cn("flex items-center", aberta && "bg-muted/30")}>
@@ -364,7 +385,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                       </div>
                     ) : (
                       <div className="rounded-md border bg-background overflow-x-auto">
-                        <table className="w-full text-xs min-w-[720px]">
+                        <table className="w-full text-xs min-w-[820px]">
                           <thead className="bg-muted/50">
                             <tr className="text-left">
                               <th className="px-3 py-2 font-medium">Destinatário</th>
@@ -372,6 +393,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                               <th className="px-3 py-2 font-medium">Doc ref</th>
                               <th className="px-3 py-2 font-medium text-right">Valor cobrado</th>
                               <th className="px-3 py-2 font-medium text-right">Valor lançado</th>
+                              <th className="px-3 py-2 font-medium text-right">Referência</th>
                               <th className="px-3 py-2 font-medium text-right">Diferença</th>
                               <th className="px-3 py-2 font-medium">Status</th>
                             </tr>
@@ -389,6 +411,9 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                                 </td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">
                                   {l.valor_lancado == null ? "—" : formatBRL(l.valor_lancado)}
+                                </td>
+                                <td className="px-3 py-1.5 text-right tabular-nums">
+                                  {l.auditoria_referencia == null ? <span className="text-muted-foreground/60">—</span> : formatBRL(l.auditoria_referencia)}
                                 </td>
                                 <td
                                   className={cn(
@@ -433,7 +458,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
   );
 }
 
-function KpiCard({ label, value, tone }: { label: string; value: string; tone?: "ok" | "warn" | "danger" }) {
+function KpiCard({ label, value, tone, sub }: { label: string; value: string; tone?: "ok" | "warn" | "danger"; sub?: string }) {
   const valueCls =
     tone === "ok"
       ? "text-success"
@@ -446,6 +471,7 @@ function KpiCard({ label, value, tone }: { label: string; value: string; tone?: 
     <div className="rounded-lg border bg-card p-3">
       <div className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</div>
       <div className={cn("mt-1 text-lg font-medium tabular-nums", valueCls)}>{value}</div>
+      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
