@@ -16,11 +16,15 @@ import { cn } from "@/lib/utils";
 import { EnderecoEntregaBloco } from "@/components/pedidos/EnderecoEntregaBloco";
 import { ehCancelamentoComNf } from "@/components/devolucao/correcaoNf";
 import { BotaoCorrigirNf } from "@/components/devolucao/CorrigirNfDialog";
+import { BotaoCorrigirEnderecoEntrega } from "./CorrigirEnderecoEntregaDialog";
+import { podeExibirCorrecaoEndereco } from "./enderecoEntregaVD";
 
 export interface LinhaGaveta {
   id: string;
   id_externo: string | null;
   cliente_nome: string | null;
+  cliente_id?: string | null;
+  situacao?: string | null;
   cliente_telefone: string | null;
   cliente_cpf_mascarado?: string | null;
   modal: string | null;
@@ -227,7 +231,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
 
             <Secao titulo="Entrega">
               <Par k="Modal" v={modalLabel(l.modal)} />
-              {l.modal !== "retirada" && <EnderecoEntregaBloco endereco={l.endereco_entrega} />}
+              {l.modal !== "retirada" && <EnderecoEntregaBloco endereco={l.endereco_entrega} acoes={podeExibirCorrecaoEndereco(l, devolucao?.status === "concluida") ? <BotaoCorrigirEnderecoEntrega key={l.id} pedido={l} /> : undefined} />}
               <Par k="Frete cobrado" v={<span className="tabular-nums">{l.frete ? (l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "Grátis" : formatBRL(l.frete.cobrado)) : "—"}</span>} />
               <Par k="Custo do frete" v={<span className="tabular-nums">{l.frete?.custo != null ? formatBRL(l.frete.custo) : "—"}</span>} />
               {(() => {

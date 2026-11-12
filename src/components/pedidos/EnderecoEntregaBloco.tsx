@@ -1,4 +1,5 @@
 import { Copy } from "lucide-react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -28,7 +29,7 @@ export function linhasEndereco(e: Endereco) {
   return { completo: !!logradouro, l1, l2, cep, cidadeUf };
 }
 
-export function EnderecoEntregaBloco({ endereco, titulo = "Endereço" }: { endereco: Endereco; titulo?: string }) {
+export function EnderecoEntregaBloco({ endereco, titulo = "Endereço", acoes }: { endereco: Endereco; titulo?: string; acoes?: ReactNode }) {
   const { completo, l1, l2, cep, cidadeUf } = linhasEndereco(endereco);
   const umaLinha = completo
     ? [l1, l2, cep && `CEP ${cep}`].filter(Boolean).join(" · ")
@@ -46,12 +47,15 @@ export function EnderecoEntregaBloco({ endereco, titulo = "Endereço" }: { ender
     <div className="space-y-0.5 text-xs">
       <div className="flex items-center justify-between gap-2">
         <span className="text-muted-foreground">{titulo}</span>
+        <div className="flex items-center">
         {umaLinha && (
           <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={copiar}
             title="Copiar endereço" aria-label="Copiar endereço">
             <Copy className="h-3.5 w-3.5" />
           </Button>
         )}
+        {acoes}
+        </div>
       </div>
       {!umaLinha ? (
         <p className="text-muted-foreground">—</p>
