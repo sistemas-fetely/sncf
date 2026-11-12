@@ -4,6 +4,27 @@
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 import { XMLParser } from "npm:fast-xml-parser@4.5.0";
 
+/** Fontes padrão do pdf-lib só codificam WinAnsi: troca travessões/setas, remove controles e o resto vira "?". */
+export function paraWinAnsi(s: string): string {
+  return String(s ?? "")
+    .replace(/[\u2010-\u2015\u2212\u2190-\u21FF\u27F5-\u27FF]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
+}
+
+function sanitizarProfundo<T>(v: T): T {
+  if (typeof v === "string") return paraWinAnsi(v) as unknown as T;
+  if (Array.isArray(v)) return v.map(sanitizarProfundo) as unknown as T;
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, sanitizarProfundo(x)])) as T;
+  return v;
+}
+
+function desenhar(page: any, texto: string, opts: any) {
+  page.drawText(paraWinAnsi(texto), opts);
+}
+
 export interface NFeParsed {
   chave: string;
   numero: string;
@@ -203,7 +224,8 @@ function formatarNum(v: string, casas = 4): string {
 }
 
 // ----- PDF generation -----
-export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
+export async function buildPdf(nfeBruto: NFeParsed): Promise<Uint8Array> {
+  const nfe = sanitizarProfundo(nfeBruto);
   const pdf = await PDFDocument.create();
   // A4 em points: 595 x 842
   const page = pdf.addPage([595, 842]);
@@ -234,21 +256,21 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
     borderColor: colorBorder,
     borderWidth: 0.5,
   });
-  page.drawText("RESUMO NF-e", {
+  desenhar(page, "RESUMO NF-e", {
     x: margin + 12,
     y: y - 22,
     size: 18,
     font: fontBold,
     color: colorAccent,
   });
-  page.drawText("Gerado automaticamente a partir do XML", {
+  desenhar(page, "Gerado automaticamente a partir do XML", {
     x: margin + 12,
     y: y - 38,
     size: 9,
     font: font,
     color: colorMuted,
   });
-  page.drawText(
+  desenhar(page, 
     "Este documento NÃO substitui o DANFE oficial. XML original disponível no sistema.",
     {
       x: margin + 12,
@@ -262,8 +284,8 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
 
   // ===== Bloco NF =====
   const linha = (label: string, val: string, x: number, yPos: number, labelW = 70) => {
-    page.drawText(label, { x, y: yPos, size: 8, font: fontBold, color: colorMuted });
-    page.drawText(val || "—", { x: x + labelW, y: yPos, size: 9, font, color: colorText });
+    desenhar(page, label, { x, y: yPos, size: 8, font: fontBold, color: colorMuted });
+    desenhar(page, val || "—", { x: x + labelW, y: yPos, size: 9, font, color: colorText });
   };
 
   drawBoxTitle(page, fontBold, "DADOS DA NOTA FISCAL", margin, y, width - 2 * margin, colorAccent);
@@ -273,14 +295,14 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
   y -= 14;
   linha("Natureza:", nfe.natOp, margin + 6, y, 60);
   y -= 14;
-  page.drawText("Chave de acesso:", {
+  desenhar(page, "Chave de acesso:", {
     x: margin + 6,
     y,
     size: 8,
     font: fontBold,
     color: colorMuted,
   });
-  page.drawText(formatarChave(nfe.chave), {
+  desenhar(page, formatarChave(nfe.chave), {
     x: margin + 6,
     y: y - 12,
     size: 9,
@@ -370,7 +392,7 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
   }
 
   if (truncadoCount > 0) {
-    page.drawText(`… e mais ${truncadoCount} item(ns) — ver XML original`, {
+    desenhar(page, `… e mais ${truncadoCount} item(ns) — ver XML original`, {
       x: margin + 4,
       y,
       size: 8,
@@ -408,7 +430,7 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
     const f = destaque ? fontBold : font;
     const sz = destaque ? 11 : 9;
     const c = destaque ? colorAccent : colorText;
-    page.drawText(label + ":", { x: totXLabel, y, size: sz, font: f, color: c });
+    desenhar(page, label + ":", { x: totXLabel, y, size: sz, font: f, color: c });
     drawAligned(page, val, totXLabel, y, totXVal - totXLabel, "right", f, sz, c);
     y -= destaque ? 16 : 13;
   }
@@ -421,7 +443,7 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
     thickness: 0.5,
     color: colorBorder,
   });
-  page.drawText("Chave NFe: " + formatarChave(nfe.chave), {
+  desenhar(page, "Chave NFe: " + formatarChave(nfe.chave), {
     x: margin,
     y: footerY + 16,
     size: 7,
@@ -429,7 +451,7 @@ export async function buildPdf(nfe: NFeParsed): Promise<Uint8Array> {
     color: colorMuted,
   });
   const agora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  page.drawText(`Gerado em ${agora}`, {
+  desenhar(page, `Gerado em ${agora}`, {
     x: margin,
     y: footerY + 4,
     size: 7,
@@ -467,7 +489,7 @@ function drawBoxTitle(
     height: 14,
     color: rgb(0.93, 0.95, 0.98),
   });
-  page.drawText(title, {
+  desenhar(page, title, {
     x: x + 6,
     y: y + 2,
     size: 8,
@@ -495,11 +517,11 @@ function renderParte(
   ];
   let yLocal = y;
   for (const l of linhas) {
-    page.drawText(l.label, { x, y: yLocal, size: 7, font: fontBold, color: colorMuted });
+    desenhar(page, l.label, { x, y: yLocal, size: 7, font: fontBold, color: colorMuted });
     yLocal -= 9;
     const linhasTexto = wrapText(l.val || "—", w, font, 8);
     for (const lt of linhasTexto) {
-      page.drawText(lt, { x, y: yLocal, size: 8, font, color: colorText });
+      desenhar(page, lt, { x, y: yLocal, size: 8, font, color: colorText });
       yLocal -= 10;
     }
     yLocal -= 2;
@@ -507,8 +529,9 @@ function renderParte(
   return yLocal;
 }
 
-function wrapText(text: string, maxWidth: number, font: any, size: number): string[] {
-  if (!text) return ["—"];
+function wrapText(bruto: string, maxWidth: number, font: any, size: number): string[] {
+  const text = paraWinAnsi(bruto);
+  if (!text) return ["-"];
   const palavras = text.split(/\s+/);
   const linhas: string[] = [];
   let atual = "";
@@ -541,12 +564,12 @@ function drawAligned(
   size: number,
   color: any,
 ) {
-  const t = text ?? "";
+  const t = paraWinAnsi(text ?? "");
   const tw = font.widthOfTextAtSize(t, size);
   let drawX = x;
   if (align === "right") drawX = x + w - tw;
   else if (align === "center") drawX = x + (w - tw) / 2;
-  page.drawText(t, { x: drawX, y, size, font, color });
+  desenhar(page, t, { x: drawX, y, size, font, color });
 }
 
 function truncar(s: string, n: number): string {

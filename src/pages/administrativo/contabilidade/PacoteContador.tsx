@@ -19,7 +19,7 @@ import { faltantesDespesa } from "@/lib/contabil/documentosDespesa";
 import { CABECALHO_BLOCO_K, linhaBlocoK, type LinhaBlocoK } from "@/lib/contabil/numeracaoNf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileSpreadsheet, Download, Package, AlertTriangle } from "lucide-react";
+import { FileSpreadsheet, Download, Package, AlertTriangle, Cloud, ExternalLink, Loader2 } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
@@ -142,6 +142,24 @@ interface Remessa {
   gerado_por_nome: string | null;
   natureza: string | null;
   natureza_rotulo: string | null;
+  drive_enviado_em?: string | null;
+  drive_arquivos?: ArquivoDrive[] | null;
+}
+
+interface ArquivoDrive { nome: string; id: string; url: string; bytes: number; ja_existia: boolean }
+
+/** Chama enviar-pacote-drive e devolve o corpo; erro real da edge vai para quem chamou. */
+async function chamarDrive<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("enviar-pacote-drive", { body });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    let m = error.message;
+    try { const b = ctx ? await ctx.json() : null; if (b?.erro) m = b.erro; } catch { /* mantém */ }
+    throw new Error(m);
+  }
+  const r = data as ({ ok?: boolean; erro?: string } & T) | null;
+  if (!r?.ok) throw new Error(r?.erro ?? "Falha sem mensagem");
+  return r;
 }
 
 const fmtMB = (b: number) => `${(b / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
@@ -275,7 +293,15 @@ export default function PacoteContador() {
         .eq("tipo", "fechamento_estoque")
         .order("enviada_em", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as Remessa[];
+      const lista = (data ?? []) as unknown as Remessa[];
+      const ids = lista.filter((r) => r.status === "pronto").map((r) => r.id);
+      if (!ids.length) return lista;
+      // A view não traz o envio ao Drive: lê direto da tabela das remessas.
+      const { data: drive, error: de } = await (supabase as unknown as { from: (t: string) => { select: (c: string) => { in: (k: string, v: string[]) => Promise<{ data: { id: string; drive_enviado_em: string | null; drive_arquivos: ArquivoDrive[] | null }[] | null; error: Error | null }> } } })
+        .from("remessas_contador").select("id, drive_enviado_em, drive_arquivos").in("id", ids);
+      if (de) throw de;
+      const porId = new Map((drive ?? []).map((d) => [d.id, d]));
+      return lista.map((r) => ({ ...r, drive_enviado_em: porId.get(r.id)?.drive_enviado_em ?? null, drive_arquivos: porId.get(r.id)?.drive_arquivos ?? null }));
     },
     // Acompanha a geração em segundo plano a cada 3 s enquanto houver remessa gerando.
     refetchInterval: (q) => ((q.state.data as Remessa[] | undefined)?.some((r) => r.status === "gerando") ? 3000 : false),
@@ -311,6 +337,21 @@ export default function PacoteContador() {
       qc.invalidateQueries({ queryKey: ["contabil-remessas"] });
     },
     onError: (e) => toast.error(rawMessage(e), { duration: Infinity, closeButton: true }),
+  });
+
+  const enviarDrive = useMutation({
+    mutationFn: (id: string) => chamarDrive<{ arquivos: ArquivoDrive[] }>({ remessa_id: id }),
+    onSuccess: (r) => {
+      toast.success(`Enviado ao Drive: ${r.arquivos.map((a) => a.nome + (a.ja_existia ? " (já estava lá)" : "")).join(", ")}`);
+      qc.invalidateQueries({ queryKey: ["contabil-remessas"] });
+    },
+    onError: (e) => toast.error(`Envio ao Drive falhou: ${rawMessage(e)}`, { duration: Infinity, closeButton: true }),
+  });
+
+  const testarDrive = useMutation({
+    mutationFn: () => chamarDrive<{ pasta: string | null; url: string | null }>({ teste: true }),
+    onSuccess: (r) => toast.success(`Conectado à pasta ${r.pasta ?? "(sem nome)"}`),
+    onError: (e) => toast.error(`Conexão com o Drive falhou: ${rawMessage(e)}`, { duration: Infinity, closeButton: true }),
   });
 
   const linhasPosicao = posicao.data ?? [];
@@ -726,7 +767,14 @@ export default function PacoteContador() {
 
       {/* ZONA 5 — histórico */}
       <section className="space-y-2">
-        <h2 className="text-sm font-medium">Remessas enviadas</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">Remessas enviadas</h2>
+          {temNivel(3) && (
+            <button type="button" className="text-xs text-primary underline-offset-2 hover:underline disabled:opacity-50" disabled={testarDrive.isPending} onClick={() => testarDrive.mutate()}>
+              {testarDrive.isPending ? "Testando…" : "Testar conexão com o Drive"}
+            </button>
+          )}
+        </div>
         <TabelaFetely
           busca={{ valor: buscaHist, aoMudar: setBuscaHist, placeholder: "Buscar por competência…" }}
           carregando={remessas.isLoading}
@@ -792,6 +840,24 @@ export default function PacoteContador() {
                             ))}
                             {expirado && <Selo estado="warning">Link expirado</Selo>}
                             {faltantes > 0 && <span className="text-xs text-warning">{faltantes} faltante(s) no manifesto</span>}
+                            {r.status === "pronto" && r.drive_enviado_em && (
+                              <div className="flex items-center gap-2">
+                                <Selo estado="success">No Drive · {new Date(r.drive_enviado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</Selo>
+                                {r.drive_arquivos?.[0]?.url && (
+                                  <a href={r.drive_arquivos[0].url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                    <ExternalLink className="h-3 w-3" aria-hidden="true" />Abrir no Drive
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                            {r.status === "pronto" && temNivel(3) && (
+                              <Button size="sm" variant="outline" disabled={enviarDrive.isPending} onClick={() => enviarDrive.mutate(r.id)}>
+                                {enviarDrive.isPending && enviarDrive.variables === r.id
+                                  ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                                  : <Cloud className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+                                {r.drive_enviado_em ? "Reenviar ao Drive" : "Enviar ao Drive"}
+                              </Button>
+                            )}
                             {temNivel(3) && (
                               <div className="flex gap-1">
                                 {expirado && (
