@@ -28,6 +28,8 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 import NfRetornoTab from "@/components/devolucoes/NfRetornoTab";
 import { useContagemNfRetorno } from "@/components/devolucoes/useContagemNfRetorno";
+import ReembolsosLojaTab from "@/components/devolucoes/ReembolsosLojaTab";
+import { useReembolsosLoja } from "@/components/devolucoes/useReembolsosLoja";
 import { abaNfRetornoPermitida } from "@/lib/devolucao/nfRetornoNavegacao";
 import { QuarentenaEstoquePainel, buscarQuarentenaFila } from "@/components/estoque/QuarentenaEstoquePainel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -219,6 +221,8 @@ export default function RetornoDevolucao() {
   });
   const quarentenaQ = useQuery({ queryKey: QK_QUARENTENA, queryFn: buscarQuarentenaFila });
   const reembolsosQ = useDevolucoesVD();
+  const reembolsosLojaQ = useReembolsosLoja();
+  const reembolsosLojaSemDevolucao = (reembolsosLojaQ.data ?? []).filter((r) => r.situacao === "sem_devolucao").length;
   const statusMap = useMemo(() => new Map((statusQ.data ?? []).map((s) => [s.codigo, s])), [statusQ.data]);
   // Aberta = status com eh_final=false na dimensão (inclui retorno_concluido).
   const ehAberta = (d: Funil) => statusMap.get(statusDe(d))?.eh_final !== true;
@@ -382,7 +386,7 @@ export default function RetornoDevolucao() {
         <CasaPageHeader
           breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções e Correções de NF" }]}
           title="Devoluções e Correções de NF"
-          subtitle={aba === "nf-retorno" ? "Notas de retorno que apontam para uma venda nossa: confirme se a devolução é parcial ou se anula a venda." : aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o SNCF gera a NF nova no Bling para o Fiscal transmitir." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
+          subtitle={aba === "reembolsos-loja" ? "O dinheiro que voltou ao cliente pela loja: valor, meio, se o estorno já caiu e a devolução correspondente." : aba === "nf-retorno" ? "Notas de retorno que apontam para uma venda nossa: confirme se a devolução é parcial ou se anula a venda." : aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o SNCF gera a NF nova no Bling para o Fiscal transmitir." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
             <div className="flex items-center gap-2">
               <DeclararCancelamentoDialog
@@ -402,6 +406,7 @@ export default function RetornoDevolucao() {
             <TabsTrigger value="correcoes">{rotuloFin("refaturar", "Correções de NF")}{correcoesAbertas > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{correcoesAbertas}</Badge>}</TabsTrigger>
             <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
             <TabsTrigger value="reembolso">Cancelamento sem NF{reembolsosPendentes > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosPendentes}</Badge>}</TabsTrigger>
+            <TabsTrigger value="reembolsos-loja">Reembolsos da loja{reembolsosLojaSemDevolucao > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosLojaSemDevolucao}</Badge>}</TabsTrigger>
             <AbaPermitida slug="tela.fin_devolucao">
               <TabsTrigger value="nf-retorno">NF de retorno{(nfRetornoQ.data ?? 0) > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{nfRetornoQ.data}</Badge>}</TabsTrigger>
             </AbaPermitida>
@@ -731,6 +736,9 @@ export default function RetornoDevolucao() {
               {nfRetornoQ.isError && <Alert variant="destructive" className="mb-4"><AlertDescription>{formatError(nfRetornoQ.error)}</AlertDescription></Alert>}
               <NfRetornoTab />
             </ConteudoAba>
+          </TabsContent>
+          <TabsContent value="reembolsos-loja" className="mt-4">
+            <ReembolsosLojaTab />
           </TabsContent>
         </Tabs>
       </div>

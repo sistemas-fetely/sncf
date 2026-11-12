@@ -244,7 +244,6 @@ const PedidosMarketplace = lazy(() => import("@/pages/vendas/marketplace/Pedidos
 const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
 const ShopifyProdutos = lazy(() => import("@/pages/vendas/shopify/ShopifyProdutos"));
 const ShopifyClientes = lazy(() => import("@/pages/vendas/shopify/ShopifyClientes"));
-const ShopifyReembolsos = lazy(() => import("@/pages/vendas/shopify/ShopifyReembolsos"));
 const ShopifyFulfillments = lazy(() => import("@/pages/vendas/shopify/ShopifyFulfillments"));
 const ShopifyEstoque = lazy(() => import("@/pages/vendas/shopify/ShopifyEstoque"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
@@ -534,7 +533,6 @@ const App = () => (
                 <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
                 <Route path="/vendas/shopify/produtos" element={<ShopifyProdutos />} />
                 <Route path="/vendas/shopify/clientes" element={<ShopifyClientes />} />
-                <Route path="/vendas/shopify/reembolsos" element={<ShopifyReembolsos />} />
                 <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
                 <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
@@ -996,6 +994,7 @@ const App = () => (
                 ═══════════════════════════════════════════════ */}
             {/* TRANSFERENCIA-E-UM-PROCESSO (06/10/2026): criar e receber são abas de Transferências Internas */}
             <Route path="/administrativo/devolucoes-fiscais" element={<Navigate replace to="/devolucoes?aba=nf-retorno" />} />
+            <Route path="/vendas/shopify/reembolsos" element={<Navigate replace to="/devolucoes?aba=reembolsos-loja" />} />
             <Route path="/vendas/nfs" element={<NfsVendaRedirect />} />
             <Route path="/vendas/bling-pedidos" element={<NfsVendaRedirect pedidos />} />
             <Route path="/pedidos/transferencias/nova" element={<Navigate to="/pedidos/transferencias?aba=nova" replace />} />

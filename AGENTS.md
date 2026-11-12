@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Store refunds live as a read-only returns tab sharing one paginated view query with its counter; tested pure helpers own filtering, summaries and blank-last sorting, and order navigation carries the tab-specific focus key.
 - Safra payment reports are recognized by sheet name plus bank signature and parsed by a pure title-based parser; the existing import history/original flow delegates all payment matching to its RPC, while reconciliation loads batch items once and shares a read-only badge across its existing views.
 - Return-invoice decisions live in the existing returns shell as a permission-gated tab; its suggested-link counter is gated before fetching, while process links explicitly select the funnel and legacy fiscal URLs redirect without their former route gate.
 - Ticket catalog variation search and required-code selection share a tested pure helper across both opening forms; variation administration uses the existing table with server-enforced permissions and shared catalog invalidation, while order tickets read the same list view so variation labels stay consistent.
