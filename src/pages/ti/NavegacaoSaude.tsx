@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useNivel } from "@/hooks/useNivel";
 import { HeartPulse, Route, AlertTriangle, Info, CheckCircle2, Loader2, Clipboard } from "lucide-react";
 import { format } from "date-fns";
+import { NOMES_ICONES } from "@/config/iconesNavegacao";
 import { ptBR } from "date-fns/locale";
 
 interface NavegacaoSaudeRow {
@@ -58,7 +59,12 @@ const TITULO_ACHADO: Record<string, string> = {
   menu_mas_4o_nivel: "Telas que nunca vão renderizar",
   grupo_vazio: "Submenus vazios",
   coluna_sem_grant: "Colunas que ninguém lê",
+  sem_icone: "Sem ícone",
+  icone_fora_do_mapa: "Ícone fora do mapa",
 };
+
+const EXPLICACAO_ICONE_FORA_DO_MAPA =
+  "O nome do ícone está na tabela mas não no mapa do front (src/config/iconesNavegacao.ts): a tela aparece com o ícone herdado. Acrescente o ícone ao mapa.";
 
 const EXPLICACAO_ACHADO: Record<string, string> = {
   herdou_permissao_do_dominio:
@@ -75,6 +81,7 @@ const EXPLICACAO_ACHADO: Record<string, string> = {
     "**O que é:** submenu sem nenhuma tela ativa embaixo. **Por que importa:** não renderiza; apenas polui a árvore e confunde quem configura. **O que fazer:** desativar o submenu, ou mover telas para dentro dele.",
   coluna_sem_grant:
     "**O que é:** coluna do banco sem permissão de leitura, nem para quem tem a tela. **Por que importa:** a tela abre e o campo vem vazio, sem erro — parece dado faltando. **O que fazer:** se o sigilo é intencional, marque como intencional. Senão, conceder a leitura.",
+  icone_fora_do_mapa: EXPLICACAO_ICONE_FORA_DO_MAPA,
 };
 
 const EXPLICACAO_NAO_DECLARADA =
@@ -135,6 +142,35 @@ export default function NavegacaoSaude() {
         .order("label", { ascending: true });
       if (error) throw error;
       return (data ?? []) as NavegacaoSaudeRow[];
+    },
+  });
+
+  // Achado calculado no front: o mapa de ícones vive no código, o banco não o conhece.
+  const foraDoMapaQuery = useQuery<NavegacaoSaudeRow[]>({
+    queryKey: ["navegacao-saude", "icone_fora_do_mapa"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sncf_navegacao")
+        .select("chave, label, rota, icone")
+        .eq("ativo", true)
+        .not("icone", "is", null)
+        .order("label", { ascending: true });
+      if (error) throw error;
+      const conhecidos = new Set(NOMES_ICONES);
+      return (data ?? [])
+        .filter((l) => l.icone && !conhecidos.has(l.icone))
+        .map((l) => ({
+          achado: "icone_fora_do_mapa",
+          chave: l.chave,
+          label: l.label,
+          rota: l.rota,
+          detalhe: `Ícone "${l.icone}"`,
+          explicacao: `Ícone "${l.icone}" não está no mapa do front.`,
+          severidade: "baixa",
+          tem_correcao_automatica: false,
+          rotulo_correcao: null,
+          prompt_correcao: null,
+        }));
     },
   });
 
@@ -204,7 +240,7 @@ export default function NavegacaoSaude() {
     },
   });
 
-  const linhas = saudeQuery.data ?? [];
+  const linhas = [...(saudeQuery.data ?? []), ...(foraDoMapaQuery.data ?? [])];
   const total = linhas.length;
 
   const agrupado = linhas.reduce<Record<string, NavegacaoSaudeRow[]>>((acc, row) => {
@@ -249,6 +285,13 @@ export default function NavegacaoSaude() {
           <Card>
             <CardContent className="p-6 text-sm text-destructive">
               Erro ao carregar diagnóstico: {(saudeQuery.error as Error)?.message}
+            </CardContent>
+          </Card>
+        )}
+        {foraDoMapaQuery.isError && (
+          <Card>
+            <CardContent className="p-6 text-sm text-destructive">
+              Erro ao verificar ícones fora do mapa: {(foraDoMapaQuery.error as Error)?.message}
             </CardContent>
           </Card>
         )}

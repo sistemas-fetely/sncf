@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavegacaoMenu } from "@/hooks/useMenuApp";
+import { useNavegacaoMenu, iconeHerdado } from "@/hooks/useMenuApp";
 import { toast } from "sonner";
 
 /**
@@ -67,7 +67,7 @@ export function useFavoritos() {
   const porRota = useMemo(() => {
     const m = new Map<string, { label: string; icone: string | null; app: string }>();
     for (const l of nav ?? []) {
-      if (l.rota) m.set(l.rota, { label: l.label, icone: l.icone, app: l.app_chave });
+      if (l.rota) m.set(l.rota, { label: l.label, icone: iconeHerdado(l, nav ?? []), app: l.app_chave });
     }
     return m;
   }, [nav]);

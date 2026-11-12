@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelasVisiveis } from "@/hooks/useTelasVisiveis";
+import { iconeConhecido } from "@/config/iconesNavegacao";
 
 export interface LinhaMenu {
   chave: string;
@@ -59,6 +60,20 @@ export function useNavegacaoMenu() {
 }
 
 /**
+ * Icone efetivo de uma linha: o proprio se conhecido; senao o do grupo pai
+ * (se conhecido); senao o da linha nivel='app' do mesmo app_chave. Se nada
+ * resolver, devolve o original e resolverIcone cai no Circle com aviso.
+ */
+export function iconeHerdado(linha: LinhaMenu, linhas: LinhaMenu[]): string | null {
+  if (iconeConhecido(linha.icone)) return linha.icone;
+  const pai = linha.pai_chave ? linhas.find((l) => l.chave === linha.pai_chave) : undefined;
+  if (pai && iconeConhecido(pai.icone)) return pai.icone;
+  const app = linhas.find((l) => l.nivel === "app" && l.chave === linha.app_chave);
+  if (app && iconeConhecido(app.icone)) return app.icone;
+  return linha.icone;
+}
+
+/**
  * Monta a arvore de um app para a sidebar.
  *
  * A visibilidade NAO e decidida aqui: e delegada a useTelasVisiveis, a mesma
@@ -98,7 +113,7 @@ export function useMenuApp(appChave: string) {
     const paraItem = (i: LinhaMenu): ItemMenu => ({
       chave: i.chave,
       label: i.label,
-      icone: i.icone,
+      icone: iconeHerdado(i, linhas ?? []),
       rota: i.rota as string,
       badge_fonte: i.badge_fonte,
       exato: rotasVisiveis.some(
@@ -127,5 +142,5 @@ export function useMenuApp(appChave: string) {
       .map(paraItem);
 
     return { grupos, soltos, isLoading, isError, refetch };
-  }, [doApp, visiveis, isLoading, isError, refetch]);
+  }, [doApp, linhas, visiveis, isLoading, isError, refetch]);
 }

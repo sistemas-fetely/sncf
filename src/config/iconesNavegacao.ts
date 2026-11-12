@@ -1,4 +1,30 @@
 import {
+  AlertTriangle,
+  ArrowRightLeft,
+  Bell,
+  BookMarked,
+  Briefcase,
+  CalendarCheck,
+  Camera,
+  CircleDollarSign,
+  ClipboardCheck,
+  FileCheck,
+  FileCheck2,
+  FolderKanban,
+  Gavel,
+  IdCard,
+  MapPin,
+  Megaphone,
+  PackageCheck,
+  PackagePlus,
+  Plus,
+  RefreshCw,
+  Store,
+  Tags,
+  Timer,
+  Undo2,
+  UserSquare,
+  Workflow,
   ArrowDownCircle,
   ArrowDownToLine,
   ArrowLeftRight,
@@ -95,12 +121,39 @@ import {
  *
  * Por que mapa estatico e nao `import * as Icons`: o import estrela do
  * lucide-react derruba o tree-shaking e leva o pacote inteiro pro bundle.
- * Aqui entram so os 79 icones que a tabela usa de fato.
+ * Aqui entram so os icones que a tabela usa de fato (a Saude da Navegacao
+ * acusa "Icone fora do mapa" quando falta algum).
  *
- * Icone novo na tabela: acrescente aqui. Sem entrada, cai no fallback Circle
- * e o console avisa — nunca quebra a tela.
+ * Icone novo na tabela: acrescente aqui. Sem entrada, o menu herda o icone do
+ * grupo pai ou do app; Circle so como ultimo recurso, com aviso no console.
  */
 const ICONES: Record<string, LucideIcon> = {
+  AlertTriangle,
+  ArrowRightLeft,
+  Bell,
+  BookMarked,
+  Briefcase,
+  CalendarCheck,
+  Camera,
+  CircleDollarSign,
+  ClipboardCheck,
+  FileCheck,
+  FileCheck2,
+  FolderKanban,
+  Gavel,
+  IdCard,
+  MapPin,
+  Megaphone,
+  PackageCheck,
+  PackagePlus,
+  Plus,
+  RefreshCw,
+  Store,
+  Tags,
+  Timer,
+  Undo2,
+  UserSquare,
+  Workflow,
   ArrowDownCircle,
   ArrowDownToLine,
   ArrowLeftRight,
@@ -197,4 +250,10 @@ export function resolverIcone(nome: string | null | undefined): LucideIcon {
     return Circle;
   }
   return found;
+}
+
+export const NOMES_ICONES = Object.keys(ICONES);
+
+export function iconeConhecido(nome: string | null | undefined): boolean {
+  return !!nome && Object.prototype.hasOwnProperty.call(ICONES, nome);
 }
