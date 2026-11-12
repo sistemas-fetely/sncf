@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
+import { cpfValido, mascaraCpf } from "@/lib/documentos/cpf";
 import { reprocessarFilaB2c } from "@/hooks/vendas/useB2c";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,19 @@ export function ClienteVDSheet({ parceiroId, pedidoId, filaId, filaErro, open, o
       return data as unknown as Ficha;
     },
   });
+  // A ficha traz o CPF mascarado; o CPF cru só serve para decidir se ele pode ser corrigido.
+  const qCpf = useQuery({
+    queryKey: ["vd-cliente-cpf", parceiroId],
+    enabled: open && !!parceiroId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("parceiros_comerciais").select("cpf").eq("id", parceiroId).maybeSingle();
+      if (error) throw error;
+      return (data?.cpf ?? "") as string;
+    },
+  });
+  const cpfAtualInvalido = qCpf.isSuccess && !cpfValido(qCpf.data);
+  const [cpfNovo, setCpfNovo] = useState("");
+  const cpfNovoOk = !cpfAtualInvalido || cpfValido(cpfNovo);
   const [d, setD] = useState<Dados>(VAZIO);
   const [buscandoCep, setBuscandoCep] = useState(false);
   useEffect(() => {
@@ -49,6 +63,8 @@ export function ClienteVDSheet({ parceiroId, pedidoId, filaId, filaErro, open, o
     setD({ nome: f.nome ?? "", telefone: f.telefone ?? "", email: f.email ?? "", cep: mascaraCep(f.cep ?? ""), logradouro: f.logradouro ?? "", numero: f.numero ?? "", complemento: f.complemento ?? "", bairro: f.bairro ?? "", cidade: f.cidade ?? "", uf: f.uf ?? "" });
   }, [q.data]);
   useEffect(() => { if (q.error) toast.error(rawMessage(q.error)); }, [q.error]);
+  useEffect(() => { if (qCpf.error) toast.error(rawMessage(qCpf.error)); }, [qCpf.error]);
+  useEffect(() => { if (!open) setCpfNovo(""); }, [open]);
 
   const set = (k: keyof Dados) => (v: string) => setD((a) => ({ ...a, [k]: v }));
   const mudarCep = async (v: string) => {
@@ -65,7 +81,7 @@ export function ClienteVDSheet({ parceiroId, pedidoId, filaId, filaErro, open, o
 
   const salvar = useMutation({
     mutationFn: async (reprocessar: boolean) => {
-      const { data, error } = await supabase.rpc("vd_atualizar_cliente" as never, { p_parceiro_id: parceiroId, p_dados: d, p_pedido_id: pedidoId ?? null } as never);
+      const { data, error } = await supabase.rpc("vd_atualizar_cliente" as never, { p_parceiro_id: parceiroId, p_dados: cpfAtualInvalido ? { ...d, cpf: cpfNovo.replace(/\D/g, "") } : d, p_pedido_id: pedidoId ?? null } as never);
       if (error) throw error;
       const r = data as { ok?: boolean; erro?: string; mudou?: boolean } | null;
       if (r?.ok === false) throw new Error(r.erro ?? "O banco recusou a alteração.");
@@ -74,7 +90,8 @@ export function ClienteVDSheet({ parceiroId, pedidoId, filaId, filaErro, open, o
     },
     onSuccess: async ({ reprocessar, mudou }) => {
       toast.success(reprocessar ? "Cliente salvo e pedido reenviado ao Bling" : mudou === false ? "Nada mudou no cadastro" : "Cliente salvo");
-      await Promise.all([qc.invalidateQueries({ queryKey: ["vd-cliente-ficha", parceiroId] }), invalidarVendaDireta(qc)]);
+      setCpfNovo("");
+      await Promise.all([qc.invalidateQueries({ queryKey: ["vd-cliente-ficha", parceiroId] }), qc.invalidateQueries({ queryKey: ["vd-cliente-cpf", parceiroId] }), invalidarVendaDireta(qc)]);
       onOpenChange(false);
     },
     onError: (e) => toast.error(rawMessage(e)),
@@ -97,7 +114,16 @@ export function ClienteVDSheet({ parceiroId, pedidoId, filaId, filaErro, open, o
             : q.isError ? <div className="text-sm text-destructive">{rawMessage(q.error)}</div>
             : <>
               {campo("nome", "Nome")}
-              <div className="space-y-1"><Label>CPF</Label><Input value={q.data?.cpf_mascarado ?? "—"} readOnly disabled /><p className="text-xs text-muted-foreground">CPF não se altera aqui.</p></div>
+              {cpfAtualInvalido ? (
+                <div className="space-y-1">
+                  <Label>CPF</Label>
+                  <Input value={cpfNovo} placeholder="000.000.000-00" inputMode="numeric" onChange={(e) => setCpfNovo(mascaraCpf(e.target.value))} aria-invalid={cpfNovo !== "" && !cpfNovoOk} />
+                  {cpfNovo !== "" && !cpfNovoOk ? <p className="text-xs text-destructive">CPF inválido</p>
+                    : <p className="text-xs text-warning">CPF atual inválido — informe o CPF correto do cliente.</p>}
+                </div>
+              ) : (
+                <div className="space-y-1"><Label>CPF</Label><Input value={q.data?.cpf_mascarado ?? "—"} readOnly disabled /><p className="text-xs text-muted-foreground">CPF não se altera aqui.</p></div>
+              )}
               {campo("telefone", "Telefone")}
               {campo("email", "E-mail", { type: "email" })}
               <div className="space-y-3 rounded-md border bg-background p-3">
@@ -114,8 +140,8 @@ export function ClienteVDSheet({ parceiroId, pedidoId, filaId, filaErro, open, o
             </>}
         </div>
         <SheetFooter className="gap-2 border-t p-4">
-          <Button variant="outline" disabled={!q.isSuccess || salvar.isPending} onClick={() => salvar.mutate(false)}>{salvar.isPending && salvar.variables === false && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button>
-          {filaId && <Button disabled={!q.isSuccess || salvar.isPending} onClick={() => salvar.mutate(true)}>{salvar.isPending && salvar.variables === true && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar e reprocessar</Button>}
+          <Button variant="outline" disabled={!q.isSuccess || !qCpf.isSuccess || !cpfNovoOk || salvar.isPending} onClick={() => salvar.mutate(false)}>{salvar.isPending && salvar.variables === false && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button>
+          {filaId && <Button disabled={!q.isSuccess || !qCpf.isSuccess || !cpfNovoOk || salvar.isPending} onClick={() => salvar.mutate(true)}>{salvar.isPending && salvar.variables === true && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar e reprocessar</Button>}
         </SheetFooter>
       </SheetContent>
     </Sheet>
