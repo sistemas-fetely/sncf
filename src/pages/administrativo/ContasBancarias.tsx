@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -29,8 +30,9 @@ import {
   Trash2,
   Power,
   CreditCard,
+  AlertTriangle,
 } from "lucide-react";
-import { formatBRL } from "@/lib/format-currency";
+import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   ContaBancariaFormSheet,
   type ContaBancaria,
@@ -39,6 +41,41 @@ import {
   NovoCartaoSheet,
   type CartaoCredito,
 } from "@/components/financeiro/NovoCartaoSheet";
+
+type ContaSaldo = {
+  conta_bancaria_id: string;
+  saldo: number | null;
+  saldo_data: string | null;
+  saldo_fonte: "extrato" | "cadastro" | null;
+};
+
+/** Legenda discreta sob o saldo: de onde ele veio e desde quando. */
+function legendaSaldo(s: ContaSaldo | undefined): string {
+  if (!s) return "";
+  const data = s.saldo_data ? formatDateBR(s.saldo_data) : "";
+  if (s.saldo_fonte === "extrato") return data ? `em ${data} · extrato` : "extrato";
+  return data ? `informado no cadastro em ${data}` : "informado no cadastro";
+}
+
+/** Soma dos saldos lidos da view + a posição mais antiga entre os de extrato. */
+function resumoSaldos(linhas: (ContaSaldo | undefined)[]) {
+  let total = 0;
+  let semExtrato = 0;
+  let maisAntiga: string | null = null;
+  for (const s of linhas) {
+    if (!s) continue;
+    total += Number(s.saldo || 0);
+    if (s.saldo_fonte === "extrato") {
+      if (s.saldo_data && (!maisAntiga || s.saldo_data < maisAntiga)) maisAntiga = s.saldo_data;
+    } else {
+      semExtrato += 1;
+    }
+  }
+  const partes: string[] = [];
+  if (maisAntiga) partes.push(`posição mais antiga: ${formatDateBR(maisAntiga)}`);
+  if (semExtrato > 0) partes.push(`${semExtrato} conta(s) sem saldo de extrato`);
+  return { total, legenda: partes.join(" · ") };
+}
 
 const TIPO_LABEL: Record<string, string> = {
   corrente: "Conta Corrente",
@@ -84,6 +121,29 @@ export default function ContasBancarias() {
       return data as ContaBancaria[];
     },
   });
+
+  // Saldo real: vem do extrato (vw_conta_saldo_vigente), não do campo parado
+  // contas_bancarias.saldo_atual. Falhou a leitura → mostra o erro, nunca cai
+  // em silêncio para saldo_atual.
+  const {
+    data: saldosView,
+    isLoading: saldosLoading,
+    error: saldosError,
+  } = useQuery({
+    queryKey: ["conta-saldo-vigente"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_saldo_vigente")
+        .select("conta_bancaria_id, saldo, saldo_data, saldo_fonte");
+      if (error) throw error;
+      return (data || []) as ContaSaldo[];
+    },
+  });
+
+  const saldoPorConta = new Map<string, ContaSaldo>(
+    (saldosView || []).map((s) => [s.conta_bancaria_id, s] as [string, ContaSaldo]),
+  );
 
   const { data: cartoes, isLoading: cartoesLoading } = useQuery({
     queryKey: ["cartoes-credito-listagem-v2"],
@@ -189,7 +249,7 @@ export default function ContasBancarias() {
   const inativas = (contas || []).filter((c) => c.ativo === false);
   const cartoesAtivos = (cartoes || []).filter((c) => c.ativo !== false);
 
-  const totalSaldo = ativas.reduce((s, c) => s + Number(c.saldo_atual || 0), 0);
+  const resumoSaldo = resumoSaldos(ativas.map((c) => saldoPorConta.get(c.id)));
 
   return (
     <PageShell>
@@ -206,6 +266,17 @@ export default function ContasBancarias() {
         }
       />
 
+      {/* Saldo indisponível: mostra o erro real da view, nunca saldo_atual */}
+      {saldosError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Saldo não carregado</AlertTitle>
+          <AlertDescription>
+            Não foi possível ler o saldo do extrato: {saldosError.message}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* KPIs contas */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
@@ -215,7 +286,18 @@ export default function ContasBancarias() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-medium">{formatBRL(totalSaldo)}</p>
+            {saldosLoading ? (
+              <Skeleton className="h-8 w-44" />
+            ) : (
+              <>
+                <p className="text-2xl font-medium">
+                  {saldosError ? "—" : formatBRL(resumoSaldo.total)}
+                </p>
+                {!saldosError && resumoSaldo.legenda && (
+                  <p className="text-xs text-muted-foreground">{resumoSaldo.legenda}</p>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -254,6 +336,8 @@ export default function ContasBancarias() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {ativas.map((c) => {
             const Icon = TIPO_ICON[c.tipo] || Landmark;
+            const saldo = saldoPorConta.get(c.id);
+            const legenda = legendaSaldo(saldo);
             return (
               <Card
                 key={c.id}
@@ -333,9 +417,18 @@ export default function ContasBancarias() {
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                       Saldo atual
                     </p>
-                    <p className="text-lg font-medium">
-                      {formatBRL(Number(c.saldo_atual || 0))}
-                    </p>
+                    {saldosLoading ? (
+                      <Skeleton className="h-6 w-28" />
+                    ) : (
+                      <>
+                        <p className="text-lg font-medium">
+                          {saldosError || !saldo ? "—" : formatBRL(Number(saldo.saldo ?? 0))}
+                        </p>
+                        {legenda && (
+                          <p className="text-xs text-muted-foreground">{legenda}</p>
+                        )}
+                      </>
+                    )}
                   </div>
                   {c.unidade && (
                     <Badge variant="outline" className="text-[10px]">
