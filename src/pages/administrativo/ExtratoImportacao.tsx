@@ -38,6 +38,7 @@ import { aplicarMpRelease, saqueJaRegistrado } from "../../../supabase/functions
 import { aplicarMpSettlement } from "../../../supabase/functions/_shared/financeiro/mp/settlement.ts";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
+import { parseXlsxSafraPagamentos, resumoPagamentosSafra, type ResultadoPagamentos } from "@/lib/financeiro/xlsx-safra-pagamentos-parser";
 import { classificarXlsx } from "@/lib/financeiro/xlsx-classificar";
 import { competenciaDoArquivo, moverOriginalParaCompetencia, baixarOriginalComoArquivo } from "@/lib/contabil/arquivoOriginal";
 import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
@@ -104,6 +105,7 @@ type Importacao = {
 
 type Fonte =
   | "ofx"
+  | "safra_pagamentos"
   | "safra_lancamentos"
   | "safra_pix_lancamentos"
   | "safrapay_agenda_vendas"
@@ -156,6 +158,12 @@ async function lerLinhasXlsx(file: File): Promise<unknown[][]> {
 
 /** CABECALHO-CONFIRMA-O-LEITOR: null = nenhum leitor confirmou o cabeçalho. */
 async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx"> | null> {
+  const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const safraSheet = wb.Sheets["Consulta - Pagamentos"];
+  if (safraSheet) {
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(safraSheet, { header: 1, defval: null });
+    if (classificarXlsx(rows, "Consulta - Pagamentos") === "safra_pagamentos") return "safra_pagamentos";
+  }
   const c = classificarXlsx(await lerLinhasXlsx(file));
   if (c === "relatorio_sncf") return null;
   return c as Exclude<Fonte, "ofx"> | null;
@@ -174,6 +182,7 @@ async function ehRelatorioDoSncf(file: File): Promise<boolean> {
  */
 const FONTE_TIPO_DB: Record<Fonte, string> = {
   ofx: "ofx",
+  safra_pagamentos: "safra_pagamentos",
   safra_lancamentos: "safra_lancamentos",
   // O código `safra_lancamentos` da dimensão JÁ É "Lançamentos e Devoluções (PIX)".
   safra_pix_lancamentos: "safra_lancamentos",
@@ -231,6 +240,7 @@ type Bloco = "extrato" | "auxiliar";
 
 const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   ofx: "extrato",
+  safra_pagamentos: "auxiliar",
   safra_lancamentos: "extrato",
   safra_pix_lancamentos: "auxiliar",
   safrapay_agenda_vendas: "auxiliar",
@@ -255,6 +265,7 @@ const NOME_BLOCO: Record<Bloco, string> = {
 };
 
 const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
+  safra_pagamentos: "Safra — Gestão de Pagamentos (Por Pagamentos)",
   safra_instrucoes_2via: "Recebimentos - Instruções 2ª via",
   safra_francesinha: "Gestão de Cobrança - Francesinha",
   safrapay_vendas: "SafraPay Tipo 1 - Vendas",
@@ -277,6 +288,7 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
  * voltam presas à fonte, e aparecem no toast E no card do veredito.
  */
 const PARSER_EFEITO: Record<Fonte, string> = {
+  safra_pagamentos: "Identifica pagamentos e a composição dos lotes no extrato — não cria movimentações bancárias.",
   ofx: "Extrato oficial — cria as movimentações bancárias do período.",
   safra_lancamentos: "Extrato Safra — cria as movimentações bancárias do período.",
   safra_pix_lancamentos:
@@ -416,7 +428,7 @@ export default function ExtratoImportacao() {
     try {
       const file = await baixarOriginalComoArquivo(h.arquivo_storage_path, h.nome_arquivo);
       await processarArquivo(file, "extrato", trilha, h.id);
-      toast.success(`${h.nome_arquivo}: reprocessado — ${trilha.contagem?.resumo() ?? trilha.neutro?.resultado ?? "ok"}`);
+      toast.success(`${h.nome_arquivo}: reprocessado — ${trilha.resumo ?? trilha.contagem?.resumo() ?? trilha.neutro?.resultado ?? "ok"}`);
     } catch (e) {
       toast.error(`Falha ao reprocessar ${h.nome_arquivo}: ${formatError(e)}`);
     } finally {
@@ -464,6 +476,14 @@ export default function ExtratoImportacao() {
     file: File,
     fonte: Fonte
   ): Promise<{ conta: Conta; aviso?: string; completado?: string }> {
+    if (fonte === "safra_pagamentos") {
+      const { data, error } = await sb.from("extrato_fontes").select("conta_bancaria_id")
+        .eq("fonte_codigo", "safra_pagamentos").eq("ativo", true).single();
+      if (error) throw error;
+      const conta = contas.find(c => c.id === data?.conta_bancaria_id);
+      if (!conta) throw new Error("Conta bancária da fonte Safra Pagamentos não identificada.");
+      return { conta };
+    }
     const chave = FONTE_CONTA_CHAVE[fonte] ?? FONTE_TIPO_DB[fonte];
     const { data: mapa, error: errMapa } = await sb
       .from("importacao_fonte_conta")
@@ -610,10 +630,11 @@ export default function ExtratoImportacao() {
       trilha.fonte = fonte;
 
       // O rastro grava a fonte real antes de qualquer recusa
-      await sb
+      const { error: errFonte } = await sb
         .from("extrato_importacoes")
         .update({ fonte_tipo: FONTE_TIPO_DB[fonte] })
         .eq("id", impId);
+      if (errFonte) throw errFonte;
 
       if (fonte === "super_agenda") {
         throw new Error(
@@ -664,10 +685,11 @@ export default function ExtratoImportacao() {
       trilha.completado = res.completado;
       if (res.aviso) toast.warning(`${file.name}: ${res.aviso}`);
       if (res.completado) toast.info(`${file.name}: ${res.completado}`);
-      await sb
+      const { error: errConta } = await sb
         .from("extrato_importacoes")
         .update({ conta_bancaria_id: res.conta.id })
         .eq("id", impId);
+      if (errConta) throw errConta;
 
 
 
@@ -685,6 +707,33 @@ export default function ExtratoImportacao() {
 
 
     try {
+      if (fonte === "safra_pagamentos") {
+        const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+        const sheet = wb.Sheets["Consulta - Pagamentos"];
+        if (!sheet) throw new Error("Aba Consulta - Pagamentos não encontrada.");
+        const parsed = parseXlsxSafraPagamentos(XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }));
+        if (!parsed.itens.length) throw new Error("Nenhum pagamento encontrado no relatório Safra.");
+        const { data, error } = await sb.rpc("fn_extrato_pagamentos_importar", {
+          p_conta: conta, p_itens: parsed.itens, p_importacao_id: impId,
+        });
+        if (error) throw error;
+        if (data?.ok === false) throw new Error(data.erro ?? "Importação de pagamentos recusada.");
+        if (!data) throw new Error("Importação de pagamentos retornou uma resposta vazia.");
+        const r = data as ResultadoPagamentos;
+        const { error: errFim } = await sb.from("extrato_importacoes").update({
+          linhas_lidas: r.lidas, linhas_novas: r.novas, linhas_duplicadas: r.ja_existiam,
+          linhas_enriquecidas: r.exatos + r.lotes, status: "concluida", erro_detalhe: null,
+          periodo_inicio: parsed.periodo_inicio, periodo_fim: parsed.periodo_fim,
+        }).eq("id", impId);
+        if (errFim) throw errFim;
+        const comp = competenciaDoArquivo(parsed.periodo_fim);
+        if (comp) await moverOriginalParaCompetencia(impId, comp);
+        trilha.resumo = resumoPagamentosSafra(r);
+        toast.success(trilha.resumo);
+        await qc.invalidateQueries();
+        return;
+      }
+
       // CONTA-FECHADA-OU-ERRO: toda linha lida cai em novas, duplicadas ou
       // ignoradas — e ignorada sempre declara motivo. Ver contagem-importacao.ts.
       const cont = new ContagemImportacao();
@@ -1695,7 +1744,7 @@ export default function ExtratoImportacao() {
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: trilha.neutro?.resultado ?? "Importado",
               tom: trilha.neutro ? "neutro" : "ok",
-              contagem: trilha.neutro?.contagem ?? trilha.contagem?.resumo(),
+              contagem: trilha.resumo ?? trilha.neutro?.contagem ?? trilha.contagem?.resumo(),
               ignoradas: trilha.neutro?.detalhe ?? trilha.contagem?.detalhe,
             },
           ]);
@@ -1744,7 +1793,7 @@ export default function ExtratoImportacao() {
           p_corte: "2026-09-01",
         });
         if (errPort) throw errPort;
-        const n = Number((port as any)?.liberados ?? 0);
+        const n = Number((port as { liberados?: number } | null)?.liberados ?? 0);
         if (n > 0) toast.success(`${n} pedido(s) com pagamento confirmado na importação`);
       } catch (e) {
         toast.warning("Baixa automática adiada para o próximo ciclo: " + formatError(e));
@@ -1831,7 +1880,7 @@ export default function ExtratoImportacao() {
         <div>
           <h2 className="text-lg font-medium">2. Relatórios auxiliares</h2>
           <p className="text-xs text-muted-foreground">
-            Pagamentos Itaú, SafraPay, Mercado Pago, Safra PIX e as duas fontes de cobrança do Safra.
+            Pagamentos Itaú e Safra — Gestão de Pagamentos (Por Pagamentos), SafraPay, Mercado Pago, Safra PIX e as duas fontes de cobrança do Safra.
             Estes arquivos primeiro tentam enriquecer a linha que já existe no extrato — só criam
             movimentação nova quando não existe par.
           </p>

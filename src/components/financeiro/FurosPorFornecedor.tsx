@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export type FuroLike = {
 
 interface Props {
   furos: FuroLike[];
+  renderLote?: (f: FuroLike) => ReactNode;
   onBuscar: (f: FuroLike) => void;
   onSolicitar: (f: FuroLike) => void;
   onClassificar: (f: FuroLike) => void;
@@ -52,7 +53,7 @@ function digitos(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
-export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater, onFatura }: Props) {
+export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar, onAbater, onFatura, renderLote }: Props) {
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
   const grupos = useMemo<Grupo[]>(() => {
@@ -184,11 +185,12 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                       ? Math.max(0, Math.floor((Date.now() - new Date(f.doc_solicitado_em).getTime()) / 86400000))
                       : null;
                     return (
-                      <div key={f.id} className="px-4 py-2 flex items-center gap-3 text-xs">
+                      <div key={f.id} className="px-4 py-2 flex flex-wrap items-center gap-3 text-xs">
                         <div className="w-20 shrink-0 whitespace-nowrap">{formatDateBR(f.data_transacao)}</div>
                         <div className="w-24 shrink-0 text-muted-foreground truncate">{f.banco || "—"}</div>
-                        <div className="flex-1 min-w-0 truncate" title={f.descricao || ""}>
-                          {f.descricao || "—"}
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate" title={f.descricao || ""}>{f.descricao || "—"}</div>
+                          {renderLote?.(f)}
                         </div>
                         {diasSol !== null && (
                           <Badge

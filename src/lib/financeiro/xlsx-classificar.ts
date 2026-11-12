@@ -9,6 +9,7 @@
  */
 import { detectarAssinaturaSafraXlsx, type AssinaturaSafraXlsx } from "./xlsx-safra-assinatura";
 import { temTitulo, textoPrimeirasLinhas } from "./xlsx-titulo";
+import { ehSafraPagamentos } from "./xlsx-safra-pagamentos-parser";
 import { acharCabecalhoSafraLancamentos } from "./xlsx-safra-lancamentos-parser";
 
 export type FonteXlsx =
@@ -18,7 +19,8 @@ export type FonteXlsx =
   | "mp_settlement"
   | "mp_release"
   | "mp_withdraw"
-  | "safra_lancamentos";
+  | "safra_lancamentos"
+  | "safra_pagamentos";
 
 export type ClassificacaoXlsx = FonteXlsx | "relatorio_sncf" | null;
 
@@ -30,7 +32,8 @@ export function ehRelatorioSncf(rows: unknown[][]): boolean {
   return /(^|\/\/ )sku \| produto \| centro \|/.test(cab);
 }
 
-export function classificarXlsx(rows: unknown[][]): ClassificacaoXlsx {
+export function classificarXlsx(rows: unknown[][], nomeAba?: string): ClassificacaoXlsx {
+  if (nomeAba && ehSafraPagamentos(nomeAba, rows)) return "safra_pagamentos";
   const assinatura = detectarAssinaturaSafraXlsx(rows);
   if (assinatura) return assinatura;
   if (temTitulo(rows, /recebimentos\s*-\s*instrucoes/)) return "safra_instrucoes_2via";

@@ -31,6 +31,8 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { BuscarDocumentoDialog } from "@/components/financeiro/BuscarDocumentoDialog";
 import { SolicitarDocumentoDialog } from "@/components/financeiro/SolicitarDocumentoDialog";
 import { ClassificarDiretoDialog } from "@/components/financeiro/ClassificarDiretoDialog";
+import { LotePagamentosBadge, type ItemPagamentoLote } from "@/components/financeiro/LotePagamentosBadge";
+import { formatError } from "@/lib/format-error";
 import { FurosPorFornecedor } from "@/components/financeiro/FurosPorFornecedor";
 import { PagarFaturaCartaoDialog } from "@/components/financeiro/PagarFaturaCartaoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -152,6 +154,25 @@ export default function ConciliacaoDespesas() {
       return (data || []) as Furo[];
     },
   });
+
+  const lotesQ = useQuery({
+    queryKey: ["conciliacao-pagamentos-lote"],
+    queryFn: async () => {
+      const itens: ItemPagamentoLote[] = [];
+      for (let inicio = 0; ; inicio += 1000) {
+        const { data, error } = await sb.from("extrato_pagamento_item")
+          .select("movimentacao_id,favorecido_nome,favorecido_documento,valor,modalidade,data_pagamento")
+          .eq("vinculo", "lote").order("movimentacao_id").order("id").range(inicio, inicio + 999);
+        if (error) throw error;
+        itens.push(...((data ?? []) as ItemPagamentoLote[]));
+        if (!data || data.length < 1000) break;
+      }
+      const map = new Map<string, ItemPagamentoLote[]>();
+      for (const item of itens) map.set(item.movimentacao_id, [...(map.get(item.movimentacao_id) ?? []), item]);
+      return map;
+    },
+  });
+  const renderLote = (f: { id: string }) => <LotePagamentosBadge itens={lotesQ.data?.get(f.id)} />;
 
   const { data: sugestoesNF = [] } = useQuery({
     queryKey: ["conciliacao-sug-nf"],
@@ -488,6 +509,7 @@ export default function ConciliacaoDespesas() {
         estado="Débitos bancários sem destino: casar com NFs revisadas ou CPRs, ou registrar como furo real."
       />
 
+      {lotesQ.isError && <div role="alert" className="rounded-md border border-destructive/30 bg-card p-3 text-sm text-destructive">{formatError(lotesQ.error)}</div>}
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4">
@@ -656,6 +678,7 @@ export default function ConciliacaoDespesas() {
                               </TableCell>
                               <TableCell className="text-xs align-top">
                                 <div className="font-medium">{f.sugestao_contraparte || "—"}</div>
+                                {renderLote(f)}
                                 {f.fonte_sugestao === "nf" && nf?.nf_numero && (
                                   <div className="text-muted-foreground">NF {nf.nf_numero}</div>
                                 )}
@@ -787,6 +810,7 @@ export default function ConciliacaoDespesas() {
             {visaoFuros === "fornecedor" && (
               <FurosPorFornecedor
                 furos={furosFiltrados}
+                renderLote={renderLote}
                 onBuscar={(f) => { setFuroAtivo(f as Furo); setBuscarOpen(true); }}
                 onSolicitar={(f) => { setFuroAtivo(f as Furo); setSolicitarOpen(true); }}
                 onClassificar={(f) => { setFuroAtivo(f as Furo); setClassificarOpen(true); }}
@@ -836,6 +860,7 @@ export default function ConciliacaoDespesas() {
                           </TableCell>
                           <TableCell className="text-xs">
                             <div>{f.contraparte_nome || "—"}</div>
+                            {renderLote(f)}
                             {f.contraparte_documento && (
                               <div className="text-muted-foreground">{f.contraparte_documento}</div>
                             )}

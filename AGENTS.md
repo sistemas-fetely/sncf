@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Safra payment reports are recognized by sheet name plus bank signature and parsed by a pure title-based parser; the existing import history/original flow delegates all payment matching to its RPC, while reconciliation loads batch items once and shares a read-only badge across its existing views.
 - Return-invoice decisions live in the existing returns shell as a permission-gated tab; its suggested-link counter is gated before fetching, while process links explicitly select the funnel and legacy fiscal URLs redirect without their former route gate.
 - Ticket catalog variation search and required-code selection share a tested pure helper across both opening forms; variation administration uses the existing table with server-enforced permissions and shared catalog invalidation, while order tickets read the same list view so variation labels stay consistent.
 - Bank statement tabs share one URL shell and permission-gated counters; the open queue reads the full paginated view, classified history requires a period, and classification/undo use only existing RPCs with database-driven class catalogs so bank descriptions remain untouched.
