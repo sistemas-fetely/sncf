@@ -25,6 +25,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
+import NfRetornoTab from "@/components/devolucoes/NfRetornoTab";
+import { useContagemNfRetorno } from "@/components/devolucoes/useContagemNfRetorno";
+import { abaNfRetornoPermitida } from "@/lib/devolucao/nfRetornoNavegacao";
 import { QuarentenaEstoquePainel, buscarQuarentenaFila } from "@/components/estoque/QuarentenaEstoquePainel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronDown, ChevronRight, Copy, ExternalLink, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
@@ -220,7 +224,13 @@ export default function RetornoDevolucao() {
   const ehAberta = (d: Funil) => statusMap.get(statusDe(d))?.eh_final !== true;
   const rotuloStatus = (d: Funil) => statusMap.get(statusDe(d))?.rotulo ?? (statusDe(d) || "—");
   const pendQ = useDevolucoesRetornoPendente();
-  const [aba, setAba] = useAbaUrl("funil");
+  const [abaSolicitada, setAba] = useAbaUrl("funil");
+  const permNfRetorno = usePodeVerAba("tela.fin_devolucao");
+  const nfRetornoQ = useContagemNfRetorno(permNfRetorno.podeVer && !permNfRetorno.carregando);
+  const aba = abaNfRetornoPermitida(abaSolicitada, permNfRetorno.podeVer, permNfRetorno.carregando);
+  useEffect(() => {
+    if (aba !== abaSolicitada) setAba(aba);
+  }, [aba, abaSolicitada, setAba]);
 
   // DUAS ABAS (27/10/2026): a aba de devoluções só mostra finalidade 'devolucao'; correções de NF têm aba própria.
   const devolucoes = useMemo(() => (funilQ.data ?? []).filter((d) => !finalidadeQ.data?.has(d.id)), [funilQ.data, finalidadeQ.data]);
@@ -372,7 +382,7 @@ export default function RetornoDevolucao() {
         <CasaPageHeader
           breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções e Correções de NF" }]}
           title="Devoluções e Correções de NF"
-          subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o SNCF gera a NF nova no Bling para o Fiscal transmitir." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
+          subtitle={aba === "nf-retorno" ? "Notas de retorno que apontam para uma venda nossa: confirme se a devolução é parcial ou se anula a venda." : aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o SNCF gera a NF nova no Bling para o Fiscal transmitir." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
             <div className="flex items-center gap-2">
               <DeclararCancelamentoDialog
@@ -392,6 +402,9 @@ export default function RetornoDevolucao() {
             <TabsTrigger value="correcoes">{rotuloFin("refaturar", "Correções de NF")}{correcoesAbertas > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{correcoesAbertas}</Badge>}</TabsTrigger>
             <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
             <TabsTrigger value="reembolso">Cancelamento sem NF{reembolsosPendentes > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosPendentes}</Badge>}</TabsTrigger>
+            <AbaPermitida slug="tela.fin_devolucao">
+              <TabsTrigger value="nf-retorno">NF de retorno{(nfRetornoQ.data ?? 0) > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{nfRetornoQ.data}</Badge>}</TabsTrigger>
+            </AbaPermitida>
           </TabsList>
           <TabsContent value="funil" className="mt-4">
         <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 lg:grid-cols-5">
@@ -712,6 +725,12 @@ export default function RetornoDevolucao() {
           </TabsContent>
           <TabsContent value="reembolso" className="mt-4">
             <CancelamentoReembolsoPainel />
+          </TabsContent>
+          <TabsContent value="nf-retorno" className="mt-4">
+            <ConteudoAba slug="tela.fin_devolucao">
+              {nfRetornoQ.isError && <Alert variant="destructive" className="mb-4"><AlertDescription>{formatError(nfRetornoQ.error)}</AlertDescription></Alert>}
+              <NfRetornoTab />
+            </ConteudoAba>
           </TabsContent>
         </Tabs>
       </div>

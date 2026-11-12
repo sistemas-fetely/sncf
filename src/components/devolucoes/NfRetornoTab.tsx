@@ -12,8 +12,6 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +42,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { fmtData, fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
+import { destinoFunilNfRetorno } from "@/lib/devolucao/nfRetornoNavegacao";
 
 /**
  * DEVOLUCAO-TOTAL-ANULA-A-VENDA (29/08/2026)
@@ -121,7 +120,7 @@ function itemNumero(item: ItemDevolvido, chaves: string[]): number | null {
   return null;
 }
 
-export default function DevolucoesFiscais() {
+export default function NfRetornoTab() {
   const qc = useQueryClient();
   const [aba, setAba] = useState<Aba>("sugerido");
   const [alvoTotal, setAlvoTotal] = useState<VinculoMesa | null>(null);
@@ -131,31 +130,29 @@ export default function DevolucoesFiscais() {
   const listaQ = useQuery({
     queryKey: QK,
     queryFn: async (): Promise<VinculoMesa[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vw_devolucao_vinculo_mesa")
         .select("*")
         .order("criado_em", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as VinculoMesa[];
+      return (data ?? []) as unknown as VinculoMesa[];
     },
   });
 
-  const linhas = listaQ.data ?? [];
-
   const porAba = useMemo(() => {
     const grupos: Record<Aba, VinculoMesa[]> = { sugerido: [], confirmado: [], descartado: [] };
-    for (const l of linhas) {
+    for (const l of listaQ.data ?? []) {
       const s = (l.status ?? "").toLowerCase();
       if (s.startsWith("confirmad")) grupos.confirmado.push(l);
       else if (s.startsWith("descartad")) grupos.descartado.push(l);
       else grupos.sugerido.push(l);
     }
     return grupos;
-  }, [linhas]);
+  }, [listaQ.data]);
 
   const procurar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("fn_devolucao_sugerir_vinculos");
+      const { data, error } = await supabase.rpc("fn_devolucao_sugerir_vinculos");
       if (error) throw error;
       return (data ?? {}) as {
         ok?: boolean;
@@ -182,13 +179,13 @@ export default function DevolucoesFiscais() {
 
   const confirmar = useMutation({
     mutationFn: async (v: { id: string; grau: "parcial" | "total"; motivo: string }) => {
-      const { data, error } = await (supabase.rpc as any)("fn_devolucao_confirmar_vinculo", {
+      const { data, error } = await supabase.rpc("fn_devolucao_confirmar_vinculo", {
         p_vinculo_id: v.id,
         p_grau: v.grau,
         p_motivo: v.motivo,
       });
       if (error) throw error;
-      return { grau: v.grau, resp: (data ?? {}) as Record<string, any> };
+      return { grau: v.grau, resp: (data ?? {}) as { ok?: boolean; erro?: string; anulacao?: { bloqueado?: boolean; motivo_bloqueio?: string } } };
     },
     onSuccess: ({ grau, resp }) => {
       // FAIL-LOUD: a RPC devolve {ok:false, erro} sem lançar exceção.
@@ -217,7 +214,7 @@ export default function DevolucoesFiscais() {
 
   const descartar = useMutation({
     mutationFn: async (v: { id: string; motivo: string }) => {
-      const { data, error } = await (supabase.rpc as any)("fn_devolucao_descartar_vinculo", {
+      const { data, error } = await supabase.rpc("fn_devolucao_descartar_vinculo", {
         p_vinculo_id: v.id,
         p_motivo: v.motivo,
       });
@@ -241,27 +238,18 @@ export default function DevolucoesFiscais() {
   const visiveis = aba === "sugerido" ? [...porAba[aba]].sort((a, b) => Number(!!b.devolucao_id) - Number(!!a.devolucao_id)) : porAba[aba];
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Devoluções Fiscais"
-        icone={PackageX}
-        estado="Notas fiscais de retorno que referenciam notas de saída nossas e aguardam decisão: devolução parcial ou anulação total da venda."
-        acoes={
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => procurar.mutate()}
-            disabled={procurar.isPending}
-          >
-            {procurar.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            Procurar novos vínculos
-          </Button>
-        }
-      />
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => procurar.mutate()}
+          disabled={procurar.isPending}
+        >
+          {procurar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          Procurar novos vínculos
+        </Button>
+      </div>
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)}>
         <TabsList>
@@ -425,7 +413,7 @@ export default function DevolucoesFiscais() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageShell>
+    </div>
   );
 }
 
@@ -454,7 +442,7 @@ function CardVinculo({
       <CardContent className="space-y-3 p-4">
         {aba === "sugerido" && (v.devolucao_id ? <div className="flex flex-wrap items-center gap-2 border-b border-primary/20 pb-3 text-sm">
           <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">Com devolução</Badge>
-          <Button variant="link" size="sm" asChild><Link to={`/devolucoes?q=${encodeURIComponent(v.devolucao_numero ?? "")}&detalhe=${v.devolucao_id}&fin=true`}>Abrir devolução {v.devolucao_numero ?? ""}</Link></Button>
+          <Button variant="link" size="sm" asChild><Link to={destinoFunilNfRetorno(v.devolucao_id, v.devolucao_numero)}>Abrir devolução {v.devolucao_numero ?? ""}</Link></Button>
           <span className="text-muted-foreground">Confirme a NF de retorno no processo.</span>
         </div> : <Badge variant="outline">Sem devolução aberta</Badge>)}
         {/* Linha 1 — o encontro das duas notas */}

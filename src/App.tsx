@@ -150,7 +150,6 @@ const Parceiros = lazy(() => import("@/pages/administrativo/Parceiros"));
 const ImportarDados = lazy(() => import("@/pages/administrativo/ImportarDados"));
 const NFsStage = lazy(() => import("@/pages/administrativo/NFsStage"));
 const NfAGerarTitulo = lazy(() => import("@/pages/administrativo/NfAGerarTitulo"));
-const DevolucoesFiscais = lazy(() => import("@/pages/administrativo/DevolucoesFiscais"));
 const MotorClassificacao = lazy(() => import("@/pages/administrativo/MotorClassificacao"));
 const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"));
 
@@ -965,7 +964,6 @@ const App = () => (
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
                 <Route path="nf-a-gerar-titulo" element={<NfAGerarTitulo />} />
-                <Route path="devolucoes-fiscais" element={<DevolucoesFiscais />} />
                 <Route path="motor-classificacao" element={<MotorClassificacao />} />
                 <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
               </Route>
@@ -997,6 +995,7 @@ const App = () => (
                 NÃO adicionar tela real aqui.
                 ═══════════════════════════════════════════════ */}
             {/* TRANSFERENCIA-E-UM-PROCESSO (06/10/2026): criar e receber são abas de Transferências Internas */}
+            <Route path="/administrativo/devolucoes-fiscais" element={<Navigate replace to="/devolucoes?aba=nf-retorno" />} />
             <Route path="/vendas/nfs" element={<NfsVendaRedirect />} />
             <Route path="/vendas/bling-pedidos" element={<NfsVendaRedirect pedidos />} />
             <Route path="/pedidos/transferencias/nova" element={<Navigate to="/pedidos/transferencias?aba=nova" replace />} />
