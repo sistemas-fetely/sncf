@@ -110,6 +110,15 @@ Deno.serve(async (req) => {
         return jsonResponse(200, { ok: true, cds: data ?? [] });
       }
 
+      if (body.tipo === "balcao_estoque") {
+        const centro = typeof body.centro_codigo === "string" ? body.centro_codigo.trim() : "";
+        const { data, error } = centro
+          ? await supabase.rpc("fn_balcao_estoque", { p_centro_codigo: centro })
+          : await supabase.rpc("fn_balcao_estoque");
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, centro: centro || "SITE-SP", linhas: data ?? [] });
+      }
+
       if (body.tipo === "balcao_produto_buscar") {
         const centro = typeof body.centro_codigo === "string" ? body.centro_codigo.trim() : "";
         const { data, error } = centro
