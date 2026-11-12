@@ -1,23 +1,11 @@
-# Inventário — filtros de seleção única (coleção, grupo, fase, situação de produto)
+# Custo obrigatório em Despesas
 
-Só leitura. Nada foi editado. Fica de fora o Cockpit do Estoque.
+- Adicionar a quarta aba em `/administrativo/despesas?aba=custo-obrigatorio`, preservando as outras abas e sem item de menu.
+- Exibir resumo, filtros, busca, tabela mensal e totais; seis meses em 1280px e quatro em 1024px.
+- Confirmar/descartar e incluir/editar somente pelas RPCs existentes, protegidas por `acao.despesa_classificar`.
+- Preservar linhas decididas na sessão com selo até trocar de filtro; famílias de cartão vêm da dimensão ativa.
 
-| Tela (menu) | Rota | Arquivo | Filtros | Onde filtra | Fonte das opções |
-|---|---|---|---|---|---|
-| Produtos · Margem e Capital | /bi/produtos | src/pages/administrativo/Produtos.tsx | Coleção, Grupo, Fase | Cliente | Coleção/grupo: valores distintos da lista carregada (vw_produto_cockpit). Fase: valores distintos da lista, ordenados por produto_fase_dim |
-| Painel de Margem | /administrativo/painel-margem | src/pages/administrativo/PainelMargem.tsx | Grupo, Coleção | Cliente | Valores distintos de vw_resultado_produto já carregada |
-| Faturamento | /administrativo/faturamento | src/pages/administrativo/Faturamento.tsx | Coleção | Cliente | Valores distintos das linhas carregadas |
-| Tabela de Preço | /vendas/produto/precos | src/pages/acervo/TabelaPreco.tsx | Coleção, Grupo, Fase | Cliente | Valores distintos de vw_preco_espelho |
-| Tabela de Preço › aba Histórico | /vendas/produto/precos (aba) | src/components/acervo/HistoricoPrecoTab.tsx | Coleção, Grupo | Cliente | Valores distintos de vw_preco_historico_analise |
-| Central de Estoque | /vendas/produto/estoque/central | src/pages/Comercial/CentralEstoque.tsx | Coleção, Fase | Cliente (helper filtrar) | Valores distintos dos produtos carregados |
-| Conciliação de Cadastro › Atualização do catálogo | /vendas/produto/conciliacao | src/components/acervo/AtualizacaoCatalogoDia.tsx | Fase | Cliente | Lista fixa no código: registrado, pre_venda, ativo, inativo |
-
-Nenhuma dessas telas filtra no servidor com .eq.
-
-## Fora do critério (não é filtro de produto)
-- Parceiros: "Todos os grupos" é grupo empresarial.
-- Gerar título de NF, aba Pedidos Fiscais e Cartório de Códigos: "Todas as situações" é situação de nota, de pedido ou de código.
-- Estoque Site SP e Envio do cadastro (BlingCardPainel): já são de seleção múltipla.
-
-## Observação
-A fase de Atualização do catálogo é a única lista fixa no código; todas as outras opções vêm dos dados carregados.
+## Detalhes técnicos
+- Consulta tipada com 60 segundos de atualização, skeleton e erros reais; sem novos `any`.
+- Helpers puros testados para meses, células, totais e retenção por sessão.
+- Testes, lint e preview autenticado; gravações apenas simuladas, sem banco nem publicação.
