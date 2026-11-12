@@ -49,7 +49,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/logistica", titulo: "Logística", pilar: "sops", icon: Truck, tags: ["logística", "frete", "transportadora", "entrega"] },
   { rota: "/vendas/gestao-pedidos", titulo: "Gestão de Pedidos", pilar: "sops", icon: ListChecks, tags: ["gestão", "pedidos", "vendas"] },
   { rota: "/vendas/shopify", titulo: "Shopify B2C", pilar: "sops", icon: Store, tags: ["shopify", "b2c", "ecommerce", "loja"] },
-  { rota: "/vendas/nfs", titulo: "NFs de Venda", pilar: "sops", icon: Receipt, tags: ["nfs", "notas", "fiscais", "venda"] },
+  { rota: "/administrativo/contabilidade/nfs-venda", titulo: "NFs de Venda", pilar: "financas", icon: Receipt, tags: ["nfs", "notas", "fiscais", "venda"] },
   { rota: "/recebimento/cobranca", titulo: "Cobrança", pilar: "sops", icon: DollarSign, tags: ["cobrança", "recebimento", "inadimplência"] },
 
   // Finanças

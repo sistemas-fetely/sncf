@@ -8,7 +8,6 @@ import {
 import {
   RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption,
 } from "@/components/tabela/RodapePaginacao";
-import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,8 +31,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
-import { PageShell } from "@/components/layout/PageShell";
 import { fmtData, hojeISO } from "@/lib/data";
+import { SITUACAO_LABELS, SITUACAO_CLASS } from "./situacaoNf";
 
 
 function formatCurrency(n: number | null | undefined) {
@@ -42,28 +41,6 @@ function formatCurrency(n: number | null | undefined) {
     style: "currency", currency: "BRL",
   }).format(v);
 }
-
-const SITUACAO_LABELS: Record<string, string> = {
-  autorizada: "Autorizada",
-  cancelada: "Cancelada",
-  pendente: "Pendente",
-  rejeitada: "Rejeitada",
-  denegada: "Denegada",
-  bloqueada: "Bloqueada",
-  registrada: "Registrada",
-  emitida: "Emitida",
-};
-
-const SITUACAO_CLASS: Record<string, string> = {
-  autorizada: "bg-success/10 text-success border-success/20",
-  cancelada: "bg-destructive/10 text-destructive border-destructive/20",
-  pendente: "bg-warning/10 text-warning border-warning/20",
-  rejeitada: "bg-destructive/10 text-destructive border-destructive/20",
-  denegada: "bg-destructive/10 text-destructive border-destructive/20",
-  bloqueada: "bg-warning/10 text-warning border-warning/20",
-  registrada: "bg-info/10 text-info border-info/20",
-  emitida: "bg-success/10 text-success border-success/20",
-};
 
 function getSituacaoBadge(n: NfEmitida) {
   return {
@@ -114,30 +91,10 @@ function SkeletonRow() {
   );
 }
 
-export default function NfsDeVenda() {
-  return (
-    <PageShell className="md:px-8 animate-casa-fade-in">
-      <CasaPageHeader
-        breadcrumb={[
-          { label: "Casa", to: "/" },
-          { label: "SOPs" },
-          { label: "NFs de Venda" },
-        ]}
-        title="NFs de Venda"
-        subtitle="Notas fiscais emitidas pelo Bling · sincronização automática a cada 10 min"
-      />
-
-      <div className="mt-4">
-        <AbaNFs />
-      </div>
-    </PageShell>
-  );
-}
-
 // ============================================================
-// ABA NFs — conteúdo original preservado 100%
+// ABA Notas — conteúdo original da tela NFs de Venda
 // ============================================================
-function AbaNFs() {
+export function AbaNotas() {
   const navigate = useNavigate();
   const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
   const { roles } = useAuth();
@@ -214,7 +171,7 @@ function AbaNFs() {
       "CNPJ": n.parceiro?.cnpj ?? "",
       "Valor": Number(n.valor_nota ?? 0),
       "Frete": Number(n.valor_frete ?? 0),
-      "Nº Pedido (Bling)": n.bling_pedido_venda_numero ?? "",
+      "Pedido Fiscal": n.bling_pedido_venda_numero ?? "",
       "Pedido": n.pedido_ref ?? "",
       "Canal": n.canal ?? "",
       "Situação": SITUACAO_LABELS[n.situacao] ?? n.situacao ?? "",
@@ -367,18 +324,18 @@ function AbaNFs() {
       </div>
 
       <div className="rounded-md border bg-card">
-        <Table containerClassName="overflow-visible">
+        <Table className="table-fixed w-full" containerClassName="overflow-visible">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
-              <CabecalhoOrdenavel rotulo="NF" className="w-[110px]" dir={ordenacao.coluna === "nf" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("nf")} />
-              <CabecalhoOrdenavel rotulo="Data" className="w-[120px]" dir={ordenacao.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
-              <CabecalhoOrdenavel rotulo="Parceiro" dir={ordenacao.coluna === "parceiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("parceiro")} />
-              <CabecalhoOrdenavel rotulo="Valor" className="w-[140px] text-right" alinharDireita dir={ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
-              <CabecalhoOrdenavel rotulo="Frete" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "frete" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("frete")} />
-              <CabecalhoOrdenavel rotulo="Nº Pedido (Bling)" className="w-[140px]" dir={ordenacao.coluna === "pedido_bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido_bling")} />
-              <CabecalhoOrdenavel rotulo="Pedido" className="w-[140px]" dir={ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
-              <CabecalhoOrdenavel rotulo="Situação" className="w-[120px]" dir={ordenacao.coluna === "situacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("situacao")} />
-              <TableHead className="w-[100px] text-right">Ações</TableHead>
+              <CabecalhoOrdenavel rotulo="NF" className="w-[8%]" dir={ordenacao.coluna === "nf" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("nf")} />
+              <CabecalhoOrdenavel rotulo="Data" className="w-[10%]" dir={ordenacao.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
+              <CabecalhoOrdenavel rotulo="Parceiro" className="w-[20%]" dir={ordenacao.coluna === "parceiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("parceiro")} />
+              <CabecalhoOrdenavel rotulo="Valor" className="w-[12%] text-right" alinharDireita dir={ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Frete" className="w-[9%] text-right" alinharDireita dir={ordenacao.coluna === "frete" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("frete")} />
+              <CabecalhoOrdenavel rotulo="Pedido Fiscal" className="w-[13%]" dir={ordenacao.coluna === "pedido_bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido_bling")} />
+              <CabecalhoOrdenavel rotulo="Pedido" className="w-[10%]" dir={ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
+              <CabecalhoOrdenavel rotulo="Situação" className="w-[10%]" dir={ordenacao.coluna === "situacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("situacao")} />
+              <TableHead className="w-[8%] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -427,8 +384,8 @@ function AbaNFs() {
                     {n.valor_frete ? formatCurrency(n.valor_frete) : "—"}
                   </TableCell>
                   <TableCell
-                    className="text-sm font-mono text-xs"
-                    title={`numeroPedidoLoja: ${n.numero_pedido_loja ?? ""}\npedidoVenda.numero: ${n.bling_pedido_venda_numero ?? ""}\npedidoVenda.id: ${n.bling_pedido_venda_id ?? ""}`}
+                    className="font-mono text-xs truncate"
+                    title={`Pedido da loja: ${n.numero_pedido_loja ?? ""}\nPedido fiscal: ${n.bling_pedido_venda_numero ?? ""}`}
                   >
                     {n.numero_pedido_loja || n.bling_pedido_venda_numero || (
                       <span className="text-muted-foreground text-sm">—</span>
@@ -436,13 +393,13 @@ function AbaNFs() {
                   </TableCell>
                   <TableCell className="text-sm">
                     {n.pedido_ref ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1">
                         {n.pedido_venda_id ? (
                           <Button
                             variant="link"
                             size="sm"
                             className="h-auto p-0 font-mono text-xs"
-                            onClick={() => abrirDetalhe(navigate, location, `/vendas/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "NFs de venda", focoParam: "nf_foco" })}
+                            onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "NFs de venda", focoParam: "nf_foco" })}
                           >
                             {n.pedido_ref}
                           </Button>

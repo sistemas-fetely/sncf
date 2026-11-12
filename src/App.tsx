@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { criarMutationCacheRedeSeguranca } from "@/lib/redeSeguranca";
+import { destinoNfsVenda } from "@/components/nfs-venda/pedidosFiscais";
 import { BrowserRouter, Navigate, Route, Routes, useParams, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -239,7 +240,7 @@ const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ChamadosLayout = lazy(() => import("@/layouts/ChamadosLayout"));
 const BILayout = lazy(() => import("@/layouts/BILayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
-const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
+const NfsVenda = lazy(() => import("@/pages/administrativo/contabilidade/NfsVenda"));
 
 
 
@@ -251,7 +252,6 @@ const ShopifyClientes = lazy(() => import("@/pages/vendas/shopify/ShopifyCliente
 const ShopifyReembolsos = lazy(() => import("@/pages/vendas/shopify/ShopifyReembolsos"));
 const ShopifyFulfillments = lazy(() => import("@/pages/vendas/shopify/ShopifyFulfillments"));
 const ShopifyEstoque = lazy(() => import("@/pages/vendas/shopify/ShopifyEstoque"));
-const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const Chamados = lazy(() => import("@/pages/Chamados"));
@@ -311,6 +311,11 @@ queryClient = new QueryClient({
 function RedirectGerencialImpressao() {
   const { search } = useLocation();
   return <Navigate to={`/comercial/representantes/gerencial-impressao${search}`} replace />;
+}
+
+function NfsVendaRedirect({ pedidos = false }: { pedidos?: boolean }) {
+  const { search } = useLocation();
+  return <Navigate to={destinoNfsVenda(search, pedidos)} replace />;
 }
 
 function TiDocSlugRedirect() {
@@ -474,8 +479,6 @@ const App = () => (
                 {/* Venda Direta · Gestão — nó sops.venda_direta_gestao, slug tela.venda_direta_gestao. */}
                 <Route path="/pedidos/venda-direta" element={<VendaDiretaGestao />} />
 
-                <Route path="/vendas/nfs" element={<NfsDeVenda />} />
-                <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 
                 <Route path="/vendas/produto" element={<Navigate to="/vendas/produto/mesa" replace />} />
                 <Route path="/vendas/produto/chegada-mercadoria" element={<ChegadaMercadoria />} />
@@ -946,6 +949,7 @@ const App = () => (
                 <Route path="despesas" element={<Despesas />} />
                 <Route path="contabilidade/fechamento" element={<FechamentoContabil />} />
                 <Route path="contabilidade/pacote" element={<PacoteContador />} />
+                <Route path="contabilidade/nfs-venda" element={<NfsVenda />} />
                 
                 <Route path="auditoria" element={<Auditoria />} />
                 <Route path="painel-margem" element={<PainelMargem />} />
@@ -997,6 +1001,8 @@ const App = () => (
                 NÃO adicionar tela real aqui.
                 ═══════════════════════════════════════════════ */}
             {/* TRANSFERENCIA-E-UM-PROCESSO (06/10/2026): criar e receber são abas de Transferências Internas */}
+            <Route path="/vendas/nfs" element={<NfsVendaRedirect />} />
+            <Route path="/vendas/bling-pedidos" element={<NfsVendaRedirect pedidos />} />
             <Route path="/pedidos/transferencias/nova" element={<Navigate to="/pedidos/transferencias?aba=nova" replace />} />
             <Route path="/vendas/produto/estoque/recebimento-centro" element={<Navigate to="/pedidos/transferencias?aba=receber" replace />} />
             {/* ORGANOGRAMA-MORA-EM-PESSOAS (12/09/2026): rota oficial é /pessoas/organograma */}
