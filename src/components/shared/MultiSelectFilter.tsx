@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { alternarVisiveis, estadoSelecaoVisivel, opcoesVisiveis, resumoSelecao } from "./multiSelectFilter";
 
 interface MultiSelectFilterProps {
   label: string;
@@ -17,9 +18,12 @@ interface MultiSelectFilterProps {
 
 export function MultiSelectFilter({ label, plural, opcoes, selecionados, onChange, className }: MultiSelectFilterProps) {
   const [aberto, setAberto] = useState(false);
-  const texto = selecionados.length === 0 ? label : selecionados.length === 1
-    ? opcoes.find((opcao) => opcao.valor === selecionados[0])?.rotulo ?? selecionados[0]
-    : `${selecionados.length} ${plural}`;
+  const [busca, setBusca] = useState("");
+  const visiveis = opcoesVisiveis(opcoes, busca);
+  const resumo = resumoSelecao(opcoes, selecionados);
+  const texto = resumo.tipo === "vazio" ? label : resumo.tipo === "todas" ? `Todas (${resumo.quantidade})`
+    : resumo.tipo === "unica" ? resumo.nome : resumo.tipo === "exceto" ? `Todas exceto ${resumo.quantidade}`
+    : `${resumo.quantidade} ${plural}`;
   const alternar = (valor: string) => onChange(selecionados.includes(valor)
     ? selecionados.filter((item) => item !== valor) : [...selecionados, valor]);
   return (
@@ -33,12 +37,17 @@ export function MultiSelectFilter({ label, plural, opcoes, selecionados, onChang
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 max-w-[calc(100vw-2rem)] p-0">
-        <Command>
-          <CommandInput placeholder={`Buscar ${plural}…`} />
+        <Command shouldFilter={false}>
+          <CommandInput value={busca} onValueChange={setBusca} placeholder={`Buscar ${plural}…`} />
+          <label className="flex cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm">
+            <Checkbox aria-label="Selecionar todas" checked={estadoSelecaoVisivel(visiveis, selecionados)}
+              disabled={!visiveis.length} onCheckedChange={() => onChange(alternarVisiveis(visiveis, selecionados))} />
+            Selecionar todas
+          </label>
           <CommandList>
             <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
             <CommandGroup>
-              {opcoes.map((opcao) => (
+              {visiveis.map((opcao) => (
                 <CommandItem key={opcao.valor} value={opcao.valor} keywords={[opcao.rotulo]}
                   onSelect={() => alternar(opcao.valor)}
                   className={cn("gap-2", opcao.contagem === 0 && "opacity-50")}>
