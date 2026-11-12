@@ -183,3 +183,6 @@ verify_jwt = false
 
 [functions.ingerir-termo-xpm-email]
   verify_jwt = false
+
+[functions.enviar-nf-email-xpm]
+  verify_jwt = false
