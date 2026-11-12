@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Controladoria Extrato: fila/regras/pares unificadas, catálogos e RPCs existentes, histórico mensal e redirects; 5 testes/lint e build OK, preview autenticado com 605 movimentos/zero pares e diálogos conferidos; sem gravação real, banco/publicação.
 - [x] NFs de Venda fatia 1: abas em Contabilidade, leitura fiscal completa (575 pedidos), filtros/restauração e redirects conferidos no preview autenticado; 6 testes e lint aprovados, sem banco/publicação.
 - [x] Órfãos v2: aba guardada em Cobrança, redirecionamentos, fila em dois blocos, saída/desfazer e resolvidos; 6 testes e tipos aprovados, 17 créditos reais/3 prontos conferidos em 1280 e 1024px, filtros restaurados e saída/desfazer por confirmação e toast simulados; sem alterações de banco/publicação.
 - [x] Espelhos externos: card no diff Bling sem novos GETs nem mudança de status por falha de espelho; Shopify atributos/inventory ampliados, 5 Vitest + 36 Bun e Deno check aprovados, duas edges implantadas; dry_run seguro via cron retornou HTTP200/8 páginas/395 produtos/913 variantes/zero erros, tabelas confirmadas 395/913 com exemplos custom.*; sem escrita externa/DDL.

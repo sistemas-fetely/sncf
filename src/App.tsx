@@ -167,17 +167,13 @@ const BlingCallback = lazy(() => import("@/pages/administrativo/BlingCallback"))
 
 const Produtos = lazy(() => import("@/pages/administrativo/Produtos"));
 const CaixaBanco = lazy(() => import("@/pages/administrativo/CaixaBanco"));
-const BancoSafra = lazy(() => import("@/pages/administrativo/BancoSafra"));
 const ConciliacaoMesa = lazy(() => import("@/pages/administrativo/ConciliacaoMesa"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
 const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
-const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
 const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
-const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
-const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
-const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
+const Extrato = lazy(() => import("@/pages/administrativo/Extrato"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
 const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 const FechamentoContabil = lazy(() => import("@/pages/administrativo/contabilidade/FechamentoContabil"));
@@ -929,20 +925,20 @@ const App = () => (
                 <Route path="contas-pagar" element={<ContasPagar />} />
                 <Route path="contas-receber" element={<ContasReceber />} />
                 <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=creditos" replace />} />
-                <Route path="banco-safra" element={<BancoSafra />} />
+                <Route path="banco-safra" element={<Navigate to="/recebimento/cobranca?aba=banco" replace />} />
                 <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=creditos" replace />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
                 <Route path="conciliacao" element={<Conciliacao />} />
                 <Route path="conciliacao-recebiveis" element={<ConciliacaoRecebiveis />} />
-                <Route path="regras-ofx" element={<RegrasOFX />} />
+                <Route path="regras-ofx" element={<Navigate to="/administrativo/extrato-inbox?aba=regras" replace />} />
                 <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=por-cliente" replace />} />
                 
                 <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=por-cliente" replace />} />
                 <Route path="extrato-importacao" element={<ExtratoImportacao />} />
-                <Route path="extrato-inbox" element={<ExtratoInbox />} />
-                <Route path="extrato-regras" element={<RegrasInbox />} />
-                <Route path="extrato-pares" element={<ParesTransferencia />} />
+                <Route path="extrato-inbox" element={<Extrato />} />
+                <Route path="extrato-regras" element={<Navigate to="/administrativo/extrato-inbox?aba=regras" replace />} />
+                <Route path="extrato-pares" element={<Navigate to="/administrativo/extrato-inbox?aba=pares" replace />} />
                 <Route path="conciliacao-cartao" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=cartao" replace />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
                 <Route path="conciliacao/orfaos" element={<Navigate replace to="/recebimento/cobranca?aba=orfaos" />} />

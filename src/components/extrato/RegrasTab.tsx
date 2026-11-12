@@ -1,5 +1,3 @@
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +16,10 @@ import {
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Filter, Loader2, Plus, Play, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Plus, Play, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { rawMessage } from "@/lib/format-error";
+import { useClassesExtrato, invalidarExtrato } from "./dados";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -38,29 +38,27 @@ type Regra = {
   descricao_regra: string | null;
 };
 
-const CAMPOS = ["descricao", "contraparte_nome", "contraparte_documento", "referencia_pedido"];
-const OPERADORES = ["contains", "equals", "starts_with", "regex"];
-const CLASSES = [
-  "tarifa_bancaria", "rendimento", "imposto", "transferencia_interna",
-  "ajuste_adquirencia", "recebivel_titulo", "recebivel_cartao",
-  "despesa_cpr", "outro_classificado",
-];
-const MEIOS = ["pix", "ted", "tarifa", "rendimento", "imposto", "boleto", "outro"];
+const CAMPOS: Record<string, string> = { descricao: "Descrição", contraparte_nome: "Nome da contraparte", contraparte_documento: "Documento da contraparte" };
+const OPERADORES: Record<string, string> = { contem: "Contém", comeca_com: "Começa com", igual: "Igual", regex: "Regex" };
+const MEIOS = ["pix", "cartao", "boleto", "ted", "tarifa", "rendimento", "imposto", "transferencia", "outro"];
 
 const VAZIO: Partial<Regra> = {
   ordem: 100,
   ativo: true,
   conta_bancaria_id: null,
   campo_alvo: "descricao",
-  operador: "contains",
+  operador: "contem",
   padrao: "",
-  classe_destino: "outro_classificado",
+  classe_destino: "",
   tipo_meio_destino: null,
   descricao_regra: "",
 };
 
-export default function RegrasInbox() {
+export default function RegrasTab() {
   const qc = useQueryClient();
+  const classesQ = useClassesExtrato("regra");
+  const todasClassesQ = useClassesExtrato("todas");
+  const classes = classesQ.data ?? [];
   const [editando, setEditando] = useState<Partial<Regra> | null>(null);
   const [aplicando, setAplicando] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -78,7 +76,7 @@ export default function RegrasInbox() {
     },
   });
 
-  const { data: regras = [], isLoading } = useQuery({
+  const { data: regras = [], isLoading, error: erroRegras } = useQuery({
     queryKey: ["regras-classificacao-extrato"],
     queryFn: async () => {
       const { data, error } = await sb
@@ -94,6 +92,7 @@ export default function RegrasInbox() {
   async function salvar() {
     if (!editando) return;
     const r = editando;
+    if (!r.classe_destino) { toast.error("Classe destino é obrigatória"); return; }
     if (!r.padrao?.trim()) {
       toast.error("Padrão é obrigatório");
       return;
@@ -117,9 +116,9 @@ export default function RegrasInbox() {
       if (error) throw error;
       toast.success(r.id ? "Regra atualizada" : "Regra criada");
       setEditando(null);
-      qc.invalidateQueries({ queryKey: ["regras-classificacao-extrato"] });
+      await qc.invalidateQueries({ queryKey: ["regras-classificacao-extrato"] });
     } catch (e) {
-      toast.error("Falha: " + (e instanceof Error ? e.message : String(e)));
+      toast.error("Falha: " + (rawMessage(e)));
     } finally {
       setSalvando(false);
     }
@@ -131,7 +130,7 @@ export default function RegrasInbox() {
       .update({ ativo: !r.ativo })
       .eq("id", r.id);
     if (error) toast.error(error.message);
-    else qc.invalidateQueries({ queryKey: ["regras-classificacao-extrato"] });
+    else await qc.invalidateQueries({ queryKey: ["regras-classificacao-extrato"] });
   }
 
   async function apagar(r: Regra) {
@@ -140,7 +139,7 @@ export default function RegrasInbox() {
     if (error) toast.error(error.message);
     else {
       toast.success("Regra apagada");
-      qc.invalidateQueries({ queryKey: ["regras-classificacao-extrato"] });
+      await qc.invalidateQueries({ queryKey: ["regras-classificacao-extrato"] });
     }
   }
 
@@ -149,24 +148,19 @@ export default function RegrasInbox() {
     try {
       const { data, error } = await sb.rpc("fn_regras_aplicar");
       if (error) throw error;
-      const n = typeof data === "number" ? data : (data ?? 0);
+      const n = data.classificadas;
       toast.success(`${n} movimentações classificadas`);
-      qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
+      await invalidarExtrato(qc);
     } catch (e) {
-      toast.error("Falha: " + (e instanceof Error ? e.message : String(e)));
+      toast.error("Falha: " + (rawMessage(e)));
     } finally {
       setAplicando(false);
     }
   }
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Regras Automáticas — Extrato"
-        icone={Filter}
-        estado="Padrões aplicados sobre movimentações abertas para classificação automática."
-        acoes={
-          <>
+    <div className="space-y-4">
+      <div className="flex flex-wrap justify-end gap-2">
             <Button
               variant="outline"
               onClick={aplicarRegras}
@@ -183,9 +177,8 @@ export default function RegrasInbox() {
               <Plus className="h-4 w-4" />
               Nova regra
             </Button>
-          </>
-        }
-      />
+      </div>
+      {(erroRegras || classesQ.error || todasClassesQ.error) && <p role="alert" className="text-destructive">{rawMessage(erroRegras || classesQ.error || todasClassesQ.error)}</p>}
 
       <Card>
         <CardContent className="p-0">
@@ -209,7 +202,7 @@ export default function RegrasInbox() {
                   <Loader2 className="h-4 w-4 animate-spin inline" />
                 </TableCell></TableRow>
               )}
-              {!isLoading && regras.length === 0 && (
+              {!isLoading && !erroRegras && regras.length === 0 && (
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                   Nenhuma regra ainda
                 </TableCell></TableRow>
@@ -226,14 +219,14 @@ export default function RegrasInbox() {
                       : <span className="text-muted-foreground">Todas</span>}
                   </TableCell>
                   <TableCell className="text-xs whitespace-nowrap">
-                    <Badge variant="outline" className="mr-1">{r.campo_alvo}</Badge>
-                    <span className="text-muted-foreground">{r.operador}</span>
+                    <Badge variant="outline" className="mr-1">{CAMPOS[r.campo_alvo] ?? r.campo_alvo}</Badge>
+                    <span className="text-muted-foreground">{OPERADORES[r.operador] ?? r.operador}</span>
                   </TableCell>
                   <TableCell className="font-mono text-xs max-w-[220px] truncate" title={r.padrao}>
                     {r.padrao}
                   </TableCell>
                   <TableCell>
-                    <Badge className="bg-admin text-admin-foreground">{r.classe_destino}</Badge>
+                    <Badge className="bg-admin text-admin-foreground">{todasClassesQ.data?.find(c => c.codigo === r.classe_destino)?.nome ?? "—"}</Badge>
                   </TableCell>
                   <TableCell>
                     {r.tipo_meio_destino ? <Badge variant="outline">{r.tipo_meio_destino}</Badge> : "—"}
@@ -303,7 +296,7 @@ export default function RegrasInbox() {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CAMPOS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {Object.entries(CAMPOS).map(([c, nome]) => <SelectItem key={c} value={c}>{nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -315,7 +308,7 @@ export default function RegrasInbox() {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {OPERADORES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {Object.entries(OPERADORES).map(([c, nome]) => <SelectItem key={c} value={c}>{nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -335,7 +328,7 @@ export default function RegrasInbox() {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {classes.map((c) => <SelectItem key={c.codigo} value={c.codigo}>{c.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -365,7 +358,7 @@ export default function RegrasInbox() {
             <Button variant="outline" onClick={() => setEditando(null)} disabled={salvando}>Cancelar</Button>
             <Button
               onClick={salvar}
-              disabled={salvando}
+              disabled={salvando || !editando?.classe_destino || classesQ.isLoading || !!classesQ.error}
               className="bg-admin hover:bg-admin/90 text-admin-foreground"
             >
               {salvando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -374,6 +367,6 @@ export default function RegrasInbox() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageShell>
+    </div>
   );
 }

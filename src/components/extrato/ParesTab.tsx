@@ -1,5 +1,3 @@
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeftRight, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { rawMessage } from "@/lib/format-error";
+import { invalidarExtrato } from "./dados";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,7 +33,7 @@ type Par = {
 };
 type Conta = { id: string; nome_exibicao: string };
 
-export default function ParesTransferencia() {
+export default function ParesTab() {
   const qc = useQueryClient();
   const [processando, setProcessando] = useState<string | null>(null);
 
@@ -53,7 +53,7 @@ export default function ParesTransferencia() {
     return m;
   }, [contas]);
 
-  const { data: pares = [], isLoading } = useQuery({
+  const { data: pares = [], isLoading, error: erroPares } = useQuery({
     queryKey: ["pares-transferencia"],
     queryFn: async () => {
       const { data, error } = await sb
@@ -75,23 +75,17 @@ export default function ParesTransferencia() {
       });
       if (error) throw error;
       toast.success("Par confirmado");
-      qc.invalidateQueries({ queryKey: ["pares-transferencia"] });
-      qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
+      await invalidarExtrato(qc);
     } catch (e) {
-      toast.error("Falha: " + (e instanceof Error ? e.message : String(e)));
+      toast.error("Falha: " + (rawMessage(e)));
     } finally {
       setProcessando(null);
     }
   }
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Pares de Transferência Sugeridos"
-        icone={ArrowLeftRight}
-        estado="Débito em uma conta + crédito em outra, mesmo valor, datas próximas. Confirme para classificar como transferência interna."
-      />
-
+    <div className="space-y-4">
+      {erroPares && <p role="alert" className="text-destructive">{rawMessage(erroPares)}</p>}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -111,9 +105,9 @@ export default function ParesTransferencia() {
                   <Loader2 className="h-4 w-4 animate-spin inline" />
                 </TableCell></TableRow>
               )}
-              {!isLoading && pares.length === 0 && (
+              {!isLoading && !erroPares && pares.length === 0 && (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">
-                  Nenhum par sugerido
+                  Nenhum par de transferência para confirmar.
                 </TableCell></TableRow>
               )}
               {pares.map((p) => {
@@ -141,7 +135,7 @@ export default function ParesTransferencia() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={processando === key}
+                        disabled={processando !== null}
                         onClick={() => confirmar(p)}
                         className="gap-1"
                       >
@@ -158,6 +152,6 @@ export default function ParesTransferencia() {
           </Table>
         </CardContent>
       </Card>
-    </PageShell>
+    </div>
   );
 }

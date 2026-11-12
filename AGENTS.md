@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Bank statement tabs share one URL shell and permission-gated counters; the open queue reads the full paginated view, classified history requires a period, and classification/undo use only existing RPCs with database-driven class catalogs so bank descriptions remain untouched.
 - Sales invoices and fiscal orders share the accounting page with isolated URL prefixes; fiscal orders read every view page and sort blanks last, and legacy routes only redirect with preserved queries so there is one canonical screen without changing sync hooks.
 - Orphan credits live as a permission-gated Cobrança tab sharing the queue query for its counter; assignment keeps its original RPC path, non-receivable decisions use the existing reversible RPCs and invalidate both queue and resolved queries so the worklist stays current.
 - Shopify pull captures product/inventory attributes alongside the existing weight snapshot even in reconciliation dry-run; typed capture helpers preserve external values, query pagination shrinks on Shopify cost rejection, and all capture errors prevent mirror/reconciliation completion. Bling diff stores only the already-read card and retains mirror warnings without changing comparison status.
