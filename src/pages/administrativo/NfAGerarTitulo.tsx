@@ -45,6 +45,12 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { AbaNotasSemTitulo } from "@/components/nf-titulo/AbaNotasSemTitulo";
+import { AbaPerfisPagamento } from "@/components/nf-titulo/AbaPerfisPagamento";
+import { contarPrecisa } from "@/components/nf-titulo/perfilPagamento";
+import { useFilaSemTitulo } from "@/components/nf-titulo/usePerfilPagamento";
 
 const QK = ["nf-a-gerar-titulo"] as const;
 
@@ -102,6 +108,9 @@ function dataBR(iso: string | null | undefined) {
 
 export default function NfAGerarTitulo() {
   const qc = useQueryClient();
+  const [aba, setAba] = useAbaUrl("gerar");
+  const filaSemTitulo = useFilaSemTitulo();
+  const nSemTitulo = contarPrecisa(filaSemTitulo.data ?? []);
   const [fSituacao, setFSituacao] = useState<string>("todas");
   const [fDestino, setFDestino] = useState<string>("todos");
   const [ordem, setOrdem] = useState<string>("emissao_desc");
@@ -268,6 +277,15 @@ export default function NfAGerarTitulo() {
         }
       />
 
+      <Tabs value={aba} onValueChange={setAba}>
+        <TabsList>
+          <TabsTrigger value="gerar">A gerar título</TabsTrigger>
+          <TabsTrigger value="sem-titulo">Notas sem título{nSemTitulo > 0 ? ` · ${nSemTitulo}` : ""}</TabsTrigger>
+          <TabsTrigger value="perfis">Perfis de pagamento</TabsTrigger>
+        </TabsList>
+        <TabsContent value="sem-titulo" className="mt-4"><AbaNotasSemTitulo /></TabsContent>
+        <TabsContent value="perfis" className="mt-4"><AbaPerfisPagamento /></TabsContent>
+        <TabsContent value="gerar" className="mt-4 space-y-4">
       <p className="text-xs text-muted-foreground">
         Documento fiscal triado que ainda não virou título a pagar. A geração acontece só pelas
         rotinas do banco, e o lote passa obrigatoriamente por uma simulação antes de escrever.
@@ -598,6 +616,8 @@ export default function NfAGerarTitulo() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
