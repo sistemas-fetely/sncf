@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Orphan credits live as a permission-gated Cobrança tab sharing the queue query for its counter; assignment keeps its original RPC path, non-receivable decisions use the existing reversible RPCs and invalidate both queue and resolved queries so the worklist stays current.
 - Shopify pull captures product/inventory attributes alongside the existing weight snapshot even in reconciliation dry-run; typed capture helpers preserve external values, query pagination shrinks on Shopify cost rejection, and all capture errors prevent mirror/reconciliation completion. Bling diff stores only the already-read card and retains mirror warnings without changing comparison status.
 - Freight cost management uses tested pure document aggregates with shared invoice precedence and cent-based sums; positive-quote comparisons exclude unmatched documents, filtered table totals remain separate from full-scope indicators, and both logistics analyses share the same Indicador presentation.
 - Period delivery analytics derive exclusively from the existing scoped period rows through tested pure helpers; weekly dispatch buckets use calendar Mondays and missing measurement stays null, while UF list filtering and group sorting live in the URL so analysis never depends on list filters.

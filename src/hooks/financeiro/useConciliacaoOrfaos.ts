@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export const QK_ORFAOS = "conciliacao-orfaos";
+export const QK_ORFAOS_RESOLVIDOS = "orfaos-resolvidos";
 
 export type SugestaoForca = "doc_e_cnpj_do_cliente" | "pagador_ja_ensinado" | "pedido_valor_data" | null;
 
@@ -34,9 +35,10 @@ export interface OrfaoEntrada {
 }
 
 /** Fila de órfãos, mais recente primeiro. */
-export function useConciliacaoOrfaos() {
+export function useConciliacaoOrfaos(enabled = true) {
   return useQuery({
     queryKey: [QK_ORFAOS],
+    enabled,
     staleTime: 30_000,
     refetchOnMount: "always",
     queryFn: async (): Promise<OrfaoEntrada[]> => {
@@ -92,11 +94,85 @@ export function useAtribuirOrfao() {
         ?.find(o => o.movimentacao_id === input.movimentacao_id)?.pedido_sugerido_id;
       await Promise.all([
         qc.invalidateQueries({ queryKey: [QK_ORFAOS] }),
+        qc.invalidateQueries({ queryKey: [QK_ORFAOS_RESOLVIDOS] }),
         qc.invalidateQueries({ queryKey: ["conta-cliente-saldo"] }),
         qc.invalidateQueries({ queryKey: ["entradas-reconhecer"] }),
         qc.invalidateQueries({ queryKey: ["primeiro-pagamento-fila"] }),
         invalidarPedido(qc, pedidoId),
       ]);
+    },
+  });
+}
+
+export interface ClasseSaidaOrfao { codigo: string; nome: string; ordem: number }
+export interface OrfaoResolvido {
+  movimentacao_id: string;
+  data_transacao: string;
+  valor: number;
+  descricao: string | null;
+  contraparte_nome: string | null;
+  contraparte_documento: string | null;
+  conta: string | null;
+  classe: string;
+  classe_nome: string;
+  motivo: string;
+  resolvido_em: string;
+}
+
+export function useClassesSaidaOrfao() {
+  return useQuery({
+    queryKey: ["classes-saida-orfao"],
+    queryFn: async (): Promise<ClasseSaidaOrfao[]> => {
+      const { data, error } = await (supabase as any).from("movimentacao_classe")
+        .select("codigo,nome,ordem").eq("ativo", true).eq("saida_orfao", true).order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useOrfaosResolvidos() {
+  return useQuery({
+    queryKey: [QK_ORFAOS_RESOLVIDOS],
+    queryFn: async (): Promise<OrfaoResolvido[]> => {
+      const { data, error } = await (supabase as any).from("vw_orfaos_resolvidos")
+        .select("*").order("resolvido_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+interface NaoRecebivelResultado { ok: boolean; erro?: string; classe_nome?: string; valor?: number }
+
+export function useMarcarNaoRecebivel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { movimentacao_id: string; classe: string; motivo: string }): Promise<NaoRecebivelResultado> => {
+      const { data, error } = await (supabase as any).rpc("fn_orfao_nao_recebivel", {
+        p_movimentacao_id: input.movimentacao_id, p_classe: input.classe, p_motivo: input.motivo,
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.erro || "O banco recusou a saída desta entrada.");
+      return data;
+    },
+    onSuccess: async () => {
+      await Promise.all([qc.invalidateQueries({ queryKey: [QK_ORFAOS] }), qc.invalidateQueries({ queryKey: [QK_ORFAOS_RESOLVIDOS] })]);
+    },
+  });
+}
+
+export function useDesfazerNaoRecebivel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { movimentacao_id: string }): Promise<NaoRecebivelResultado> => {
+      const { data, error } = await (supabase as any).rpc("fn_orfao_nao_recebivel_desfazer", { p_movimentacao_id: input.movimentacao_id });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.erro || "O banco recusou desfazer esta saída.");
+      return data;
+    },
+    onSuccess: async () => {
+      await Promise.all([qc.invalidateQueries({ queryKey: [QK_ORFAOS] }), qc.invalidateQueries({ queryKey: [QK_ORFAOS_RESOLVIDOS] })]);
     },
   });
 }

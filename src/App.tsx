@@ -178,7 +178,6 @@ const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
 const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
 const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
-const ConciliacaoOrfaos = lazy(() => import("@/pages/administrativo/ConciliacaoOrfaos"));
 const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 const FechamentoContabil = lazy(() => import("@/pages/administrativo/contabilidade/FechamentoContabil"));
 const PacoteContador = lazy(() => import("@/pages/administrativo/contabilidade/PacoteContador"));
@@ -943,7 +942,7 @@ const App = () => (
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
                 <Route path="conciliacao-cartao" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=cartao" replace />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
-                <Route path="conciliacao/orfaos" element={<ConciliacaoOrfaos />} />
+                <Route path="conciliacao/orfaos" element={<Navigate replace to="/recebimento/cobranca?aba=orfaos" />} />
                 <Route path="despesas" element={<Despesas />} />
                 <Route path="contabilidade/fechamento" element={<FechamentoContabil />} />
                 <Route path="contabilidade/pacote" element={<PacoteContador />} />
@@ -1040,7 +1039,7 @@ const App = () => (
             <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
             {/* CONCILIACAO-ESTOQUE-VIROU-TELA-PROPRIA (24/09/2026): o redirect para a
                 Conciliação de Cadastro saiu — a rota agora é da Conciliação de Estoque. */}
-            <Route path="/conciliacao/orfaos" element={<Navigate to="/administrativo/conciliacao/orfaos" replace />} />
+            <Route path="/conciliacao/orfaos" element={<Navigate replace to="/recebimento/cobranca?aba=orfaos" />} />
             <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
             <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />

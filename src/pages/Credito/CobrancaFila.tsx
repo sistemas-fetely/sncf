@@ -25,6 +25,8 @@ import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
 import SemProvaTab from "@/pages/Credito/SemProvaTab";
+import OrfaosTab from "@/components/cobranca/OrfaosTab";
+import { useConciliacaoOrfaos } from "@/hooks/financeiro/useConciliacaoOrfaos";
 
 import MesaCobranca, { FILAS_AGIR_AGORA, ehLinhaDaMesa } from "@/pages/Credito/MesaCobranca";
 
@@ -1421,6 +1423,7 @@ const ABAS_COBRANCA = [
   { value: "fila", slug: "tela.cobranca_fila" },
   { value: "titulos", slug: "tela.cobranca_titulos" },
   { value: "banco", slug: "tela.cobranca_remessa" },
+  { value: "orfaos", slug: "tela.fin_orfaos_entrada" },
 ] as const;
 type AbaCobranca = (typeof ABAS_COBRANCA)[number]["value"];
 
@@ -1452,6 +1455,8 @@ export default function CobrancaFila() {
   const permFila = usePodeVerAba("tela.cobranca_fila");
   const permTitulos = usePodeVerAba("tela.cobranca_titulos");
   const permBanco = usePodeVerAba("tela.cobranca_remessa");
+  const permOrfaos = usePodeVerAba("tela.fin_orfaos_entrada");
+  const orfaosQ = useConciliacaoOrfaos(permOrfaos.podeVer && !permOrfaos.carregando);
 
   const permissoes: Record<AbaCobranca, { podeVer: boolean; carregando: boolean }> = {
     mesa: permMesa,
@@ -1460,6 +1465,7 @@ export default function CobrancaFila() {
     fila: permFila,
     titulos: permTitulos,
     banco: permBanco,
+    orfaos: permOrfaos,
   };
 
   const carregandoPermissoes = ABAS_COBRANCA.some((a) => permissoes[a.value].carregando);
@@ -1611,6 +1617,7 @@ export default function CobrancaFila() {
             { value: "titulos", slug: "tela.cobranca_titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             // aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido)
             { value: "banco", slug: "tela.cobranca_remessa", label: "Banco" },
+            { value: "orfaos", slug: "tela.fin_orfaos_entrada", label: `Órfãos${orfaosQ.isSuccess ? ` · ${orfaosQ.data.length}` : ""}` },
           ].map((tab) => (
             <AbaPermitida key={tab.value} slug={tab.slug}>
               <TabsTrigger value={tab.value} className={tabTriggerCls}>
@@ -1694,6 +1701,9 @@ export default function CobrancaFila() {
           </ConteudoAba>
         </TabsContent>
 
+        <TabsContent value="orfaos">
+          <ConteudoAba slug="tela.fin_orfaos_entrada"><OrfaosTab /></ConteudoAba>
+        </TabsContent>
       </Tabs>
       )}
     </div>
