@@ -29,3 +29,21 @@ describe("perfil de pagamento", () => {
     expect(podeConfirmarSugestao("cartao_credito", null, naoGera)).toBe(true);
   });
 });
+
+import { entraNoFiltroPerfil, textoResultadoPerfil, toastPerfilSalvo } from "./perfilPagamento";
+describe("perfil salvo nesta sessão", () => {
+  const fmt = (v: number) => `R$ ${v}`;
+  it("continua no filtro Sem perfil", () => {
+    const salvos = new Set(["p1"]);
+    expect(entraNoFiltroPerfil({ parceiro_id: "p1", tem_perfil: true }, "sem", salvos)).toBe(true);
+    expect(entraNoFiltroPerfil({ parceiro_id: "p2", tem_perfil: true }, "sem", salvos)).toBe(false);
+    expect(entraNoFiltroPerfil({ parceiro_id: "p3", tem_perfil: false }, "sem", salvos)).toBe(true);
+    expect(entraNoFiltroPerfil({ parceiro_id: "p3", tem_perfil: false }, "com", salvos)).toBe(false);
+  });
+  it("textos conforme títulos gerados", () => {
+    expect(textoResultadoPerfil({ titulos_gerados: 0, valor: 0 }, fmt)).toBe("Vale para as próximas notas deste fornecedor.");
+    expect(textoResultadoPerfil({ titulos_gerados: 2, valor: 50 }, fmt)).toBe("2 título(s) gerado(s) agora (R$ 50).");
+    expect(toastPerfilSalvo({ titulos_gerados: 0, valor: 0 }, fmt)).toBe("Perfil salvo. Vale para as próximas notas — nenhuma nota pendente hoje.");
+    expect(toastPerfilSalvo({ titulos_gerados: 3, valor: 9 }, fmt)).toBe("Perfil salvo · 3 título(s) gerado(s) (R$ 9)");
+  });
+});

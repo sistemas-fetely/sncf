@@ -6,16 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatError } from "@/lib/format-error";
+import type { ResultadoSalvo } from "./perfilPagamento";
 import { useDefinirPerfil, useFormas } from "./usePerfilPagamento";
 
 export interface AlvoPerfil { parceiro_id: string; fornecedor: string; forma: string | null; prazo: number | null; base: string | null }
 
-export function PerfilPagamentoDialog({ alvo, onClose }: { alvo: AlvoPerfil | null; onClose: () => void }) {
+export function PerfilPagamentoDialog({ alvo, onClose, onSalvo }: { alvo: AlvoPerfil | null; onClose: () => void; onSalvo?: (parceiroId: string, r: ResultadoSalvo) => void }) {
   const { formas, dimDe, erro } = useFormas();
   const [forma, setForma] = useState("");
   const [prazo, setPrazo] = useState("");
   useEffect(() => { setForma(alvo?.forma ?? ""); setPrazo(alvo?.prazo != null ? String(alvo.prazo) : ""); }, [alvo]);
-  const salvar = useDefinirPerfil(onClose);
+  const salvar = useDefinirPerfil((id, r) => { onSalvo?.(id, r); onClose(); });
   const dim = dimDe(forma);
   const naoGera = dim ? !dim.gera_titulo : false;
   const n = Number(prazo);

@@ -99,3 +99,21 @@ export function podeConfirmarSugestao(formaCodigo: string | null, prazo: number 
   if (!formaCodigo) return false;
   return prazo != null || formaNaoGera(formaCodigo);
 }
+
+export interface ResultadoSalvo { titulos_gerados: number; valor: number }
+
+/** Filtro da aba Perfis: quem foi salvo nesta sessão continua em "Sem perfil". */
+export function entraNoFiltroPerfil(l: Pick<PerfilPainel, "parceiro_id" | "tem_perfil">, filtro: "sem" | "com" | "todos", salvosAgora: ReadonlySet<string>): boolean {
+  if (filtro === "todos") return true;
+  if (filtro === "com") return l.tem_perfil;
+  return !l.tem_perfil || salvosAgora.has(l.parceiro_id);
+}
+
+/** Texto abaixo do perfil recém-salvo. */
+export function textoResultadoPerfil(r: ResultadoSalvo, fmt: (v: number) => string): string {
+  return r.titulos_gerados > 0 ? `${r.titulos_gerados} título(s) gerado(s) agora (${fmt(r.valor)}).` : "Vale para as próximas notas deste fornecedor.";
+}
+
+export function toastPerfilSalvo(r: ResultadoSalvo, fmt: (v: number) => string): string {
+  return r.titulos_gerados > 0 ? `Perfil salvo · ${r.titulos_gerados} título(s) gerado(s) (${fmt(r.valor)})` : "Perfil salvo. Vale para as próximas notas — nenhuma nota pendente hoje.";
+}

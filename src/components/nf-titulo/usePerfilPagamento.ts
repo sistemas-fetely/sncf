@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
-import type { NfSemTitulo, PerfilPainel } from "./perfilPagamento";
+import { toastPerfilSalvo, type NfSemTitulo, type PerfilPainel, type ResultadoSalvo } from "./perfilPagamento";
 
 // Objetos novos do banco ainda fora dos tipos gerados.
 interface Resposta<T> { data: T | null; error: { message: string } | null }
@@ -73,7 +73,7 @@ export function useInvalidarPerfis() {
   ]);
 }
 
-export function useDefinirPerfil(onOk?: () => void) {
+export function useDefinirPerfil(onOk?: (parceiroId: string, r: ResultadoSalvo) => void) {
   const invalidar = useInvalidarPerfis();
   return useMutation({
     mutationFn: async (a: { parceiro_id: string; forma: string; prazo: number | null }) => {
@@ -81,12 +81,13 @@ export function useDefinirPerfil(onOk?: () => void) {
       if (error) throw error;
       return data;
     },
-    onSuccess: async (data) => {
+    onSuccess: async (data, vars) => {
       await invalidar();
       const n = data?.notas;
-      toast.success(`Perfil salvo · ${n?.titulos_gerados ?? 0} título(s) gerado(s) (${formatBRL(n?.valor ?? 0)})`);
+      const r: ResultadoSalvo = { titulos_gerados: Number(n?.titulos_gerados ?? 0), valor: Number(n?.valor ?? 0) };
+      toast.success(toastPerfilSalvo(r, formatBRL));
       if (n?.erros?.length) toast.warning(`Notas com erro: ${n.erros.map((e) => `NF ${e.nf}: ${e.erro}`).join(" · ")}`, { duration: 15000 });
-      onOk?.();
+      onOk?.(vars.parceiro_id, r);
     },
     onError: (e) => toast.error(formatError(e)),
   });
