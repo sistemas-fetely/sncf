@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
+import { AbasSiteSp } from "@/components/venda-direta/AbasSiteSp";
+import { useSaldoSiteSp } from "@/components/venda-direta/useEstoqueSiteSp";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
@@ -324,6 +326,7 @@ export default function VendaDiretaNovo() {
   const cdRotulo = cdsQ.data?.find((c) => c.codigo === cdCodigo)?.rotulo ?? (cdCodigo === "SITE-SP" ? "Site SP" : cdCodigo);
 
   const skus = itens.map((i) => i.sku);
+  const saldoSiteSp = useSaldoSiteSp(skus.length > 0);
   const saldoQ = useQuery({
     queryKey: ["venda-direta-saldo-cd", cdCodigo, skus.slice().sort().join(",")],
     enabled: skus.length > 0,
@@ -600,12 +603,15 @@ export default function VendaDiretaNovo() {
 
   const tituloTela = edicao ? `Pedidos Site SP · Editar ${edQ.data?.linha.id_externo ?? ""}`.trim() : "Pedidos Site SP · Novo pedido";
   const cabecalho = (
+    <>
     <PageHeader
       titulo={tituloTela}
       breadcrumb={[{ label: "Operação" }, { label: tituloTela }]}
       icone={ShoppingBag}
       estado={edicao ? "Edição antes do pagamento — o cliente não muda." : "Pedido B2C por telefone ou WhatsApp, fora do Shopify."}
     />
+    <AbasSiteSp />
+    </>
   );
 
   if (edicao && (edQ.isLoading || edQ.isError || bloqueioEdicao)) {
@@ -882,6 +888,7 @@ export default function VendaDiretaNovo() {
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <p className="line-clamp-2 text-base font-medium">{i.nome ?? i.sku}</p>
                       <CodProduto chave={i.sku} />
+                      <p className="text-xs text-muted-foreground">Disponível no Site SP: {saldoSiteSp.isError ? rawMessage(saldoSiteSp.error) : saldoSiteSp.isPending ? "…" : (saldoSiteSp.data?.find((linha) => linha.sku === i.sku)?.disponivel ?? 0).toLocaleString("pt-BR")}</p>
                       {semSaldo ? (
                         <Badge variant="outline" className="border-warning/50 text-warning">Sem saldo no {cdRotulo}</Badge>
                       ) : (

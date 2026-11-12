@@ -1,4 +1,8 @@
 import { Badge } from "@/components/ui/badge";
+import { AbasSiteSp } from "@/components/venda-direta/AbasSiteSp";
+import { EstoqueSiteSpTab } from "@/components/venda-direta/EstoqueSiteSpTab";
+import { ConteudoAba } from "@/components/AbaGate";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
@@ -125,6 +129,7 @@ function BotaoIcone({ a }: { a: Acao }) {
 }
 
 export default function VendaDiretaGestao() {
+  const [aba] = useAbaUrl("gestao");
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
   const devolucoesQ = useDevolucoesVD();
@@ -355,7 +360,7 @@ export default function VendaDiretaGestao() {
         icone={ShoppingBag}
         estado={`Venda direta do Site SP, do pagamento à entrega${q.dataUpdatedAt ? ` · atualizada às ${new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}`}
         acoes={
-          podeEditar && (
+          podeEditar && aba !== "estoque-site-sp" && (
             <div className="flex gap-2">
               <Button variant="outline" size="icon" aria-label="Configurações dos Pedidos Site SP" onClick={() => setConfig(true)}><Settings className="h-4 w-4" /></Button>
               <Button asChild><Link to="/pedidos/venda-direta/novo"><Plus className="mr-1 h-4 w-4" />Novo pedido</Link></Button>
@@ -364,6 +369,8 @@ export default function VendaDiretaGestao() {
         }
       />
 
+      <AbasSiteSp />
+      {aba === "estoque-site-sp" ? <ConteudoAba slug="tela.venda_direta_gestao"><EstoqueSiteSpTab /></ConteudoAba> : <>
       <TooltipProvider>
         {dimQ.data && (
           <FunilVD
@@ -679,6 +686,7 @@ export default function VendaDiretaGestao() {
         onOpenChange={(o) => { if (!o) { setCancelar(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); } }}
         onConcluido={() => { qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); }}
       />
+      </>}
     </PageShell>
   );
 }

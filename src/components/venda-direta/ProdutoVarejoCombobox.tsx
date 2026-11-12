@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
+import { useSaldoSiteSp } from "./useEstoqueSiteSp";
 
 export interface ProdutoVarejo {
   sku: string;
@@ -59,6 +60,7 @@ export function ProdutoVarejoCombobox({
     },
   });
   const imgsQ = useImagensProduto((buscaQ.data ?? []).map((p) => p.sku));
+  const saldoSiteSp = useSaldoSiteSp(aberto);
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
@@ -79,6 +81,7 @@ export function ProdutoVarejoCombobox({
         <Command shouldFilter={false}>
           <CommandInput placeholder="Digite SKU, código, EAN ou nome…" value={termo} onValueChange={setTermo} />
           <CommandList>
+            {saldoSiteSp.isError && <p role="alert" className="p-3 text-sm text-destructive">Falha ao ler estoque Site SP: {formatError(saldoSiteSp.error)}</p>}
             {debounced.length < 2 ? (
               <CommandEmpty>Digite ao menos 2 caracteres.</CommandEmpty>
             ) : buscaQ.isFetching ? (
@@ -105,6 +108,7 @@ export function ProdutoVarejoCombobox({
                       <ProdutoMiniatura img={imgsQ.data?.get(p.sku)} tamanho={32} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{p.nome_completo ?? p.sku}</span>
+                        <span className="block text-xs text-muted-foreground">Disponível no Site SP: {saldoSiteSp.isError ? "—" : saldoSiteSp.isPending ? "…" : (saldoSiteSp.data?.find((linha) => linha.sku === p.sku)?.disponivel ?? 0).toLocaleString("pt-BR")}</span>
                         <span className="block text-xs tabular-nums text-muted-foreground">{p.cod_cadastro && <span className="font-mono font-medium text-foreground">{p.cod_cadastro} · </span>}<span className="font-mono">{p.sku}</span>{p.ean ? ` · EAN ${p.ean}` : ""}</span>
                       </span>
                       <span className="text-sm font-medium tabular-nums">{formatBRL(p.preco_varejo)}</span>

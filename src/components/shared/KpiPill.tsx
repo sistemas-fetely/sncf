@@ -6,7 +6,7 @@ export interface KpiPillProps {
   count: number;
   color: "admin" | "amber" | "emerald" | "blue" | "gray" | "violet";
   active: boolean;
-  onClick: () => void;
+  onClick?: () => void;
   icon?: React.ReactNode;
   description?: string;
   /** "suave": ativo mantém fundo claro (padrão da tela de Faturas de Cartão). */
@@ -59,10 +59,11 @@ export function KpiPill({ label, count, color, active, onClick, icon, descriptio
   const cls = active
     ? `${c.activeBg} shadow-md`
     : `${c.bg} ${c.text} ${c.border} hover:shadow-sm`;
+  const Elemento = onClick ? "button" : "div";
 
   return (
-    <button
-      type="button"
+    <Elemento
+      {...(onClick ? { type: "button" as const } : {})}
       onClick={onClick}
       className={`rounded-lg border-2 px-3 py-2 transition-all text-left min-w-[120px] ${cls}`}
     >
@@ -74,6 +75,6 @@ export function KpiPill({ label, count, color, active, onClick, icon, descriptio
       {description && (
         <div className="text-[9px] opacity-75 mt-0.5">{description}</div>
       )}
-    </button>
+    </Elemento>
   );
 }

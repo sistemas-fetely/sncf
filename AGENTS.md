@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Commercial Site SP stock is a read-only tab on the existing VD management route with its permission; a shared paginated balance query supplies both the table and informative product-picker/cart hints without changing sales eligibility. Collection labels join through the product catalog and dimension; KpiPill renders noninteractive when no action is supplied.
 - Cockpit phase/group/collection/status filters share a generic multi-select and URL list codecs (legacy "todos" means empty); pure selectors count unique products with every other filter applied so center rows never inflate option counts. Shared tested selection helpers own search-visible bulk toggles, tri-state and summaries without normalizing explicit full selections.
 - Accountant entry-invoice summaries share one typed XML-to-PDF/storage helper across retrofit and package generation; cursor batches advance past per-note errors, simulation stays read-only, and tested pure helpers own entry subfolders/counters and account-bound payment-report paths.
 - VD delivery-address correction is isolated in the drawer's address action/dialog and writes only through its existing RPC; presentation helpers own visibility, motive length and CEP warnings, while awaited order/management invalidation refreshes the address and history.
