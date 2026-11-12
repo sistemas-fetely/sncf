@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
           if (!det) throw new Error("detalhe vazio");
           // Parceiro: resolver unico (bling_id -> CPF -> CNPJ), fonte unica em parceiro-resolver.ts
           let parceiroId: string | null = null;
-          try { parceiroId = await resolverParceiroBling(sb, det.contato, "api_bling"); } catch { parceiroId = null; }
+          try { parceiroId = await resolverParceiroBling(sb, det.contato, "bling"); } catch { parceiroId = null; }
           const { data: r, error: eRpc } = await sb.rpc("fn_nascer_pedido_marketplace", { p_raw: det, p_parceiro_id: parceiroId, p_dry_run: false });
           if (eRpc) throw new Error(`fn_nascer_pedido_marketplace: ${eRpc.message}`);
           const acaoR = r?.acao;

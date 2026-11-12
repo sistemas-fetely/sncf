@@ -1,22 +1,13 @@
+import { TabelaPedidosFiscais } from "./TabelaPedidosFiscais";
+import { usePedidosFiscais } from "./usePedidosFiscais";
 import { useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Loader2, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { abrirDetalhe, useEstadoTela, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
+import { Search } from "lucide-react";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
-import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
-import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fmtData } from "@/lib/data";
-import { formatError } from "@/lib/format-error";
-import { carregarPedidosFiscais, filtrarPedidosFiscais, ordenarPedidosFiscais, type ColunaFiscal, type PedidoFiscal } from "./pedidosFiscais";
-import { SITUACAO_CLASS, SITUACAO_LABELS } from "./situacaoNf";
+import { filtrarPedidosFiscais, ordenarPedidosFiscais, type ColunaFiscal } from "./pedidosFiscais";
 
 const PREFERENCIA = "nfs-venda.pedidos-fiscais";
 const moeda = (valor: number | null) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valor ?? 0));
@@ -32,21 +23,10 @@ const COLUNAS: { coluna: ColunaFiscal; rotulo: string; classe: string }[] = [
 ];
 
 export function AbaPedidosFiscais() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [nav, setNav] = useEstadoTela({ busca: "", situacao: "todas", mes: "todos", nf: "todas", ordem: "data_pedido:desc", pagina: 1 }, { prefixo: "pf" });
   const { preferencias, salvar } = usePreferenciaTela(PREFERENCIA, { tamanho_pagina: 20 });
   const tamanhoPagina = preferencias.tamanho_pagina;
-  const { data: pedidos = [], isLoading, error } = useQuery({
-    queryKey: ["pedidos-fiscais"],
-    queryFn: () => carregarPedidosFiscais(async (de, ate) => {
-      // View already deployed; generated client types will catch up separately.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).from("vw_pedidos_fiscais").select("*").order("data_pedido", { ascending: false }).order("id").range(de, ate);
-      if (error) throw error;
-      return (data ?? []) as PedidoFiscal[];
-    }),
-  });
+  const { data: pedidos = [], isLoading, error } = usePedidosFiscais();
   const situacoes = useMemo(() => Array.from(new Set(pedidos.map((p) => p.situacao_label).filter((v): v is string => Boolean(v)))).sort((a, b) => a.localeCompare(b, "pt-BR")), [pedidos]);
   const meses = useMemo(() => Array.from(new Set(pedidos.map((p) => p.data_pedido?.slice(0, 7)).filter((v): v is string => Boolean(v)))).sort().reverse(), [pedidos]);
   const [col, dir] = nav.ordem.split(":");
@@ -88,26 +68,6 @@ export function AbaPedidosFiscais() {
         <SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="com">Com NF</SelectItem><SelectItem value="sem">Sem NF</SelectItem></SelectContent>
       </Select>
     </div>
-    <div className="rounded-md border bg-card min-w-0">
-      <Table className="table-fixed w-full" containerClassName="overflow-visible">
-        <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>{COLUNAS.map((c) => <CabecalhoOrdenavel key={c.coluna} rotulo={c.rotulo} className={c.classe} alinharDireita={c.coluna === "valor_total"} dir={coluna === c.coluna ? direcao : null} onOrdenar={() => ordenar(c.coluna)} />)}</TableRow></TableHeader>
-        <TableBody>
-          {isLoading ? <TableRow><TableCell colSpan={8} className="py-12 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-            : error ? <TableRow><TableCell colSpan={8} className="py-12 text-center text-destructive">Não foi possível carregar os pedidos fiscais — {formatError(error)}</TableCell></TableRow>
-              : !itens.length ? <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">Nenhum pedido fiscal encontrado.</TableCell></TableRow>
-                : itens.map((p) => <TableRow key={p.id} data-foco-id={p.id}>
-                  <TableCell className="font-mono text-xs truncate" title={String(p.numero ?? "")}>{p.numero ?? "—"}</TableCell>
-                  <TableCell className="text-xs"><div className="flex items-center gap-1"><span className="truncate font-mono" title={p.numero_loja ?? undefined}>{p.numero_loja || "—"}</span>{p.numero_loja_repetido && <span title="Nº da loja repetido em mais de um pedido fiscal"><AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning" /></span>}</div></TableCell>
-                  <TableCell className="text-xs">{fmtData(p.data_pedido)}</TableCell>
-                  <TableCell className="text-sm truncate" title={p.cliente_nome ?? undefined}>{p.cliente_nome || "—"}</TableCell>
-                  <TableCell className="text-right text-xs font-mono">{moeda(p.valor_total)}</TableCell>
-                  <TableCell><span className="flex items-center gap-1.5 text-xs"><span className="h-2.5 w-2.5 shrink-0 rounded-full bg-muted-foreground" style={p.situacao_cor ? { backgroundColor: p.situacao_cor } : undefined} /><span className="truncate" title={p.situacao_label ?? undefined}>{p.situacao_label || "—"}</span></span></TableCell>
-                  <TableCell>{p.nf_numero ? <div className="space-y-1"><div className="flex items-center gap-1 text-xs font-mono"><span className="truncate" title={`${p.nf_serie ?? ""}-${p.nf_numero}`}>{p.nf_serie ? `${p.nf_serie}-${p.nf_numero}` : p.nf_numero}</span>{Number(p.nf_qtd) > 1 && <span className="text-muted-foreground" title={`${p.nf_qtd} notas para este pedido`}>+{Number(p.nf_qtd) - 1}</span>}</div>{p.nf_situacao && <Badge variant="outline" className={`font-normal text-xs max-w-full ${SITUACAO_CLASS[p.nf_situacao] ?? "bg-muted text-muted-foreground"}`}>{SITUACAO_LABELS[p.nf_situacao] ?? p.nf_situacao}</Badge>}</div> : <span className="text-muted-foreground">—</span>}</TableCell>
-                  <TableCell>{p.pedido_sncf_id && p.pedido_sncf_ref ? <Button variant="link" size="sm" className="h-auto p-0 max-w-full font-mono text-xs" title={p.pedido_sncf_ref} onClick={() => abrirDetalhe(navigate, location, `/pedidos/${p.pedido_sncf_id}`, { foco: String(p.id), focoParam: "pf_foco", label: "NFs de venda" })}><span className="truncate">{p.pedido_sncf_ref}</span></Button> : <span className="text-muted-foreground">—</span>}</TableCell>
-                </TableRow>)}
-        </TableBody>
-      </Table>
-      <RodapePaginacao total={filtrados.length} pagina={pagina} tamanhoPagina={tamanhoPagina} chavePreferencia={PREFERENCIA} onPagina={(pagina) => setNav({ pagina })} onTamanhoPagina={(tamanho_pagina) => { salvar({ tamanho_pagina }); setNav({ pagina: 1 }); }} />
-    </div>
+    <TabelaPedidosFiscais itens={itens} isLoading={isLoading} error={error} total={filtrados.length} pagina={pagina} tamanhoPagina={tamanhoPagina} coluna={coluna} direcao={direcao} ordenar={ordenar} chavePreferencia={PREFERENCIA} onPagina={(pagina) => setNav({ pagina })} onTamanhoPagina={(tamanho_pagina) => { salvar({ tamanho_pagina }); setNav({ pagina: 1 }); }} />
   </>;
 }

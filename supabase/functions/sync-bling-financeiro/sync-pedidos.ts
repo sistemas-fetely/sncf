@@ -1,5 +1,6 @@
 import type { BlingClient } from "../_shared/bling/bling-client.ts";
 import { resolverParceiroBling } from "../_shared/bling/parceiro-resolver.ts";
+import { filtroAlteracaoPedidos } from "./filtro-pedidos.ts";
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -13,7 +14,7 @@ function safeDate(v: any): string | null {
 
 // Busca/criação do parceiro: fonte única em parceiro-resolver.ts (sem duplicar).
 async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> {
-  return await resolverParceiroBling(supabase, contato, "api_bling");
+  return await resolverParceiroBling(supabase, contato, "bling");
 }
 
 export async function syncPedidos(
@@ -21,18 +22,15 @@ export async function syncPedidos(
   client: BlingClient,
   timeUp: () => boolean,
   cursor: { ultima_pagina: number; ultima_data_corte: string | null },
-  ultimaSync: string | null,
 ) {
   let criados = 0, atualizados = 0, erros = 0;
   let pagina = Math.max(cursor.ultima_pagina + 1, 1);
   let ultimoErro = "";
-  const corteISO = cursor.ultima_data_corte || ultimaSync || null;
-  const corteDate = corteISO ? corteISO.split("T")[0] : null;
 
   while (!timeUp()) {
     let data: any;
     try {
-      const filtro = corteDate ? `&dataInicial=${corteDate}` : "";
+      const filtro = filtroAlteracaoPedidos(cursor.ultima_data_corte);
       data = await client.get(`/pedidos/vendas?limite=100&pagina=${pagina}${filtro}`);
     } catch (e) {
       ultimoErro = `pagina ${pagina}: ${(e as Error).message}`;

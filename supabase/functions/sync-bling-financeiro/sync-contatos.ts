@@ -55,7 +55,7 @@ export async function syncContatos(
           cidade: c.endereco?.municipio || null,
           uf: c.endereco?.uf || null,
           ativo: c.situacao !== "I",
-          origem: "api_bling",
+          origem: "bling",
           updated_at: new Date().toISOString(),
         };
 

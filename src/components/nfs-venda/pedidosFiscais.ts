@@ -7,9 +7,30 @@ export interface PedidoFiscal {
   nf_situacao: string | null; nf_valor: number | null; nf_data_emissao: string | null;
   pedido_sncf_id: string | null; pedido_sncf_ref: string | null;
   nf_qtd: number | null; numero_loja_repetido: boolean | null;
+  divergencia: FilaDivergencia | null;
+  dias_pedido: number | null;
 }
 
-export type ColunaFiscal = "numero" | "numero_loja" | "data_pedido" | "cliente_nome" | "valor_total" | "situacao_label" | "nf_numero" | "pedido_sncf_ref";
+export type FilaDivergencia = "sem_nf" | "aberto_com_nf" | "cancelado_com_nf";
+export const FILAS_DIVERGENCIA: { codigo: FilaDivergencia; titulo: string; descricao: string }[] = [
+  { codigo: "sem_nf", titulo: "Sem NF", descricao: "Pedido fiscal sem nota autorizada." },
+  { codigo: "aberto_com_nf", titulo: "Em aberto com NF", descricao: "A nota já foi autorizada e o pedido fiscal continua em aberto." },
+  { codigo: "cancelado_com_nf", titulo: "Cancelado com NF", descricao: "Pedido fiscal cancelado com nota autorizada." },
+];
+
+export function resumirDivergencias(pedidos: PedidoFiscal[]) {
+  return FILAS_DIVERGENCIA.map((fila) => {
+    const itens = pedidos.filter((p) => p.divergencia === fila.codigo);
+    return { ...fila, quantidade: itens.length, valor: itens.reduce((s, p) => s + Number(p.valor_total ?? 0), 0) };
+  });
+}
+
+export function escolherFilaDivergencia(pedidos: PedidoFiscal[], escolhida: string): FilaDivergencia {
+  if (FILAS_DIVERGENCIA.some((f) => f.codigo === escolhida)) return escolhida as FilaDivergencia;
+  return FILAS_DIVERGENCIA.find((f) => pedidos.some((p) => p.divergencia === f.codigo))?.codigo ?? "sem_nf";
+}
+
+export type ColunaFiscal = "numero" | "numero_loja" | "data_pedido" | "dias_pedido" | "cliente_nome" | "valor_total" | "situacao_label" | "nf_numero" | "pedido_sncf_ref";
 export interface FiltrosFiscais { busca: string; situacao: string; mes: string; nf: string }
 
 export function filtrarPedidosFiscais(pedidos: PedidoFiscal[], filtro: FiltrosFiscais) {

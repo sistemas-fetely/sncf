@@ -1,8 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { carregarPedidosFiscais, destinoNfsVenda, filtrarPedidosFiscais, ordenarPedidosFiscais, type PedidoFiscal } from "./pedidosFiscais";
+import { carregarPedidosFiscais, destinoNfsVenda, escolherFilaDivergencia, filtrarPedidosFiscais, ordenarPedidosFiscais, resumirDivergencias, type PedidoFiscal } from "./pedidosFiscais";
 
-const pedido = (patch: Partial<PedidoFiscal>): PedidoFiscal => ({ id: "1", numero: null, numero_loja: null, data_pedido: null, cliente_nome: null, cliente_cnpj_cpf: null, valor_total: null, valor_frete: null, situacao_label: null, situacao_cor: null, nf_id: null, nf_numero: null, nf_serie: null, nf_situacao: null, nf_valor: null, nf_data_emissao: null, pedido_sncf_id: null, pedido_sncf_ref: null, nf_qtd: null, numero_loja_repetido: null, ...patch });
+const pedido = (patch: Partial<PedidoFiscal>): PedidoFiscal => ({ id: "1", numero: null, numero_loja: null, data_pedido: null, cliente_nome: null, cliente_cnpj_cpf: null, valor_total: null, valor_frete: null, situacao_label: null, situacao_cor: null, nf_id: null, nf_numero: null, nf_serie: null, nf_situacao: null, nf_valor: null, nf_data_emissao: null, pedido_sncf_id: null, pedido_sncf_ref: null, nf_qtd: null, numero_loja_repetido: null, divergencia: null, dias_pedido: null, ...patch });
 describe("pedidos fiscais", () => {
+  it("seleciona a primeira fila com itens e preserva a escolha explícita, mesmo vazia", () => {
+    const rows = [pedido({ divergencia: "cancelado_com_nf" }), pedido({ divergencia: "aberto_com_nf" })];
+    expect(escolherFilaDivergencia(rows, "")).toBe("aberto_com_nf");
+    expect(escolherFilaDivergencia([...rows, pedido({ divergencia: "sem_nf" })], "")).toBe("sem_nf");
+    expect(escolherFilaDivergencia(rows, "sem_nf")).toBe("sem_nf");
+  });
+  it("conta e soma somente os itens da classificação fornecida pela view", () => {
+    const rows = [pedido({ divergencia: "sem_nf", valor_total: 10 }), pedido({ divergencia: "sem_nf", valor_total: 20 }), pedido({ divergencia: "aberto_com_nf", valor_total: 50 }), pedido({ valor_total: 999 })];
+    expect(resumirDivergencias(rows).map((r) => [r.codigo, r.quantidade, r.valor])).toEqual([["sem_nf", 2, 30], ["aberto_com_nf", 1, 50], ["cancelado_com_nf", 0, 0]]);
+  });
+  it("ordena dias decrescentes e mantém zero antes dos vazios", () => {
+    const rows = [pedido({ id: "vazio" }), pedido({ id: "novo", dias_pedido: 0 }), pedido({ id: "antigo", dias_pedido: 30 })];
+    expect(ordenarPedidosFiscais(rows, "dias_pedido", "desc").map((p) => p.id)).toEqual(["antigo", "novo", "vazio"]);
+  });
   it("carrega páginas de 1000 sem o corte de 500", async () => {
     const ranges: number[][] = [];
     const rows = await carregarPedidosFiscais(async (de, ate) => {

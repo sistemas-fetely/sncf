@@ -4,7 +4,7 @@
 // A entidade "contas_receber" segue aceita no contrato, mas e no-op (zeros).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { BLING_BASE, ensureFreshToken, exchangeAuthorizationCode, makeBlingClient, type BlingConfig } from "../_shared/bling/bling-client.ts";
+import { ensureFreshToken, exchangeAuthorizationCode, makeBlingClient, type BlingConfig } from "../_shared/bling/bling-client.ts";
 import { syncContatos } from "./sync-contatos.ts";
 import { syncProdutos } from "./sync-produtos.ts";
 import { syncEstoques } from "./sync-estoques.ts";
@@ -47,7 +47,7 @@ async function getOrCreateCursor(supabase: any, entidade: Entidade) {
 }
 
 async function runEntity(
-  supabase: any, client: any, entidade: Entidade, ultimaSync: string | null, timeUp: () => boolean,
+  supabase: any, client: any, entidade: Entidade, timeUp: () => boolean,
 ) {
   const cursor = await getOrCreateCursor(supabase, entidade);
   await supabase.from("integracoes_sync_cursor").update({
@@ -62,7 +62,7 @@ async function runEntity(
     else if (entidade === "estoques") result = await syncEstoques(supabase, client, timeUp, cursor);
     // no-op mantido só para não quebrar crons/clientes que pedem "contas_receber".
     else if (entidade === "contas_receber") result = { criados: 0, atualizados: 0, erros: 0, ultimoErro: "", proximaPagina: 0 };
-    else if (entidade === "pedidos") result = await syncPedidos(supabase, client, timeUp, cursor, ultimaSync);
+    else if (entidade === "pedidos") result = await syncPedidos(supabase, client, timeUp, cursor);
     else if (entidade === "nfe") result = await syncNfe(supabase, client, timeUp, cursor);
   } finally {
     const finalizada = result?.proximaPagina === 0;
@@ -194,7 +194,7 @@ serve(async (req) => {
       try {
         for (const entidade of entidades) {
           if (timeUp()) break;
-          const r = await runEntity(supabase, client, entidade, cfg.ultima_sync_at, timeUp);
+          const r = await runEntity(supabase, client, entidade, timeUp);
           resultados.push(r);
         }
       } catch (e) {
