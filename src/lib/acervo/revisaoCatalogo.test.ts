@@ -89,6 +89,11 @@ describe('revisão por produto', () => {
       expect(contarOpcoes(cs, { ...base, colecoes: 'Colors Gold', dono: 'operacoes' }, ctx, 'colecoes')).toEqual({ 'Colors Gold': { produtos: 1, celulas: 1 }, 'Pétale': { produtos: 1, celulas: 1 } });
       expect(contarOpcoes(cs, { ...base, colecoes: 'Colors Gold' }, ctx, 'dono')).toEqual({ operacoes: { produtos: 1, celulas: 1 }, produto: { produtos: 1, celulas: 1 } });
     });
+    it('fase múltipla combina com coleção e conta produtos sem duplicar células', () => {
+      expect(filtrarCelulas(cs, { ...base, fase: 'ativo,pre_venda', colecoes: 'Pétale' }, ctx).map(c => c.id)).toEqual(['p2', 'o2']);
+      expect(contarOpcoes(cs, { ...base, fase: 'ativo', dono: 'produto' }, ctx, 'fase')).toEqual({ ativo: { produtos: 1, celulas: 1 }, pre_venda: { produtos: 1, celulas: 1 } });
+      expect(filtrarCelulas(cs, { ...base, fase: 'todas' }, ctx)).toHaveLength(4);
+    });
     it('rodapé separa Operações e Produto', () => {
       expect(resumoSelecao(cs)).toEqual({ produtos: 2, celulas: 4, operacoes: 2, produto: 2 });
     });

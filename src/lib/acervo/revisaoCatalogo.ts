@@ -1,3 +1,4 @@
+import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import type { Database } from "@/integrations/supabase/types";
 import { colecaoNaoCadastrada, type ColecaoDim } from './colecoesCatalogo';
 
@@ -49,8 +50,8 @@ export function valorDimensao(c: CelulaCatalogo, d: DimensaoCatalogo, ctx: Ctx):
 /** Visible pending cells for the filter; `ignorar` skips one dimension (used to count that dimension's options). */
 export function filtrarCelulas(celulas: CelulaCatalogo[], filtro: FiltroCatalogo, ctx: Ctx, ignorar?: DimensaoCatalogo): CelulaCatalogo[] {
   const busca = filtro.busca.trim().toLocaleLowerCase('pt-BR');
-  const simples: [DimensaoCatalogo, string | undefined][] = [['bloco', filtro.bloco], ['dono', filtro.dono], ['natureza', filtro.natureza], ['fase', filtro.fase], ['campo', filtro.campo], ['tipo', filtro.tipo]];
-  const multi: [DimensaoCatalogo, string[]][] = [['colecoes', listaFiltro(filtro.colecoes)], ['linhas', listaFiltro(filtro.linhas)]];
+  const simples: [DimensaoCatalogo, string | undefined][] = [['bloco', filtro.bloco], ['dono', filtro.dono], ['natureza', filtro.natureza], ['campo', filtro.campo], ['tipo', filtro.tipo]];
+  const multi: [DimensaoCatalogo, string[]][] = [['fase', lerFiltroProduto(filtro.fase ?? '')], ['colecoes', listaFiltro(filtro.colecoes)], ['linhas', listaFiltro(filtro.linhas)]];
   return celulas.filter(c => {
     if (!DONOS.includes(c.dono) || !['mudanca', 'conflito', 'erro'].includes(c.tipo)) return false;
     for (const [d, v] of simples) if (d !== ignorar && v && v !== 'todos' && valorDimensao(c, d, ctx) !== v) return false;

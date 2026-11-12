@@ -1,3 +1,5 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { useRef as __useRef } from "react";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
@@ -213,20 +215,22 @@ export function HistoricoPrecoTab() {
     return { total: eventos.length, alteracoes, semAutoria, invertidos };
   }, [eventos]);
 
-  const recorte = useMemo(() => {
+  const baseOutrosFiltros = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    const base = eventos.filter((e) => {
+    return eventos.filter((e) => {
       if (mesIni !== "inicio" && (e.mes ?? "") < mesIni) return false;
       if (mesFim !== "fim" && (e.mes ?? "") > mesFim) return false;
       if (sentido !== "todos" && e.sentido !== sentido) return false;
-      if (colecao !== "todas" && e.colecao !== colecao) return false;
-      if (grupo !== "todos" && e.grupo !== grupo) return false;
       if (!q) return true;
       return [e.cod_cadastro, e.sku, e.nome_comercial]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
 
+  }, [eventos, busca, mesIni, mesFim, sentido]);
+  const selecaoProduto = useMemo(() => ({ colecao: lerFiltroProduto(colecao), grupo: lerFiltroProduto(grupo) }), [colecao, grupo]);
+  const recorte = useMemo(() => {
+    const base = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
     const comparar = (a: EventoPreco, b: EventoPreco) => {
       if (!ordem) {
         return String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? ""));
@@ -241,7 +245,7 @@ export function HistoricoPrecoTab() {
       return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
     };
     return [...base].sort(comparar);
-  }, [eventos, busca, mesIni, mesFim, sentido, colecao, grupo, ordem]);
+  }, [baseOutrosFiltros, selecaoProduto, ordem]);
 
   const __pg1 = __useRef(false);
   useEffect(() => { if (!__pg1.current) { __pg1.current = true; return; } setPagina(1); }, [busca, mesIni, mesFim, sentido, colecao, grupo, tamanho]);
@@ -439,20 +443,8 @@ export function HistoricoPrecoTab() {
                 .map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={colecao} onValueChange={setColecao}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as coleções</SelectItem>
-              {opcoes.colecoes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={grupo} onValueChange={setGrupo}>
-            <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os grupos</SelectItem>
-              {opcoes.grupos.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", opcoes.colecoes, undefined, e => e.sku ?? e.cod_cadastro ?? e.id)} selecionados={selecaoProduto.colecao} onChange={(v) => setColecao(v.length ? __el(v) : "todas")} className="w-[180px] h-10" />
+          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "grupo", opcoes.grupos, undefined, e => e.sku ?? e.cod_cadastro ?? e.id)} selecionados={selecaoProduto.grupo} onChange={(v) => setGrupo(v.length ? __el(v) : "todos")} className="w-[170px] h-10" />
           <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV

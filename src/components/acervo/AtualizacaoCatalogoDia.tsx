@@ -1,3 +1,6 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
+import { escreverLista } from "@/lib/navegacao/codecUrl";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -60,6 +63,11 @@ export function AtualizacaoCatalogoDia() {
       if ((r.data?.length ?? 0) < 1000) break;
     }
     return out;
+  } });
+  const fases = useQuery({ queryKey: ['produto-fase-dim'], queryFn: async () => {
+    const r = await supabase.from('produto_fase_dim').select('slug,nome,ordem').order('ordem');
+    if (r.error) throw r.error;
+    return r.data ?? [];
   } });
   const matriz = useQuery({ queryKey: ['catalogo-planilha-rotulos'], queryFn: async () => {
     const r = await supabase.from('produto_ficha_nascimento').select('campo,rotulo,ordem,bloco').eq('importavel_planilha', true).order('ordem');
@@ -245,8 +253,8 @@ export function AtualizacaoCatalogoDia() {
   const todos = elegiveis.length > 0 && elegiveis.every(c => selecionados.has(c.id));
   const alguns = elegiveis.some(c => selecionados.has(c.id));
   const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
-  const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading || colecoes.isLoading;
-  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, autoDimensoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
+  const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading || colecoes.isLoading || fases.isLoading;
+  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, fases.error, autoDimensoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
   const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => { setProgresso(null); setResultado(null); setPrevia({ acao, plano, celulas: selecionadas, leituraId: referencia.data?.id }); };
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
@@ -266,7 +274,7 @@ export function AtualizacaoCatalogoDia() {
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
       <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />
       <FiltroMultiSelect label="Linha" opcoes={ordenar(oLinha, listaFiltro(filtro.linhas))} selecionados={listaFiltro(filtro.linhas)} rotulo={v => v + cont(oLinha, v)} onChange={v => setFiltro({ linhas: juntarFiltro(v), pagina: 1 })} className="h-10" />
-      <Select value={filtro.fase} onValueChange={fase => setFiltro({ fase, pagina: 1 })}><SelectTrigger className="w-52" aria-label="Filtrar por fase"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todas as fases</SelectItem>{['registrado', 'pre_venda', 'ativo', 'inativo'].map(f => <SelectItem key={f} value={f}>{legivel(f)}{cont(oFase, f)}</SelectItem>)}</SelectContent></Select>
+      <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={(fases.data ?? []).map(f => ({ valor: f.slug, rotulo: f.nome ?? f.slug, contagem: oFase[f.slug]?.produtos ?? 0 }))} selecionados={lerFiltroProduto(filtro.fase)} onChange={(v) => setFiltro({ fase: v.length ? escreverLista(v) : 'todos', pagina: 1 })} className="w-52 h-10" />
       <Select value={filtro.bloco} onValueChange={bloco => setFiltro({ bloco, campo: 'todos', pagina: 1 })}><SelectTrigger className="w-56" aria-label="Filtrar por bloco"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os blocos</SelectItem>{blocos.map(b => <SelectItem key={b} value={b}>{legivel(b)}{cont(oBloco, b)}</SelectItem>)}</SelectContent></Select>
       <Select value={filtro.dono} onValueChange={dono => setFiltro({ dono, pagina: 1 })}><SelectTrigger className="w-56" aria-label="Filtrar por dono"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os donos</SelectItem>{([['operacoes', 'Operações'], ['produto', 'Produto']] as const).map(([v, r]) => <SelectItem key={v} value={v}>{r}{cont(oDono, v)}</SelectItem>)}</SelectContent></Select>
       <Select value={filtro.natureza} onValueChange={natureza => setFiltro({ natureza, pagina: 1 })}><SelectTrigger className="w-64" aria-label="Filtrar por natureza"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Toda natureza</SelectItem>{([['preencher', 'Preencher vazio'], ['alterar', 'Alterar valor existente']] as const).map(([v, r]) => <SelectItem key={v} value={v}>{r}{cont(oNatureza, v)}</SelectItem>)}</SelectContent></Select>

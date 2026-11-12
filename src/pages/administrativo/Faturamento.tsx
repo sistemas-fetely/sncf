@@ -1,3 +1,5 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
@@ -985,17 +987,20 @@ function AbaProduto({
     [rows],
   );
 
-  const lista = useMemo(() => {
+  const baseOutrosFiltros = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    const base = rows.filter((r) => {
+    return rows.filter((r) => {
       if (!canalOk(r.canal)) return false;
-      if (colecao !== "todas" && r.colecao !== colecao) return false;
       if (q) {
         const hay = [r.sku, r.produto, r.colecao].filter(Boolean).join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
+  }, [rows, busca, canalOk]);
+  const selecaoProduto = useMemo(() => ({ colecao: lerFiltroProduto(colecao) }), [colecao]);
+  const lista = useMemo(() => {
+    const base = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
     const derivadas = base.map((r) => ({ r, d: derivarLinha(r, componente) }));
     const get = (x: { r: FaturamentoProduto; d: LinhaDerivada }): number | string | null => {
       switch (sortCol) {
@@ -1013,7 +1018,7 @@ function AbaProduto({
       }
     };
     return sortNums(derivadas, get, sortDir);
-  }, [rows, busca, colecao, canalOk, componente, sortCol, sortDir]);
+  }, [baseOutrosFiltros, selecaoProduto, componente, sortCol, sortDir]);
 
   const total = useMemo(() => somarLinhas(lista.map((x) => x.r), componente), [lista, componente]);
 
@@ -1066,13 +1071,7 @@ function AbaProduto({
             onChange={(e) => setBusca(e.target.value)}
             className="max-w-xs h-9"
           />
-          <Select value={colecao} onValueChange={setColecao}>
-            <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Coleção" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as coleções</SelectItem>
-              {colecoes.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", colecoes, undefined, r => r.sku ?? r.produto ?? "")} selecionados={selecaoProduto.colecao} onChange={(v) => setColecao(v.length ? __el(v) : "todas")} className="w-[180px] h-9" />
           {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
           {temNivel(3) && (
             <Button variant="outline" size="sm" className="ml-auto" disabled={lista.length === 0} onClick={exportar}>

@@ -1,3 +1,5 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 // Tabela de Preço (espelho) — LEITURA PURA.
 // O preço é gerido pelo time comercial e vive no FOP. Esta tela não escreve
 // preço em lugar nenhum: nem em sncf_produtos, nem no FOP, nem por edge
@@ -12,7 +14,7 @@
 // Nenhuma faixa, percentual, nome de regra ou severidade está escrito no código.
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom, resolverAcao } from "@/lib/navegacao";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom, resolverAcao, escreverLista } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,11 +125,11 @@ export default function TabelaPreco() {
   const busca = nav.busca;
   const setBusca = (v: string) => setNav({ busca: v });
   const colecao = nav.colecao;
-  const setColecao = (v: string) => setNav({ colecao: v });
+  const setColecao = (v: string[]) => setNav({ colecao: v.length ? escreverLista(v) : "todas" });
   const grupo = nav.grupo;
-  const setGrupo = (v: string) => setNav({ grupo: v });
+  const setGrupo = (v: string[]) => setNav({ grupo: v.length ? escreverLista(v) : "todos" });
   const fase = nav.fase;
-  const setFase = (v: string) => setNav({ fase: v });
+  const setFase = (v: string[]) => setNav({ fase: v.length ? escreverLista(v) : "todas" });
   /** "todos" | "com_alerta" | "criticos" | slug de uma regra */
   const alerta = nav.alerta;
   const setAlerta = (v: string) => setNav({ alerta: v });
@@ -210,19 +212,16 @@ export default function TabelaPreco() {
     return { colecoes: ord(cole), grupos: ord(grup), fases: ord(fas) };
   }, [linhas]);
 
-  /** Recorte sem o filtro de alerta — base dos contadores clicáveis. */
-  const baseSemAlerta = useMemo(() => {
+  const selecaoProduto = { colecao: lerFiltroProduto(colecao), grupo: lerFiltroProduto(grupo), fase: lerFiltroProduto(fase) };
+  const baseBusca = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return linhas.filter((l) => {
-      if (colecao !== "todas" && l.colecao !== colecao) return false;
-      if (grupo !== "todos" && l.grupo !== grupo) return false;
-      if (fase !== "todas" && l.fase !== fase) return false;
-      if (!q) return true;
-      return [l.cod_cadastro, l.sku, l.nome_comercial, l.colecao, l.cor_nome]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [linhas, busca, colecao, grupo, fase]);
+    return linhas.filter(l => !q || [l.cod_cadastro, l.sku, l.nome_comercial, l.colecao, l.cor_nome]
+      .some(v => (v ?? "").toLowerCase().includes(q)));
+  }, [linhas, busca]);
+  const filtroAlerta = (l: LinhaPreco) => alerta === "todos" || (alerta === "com_alerta" ? (l.alertas ?? []).length > 0
+    : alerta === "criticos" ? ehCritico(l) : (l.alertas ?? []).includes(alerta));
+  /** Recorte sem o filtro de alerta — base dos contadores clicáveis. */
+  const baseSemAlerta = filtrarDimensoesProduto(baseBusca, selecaoProduto);
 
   const contadores = useMemo(() => {
     let comAlerta = 0;
@@ -424,27 +423,9 @@ export default function TabelaPreco() {
               className="pl-8"
             />
           </div>
-          <Select value={colecao} onValueChange={setColecao}>
-            <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as coleções</SelectItem>
-              {opcoes.colecoes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={grupo} onValueChange={setGrupo}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os grupos</SelectItem>
-              {opcoes.grupos.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={fase} onValueChange={setFase}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as fases</SelectItem>
-              {opcoes.fases.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseBusca, selecaoProduto, "colecao", opcoes.colecoes, filtroAlerta, l => l.sku)} selecionados={selecaoProduto.colecao} onChange={setColecao} className="w-[190px] h-10" />
+          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseBusca, selecaoProduto, "grupo", opcoes.grupos, filtroAlerta, l => l.sku)} selecionados={selecaoProduto.grupo} onChange={setGrupo} className="w-[180px] h-10" />
+          <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFiltroProduto(baseBusca, selecaoProduto, "fase", opcoes.fases, filtroAlerta, l => l.sku)} selecionados={selecaoProduto.fase} onChange={setFase} className="w-[160px] h-10" />
           <Select value={alerta} onValueChange={setAlerta}>
             <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
             <SelectContent>

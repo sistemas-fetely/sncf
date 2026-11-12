@@ -1,3 +1,5 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 /**
  * CENTRAL DE ESTOQUE (ESTOQUE v6 F2) — uma linha por produto, uma coluna por CD.
  * DISPONÍVEL é o número da venda; o resto é detalhe. Fonte única: vw_central_estoque.
@@ -9,7 +11,6 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EstoqueAbas } from "@/components/estoque/EstoqueAbas";
 import { FilterInput } from "@/components/ui/filter-input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
-import { useEstadoTela, useRestaurarScroll } from "@/lib/navegacao";
+import { useEstadoTela, useRestaurarScroll, escreverLista } from "@/lib/navegacao";
 import { useCentralEstoque } from "@/hooks/estoque/useCentralEstoque";
 import { filtrar, type ProdutoCentral } from "@/lib/estoque/centralEstoque";
 import { formatError } from "@/lib/format-error";
@@ -31,7 +32,7 @@ import { skusDoCard } from "@/lib/estoque/filaOperacionalEstoque";
 import { PainelReposicaoSp } from "@/components/estoque/central/PainelReposicaoSp";
 
 const fmt = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
-const TODAS = "__todas";
+
 
 export default function CentralEstoque() {
   const [f, setF] = useEstadoTela({ q: "", colecao: "", fase: "", card: "", painel: "", reposicao: "urgente", saldo: false, pagina: 1, tamanho: DEFAULT_PAGE_SIZE as number }, { replaceKeys: ["q"] });
@@ -46,7 +47,9 @@ export default function CentralEstoque() {
 
   const colecoes = useMemo(() => [...new Set(produtos.map((p) => p.colecao).filter(Boolean) as string[])].sort(), [produtos]);
   const fases = useMemo(() => [...new Set(produtos.map((p) => p.fase).filter(Boolean) as string[])].sort(), [produtos]);
-  const visiveis = useMemo(() => filtrar(produtos, { q: f.q, colecao: f.colecao, fase: f.fase, card: "", comSaldo: f.saldo }).filter(p => !skusCard || skusCard.has(p.sku)), [produtos, f.q, f.colecao, f.fase, f.saldo, skusCard]);
+  const selecaoProduto = { colecao: lerFiltroProduto(f.colecao), fase: lerFiltroProduto(f.fase) };
+  const baseOutrosFiltros = filtrar(produtos, { q: f.q, colecao: "", fase: "", card: "", comSaldo: f.saldo }).filter(p => !skusCard || skusCard.has(p.sku));
+  const visiveis = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
   const skusVisiveis = new Set(visiveis.map(p => p.sku));
   const pagina = visiveis.slice((f.pagina - 1) * f.tamanho, f.pagina * f.tamanho);
   const aberto = foco ? produtos.find((p) => p.sku === foco) ?? null : null;
@@ -79,14 +82,8 @@ export default function CentralEstoque() {
       {cardAtivo === "repor" ? <PainelReposicaoSp aba={f.reposicao === "carga" ? "carga" : "urgente"} onAba={v => setF({ reposicao: v })} onUsar={reposicaoSp => navigate("/pedidos/transferencias?aba=nova", { state: { reposicaoSp } })} /> : <>
       <div className="flex flex-wrap items-center gap-2">
         <FilterInput value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: 1 })} placeholder="Código, SKU ou nome" className="w-64" />
-        <Select value={f.colecao || TODAS} onValueChange={(v) => setF({ colecao: v === TODAS ? "" : v, pagina: 1 })}>
-          <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Coleção" /></SelectTrigger>
-          <SelectContent><SelectItem value={TODAS}>Todas as coleções</SelectItem>{colecoes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-        </Select>
-        <Select value={f.fase || TODAS} onValueChange={(v) => setF({ fase: v === TODAS ? "" : v, pagina: 1 })}>
-          <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Fase" /></SelectTrigger>
-          <SelectContent><SelectItem value={TODAS}>Todas as fases</SelectItem>{fases.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-        </Select>
+        <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", colecoes, undefined, p => p.sku)} selecionados={selecaoProduto.colecao} onChange={(v) => setF({ colecao: escreverLista(v), pagina: 1 })} className="w-44 h-9" />
+        <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "fase", fases, undefined, p => p.sku)} selecionados={selecaoProduto.fase} onChange={(v) => setF({ fase: escreverLista(v), pagina: 1 })} className="w-40 h-9" />
         <div className="flex items-center gap-2"><Switch id="so-saldo" checked={f.saldo} onCheckedChange={(v) => setF({ saldo: v, pagina: 1 })} /><Label htmlFor="so-saldo" className="text-sm">Só com saldo</Label></div>
         <AcoesAlertasEstoque card={cardAtivo} alertas={fila.alertas.filter(a => a.sku && skusVisiveis.has(a.sku))} />
       </div>

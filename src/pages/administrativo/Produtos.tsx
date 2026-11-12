@@ -1,3 +1,5 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
@@ -477,7 +479,7 @@ export default function Produtos() {
 
   const filtroAtivo =
     busca.trim() !== "" || curvaFiltro !== "todas" || cdFiltro !== "todos" || margemFiltro !== "todas" ||
-    gmroiFiltro !== "todos" || colecaoFiltro !== "todas" || grupoFiltro !== "todos" || faseFiltro !== "todas";
+    gmroiFiltro !== "todos" || lerFiltroProduto(colecaoFiltro).length > 0 || lerFiltroProduto(grupoFiltro).length > 0 || lerFiltroProduto(faseFiltro).length > 0;
 
   function limparFiltros() {
     setBusca(""); setCurvaFiltro("todas"); setCdFiltro("todos"); setMargemFiltro("todas");
@@ -485,11 +487,11 @@ export default function Produtos() {
     setPagina(1);
   }
 
-  const filtrados = useMemo(() => {
+  const baseOutrosFiltros = useMemo(() => {
     const q = normalizarBusca(busca);
     const faixaMargemSel = margemFiltro.startsWith("f") ? faixasMargem[Number(margemFiltro.slice(1))] : undefined;
     const faixaGmroiSel = gmroiFiltro.startsWith("f") ? faixasGmroi[Number(gmroiFiltro.slice(1))] : undefined;
-    const base = lista.filter((p) => {
+    return lista.filter((p) => {
       if (curvaFiltro !== "todas") {
         if (curvaFiltro === "sem_venda" && p.curva !== "sem_venda") return false;
         if (curvaFiltro !== "sem_venda" && p.curva !== curvaFiltro) return false;
@@ -502,9 +504,6 @@ export default function Produtos() {
       if (margemFiltro === "abaixo" && !(p.abaixo_piso_b2b || p.abaixo_piso_b2c)) return false;
       if (faixaMargemSel && !dentroFaixa(faixaMargemSel, p.margem_contribuicao_pct)) return false;
       if (faixaGmroiSel && !dentroFaixa(faixaGmroiSel, p.gmroi)) return false;
-      if (colecaoFiltro !== "todas" && p.colecao !== colecaoFiltro) return false;
-      if (grupoFiltro !== "todos" && p.grupo !== grupoFiltro) return false;
-      if (faseFiltro !== "todas" && p.fase !== faseFiltro) return false;
       if (!q) return true;
       return (
         normalizarBusca(p.cod_cadastro).includes(q) ||
@@ -513,6 +512,10 @@ export default function Produtos() {
         normalizarBusca(p.nome_comercial).includes(q)
       );
     });
+  }, [lista, busca, curvaFiltro, cdFiltro, margemFiltro, gmroiFiltro, faixasMargem, faixasGmroi]);
+  const selecaoProduto = useMemo(() => ({ colecao: lerFiltroProduto(colecaoFiltro), grupo: lerFiltroProduto(grupoFiltro), fase: lerFiltroProduto(faseFiltro) }), [colecaoFiltro, grupoFiltro, faseFiltro]);
+  const filtrados = useMemo(() => {
+    const base = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
     const dir = ordenacao.dir === "asc" ? 1 : -1;
     const valorDe = (p: CockpitRow): string | number | null => {
       switch (ordenacao.coluna) {
@@ -542,7 +545,7 @@ export default function Produtos() {
       }
       return (Number(va) - Number(vb)) * dir;
     });
-  }, [lista, busca, curvaFiltro, cdFiltro, margemFiltro, gmroiFiltro, colecaoFiltro, grupoFiltro, faseFiltro, faixasMargem, faixasGmroi, ordenacao]);
+  }, [baseOutrosFiltros, selecaoProduto, ordenacao]);
 
   // Cartões seguem os filtros: a chave é a lista de SKUs do resultado filtrado
   // (todas as páginas). Sem filtro → "" → RPC com p_skus null (carteira inteira).
@@ -702,33 +705,9 @@ export default function Produtos() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={colecaoFiltro} onValueChange={(v) => { setColecaoFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={colecaoFiltro !== "todas"} className="w-[160px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as coleções</SelectItem>
-            {colecoesOpcoes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={grupoFiltro} onValueChange={(v) => { setGrupoFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={grupoFiltro !== "todos"} className="w-[150px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os grupos</SelectItem>
-            {gruposOpcoes.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={faseFiltro} onValueChange={(v) => { setFaseFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={faseFiltro !== "todas"} className="w-[150px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as fases</SelectItem>
-            {fasesOpcoes.map((f) => <SelectItem key={f} value={f}>{rotuloFase(f)}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", colecoesOpcoes, undefined, p => p.sku)} selecionados={selecaoProduto.colecao} onChange={(v) => { setColecaoFiltro(v.length ? __el(v) : "todas"); setPagina(1); }} className="w-[160px] h-10" />
+        <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "grupo", gruposOpcoes, undefined, p => p.sku)} selecionados={selecaoProduto.grupo} onChange={(v) => { setGrupoFiltro(v.length ? __el(v) : "todos"); setPagina(1); }} className="w-[150px] h-10" />
+        <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "fase", fasesOpcoes, undefined, p => p.sku, rotuloFase)} selecionados={selecaoProduto.fase} onChange={(v) => { setFaseFiltro(v.length ? __el(v) : "todas"); setPagina(1); }} className="w-[150px] h-10" />
         {filtroAtivo && (
           <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>
         )}

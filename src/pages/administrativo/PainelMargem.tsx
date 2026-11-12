@@ -1,3 +1,5 @@
+import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
+import { filtrarDimensoesProduto, opcoesFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
@@ -10,9 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -55,8 +54,8 @@ export default function PainelMargem() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"] });
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
-  const [grupo, setGrupo] = useState<string>("todos");
-  const [colecao, setColecao] = useState<string>("todas");
+  const [grupo, setGrupo] = useState<string[]>([]);
+  const [colecao, setColecao] = useState<string[]>([]);
   const [soAbaixo, setSoAbaixo] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -83,11 +82,9 @@ export default function PainelMargem() {
     [data]
   );
 
-  const filtrados = useMemo(() => {
+  const baseOutrosFiltros = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    let out = data.filter((r) => {
-      if (grupo !== "todos" && r.grupo !== grupo) return false;
-      if (colecao !== "todas" && r.colecao !== colecao) return false;
+    return data.filter((r) => {
       if (soAbaixo && !(r.abaixo_piso_b2b || r.abaixo_piso_b2c)) return false;
       if (q) {
         const hay = [r.sku, r.nome_comercial, r.grupo, r.colecao]
@@ -97,6 +94,10 @@ export default function PainelMargem() {
       return true;
     });
 
+  }, [data, busca, soAbaixo]);
+  const selecaoProduto = useMemo(() => ({ grupo, colecao }), [grupo, colecao]);
+  const filtrados = useMemo(() => {
+    let out = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
     if (sortKey) {
       const key = sortKey === "margem_b2b" ? "resultado_pct_b2b" : "resultado_pct_b2c";
       out = [...out].sort((a, b) => {
@@ -110,7 +111,7 @@ export default function PainelMargem() {
       });
     }
     return out;
-  }, [data, busca, grupo, colecao, soAbaixo, sortKey, sortDir]);
+  }, [baseOutrosFiltros, selecaoProduto, sortKey, sortDir]);
 
   const kpis = useMemo(() => {
     const abaixoB2B = data.filter((r) => r.abaixo_piso_b2b).length;
@@ -302,30 +303,18 @@ export default function PainelMargem() {
               onChange={(e) => setBusca(e.target.value)}
               className="max-w-xs"
             />
-            <Select value={grupo} onValueChange={setGrupo}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Grupo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os grupos</SelectItem>
-                {grupos.map((g) => (<SelectItem key={g} value={g}>{g}</SelectItem>))}
-              </SelectContent>
-            </Select>
-            <Select value={colecao} onValueChange={setColecao}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Coleção" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as coleções</SelectItem>
-                {colecoes.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "grupo", grupos, undefined, r => r.sku)} selecionados={grupo} onChange={setGrupo} className="w-[180px] h-10" />
+            <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", colecoes, undefined, r => r.sku)} selecionados={colecao} onChange={setColecao} className="w-[180px] h-10" />
             <div className="flex items-center gap-2">
               <Switch id="soAbaixo" checked={soAbaixo} onCheckedChange={setSoAbaixo} />
               <Label htmlFor="soAbaixo" className="text-sm cursor-pointer">Só abaixo do piso</Label>
             </div>
-            {(grupo !== "todos" || colecao !== "todas" || soAbaixo || busca || sortKey) && (
+            {(grupo.length > 0 || colecao.length > 0 || soAbaixo || busca || sortKey) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setGrupo("todos"); setColecao("todas"); setSoAbaixo(false);
+                  setGrupo([]); setColecao([]); setSoAbaixo(false);
                   setBusca(""); setSortKey(null);
                 }}
               >
