@@ -155,7 +155,7 @@ function DialogAtribuir({
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-between font-normal">
                   <span className={cn("truncate", !clienteNome && "text-muted-foreground")}>
-                    {clienteNome ?? "Buscar por nome ou CNPJ"}
+                    {clienteNome ?? "Buscar por nome, CNPJ ou CPF"}
                   </span>
                   <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
                 </Button>
@@ -163,7 +163,7 @@ function DialogAtribuir({
               <PopoverContent className="w-[420px] p-0" align="start">
                 <Command shouldFilter={false}>
                   <CommandInput
-                    placeholder="Buscar cliente por nome ou CNPJ"
+                    placeholder="Buscar por nome, CNPJ ou CPF"
                     value={termo}
                     onValueChange={setTermo}
                   />

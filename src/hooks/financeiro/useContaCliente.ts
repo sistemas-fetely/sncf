@@ -336,7 +336,13 @@ export function useLerComprovanteConta() {
 export interface ClienteOpcao {
   id: string;
   nome: string;
+  /** Documento do cliente: CNPJ ou, na falta, CPF (só dígitos). */
   cnpj: string | null;
+}
+
+/** Termo só com dígitos e pontuação de documento vira só dígitos (cnpj/cpf são gravados assim). */
+export function termoDocumento(t: string): string {
+  return /^[\d.\-\/\s]+$/.test(t) && /\d/.test(t) ? t.replace(/\D/g, "") : t;
 }
 
 /** Busca de clientes para o select do dialog. */
@@ -347,18 +353,21 @@ export function useClientesBusca(termo: string) {
     queryFn: async (): Promise<ClienteOpcao[]> => {
       let q = supabase
         .from("parceiros_comerciais")
-        .select("id, razao_social, nome_fantasia, cnpj")
+        .select("id, razao_social, nome_fantasia, cnpj, cpf")
         .eq("ativo", true)
         .order("razao_social")
         .limit(30);
-      if (t) q = q.or(`nome_fantasia.ilike.%${t}%,razao_social.ilike.%${t}%,cnpj.ilike.%${t}%`);
+      if (t) {
+        const d = termoDocumento(t);
+        q = q.or(`nome_fantasia.ilike.%${t}%,razao_social.ilike.%${t}%,cnpj.ilike.%${d}%,cpf.ilike.%${d}%`);
+      }
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []).map((p) => ({
         id: p.id,
         // NOME-É-RAZÃO-SOCIAL: apelido só como complemento.
         nome: nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)"),
-        cnpj: p.cnpj ?? null,
+        cnpj: p.cnpj || p.cpf || null,
       }));
     },
   });
