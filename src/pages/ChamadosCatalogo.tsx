@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useVariacoesServico, VariacoesServico } from "@/components/chamados/VariacoesServico";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -58,8 +59,8 @@ import {
 } from "@/contexts/PermissaoTelaContext";
 
 /**
- * Catálogo de Serviços — administração da árvore de dois níveis
- * FILA → SERVIÇO que a tela de abrir chamado consome.
+ * Catálogo de Serviços — administração da árvore
+ * FILA → SERVIÇO → VARIAÇÃO que a tela de abrir chamado consome.
  *
  * Vocabulário de tela: "Fila" (chamado_fila) e "Serviço" (demanda_assunto).
  * A cadeira dona aparece como "Área responsável".
@@ -236,6 +237,8 @@ function ChamadosCatalogoConteudo() {
   const [dlgFila, setDlgFila] = useState<FormFila | null>(null);
   const [dlgServico, setDlgServico] = useState<FormServico | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const variacoesServico = useVariacoesServico(dlgServico?.id);
+  const temVariacaoAtiva = variacoesServico.data?.some((v) => v.ativo) ?? false;
 
   const filas = useQuery({
     queryKey: QK.filas,
@@ -935,12 +938,13 @@ function ChamadosCatalogoConteudo() {
                   <div className="flex items-center gap-2 pt-1">
                     <Switch
                       checked={dlgServico.libera_refaturamento}
+                      disabled={temVariacaoAtiva || (!!dlgServico.id && (variacoesServico.isLoading || variacoesServico.isError))}
                       onCheckedChange={(v) =>
                         setDlgServico({ ...dlgServico, libera_refaturamento: v })
                       }
                     />
                     <span className="text-xs text-muted-foreground">
-                      Chamado aberto deste serviço libera o botão de refaturar o pedido
+                      {temVariacaoAtiva ? "Definido por variação" : "Chamado aberto deste serviço libera o botão de refaturar o pedido"}
                     </span>
                   </div>
                 </div>
@@ -993,6 +997,8 @@ function ChamadosCatalogoConteudo() {
                   }
                 />
               </div>
+
+              {dlgServico.id && <VariacoesServico key={dlgServico.id} assuntoId={dlgServico.id} podeEditar={podeEditar} />}
 
               {/* CAMPOS EXTRAS */}
               <div className="space-y-2 rounded-md border border-border p-3">

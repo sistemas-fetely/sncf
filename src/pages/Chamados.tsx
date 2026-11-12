@@ -1,3 +1,4 @@
+import { assuntoComVariacao } from "@/lib/chamados/catalogoVariacoes";
 import { useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
@@ -104,6 +105,8 @@ interface Chamado {
   criado_em: string | null;
   assunto_codigo: string | null;
   assunto: string | null;
+  variacao: string | null;
+  variacao_codigo: string | null;
   em_triagem: boolean | null;
   cadeira: string | null;
   cadeira_atual_id: string | null;
@@ -790,7 +793,7 @@ function ChamadosConteudo() {
                       </TableCell>
                       <TableCell className="max-w-[240px]">
                         {c.assunto ? (
-                          <span className="line-clamp-2 text-sm">{c.assunto}</span>
+                          <span className="line-clamp-2 text-sm">{assuntoComVariacao(c.assunto, c.variacao)}</span>
                         ) : c.em_triagem ? (
                           <Badge
                             variant="outline"
@@ -961,7 +964,7 @@ function ChamadosConteudo() {
           <DialogHeader>
             <DialogTitle>{acao ? TITULO[acao] : ""}</DialogTitle>
             <DialogDescription>
-              {alvo?.numero ?? ""} {alvo?.assunto ? `· ${alvo.assunto}` : ""}
+              {alvo?.numero ?? ""} {alvo?.assunto ? `· ${assuntoComVariacao(alvo.assunto, alvo.variacao)}` : ""}
             </DialogDescription>
           </DialogHeader>
 

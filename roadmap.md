@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Chamados: variações obrigatórias/busca compartilhadas, edição no catálogo e assunto composto em lista/detalhe/pedido; 6 testes/build OK, catálogo real com 6 variações conferido, dois formulários verificados com resposta simulada (serviço NF errada inativo); sem gravação real, banco/publicação. Lint das listas/detalhe tem 8 erros visuais anteriores, mantidos fora do escopo.
 - [x] Controladoria Extrato: fila/regras/pares unificadas, catálogos e RPCs existentes, histórico mensal e redirects; 5 testes/lint e build OK, preview autenticado com 605 movimentos/zero pares e diálogos conferidos; sem gravação real, banco/publicação.
 - [x] NFs de Venda fatia 1: abas em Contabilidade, leitura fiscal completa (575 pedidos), filtros/restauração e redirects conferidos no preview autenticado; 6 testes e lint aprovados, sem banco/publicação.
 - [x] Órfãos v2: aba guardada em Cobrança, redirecionamentos, fila em dois blocos, saída/desfazer e resolvidos; 6 testes e tipos aprovados, 17 créditos reais/3 prontos conferidos em 1280 e 1024px, filtros restaurados e saída/desfazer por confirmação e toast simulados; sem alterações de banco/publicação.

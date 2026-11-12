@@ -1,3 +1,4 @@
+import { assuntoComVariacao } from "@/lib/chamados/catalogoVariacoes";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ export interface ChamadoDoPedido {
   criado_em: string | null;
   resolvido_em: string | null;
   assunto: { nome: string | null } | null;
+  variacao: string | null;
   cadeira: { nome: string | null } | null;
 }
 
@@ -38,16 +40,15 @@ export function useChamadosDoPedido(pedidoId: string | undefined) {
     queryKey: [CHAVE_CHAMADOS_PEDIDO, pedidoId],
     enabled: !!pedidoId,
     queryFn: async (): Promise<ChamadoDoPedido[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("chamado")
-        .select(
-          "id, numero, tipo, status, criado_em, resolvido_em, assunto:demanda_assunto(nome), cadeira:departamentos!solicitacao_comercial_cadeira_atual_id_fkey(nome)",
-        )
-        .eq("pedido_id", pedidoId!)
+      if (!pedidoId) return [];
+      const { data, error } = await supabase
+        .from("vw_chamado_lista")
+        .select("*")
+        .eq("pedido_id", pedidoId)
         .order("criado_em", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as ChamadoDoPedido[];
+      const linhas = (data ?? []) as unknown as { chamado_id: string; numero: string | null; tipo: string | null; status: string | null; criado_em: string | null; resolvido_em: string | null; assunto: string | null; variacao: string | null; cadeira: string | null }[];
+      return linhas.map((c) => ({ ...c, id: c.chamado_id, assunto: { nome: c.assunto }, cadeira: { nome: c.cadeira } }));
     },
   });
 }
@@ -129,7 +130,7 @@ export function ChamadosPedidoTab({
                     >
                       {c.numero ?? "chamado"}
                     </Link>
-                    <span className="text-sm text-foreground">{c.assunto?.nome ?? "—"}</span>
+                    <span className="text-sm text-foreground">{assuntoComVariacao(c.assunto?.nome ?? null, c.variacao)}</span>
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {[

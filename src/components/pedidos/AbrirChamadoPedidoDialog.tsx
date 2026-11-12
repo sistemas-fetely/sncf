@@ -1,3 +1,5 @@
+import { SelecionarVariacao } from "@/components/chamados/SelecionarVariacao";
+import { buscarServico, codigoAssuntoSelecionado, type VariacaoCatalogo } from "@/lib/chamados/catalogoVariacoes";
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
@@ -43,6 +45,7 @@ interface CampoExtra {
 }
 
 interface ItemCatalogo {
+  variacoes: VariacaoCatalogo[];
   cadeira: string | null;
   codigo: string | null;
   item: string | null;
@@ -78,6 +81,8 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
   const navigate = useNavigate();
   const location = useLocation();
   const [item, setItem] = useState<ItemCatalogo | null>(null);
+  const [variacao, setVariacao] = useState<VariacaoCatalogo | null>(null);
+  const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
   const [descricao, setDescricao] = useState("");
   const [extras, setExtras] = useState<Record<string, string>>({});
@@ -99,7 +104,7 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
       { nome: string; icone: string | null; ordem: number; itens: ItemCatalogo[] }
     >();
     for (const i of catalogo.data ?? []) {
-      if (i.entidade_tipo_exigida !== "pedido") continue;
+      if (i.entidade_tipo_exigida !== "pedido" || !buscarServico(i, busca).encontrado) continue;
       const chave = i.fila_id ?? "__outros__";
       const atual = mapa.get(chave);
       if (atual) {
@@ -116,15 +121,17 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
     return [...mapa.entries()]
       .map(([chave, v]) => ({ chave, ...v }))
       .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [catalogo.data]);
+  }, [catalogo.data, busca]);
 
   const camposExtras = (item?.campos_extras ?? []) as CampoExtra[];
   const invalido =
     !item ||
+    !codigoAssuntoSelecionado(item, variacao) ||
     !descricao.trim() ||
     camposExtras.some((c) => !(extras[c.chave] ?? "").trim());
 
-  function selecionar(i: ItemCatalogo) {
+  function selecionar(i: ItemCatalogo, preselecionada: VariacaoCatalogo | null = null) {
+    setVariacao(preselecionada);
     setItem(i);
     setTipo("requisicao");
     setDescricao("");
@@ -135,17 +142,19 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
     onOpenChange(v);
     if (!v) {
       setItem(null);
+      setVariacao(null);
+      setBusca("");
       setDescricao("");
       setExtras({});
     }
   }
 
   async function enviar() {
-    if (!item) return;
+    if (!item || invalido) return;
     setEnviando(true);
     try {
       const { data, error } = await supabase.rpc("abrir_chamado_catalogo", {
-        p_assunto_codigo: item.codigo,
+        p_assunto_codigo: codigoAssuntoSelecionado(item, variacao),
         p_descricao: descricao.trim(),
         p_tipo: tipo,
         p_pedido_ref: pedidoIdExterno,
@@ -198,6 +207,10 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
 
         {!item ? (
           <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Input value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-9" placeholder="Buscar serviço... ex.: filial, valor, rastreio" />
+            </div>
             {catalogo.isError ? (
               <Alert variant="destructive">
                 <AlertDescription>
@@ -221,8 +234,9 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
             ) : porFila.length === 0 ? (
               <EstadoVazio
                 icone={Search}
-                titulo="Nenhum serviço de pedido no catálogo"
-                mensagem="Fale com o Atendimento para cadastrar os serviços que exigem pedido."
+                titulo={busca.trim() ? "Nada encontrado" : "Nenhum serviço de pedido no catálogo"}
+                acao={busca.trim() ? <Button variant="outline" size="sm" onClick={() => setBusca("")}>Limpar busca</Button> : undefined}
+                mensagem={busca.trim() ? "Tente outra palavra." : "Fale com o Atendimento para cadastrar os serviços que exigem pedido."}
               />
             ) : (
               porFila.map((f) => {
@@ -238,7 +252,7 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
                         <button
                           key={i.codigo ?? i.item}
                           type="button"
-                          onClick={() => selecionar(i)}
+                          onClick={() => selecionar(i, buscarServico(i, busca).variacao)}
                           className="flex h-full flex-col items-start rounded-md border p-3 text-left transition-colors hover:border-primary/50"
                         >
                           <p className="text-sm font-medium">{i.item ?? "—"}</p>
@@ -247,6 +261,7 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
                               {i.descricao}
                             </p>
                           )}
+                          {buscarServico(i, busca).variacao && <p className="mt-1 text-xs text-muted-foreground">→ {buscarServico(i, busca).variacao?.nome}</p>}
                           <p className="mt-auto pt-1.5 text-[11px] text-muted-foreground">
                             {[
                               i.cadeira ?? "Sem área",
@@ -274,11 +289,13 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
                 {item.fila ?? "Outros"}
                 {" · "}atendido por {item.cadeira ?? "—"}
               </p>
-              <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setItem(null)}>
+              <Button variant="ghost" size="sm" className="shrink-0" onClick={() => { setItem(null); setVariacao(null); }}>
                 <ArrowLeft className="mr-1 h-4 w-4" />
                 Trocar serviço
               </Button>
             </div>
+
+            <SelecionarVariacao variacoes={item.variacoes ?? []} selecionada={variacao} onSelecionar={setVariacao} />
 
             <div className="space-y-1.5">
               <Label>Tipo</Label>

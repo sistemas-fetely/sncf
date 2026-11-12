@@ -1,3 +1,4 @@
+import { assuntoComVariacao } from "@/lib/chamados/catalogoVariacoes";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SmartBackButton } from "@/components/SmartBackButton";
@@ -89,6 +90,8 @@ interface Chamado {
   prioridade: string | null;
   camada: string | null;
   assunto: string | null;
+  variacao: string | null;
+  variacao_codigo: string | null;
   assunto_codigo: string | null;
   em_triagem: boolean | null;
   cadeira: string | null;
@@ -702,7 +705,7 @@ function ChamadoDetalheConteudo() {
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               {c.assunto ? (
-                <span className="text-foreground">{c.assunto}</span>
+                <span className="text-foreground">{assuntoComVariacao(c.assunto, c.variacao)}</span>
               ) : (
                 <Badge
                   variant="outline"
@@ -1057,7 +1060,7 @@ function ChamadoDetalheConteudo() {
             <DialogHeader>
               <DialogTitle>{acao ? TITULO[acao] : ""}</DialogTitle>
               <DialogDescription>
-                {c.numero ?? ""} {c.assunto ? `· ${c.assunto}` : ""}
+                {c.numero ?? ""} {c.assunto ? `· ${assuntoComVariacao(c.assunto, c.variacao)}` : ""}
               </DialogDescription>
             </DialogHeader>
 

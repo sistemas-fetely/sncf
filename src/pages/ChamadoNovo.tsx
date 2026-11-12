@@ -1,3 +1,5 @@
+import { SelecionarVariacao } from "@/components/chamados/SelecionarVariacao";
+import { buscarServico, codigoAssuntoSelecionado, normalizarBuscaServico, type VariacaoCatalogo } from "@/lib/chamados/catalogoVariacoes";
 import { Flag } from "lucide-react";
 import { DialogoAbrirProblema } from "@/components/chamados/DialogoAbrirProblema";
 import { useMemo, useState } from "react";
@@ -60,6 +62,7 @@ interface CampoExtra {
 }
 
 interface ItemCatalogo {
+  variacoes: VariacaoCatalogo[];
   cadeira_id: string | null;
   cadeira: string | null;
   cadeira_ordem: number | null;
@@ -141,6 +144,7 @@ function ChamadoNovoConteudo() {
   const [busca, setBusca] = useState("");
   const [filaSel, setFilaSel] = useState<string | null>(null);
   const [item, setItem] = useState<ItemCatalogo | null>(null);
+  const [variacao, setVariacao] = useState<VariacaoCatalogo | null>(null);
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
   const [problemaAberto, setProblemaAberto] = useState(false);
   const [pedidoRef, setPedidoRef] = useState("");
@@ -183,15 +187,11 @@ function ChamadoNovoConteudo() {
     );
   }, [catalogo.data]);
 
-  const termo = busca.trim().toLowerCase();
+  const termo = normalizarBuscaServico(busca);
 
   const resultadosBusca = useMemo(() => {
     if (!termo) return [];
-    return (catalogo.data ?? []).filter(
-      (i) =>
-        (i.item ?? "").toLowerCase().includes(termo) ||
-        (i.descricao ?? "").toLowerCase().includes(termo),
-    );
+    return (catalogo.data ?? []).filter((i) => buscarServico(i, termo).encontrado);
   }, [catalogo.data, termo]);
 
   const filaAtual = filas.find((f) => f.chave === filaSel) ?? null;
@@ -205,11 +205,13 @@ function ChamadoNovoConteudo() {
 
   const invalido =
     !item ||
+    !codigoAssuntoSelecionado(item, variacao) ||
     !descricao.trim() ||
     (pedidoObrigatorio && !pedidoRef.trim()) ||
     camposExtras.some((c) => !(extras[c.chave] ?? "").trim());
 
-  function selecionar(i: ItemCatalogo) {
+  function selecionar(i: ItemCatalogo, preselecionada: VariacaoCatalogo | null = null) {
+    setVariacao(preselecionada);
     setItem(i);
     setTipo("requisicao");
     setPedidoRef("");
@@ -218,11 +220,11 @@ function ChamadoNovoConteudo() {
   }
 
   async function abrirChamado() {
-    if (!item) return;
+    if (!item || invalido) return;
     setEnviando(true);
     try {
       const { data, error } = await supabase.rpc("abrir_chamado_catalogo", {
-        p_assunto_codigo: item.codigo,
+        p_assunto_codigo: codigoAssuntoSelecionado(item, variacao),
         p_descricao: descricao.trim(),
         p_tipo: tipo,
         p_pedido_ref: pedidoRef.trim() || null,
@@ -399,7 +401,7 @@ function ChamadoNovoConteudo() {
                   <button
                     key={i.codigo ?? i.item}
                     type="button"
-                    onClick={() => selecionar(i)}
+                    onClick={() => selecionar(i, buscarServico(i, termo).variacao)}
                     className="flex h-full flex-col items-start rounded-md border p-3 text-left transition-colors hover:border-primary/50"
                   >
                     <p className="text-sm font-medium">{i.item ?? "—"}</p>
@@ -408,6 +410,7 @@ function ChamadoNovoConteudo() {
                         {i.descricao}
                       </p>
                     )}
+                    {buscarServico(i, termo).variacao && <p className="mt-1 text-xs text-muted-foreground">→ {buscarServico(i, termo).variacao?.nome}</p>}
                     <p className="mt-auto pt-1.5 text-[11px] text-muted-foreground">
                       {detalhes.join(" · ")}
                     </p>
@@ -428,7 +431,7 @@ function ChamadoNovoConteudo() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setItem(null)}
+                onClick={() => { setItem(null); setVariacao(null); }}
                 className="shrink-0"
               >
                 <ArrowLeft className="mr-1 h-4 w-4" />
@@ -455,6 +458,8 @@ function ChamadoNovoConteudo() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
+            <SelecionarVariacao variacoes={item.variacoes ?? []} selecionada={variacao} onSelecionar={setVariacao} />
+
             <div className="space-y-1.5">
               <Label>Tipo</Label>
               <ToggleGroup
