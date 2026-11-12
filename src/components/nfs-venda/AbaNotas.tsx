@@ -399,7 +399,7 @@ export function AbaNotas() {
                             variant="link"
                             size="sm"
                             className="h-auto p-0 font-mono text-xs"
-                            onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "NFs de venda", focoParam: "nf_foco" })}
+                            onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "Notas fiscais", focoParam: "nf_foco" })}
                           >
                             {n.pedido_ref}
                           </Button>
@@ -458,7 +458,7 @@ export function AbaNotas() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "NFs de venda", focoParam: "nf_foco" })}
+                          onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "Notas fiscais", focoParam: "nf_foco" })}
                           title="Ver pedido"
                         >
                           <ExternalLink className="h-4 w-4" />

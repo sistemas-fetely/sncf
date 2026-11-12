@@ -49,7 +49,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/logistica", titulo: "Logística", pilar: "sops", icon: Truck, tags: ["logística", "frete", "transportadora", "entrega"] },
   { rota: "/vendas/gestao-pedidos", titulo: "Gestão de Pedidos", pilar: "sops", icon: ListChecks, tags: ["gestão", "pedidos", "vendas"] },
   { rota: "/vendas/shopify", titulo: "Shopify B2C", pilar: "sops", icon: Store, tags: ["shopify", "b2c", "ecommerce", "loja"] },
-  { rota: "/administrativo/contabilidade/nfs-venda", titulo: "NFs de Venda", pilar: "financas", icon: Receipt, tags: ["nfs", "notas", "fiscais", "venda"] },
+  { rota: "/administrativo/contabilidade/nfs-venda", titulo: "Notas Fiscais", pilar: "financas", icon: Receipt, tags: ["nfs", "notas", "fiscais", "venda", "devolução", "devolucao", "entrada"] },
   { rota: "/recebimento/cobranca", titulo: "Cobrança", pilar: "sops", icon: DollarSign, tags: ["cobrança", "recebimento", "inadimplência"] },
 
   // Finanças
@@ -208,8 +208,8 @@ export function CommandPalette({ open, onOpenChange }: Props) {
         .limit(6);
       if (error) throw error;
       return (data ?? [])
-        .filter((row: any) => row.parceiros_comerciais)
-        .map((row: any) => ({
+        .filter((row) => row.parceiros_comerciais)
+        .map((row) => ({
           id: row.id,
           estagio_atual: row.estagio_atual,
           status_final: row.status_final,
