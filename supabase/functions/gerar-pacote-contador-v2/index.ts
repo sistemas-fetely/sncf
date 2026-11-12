@@ -8,6 +8,8 @@ import { Zip, ZipDeflate, ZipPassThrough } from "npm:fflate@0.8.2";
 import { PDFDocument, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { causaXmlEntrada, separarCobertas, tipoFaltante } from "../_shared/pacote-contador/cobertura.ts";
 import { assinarPartes, BUCKET, enviarEmailRemessa, type Parte } from "../_shared/pacote-contador/remessa.ts";
+import { gerarResumoEntrada } from "../_shared/pacote-contador/resumo-entrada.ts";
+import { pastaEntrada, pastaDocumento, resumoEntradas } from "../_shared/pacote-contador/entrada.ts";
 import { montarRetencoes, xlsxRetencoes } from "../_shared/pacote-contador/retencoes.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
@@ -296,25 +298,28 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     if (!n.resumo_pdf_storage_path) { faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${n.numero ?? "?"} · ${n.prestador ?? "?"}`, motivo: "PDF (resumo do XML) não gerado — rode 'Gerar PDFs das NFS-e'" }); continue; }
     entradas.push({ zip: nomeUnico(`05_despesas/nfse/${seguro(`${n.numero ?? "sn"} - ${n.prestador ?? ""}`).slice(0, 80)}.pdf`), path: n.resumo_pdf_storage_path }); conta("05_despesas/nfse");
   }
-  const tiposDesp = await todas(admin.from("contabil_documento_despesa_tipo").select("id,nome,pasta,periodicidade,local").eq("ativo", true));
+  const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta,ativo"));
+  const nomeConta = new Map<string, string>(contas.map((k: any) => [k.id, seguro(k.nome_exibicao || `${k.banco} ${k.numero_conta ?? ""}`)]));
+  const tiposDesp = await todas(admin.from("contabil_documento_despesa_tipo").select("id,nome,pasta,periodicidade,local,conta_bancaria_id,ativo"));
   const docsDesp = await todas(admin.from("contabil_documento_despesa").select("id,competencia,tipo_id,pasta,storage_path,nome_arquivo").eq("vigente", true).lte("competencia", rem.competencia));
   const docsMes = docsDesp.filter((d: any) => d.competencia === rem.competencia);
-  for (const d of docsMes) { entradas.push({ zip: nomeUnico(`05_despesas/${d.pasta}/${seguro(d.nome_arquivo)}`), path: d.storage_path }); conta(`05_despesas/${d.pasta}`); }
+  const pastaDoc = (d: any) => { const tipo = tiposDesp.find((t: any) => t.id === d.tipo_id); return pastaDocumento(tipo?.pasta === "pagamentos" ? "pagamentos" : d.pasta, nomeConta.get(tipo?.conta_bancaria_id)); };
+  for (const d of docsMes) { const pasta = pastaDoc(d); entradas.push({ zip: nomeUnico(`${pasta}/${seguro(d.nome_arquivo)}`), path: d.storage_path }); conta(pasta); }
   const despesaFaltam: string[] = [];
-  for (const t of tiposDesp) {
+  for (const t of tiposDesp.filter((t: any) => t.ativo)) {
     const tem = t.periodicidade === "contrato_vigente" ? docsDesp.some((d: any) => d.tipo_id === t.id) : docsMes.some((d: any) => d.tipo_id === t.id);
     if (t.periodicidade === "contrato_vigente" && tem && !docsMes.some((d: any) => d.tipo_id === t.id)) {
       const d = docsDesp.filter((x: any) => x.tipo_id === t.id).sort((a: any, b: any) => String(b.competencia).localeCompare(String(a.competencia)))[0];
-      entradas.push({ zip: nomeUnico(`05_despesas/${d.pasta}/${seguro(d.nome_arquivo)}`), path: d.storage_path }); conta(`05_despesas/${d.pasta}`);
+      const pasta = pastaDoc(d); entradas.push({ zip: nomeUnico(`${pasta}/${seguro(d.nome_arquivo)}`), path: d.storage_path }); conta(pasta);
     }
-    if (!tem) { despesaFaltam.push(t.nome); faltantes.push({ pasta: `05_despesas/${t.pasta}`, referencia: t.nome + (t.local ? ` · ${t.local}` : ""), motivo: `Documento de ${ini.slice(5, 7)}/${ini.slice(0, 4)} não enviado` }); }
+    if (!tem) { despesaFaltam.push(t.nome); faltantes.push({ pasta: pastaDocumento(t.pasta, nomeConta.get(t.conta_bancaria_id)), referencia: t.nome + (t.local ? ` · ${t.local}` : ""), motivo: `${t.pasta === "pagamentos" ? "Relatório de pagamentos" : "Documento"} de ${ini.slice(5, 7)}/${ini.slice(0, 4)} não enviado` }); }
   }
   const retencoesManifesto = { total_nfse: ret.total_nfse, lidas: ret.lidas, erros_leitura: ret.erros_leitura, com_retencao: ret.com_retencao, totais: ret.totais,
     pagamento_nao_confirmado: ret.nao_localizados, pdf: ret.pdf,
     pagas_no_mes_emitidas_antes: ret.pagas_no_mes.length,
     em_aberto_meses_anteriores: ret.em_aberto.map((i: any) => ({ numero: i.numero, emissao: i.emissao, prestador: i.prestador, liquido: i.liquido })),
     itens: ret.itens_planilha.map((i: any) => ({ grupo: i.grupo, numero: i.numero, emissao: i.emissao, prestador: i.prestador, bruto: i.bruto, ir: i.ir, pis: i.pis, cofins: i.cofins, csll: i.csll, inss: i.inss, liquido: i.liquido, situacao: i.situacao, pagamento: i.pagamento ? { data: i.pagamento.data, valor: i.pagamento.valor, descricao: i.pagamento.descricao } : null, observacoes: i.observacoes })) };
-  const despesasManifesto = { tipos_esperados: tiposDesp.length, enviados_no_mes: docsMes.length, faltam: despesaFaltam };
+  const despesasManifesto = { tipos_esperados: tiposDesp.filter((t: any) => t.ativo).length, enviados_no_mes: docsMes.length, faltam: despesaFaltam };
 
   // 02_nfs_saida
   const nfs = await todas(admin.from("nfs_emitidas").select("id,numero,serie,situacao,valor_nota,xml_storage_path,pdf_storage_path,pdf_origem,arquivos_erro")
@@ -342,9 +347,9 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
   for (const d of devs) faltantes.push({ pasta: "02_nfs_saida/devolucoes", referencia: `${d.numero} · NF ${d.nf_dev_numero ?? "?"}`, motivo: "XML da NF de devolução não é guardado pelo SNCF (chave " + (d.nf_devolucao ?? "?") + ")" });
 
   // 03_nfs_entrada
-  const ent = await todas(admin.from("nfs_stage").select("fonte,nf_chave_acesso,nf_numero,nf_serie,fornecedor_razao_social,valor,xml_storage_path,status")
+  const ent = await todas(admin.from("nfs_stage").select("id,tipo_documento,resumo_pdf_storage_path,fonte,nf_chave_acesso,nf_numero,nf_serie,fornecedor_razao_social,valor,xml_storage_path,status")
     .gte("nf_data_emissao", ini).lte("nf_data_emissao", fimP).not("status", "in", "(descartada,duplicada)"));
-  pastas["03_nfs_entrada"] ??= { arquivos: 0 };
+  for (const tipo of ["nfe", "cte", "nfse", "outros"]) pastas[pastaEntrada(tipo)] ??= { arquivos: 0 };
   const semXml = ent.filter((n: any) => !n.xml_storage_path && n.nf_chave_acesso).map((n: any) => String(n.nf_chave_acesso).replace(/\D/g, ""));
   const tentativas = new Map<string, any>();
   for (let i = 0; i < semXml.length; i += 200) {
@@ -353,17 +358,27 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     for (const x of t ?? []) tentativas.set(x.nf_chave_acesso, x);
   }
   for (const n of ent) {
+    const pasta = pastaEntrada(n.tipo_documento);
     const ref = `NF ${n.nf_numero ?? "?"} · ${n.fornecedor_razao_social ?? "?"}`;
-    if (!n.xml_storage_path) { faltantes.push({ pasta: "03_nfs_entrada", referencia: ref, motivo: causaXmlEntrada(n.fonte, tentativas.get(String(n.nf_chave_acesso ?? "").replace(/\D/g, ""))) }); continue; }
-    entradas.push({ zip: nomeUnico(`03_nfs_entrada/${n.xml_storage_path.split("/").pop()}`), path: n.xml_storage_path });
-    conta("03_nfs_entrada", 1, Number(n.valor ?? 0), 1);
+    if (!n.xml_storage_path) faltantes.push({ pasta, referencia: ref, motivo: causaXmlEntrada(n.fonte, tentativas.get(String(n.nf_chave_acesso ?? "").replace(/\D/g, ""))) });
+    else {
+      entradas.push({ zip: nomeUnico(`${pasta}/${n.xml_storage_path.split("/").pop()}`), path: n.xml_storage_path });
+      conta(pasta, 1, Number(n.valor ?? 0), 1);
+    }
+    let erroPdf = n.xml_storage_path ? "Resumo não gerado (simulação sem escrita)" : "XML não guardado";
+    if (n.xml_storage_path && !n.resumo_pdf_storage_path && !simular) {
+      try { n.resumo_pdf_storage_path = await gerarResumoEntrada(admin, n); }
+      catch (e) { erroPdf = msg(e); }
+    }
+    if (n.resumo_pdf_storage_path) {
+      entradas.push({ zip: nomeUnico(`${pasta}/${n.resumo_pdf_storage_path.split("/").pop()}`), path: n.resumo_pdf_storage_path }); conta(pasta);
+    } else faltantes.push({ pasta, referencia: ref, motivo: `PDF (resumo do XML) não gerado: ${erroPdf}` });
   }
+  const nfsEntradaManifesto = resumoEntradas(ent);
 
   // 04_bancos
-  const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta,ativo"));
   const mensais = await todas(admin.from("contabil_extrato_mensal").select("*").eq("competencia",rem.competencia).eq("vigente",true));
   const avisosMensais: any[] = [];
-  const nomeConta = new Map(contas.map((k: any) => [k.id, seguro(k.nome_exibicao || `${k.banco} ${k.numero_conta ?? ""}`)]));
   const imps = await todas(admin.from("extrato_importacoes").select("id,conta_bancaria_id,fonte_tipo,nome_arquivo,periodo_inicio,periodo_fim,status,created_at,linhas_novas,arquivo_storage_path")
     .lte("periodo_inicio", fimP).gte("periodo_fim", ini).neq("status", "erro"));
   const bancos: Record<string, any> = {};
@@ -431,7 +446,7 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     natureza: rem.natureza ?? "definitiva", ...(previa ? { aviso: CABECALHO_PREVIA, presuncoes } : {}), ...(delta ? { delta_pre_final: delta } : {}),
     total_arquivos: entradas.length + 2,
     pastas, pdf_origem: { danfe_bling: pdfOrigem.bling, resumo_nfe_gerado_xml: pdfOrigem.gerado_xml, sem_pdf: pdfOrigem.sem_pdf },
-    conferencia, bancos, eventos_nf: eventos,
+    conferencia, bancos, nfs_entrada: nfsEntradaManifesto, eventos_nf: eventos,
     faltantes_por_tipo: porTipo, cobertas_reimportacao: { total: cobertasReimportacao.length, itens: cobertasReimportacao },
     faltantes: faltantesTipados,
     avisos_extratos_mensais: avisosMensais,
@@ -516,6 +531,11 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
     const t = m.faltantes_por_tipo;
     L.push(`FALTANTES: ${(m.faltantes ?? []).length} — bancário ${t.bancario}, XML de entrada ${t.xml_entrada}, Mercado Pago ${t.mercado_pago}, NF cancelada ${t.nf_cancelada}, devolução ${t.devolucao}, despesa ${t.despesa ?? 0}${t.outros ? `, outros ${t.outros}` : ""}`);
     if (m.cobertas_reimportacao) L.push(`Importações sem original cobertas por reimportação: ${m.cobertas_reimportacao.total}`);
+    L.push("");
+  }
+  if (m.nfs_entrada) {
+    L.push("NFs DE ENTRADA");
+    for (const [tipo, r] of Object.entries(m.nfs_entrada) as [string, { notas: number; com_xml: number; com_pdf: number }][]) L.push(`  ${tipo.toUpperCase()}: ${r.notas} notas / ${r.com_xml} com XML / ${r.com_pdf} com PDF`);
     L.push("");
   }
   if (m.retencoes_nfse) {

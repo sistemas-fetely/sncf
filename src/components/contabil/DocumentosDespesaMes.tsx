@@ -32,7 +32,7 @@ export function useDocumentosDespesa(competencia: string | null) {
       const ds = (docs.data ?? []) as DocDespesa[];
       return {
         tipos: ((tipos.data ?? []) as TipoDespesa[]).map((t) => ({ ...t, ...statusDocumentoEsperado(t, ds, competencia) })),
-        avulsos: ds.filter((d) => !d.tipo_id && d.competencia === competencia),
+        avulsos: ds.filter((d) => !d.tipo_id && d.competencia === competencia && d.pasta !== "pagamentos"),
       };
     },
   });
@@ -72,8 +72,8 @@ export function DocumentosDespesaMes({ competencia }: { competencia: string }) {
     onError: (e) => toast.error(rawMessage(e), { duration: Infinity, closeButton: true }),
   });
 
-  const ativos = q.data?.tipos.filter((t) => t.ativo) ?? [];
-  const inativos = q.data?.tipos.filter((t) => !t.ativo) ?? [];
+  const ativos = q.data?.tipos.filter((t) => t.ativo && t.pasta !== "pagamentos") ?? [];
+  const inativos = q.data?.tipos.filter((t) => !t.ativo && t.pasta !== "pagamentos") ?? [];
   return (
     <section className="space-y-3" aria-label="Documentos de despesa do mês">
       <div className="flex flex-wrap items-center justify-between gap-2">

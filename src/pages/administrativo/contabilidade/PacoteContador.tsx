@@ -230,7 +230,7 @@ export default function PacoteContador() {
     queryFn: async () => {
       const out: (LinhaBlocoK & { sem_ncm: boolean; sem_unidade: boolean; posse: string | null })[] = [];
       for (let de = 0; ; de += 1000) {
-        const { data, error } = await (supabase as any).rpc("fn_contabil_bloco_k", { p_competencia: selecionada! }).range(de, de + 999);
+        const { data, error } = await supabase.rpc("fn_contabil_bloco_k", { p_competencia: selecionada! }).range(de, de + 999);
         if (error) throw error;
         out.push(...(data ?? []));
         if (!data || data.length < 1000) return out;
@@ -508,17 +508,32 @@ export default function PacoteContador() {
         setProgressoNfs(`${guardadas} guardadas · faltam ${r.restantes}`);
         if (r.processadas === 0 || r.restantes === 0) break;
       }
-      return { guardadas, erros };
+      let pdfs = 0;
+      let apos: string | null = null;
+      for (let volta = 0; volta < 200; volta++) {
+        const { data, error } = await supabase.functions.invoke("nf-arquivos-retrofit", { body: { competencia: mes, tipo: "entrada_resumo", apos } });
+        if (error) { const ctx = (error as { context?: Response }).context; throw new Error(ctx ? await ctx.text() : error.message); }
+        const r = data as { ok: boolean; erro?: string; geradas: number; processadas: number; restantes: number; ultimo_id: string | null; erros: { numero: string | null; erro: string }[] };
+        if (!r.ok) throw new Error(r.erro ?? "Falha ao gerar PDFs de entrada");
+        pdfs += r.geradas;
+        erros.push(...r.erros.map(e => `PDF NF ${e.numero ?? "?"}: ${e.erro}`));
+        setProgressoNfs(`${guardadas} NFs guardadas · ${pdfs} PDFs de entrada · ${erros.length} erros · faltam ${r.restantes}`);
+        if (r.restantes === 0) break;
+        if (!r.processadas || !r.ultimo_id || r.ultimo_id === apos) throw new Error(`Geração de PDFs não avançou: ${r.restantes} restantes`);
+        apos = r.ultimo_id;
+        if (volta === 199) throw new Error(`Geração de PDFs interrompida: ${r.restantes} restantes; tente novamente`);
+      }
+      return { guardadas, pdfs, erros };
     },
-    onSuccess: ({ guardadas, erros }) => {
+    onSuccess: ({ guardadas, pdfs, erros }) => {
       setProgressoNfs("");
       if (erros.length) {
-        toast.error(`${guardadas} NFs guardadas; ${erros.length} com erro`, {
+        toast.error(`${guardadas} NFs guardadas · ${pdfs} PDFs de entrada gerados · ${erros.length} erros`, {
           description: erros.slice(0, 5).join("\n"),
           duration: Infinity,
         });
       } else {
-        toast.success(`${guardadas} NFs com XML e PDF guardados`);
+        toast.success(`${guardadas} NFs com XML e PDF guardados · ${pdfs} PDFs de entrada gerados`);
       }
     },
     onError: (e) => {

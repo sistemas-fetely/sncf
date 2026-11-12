@@ -1,6 +1,6 @@
 // Status de um documento de despesa esperado na competência (mesma regra do manifesto do pacote):
 // mensal = precisa de documento vigente do próprio mês; contrato_vigente = basta um vigente até o mês.
-export type TipoDespesa = { id: string; nome: string; pasta: string; periodicidade: string; local: string | null; ativo: boolean };
+export type TipoDespesa = { id: string; nome: string; pasta: string; periodicidade: string; local: string | null; ativo: boolean; conta_bancaria_id?: string | null };
 export type DocDespesa = { id: string; competencia: string; tipo_id: string | null; pasta: string; storage_path: string; nome_arquivo: string; descricao: string | null };
 
 export function statusDocumentoEsperado(t: Pick<TipoDespesa, "id" | "periodicidade">, docs: DocDespesa[], competencia: string) {
