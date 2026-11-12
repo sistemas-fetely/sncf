@@ -84,7 +84,7 @@ function formatarDocumento(doc: string | null | undefined): string | null {
 }
 
 const ROTULO_FORCA: Record<Exclude<SugestaoForca, null>, string> = {
-  doc_e_cnpj_do_cliente: "CNPJ do cliente",
+  doc_e_cnpj_do_cliente: "Documento do cliente",
   pagador_ja_ensinado: "Pagador conhecido",
   pedido_valor_data: "Pedido por valor + data",
 };
