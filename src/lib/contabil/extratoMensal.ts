@@ -46,6 +46,32 @@ export async function lerExtratoMensal(file: File, formato: "ofx" | "xlsx" | "pd
   if (!/<OFX[>\s]/i.test(text)) throw new Error("Arquivo OFX não reconhecido");
   const parsed = parseOFX(text);
   const tagData = (tag: string) => { const m = new RegExp(`<${tag}>(\\d{4})(\\d{2})(\\d{2})`,"i").exec(text); return m ? `${m[1]}-${m[2]}-${m[3]}` : null; };
-  return {periodo_inicio:tagData("DTSTART"),periodo_fim:tagData("DTEND"),saldo_final:parsed.saldo,
-    saldo_inicial:parsed.saldo == null ? null : Math.round((parsed.saldo-parsed.movimentacoes.reduce((a,m)=>a+m.valor,0))*100)/100};
+  const fim = tagData("DTEND");
+  const normalizarMemo = (memo: string) => memo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
+  const ehSaldo = (memo: string) => memo.startsWith("SALDO ANTERIOR") || memo.includes("SALDO TOTAL DISPONIVEL");
+  const soma = parsed.movimentacoes
+    .filter(m => !ehSaldo(normalizarMemo(m.descricao)))
+    .reduce((total, m) => total + m.valor, 0);
+  let inicial: number | null = null;
+  let final: number | null = null;
+  let ultimaDataSaldo = "";
+  for (const match of text.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi)) {
+    const bloco = match[1];
+    const memo = normalizarMemo(/<MEMO>([^<\r\n]*)/i.exec(bloco)?.[1] ?? "");
+    const valor = numero(/<TRNAMT>([^<\r\n]*)/i.exec(bloco)?.[1]);
+    if (memo.startsWith("SALDO ANTERIOR") && inicial == null) inicial = valor;
+    const posted = /<DTPOSTED>(\d{8}(?:\d{6})?)/i.exec(bloco)?.[1];
+    const dia = posted ? `${posted.slice(0, 4)}-${posted.slice(4, 6)}-${posted.slice(6, 8)}` : null;
+    // Maior DTPOSTED; em empate, prevalece a última linha do arquivo.
+    const ordemData = posted?.padEnd(14, "0") ?? "";
+    if (memo.includes("SALDO TOTAL DISPONIVEL") && valor != null && dia && fim && dia <= fim && ordemData >= ultimaDataSaldo) {
+      final = valor;
+      ultimaDataSaldo = ordemData;
+    }
+  }
+  const arredondar = (valor: number) => Math.round(valor * 100) / 100;
+  if (final == null && inicial != null) final = arredondar(inicial + soma);
+  if (final == null && parsed.saldoData && fim && parsed.saldoData <= fim) final = parsed.saldo;
+  if (inicial == null && final != null) inicial = arredondar(final - soma);
+  return { periodo_inicio: tagData("DTSTART"), periodo_fim: fim, saldo_inicial: inicial, saldo_final: final };
 }
