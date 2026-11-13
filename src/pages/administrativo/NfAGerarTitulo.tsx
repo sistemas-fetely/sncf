@@ -51,6 +51,8 @@ import { AbaNotasSemTitulo } from "@/components/nf-titulo/AbaNotasSemTitulo";
 import { AbaPerfisPagamento } from "@/components/nf-titulo/AbaPerfisPagamento";
 import { contarPrecisa } from "@/components/nf-titulo/perfilPagamento";
 import { useFilaSemTitulo } from "@/components/nf-titulo/usePerfilPagamento";
+import { AbaNotaCartao } from "@/components/nf-titulo/AbaNotaCartao";
+import { useNotaCartao } from "@/components/nf-titulo/useNotaCartao";
 
 const QK = ["nf-a-gerar-titulo"] as const;
 
@@ -110,6 +112,8 @@ export default function NfAGerarTitulo() {
   const qc = useQueryClient();
   const [aba, setAba] = useAbaUrl("gerar");
   const filaSemTitulo = useFilaSemTitulo();
+  const notaCartao = useNotaCartao();
+  const nNotaCartao = notaCartao.data?.length ?? 0;
   const nSemTitulo = contarPrecisa(filaSemTitulo.data ?? []);
   const [fSituacao, setFSituacao] = useState<string>("todas");
   const [fDestino, setFDestino] = useState<string>("todos");
@@ -278,12 +282,14 @@ export default function NfAGerarTitulo() {
       />
 
       <Tabs value={aba} onValueChange={setAba}>
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="gerar">A gerar título</TabsTrigger>
           <TabsTrigger value="sem-titulo">Notas sem título{nSemTitulo > 0 ? ` · ${nSemTitulo}` : ""}</TabsTrigger>
+          <TabsTrigger value="nota-cartao">Nota × cartão{nNotaCartao > 0 ? ` · ${nNotaCartao}` : ""}</TabsTrigger>
           <TabsTrigger value="perfis">Perfis de pagamento</TabsTrigger>
         </TabsList>
         <TabsContent value="sem-titulo" className="mt-4"><AbaNotasSemTitulo /></TabsContent>
+        <TabsContent value="nota-cartao" className="mt-4"><AbaNotaCartao /></TabsContent>
         <TabsContent value="perfis" className="mt-4"><AbaPerfisPagamento /></TabsContent>
         <TabsContent value="gerar" className="mt-4 space-y-4">
       <p className="text-xs text-muted-foreground">

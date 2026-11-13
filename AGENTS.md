@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Invoice payment profiles share a tested installment parser and label helper; the card-match tab shares one typed RPC query with its counter and delegates guarded decisions to existing RPCs with awaited invalidation, because matching and expense deduplication belong to the database.
 - Balcão calculation resolves delivery modes from active modal mappings by center type, preserves legacy option ordering and passes the chosen center to the existing calculation RPC; the edge only orchestrates quotes and never creates orders during calculation.
 - Mandatory-cost marking lives in the existing expense tab with a typed 60-second RPC query and nominal expense-classification action guard; existing RPCs own writes, while tested pure helpers own monthly presentation, visible totals and session-retained decisions without creating financial records.
 - Expense routine lives in the default Hoje tab and reads only fn_contas_pagar_rotina with a typed RPC boundary and 60-second freshness; tested pure helpers own display statuses, while links reuse existing queues without financial writes.

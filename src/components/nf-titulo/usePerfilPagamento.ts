@@ -61,7 +61,7 @@ export function useFormas() {
   };
 }
 
-interface RetornoPerfil { ok: boolean; notas?: { titulos_gerados?: number; valor?: number; erros?: { nf: string; erro: string }[] } }
+interface RetornoPerfil { ok: boolean; parcelas_dias?: number[] | null; notas?: { titulos_gerados?: number; valor?: number; erros?: { nf: string; erro: string }[] } }
 
 export function useInvalidarPerfis() {
   const qc = useQueryClient();
@@ -76,8 +76,8 @@ export function useInvalidarPerfis() {
 export function useDefinirPerfil(onOk?: (parceiroId: string, r: ResultadoSalvo) => void) {
   const invalidar = useInvalidarPerfis();
   return useMutation({
-    mutationFn: async (a: { parceiro_id: string; forma: string; prazo: number | null }) => {
-      const { data, error } = await db.rpc<RetornoPerfil>("fn_parceiro_definir_perfil_pagamento", { p_parceiro_id: a.parceiro_id, p_forma_codigo: a.forma, p_prazo_dias: a.prazo });
+    mutationFn: async (a: { parceiro_id: string; forma: string; prazo: number | null; parcelas?: number[] | null }) => {
+      const { data, error } = await db.rpc<RetornoPerfil>("fn_parceiro_definir_perfil_pagamento", { p_parceiro_id: a.parceiro_id, p_forma_codigo: a.forma, p_prazo_dias: a.prazo, p_parcelas_dias: a.parcelas ?? null });
       if (error) throw error;
       return data;
     },

@@ -9,7 +9,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatError } from "@/lib/format-error";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
-import { MOTIVOS_AGUARDA, MOTIVOS_PRECISA, ROTULO_MOTIVO, agruparPorFornecedor } from "./perfilPagamento";
+import { MOTIVOS_AGUARDA, MOTIVOS_PRECISA, ROTULO_MOTIVO, agruparPorFornecedor, rotuloPerfil } from "./perfilPagamento";
 import { db, useFilaSemTitulo, useFormas, useInvalidarPerfis } from "./usePerfilPagamento";
 import { PerfilPagamentoDialog, type AlvoPerfil } from "./PerfilPagamentoDialog";
 import { BotaoPermitido } from "./BotaoPermitido";
@@ -19,7 +19,7 @@ interface RetornoGerar { ok?: boolean; decisao_humana?: boolean; motivo?: string
 export function AbaNotasSemTitulo() {
   const { data = [], isLoading, error } = useFilaSemTitulo();
   const { permitido } = usePermissaoAcaoOuSuperAdmin("acao.nf_gerar_titulo");
-  const { nome } = useFormas();
+  const { nome, naoGera } = useFormas();
   const invalidar = useInvalidarPerfis();
   const [filtro, setFiltro] = useState<"precisa" | "aguarda">("precisa");
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
@@ -65,11 +65,11 @@ export function AbaNotasSemTitulo() {
                   <TableCell className="text-right tabular-nums">{formatBRL(g.valor)}</TableCell>
                   <TableCell className="text-xs truncate" title={g.sug_base ?? undefined}>{g.sug_forma_codigo || g.sug_prazo_dias != null ? `${nome(g.sug_forma_codigo) ?? ""}${g.sug_forma_codigo && g.sug_prazo_dias != null ? " · " : ""}${g.sug_prazo_dias != null ? `${g.sug_prazo_dias} dias` : ""}` : "—"}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    {g.precisaPerfil && g.parceiro_id && <BotaoPermitido permitido={permitido} size="sm" variant="outline" className="h-7" onClick={() => setAlvo({ parceiro_id: g.parceiro_id as string, fornecedor: g.fornecedor, forma: g.sug_forma_codigo, prazo: g.sug_prazo_dias, base: g.sug_base })}>Definir perfil</BotaoPermitido>}
+                    {g.precisaPerfil && g.parceiro_id && <BotaoPermitido permitido={permitido} size="sm" variant="outline" className="h-7" onClick={() => { const atual = g.notas.find((n) => n.perfil_forma_codigo); setAlvo({ parceiro_id: g.parceiro_id as string, fornecedor: g.fornecedor, forma: atual?.perfil_forma_codigo ?? g.sug_forma_codigo, prazo: atual?.perfil_prazo_dias ?? g.sug_prazo_dias, parcelas: atual?.perfil_parcelas_dias, base: g.sug_base }); }}>Definir perfil</BotaoPermitido>}
                   </TableCell>
                 </TableRow>
                 {abertos.has(g.chave) && g.notas.map((n) => <TableRow key={n.nf_id} className="bg-muted/30">
-                  <TableCell className="pl-8"><p className="text-xs font-mono">NF {n.nf_numero ?? "—"} · {formatDateBR(n.emissao)}</p><p className="text-xs text-muted-foreground truncate" title={n.plano_nome ?? n.destino_rotulo ?? undefined}>{n.plano_nome ?? n.destino_rotulo ?? ""}</p></TableCell>
+                  <TableCell className="pl-8"><p className="text-xs font-mono">NF {n.nf_numero ?? "—"} · {formatDateBR(n.emissao)}</p><p className="text-xs text-muted-foreground truncate" title={n.plano_nome ?? n.destino_rotulo ?? undefined}>{n.plano_nome ?? n.destino_rotulo ?? ""}</p>{n.perfil_forma_codigo && <p className="text-xs text-muted-foreground">{rotuloPerfil(n.perfil_forma_nome ?? nome(n.perfil_forma_codigo), n.perfil_prazo_dias, !naoGera(n.perfil_forma_codigo), n.perfil_parcelas_dias)}</p>}</TableCell>
                   <TableCell colSpan={1} className="text-right text-xs">{formatDateBR(n.data_vencimento)}</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{formatBRL(n.valor)}</TableCell>
                   <TableCell><Badge variant="outline" className="font-normal text-xs max-w-full"><span className="break-words whitespace-normal">{ROTULO_MOTIVO[n.motivo] ?? n.motivo}</span></Badge></TableCell>

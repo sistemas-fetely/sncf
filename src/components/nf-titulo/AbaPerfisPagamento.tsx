@@ -55,12 +55,12 @@ export function AbaPerfisPagamento() {
                   <TableCell className="text-right tabular-nums">{l.notas ?? 0}</TableCell>
                   <TableCell className="text-right tabular-nums text-xs">{formatBRL(l.valor)}</TableCell>
                   <TableCell className="text-xs">{formatDateBR(l.ultima_nota)}</TableCell>
-                  <TableCell className="text-xs"><p>{l.tem_perfil ? rotuloPerfil(l.perfil_forma_nome, l.perfil_prazo_dias, !(l.perfil_forma_codigo && naoGera(l.perfil_forma_codigo))) : "—"}</p>
+                  <TableCell className="text-xs"><p>{l.tem_perfil ? rotuloPerfil(l.perfil_forma_nome, l.perfil_prazo_dias, !(l.perfil_forma_codigo && naoGera(l.perfil_forma_codigo)), l.perfil_parcelas_dias) : "—"}</p>
                     {salvo && <><Badge variant="outline" className="mt-1 font-normal text-[11px] bg-success/10 text-success border-success/20">Salvo agora</Badge><p className="mt-1 text-[11px] text-muted-foreground break-words">{textoResultadoPerfil(salvo, formatBRL)}</p></>}</TableCell>
                   <TableCell className="text-xs"><p>{rotuloPerfil(nome(l.sug_forma_codigo), l.sug_prazo_dias, !(l.sug_forma_codigo && naoGera(l.sug_forma_codigo)))}</p>{l.sug_base && <p className="text-[11px] text-muted-foreground break-words">{l.sug_base}</p>}</TableCell>
                   <TableCell className="text-right"><div className="flex flex-wrap justify-end gap-1">
                     {pode && <BotaoPermitido permitido={permitido} size="sm" className="h-7" disabled={confirmar.isPending} onClick={() => confirmar.mutate({ parceiro_id: l.parceiro_id, forma: l.sug_forma_codigo as string, prazo: naoGera(l.sug_forma_codigo as string) ? null : l.sug_prazo_dias })}>Confirmar sugestão</BotaoPermitido>}
-                    <BotaoPermitido permitido={permitido} size="sm" variant="outline" className="h-7" onClick={() => setAlvo({ parceiro_id: l.parceiro_id, fornecedor, forma: l.perfil_forma_codigo ?? l.sug_forma_codigo, prazo: l.perfil_prazo_dias ?? l.sug_prazo_dias, base: l.sug_base })}>{l.tem_perfil || salvo ? "Alterar" : "Definir"}</BotaoPermitido>
+                    <BotaoPermitido permitido={permitido} size="sm" variant="outline" className="h-7" onClick={() => setAlvo({ parceiro_id: l.parceiro_id, fornecedor, forma: l.perfil_forma_codigo ?? l.sug_forma_codigo, prazo: l.perfil_prazo_dias ?? l.sug_prazo_dias, parcelas: l.perfil_parcelas_dias, base: l.sug_base })}>{l.tem_perfil || salvo ? "Alterar" : "Definir"}</BotaoPermitido>
                   </div></TableCell>
                 </TableRow>;
               })}

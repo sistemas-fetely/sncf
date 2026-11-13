@@ -16,6 +16,7 @@ export interface NfSemTitulo {
   perfil_forma_codigo: string | null;
   perfil_forma_nome: string | null;
   perfil_prazo_dias: number | null;
+  perfil_parcelas_dias?: number[] | null;
   sug_forma_codigo: string | null;
   sug_prazo_dias: number | null;
   sug_base: string | null;
@@ -35,6 +36,7 @@ export interface PerfilPainel {
   perfil_forma_codigo: string | null;
   perfil_forma_nome: string | null;
   perfil_prazo_dias: number | null;
+  perfil_parcelas_dias?: number[] | null;
   definido_em: string | null;
   sug_forma_codigo: string | null;
   sug_prazo_dias: number | null;
@@ -88,7 +90,8 @@ export function agruparPorFornecedor(linhas: NfSemTitulo[]): GrupoFornecedor[] {
 }
 
 /** "Boleto · 15 dias", "Cartão de crédito", "prazo 10 dias" ou "—". */
-export function rotuloPerfil(formaNome: string | null | undefined, prazo: number | null | undefined, geraTitulo = true): string {
+export function rotuloPerfil(formaNome: string | null | undefined, prazo: number | null | undefined, geraTitulo = true, parcelas?: number[] | null): string {
+  if (geraTitulo && parcelas?.length) return `${formaNome ?? "prazo"} · ${parcelas.join("/")} dias`;
   const temPrazo = prazo != null && geraTitulo;
   if (formaNome) return temPrazo ? `${formaNome} · ${prazo} dias` : formaNome;
   return prazo != null ? `prazo ${prazo} dias` : "—";
@@ -101,6 +104,20 @@ export function podeConfirmarSugestao(formaCodigo: string | null, prazo: number 
 }
 
 export interface ResultadoSalvo { titulos_gerados: number; valor: number }
+
+export type ParseParcelas = { parcelas: number[]; erro: null } | { parcelas: null; erro: string };
+
+export function parseParcelasDias(texto: string): ParseParcelas {
+  if (!texto.trim()) return { parcelas: [], erro: null };
+  const itens = texto.trim().split(/[/,\s]+/);
+  if (itens.length > 12) return { parcelas: null, erro: "Informe no máximo 12 parcelas." };
+  if (itens.some((item) => !/^\d+$/.test(item))) return { parcelas: null, erro: "Informe apenas dias inteiros, separados por /, vírgula ou espaço." };
+  const parcelas = itens.map(Number);
+  if (parcelas.some((dia) => dia < 0 || dia > 365)) return { parcelas: null, erro: "Cada parcela deve ter de 0 a 365 dias." };
+  if (new Set(parcelas).size !== parcelas.length) return { parcelas: null, erro: "Os dias das parcelas não podem se repetir." };
+  if (parcelas.some((dia, i) => i > 0 && dia < parcelas[i - 1])) return { parcelas: null, erro: "Informe os dias das parcelas em ordem crescente." };
+  return { parcelas, erro: null };
+}
 
 /** Filtro da aba Perfis: quem foi salvo nesta sessão continua em "Sem perfil". */
 export function entraNoFiltroPerfil(l: Pick<PerfilPainel, "parceiro_id" | "tem_perfil">, filtro: "sem" | "com" | "todos", salvosAgora: ReadonlySet<string>): boolean {
