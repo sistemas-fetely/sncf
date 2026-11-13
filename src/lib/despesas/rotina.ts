@@ -17,6 +17,23 @@ export interface RotinaContasPagar {
   };
   entradas: { ordem: number; entrada: string; ultima_data: string | null; dias: number | null }[];
   meses: MesRotina[];
+  conta_corrente?: ContaCorrenteFornecedor[];
+}
+export interface ContaCorrenteFornecedor {
+  cnpj: string | null;
+  nome: string;
+  documentado: number;
+  pago: number;
+  saldo: number;
+  vencido: number;
+  a_vencer: number;
+  sem_vencimento: number;
+  proximo_vencimento: string | null;
+  notas_abertas: number;
+  ultimo_pagamento: string | null;
+}
+export function contaCorrenteFornecedores(rotina: Pick<RotinaContasPagar, "conta_corrente"> | null | undefined): ContaCorrenteFornecedor[] {
+  return rotina?.conta_corrente ?? [];
 }
 export interface MesRotina {
   mes: string;
