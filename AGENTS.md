@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Mandatory-cost marking lives in the existing expense tab with a typed 60-second RPC query and nominal expense-classification action guard; existing RPCs own writes, while tested pure helpers own monthly presentation, visible totals and session-retained decisions without creating financial records.
 - Expense routine lives in the default Hoje tab and reads only fn_contas_pagar_rotina with a typed RPC boundary and 60-second freshness; tested pure helpers own display statuses, while links reuse existing queues without financial writes.
 - Product dimension filters reuse MultiSelectFilter with tested IN/AND selectors and cross-filter unique-product counts; preserve each screen's option source and local/URL state, decoding legacy scalar defaults through the shared list helper. Daily catalog phase options come from the ordered phase dimension, while its cell selector counts distinct products.
 - Commercial Site SP stock is a read-only tab on the existing VD management route with its permission; a shared paginated balance query supplies both the table and informative product-picker/cart hints without changing sales eligibility. Collection labels join through the product catalog and dimension; KpiPill renders noninteractive when no action is supplied.

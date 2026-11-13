@@ -43,6 +43,7 @@ import { getEstagioMeta } from "@/lib/despesas/estagios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MesaClassificacao } from "@/components/despesas/MesaClassificacao";
 import { HojeTab } from "@/components/despesas/HojeTab";
+import { CustoObrigatorioTab } from "@/components/despesas/CustoObrigatorioTab";
 import { useGruposMesa } from "@/hooks/despesas/useMesaClassificacao";
 
 type DespesaV2 = {
@@ -282,9 +283,11 @@ export default function Despesas() {
           <TabsTrigger value="hoje">Hoje</TabsTrigger>
           <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="classificar">A classificar{gruposMesa.isSuccess ? ` · ${pendentesMesa}` : ""}</TabsTrigger>
+          <TabsTrigger value="custo-obrigatorio">Custo obrigatório</TabsTrigger>
         </TabsList>
         <TabsContent value="hoje" className="mt-4"><HojeTab abrirClassificar={() => setAbaNav({ aba: "classificar" })} /></TabsContent>
         <TabsContent value="classificar" className="mt-4"><MesaClassificacao /></TabsContent>
+        <TabsContent value="custo-obrigatorio" className="mt-4"><CustoObrigatorioTab /></TabsContent>
         <TabsContent value="lista" className="mt-4 space-y-4">
       {error && (
         <Card className="border-destructive">
