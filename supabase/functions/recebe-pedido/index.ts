@@ -139,10 +139,34 @@ Deno.serve(async (req) => {
         let valida_ate: string | null = null;
         let correios_erro: string | null = null;
 
-        if (cepValido) {
-          const { data: cd, error: eCd } = await supabase
-            .from("centro_distribuicao").select("cep").eq("codigo", centroOrigem).maybeSingle();
-          if (eCd) return erroRpc(eCd);
+        const [resModos, resModais, resCd] = await Promise.all([
+          supabase.from("vd_modo_modal").select("modo, modal_codigo, centro_tipo_exigido"),
+          supabase.from("b2c_modal_entrega").select("codigo, sem_despacho, ativo").eq("ativo", true),
+          supabase.from("centro_distribuicao").select("cep, tipo").eq("codigo", centroOrigem).maybeSingle(),
+        ]);
+        if (resModos.error) return erroRpc(resModos.error);
+        if (resModais.error) return erroRpc(resModais.error);
+        if (resCd.error) return erroRpc(resCd.error);
+        const cd = resCd.data;
+        const modosDoTipo = (resModos.data ?? []).filter((m) =>
+          m.centro_tipo_exigido != null && m.centro_tipo_exigido === cd?.tipo
+        );
+        const modosDoCentro = modosDoTipo.length > 0
+          ? modosDoTipo
+          : (resModos.data ?? []).filter((m) => m.centro_tipo_exigido == null);
+        const modais = new Map((resModais.data ?? []).map((m) => [m.codigo, m]));
+        const ordemAtual = ["retirada", "sedex", "pac", "frete_fetely"];
+        const modosValidos = modosDoCentro.filter((m) => {
+          const modal = modais.get(m.modal_codigo);
+          return modal && (modal.sem_despacho === true || (modal.sem_despacho === false && cepValido));
+        }).sort((a, b) => {
+          const ordemA = ordemAtual.indexOf(a.modo);
+          const ordemB = ordemAtual.indexOf(b.modo);
+          return (ordemA < 0 ? ordemAtual.length : ordemA) - (ordemB < 0 ? ordemAtual.length : ordemB)
+            || a.modo.localeCompare(b.modo);
+        });
+
+        if (modosValidos.some((m) => modais.get(m.modal_codigo)?.sem_despacho === false)) {
           const cepOrigem = String(cd?.cep ?? "").replace(/\D/g, "");
           if (cepOrigem.length !== 8) {
             correios_erro = `CEP de origem do ${centroOrigem} não cadastrado em centro_distribuicao.`;
@@ -159,13 +183,12 @@ Deno.serve(async (req) => {
           }
         }
 
-        const modos = cepValido ? ["retirada", "sedex", "pac", "frete_fetely"] : ["retirada"];
         const opcoes: unknown[] = [];
-        for (const modo of modos) {
+        for (const { modo } of modosValidos) {
           const { data, error } = await supabase.rpc("fn_vd_calcular", {
             p_cliente: body.cliente ?? {},
             p_itens: itens,
-            p_entrega: { modo, cotacao_id, endereco, beneficio: body.beneficio ?? null },
+            p_entrega: { modo, centro_codigo: centroOrigem, cotacao_id, endereco, beneficio: body.beneficio ?? null },
           });
           if (error) { opcoes.push({ modo, ok: false, erro: error.message }); continue; }
           const d: any = data ?? {};
@@ -265,6 +288,17 @@ Deno.serve(async (req) => {
           ...(body.max_parcelas ? { max_parcelas: body.max_parcelas } : {}),
         });
         return jsonResponse(r.status, r.json);
+      }
+
+      if (body.tipo === "balcao_declarar_pagamento") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_declarar_pagamento", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_nsu: typeof body.nsu === "string" && body.nsu.trim() ? body.nsu.trim() : null,
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
       }
 
       // ── Balcão: abrir/editar pedido (27/10/2026) ──
