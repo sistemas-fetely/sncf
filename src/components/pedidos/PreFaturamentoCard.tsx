@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,10 @@ import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { pedidoDividido as ehPedidoDividido, remessasAtivas } from "@/lib/pedidos/remessasDivididas";
 import { useNivel } from "@/hooks/useNivel";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { useToast } from "@/hooks/use-toast";
+import { chamarEdge } from "@/lib/pedidos/edgePagamento";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 /**
  * Estação de PRÉ-FATURAMENTO.
@@ -74,6 +78,39 @@ export function PreFaturamentoCard({
   const [motivo, setMotivo] = useState("");
   const enviar = useEnviarBling();
   const { data: remessas } = useRemessas(pedidoId);
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { permitido: podeGerar } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
+  const fiscal = useQuery({
+    queryKey: ["trs-nf-direta", pedidoId],
+    enabled: !exigeExpedicao,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data: p, error: pe } = await supabase.from("pedidos").select("natureza_operacao_id").eq("id", pedidoId).single();
+      if (pe) throw pe;
+      if (!p.natureza_operacao_id) return { direta: false, registro: null };
+      // Objetos já existentes no banco, ainda ausentes dos tipos gerados.
+      const db = supabase as unknown as import("@supabase/supabase-js").SupabaseClient;
+      const { data: dim, error: de } = await db.from("natureza_nf_direta").select("gera_nf_direta").eq("natureza_operacao_id", p.natureza_operacao_id).maybeSingle();
+      if (de) throw de;
+      if (dim?.gera_nf_direta !== true) return { direta: false, registro: null };
+      const { data: reg, error: re } = await db.from("trs_nf_direta").select("status,bling_nfe_id,numero,natureza_conferida,erro").eq("pedido_id", pedidoId).maybeSingle();
+      if (re) throw re;
+      return { direta: true, registro: reg as { status: string; bling_nfe_id: number | null; numero: string | null; natureza_conferida: boolean; erro: string | null } | null };
+    },
+  });
+  const gerar = useMutation({
+    mutationFn: () => chamarEdge<{ ok: boolean; numero: string | null; alertas?: string[] }>("trs-fiscal-gerar-nf", { pedido_id: pedidoId }),
+    onSuccess: async resultado => {
+      toast({ title: "NF de transferência em rascunho", description: `Rascunho nº ${resultado.numero ?? "não informado"} — transmitir no Bling${resultado.alertas?.length ? ` · ${resultado.alertas.join(" · ")}` : ""}` });
+      await qc.invalidateQueries({ queryKey: ["trs-nf-direta", pedidoId] });
+      await invalidarPedido(qc, pedidoId);
+    },
+    onError: async (e: Error) => {
+      toast({ title: "Erro ao gerar NF de transferência", description: e.message, variant: "destructive" });
+      await qc.invalidateQueries({ queryKey: ["trs-nf-direta", pedidoId] });
+    },
+  });
 
   const { data, isLoading, error } = useQuery({
     queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId),
@@ -105,6 +142,25 @@ export function PreFaturamentoCard({
         <span>Não foi possível carregar a conferência de pré-faturamento.</span>
       </div>
     );
+  }
+
+  if (!exigeExpedicao && fiscal.isLoading) return <div className="rounded-md border p-3 text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Conferindo a NF de transferência...</div>;
+  if (!exigeExpedicao && fiscal.error) return <div className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">{fiscal.error.message}</div>;
+  if (fiscal.data?.direta) {
+    const registro = fiscal.data.registro;
+    const rascunho = registro?.status === "rascunho";
+    const ocupado = registro?.status === "gerando" || gerar.isPending;
+    return <div className="w-full rounded-md border p-3 space-y-3">
+      <div className="text-sm font-medium">NF de transferência</div>
+      {blingIdDestino != null ? <p className="text-sm text-warning">Já enviada por pedido de venda ao Bling (id {blingIdDestino}) — emitir a NF lá.</p>
+        : rascunho ? <p className="text-sm text-success">Rascunho nº {registro.numero ?? "não informado"} — transmitir no Bling</p>
+        : ocupado ? <p className="text-sm text-muted-foreground">Gerando rascunho da NF...</p>
+        : registro?.status === "erro" ? <p className="text-sm text-destructive break-words">{registro.erro ?? "Falha ao gerar NF de transferência"}</p> : null}
+      {registro?.bling_nfe_id && !registro.natureza_conferida && <p className="text-sm text-warning">Natureza não conferida — confira no Bling antes de transmitir.</p>}
+      {podeGerar && <Button size="sm" className="w-full gap-1.5" disabled={ocupado || blingIdDestino != null || !!registro?.bling_nfe_id} onClick={() => void gerar.mutateAsync().catch(() => undefined)}>
+        {ocupado ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Gerar NF de transferência
+      </Button>}
+    </div>;
   }
 
   // O checklist do banco marca "bling" como não-ok quando já desceu; aqui já enviado é ✓.

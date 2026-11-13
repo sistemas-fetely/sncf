@@ -257,6 +257,12 @@ async function handle(req: Request, sis: ModoSistema | null): Promise<Response> 
       .eq("id", pedido_id)
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
+    if (pedido.natureza_operacao_id) {
+      const { data: direta, error: diretaErro } = await supabase.from("natureza_nf_direta")
+        .select("gera_nf_direta").eq("natureza_operacao_id", pedido.natureza_operacao_id).maybeSingle();
+      if (diretaErro) return err(`Falha ao ler natureza NF direta: ${diretaErro.message}`, 500);
+      if (direta?.gera_nf_direta === true) return err("Transferência fiscal: a NF é gerada direto pelo SNCF, não vai por pedido de venda.", 409);
+    }
     if (pedido.canal === "B2C") {
       return err("Pedido B2C desce pela esteira B2C (fila de descida), não pelo envio B2B.", 409);
     }

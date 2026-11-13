@@ -21,7 +21,7 @@ async function tratarTrsRetorno(db: any): Promise<any[]> {
   const out: any[] = [];
   const { data: pend, error } = await db.from("vw_devolucao_trs_retorno")
     .select("devolucao_id,numero,trs_pedido_id,trs_numero,situacao")
-    .in("situacao", ["sem_trs", "aguardando_envio"]).order("desde", { ascending: true }).limit(LIMITE_TRS);
+    .in("situacao", ["sem_trs", "aguardando_envio", "erro_envio"]).order("desde", { ascending: true }).limit(LIMITE_TRS);
   if (error) return [{ resultado: "falha", erro: `ler vw_devolucao_trs_retorno: ${error.message}` }];
   if (!pend?.length) return out;
   let segredo: string | null = null;
@@ -33,20 +33,27 @@ async function tratarTrsRetorno(db: any): Promise<any[]> {
         out.push({ devolucao: p.numero, acao: "criar_trs", ...(data ?? {}) });
         continue;
       }
-      if (!segredo) {
+      const { data: trs, error: trsErro } = await db.from("pedidos").select("natureza_operacao_id").eq("id", p.trs_pedido_id).single();
+      if (trsErro) throw trsErro;
+      const { data: direta, error: diretaErro } = await db.from("natureza_nf_direta").select("gera_nf_direta").eq("natureza_operacao_id", trs.natureza_operacao_id).maybeSingle();
+      if (diretaErro) throw diretaErro;
+      const nfDireta = direta?.gera_nf_direta === true;
+      // Erro reprocessável novo pertence apenas à NF direta; fluxo legado intacto.
+      if (p.situacao === "erro_envio" && !nfDireta) continue;
+      if (!nfDireta && !segredo) {
         const { data: s, error: se } = await db.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
         if (se || !s) throw new Error("SYNC_CRON_SECRET indisponível no cofre");
         segredo = String(s);
       }
-      const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/enviar-pedido-bling`, {
+      const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/${nfDireta ? "trs-fiscal-gerar-nf" : "enviar-pedido-bling"}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-cron-secret": segredo,
+        headers: { "Content-Type": "application/json", ...(!nfDireta && segredo ? { "x-cron-secret": segredo } : {}),
           Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
-        body: JSON.stringify({ pedido_id: p.trs_pedido_id, trs_retorno_devolucao_id: p.devolucao_id }),
+        body: JSON.stringify(nfDireta ? { pedido_id: p.trs_pedido_id } : { pedido_id: p.trs_pedido_id, trs_retorno_devolucao_id: p.devolucao_id }),
       });
       const j: any = await r.json().catch(() => ({}));
-      out.push({ devolucao: p.numero, trs: p.trs_numero, acao: "enviar_bling", http: r.status,
-        ok: r.ok && j?.sucesso !== false, erro: r.ok ? undefined : (j?.erro ?? j?.error ?? `HTTP ${r.status}`) });
+      out.push({ devolucao: p.numero, trs: p.trs_numero, acao: nfDireta ? "gerar_nf_direta" : "enviar_bling", http: r.status,
+        ok: r.ok && j?.sucesso !== false && j?.ok !== false, erro: r.ok ? undefined : (j?.erro ?? j?.error ?? `HTTP ${r.status}`) });
     } catch (e) {
       out.push({ devolucao: p.numero, trs: p.trs_numero, resultado: "falha", erro: msg(e) });
     }
