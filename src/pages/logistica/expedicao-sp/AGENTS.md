@@ -1,0 +1,1 @@
+- Mesa SP Correios label prints as SNCF-built ZPL (tested `src/lib/logistica/etiquetaCorreiosZpl.ts`, DataMatrix assembled per the Correios 2D layout because the pre-posting API returns only PDF) from the stored `correios_prepostagem.payload_envio` via the shared QZ path; the Correios PDF (edge `rotulo`) is only the fallback when QZ is unavailable.
