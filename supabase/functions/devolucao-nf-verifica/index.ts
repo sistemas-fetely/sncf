@@ -21,7 +21,7 @@ async function tratarTrsRetorno(db: any): Promise<any[]> {
   const out: any[] = [];
   const { data: pend, error } = await db.from("vw_devolucao_trs_retorno")
     .select("devolucao_id,numero,trs_pedido_id,trs_numero,situacao")
-    .in("situacao", ["sem_trs", "aguardando_envio", "erro_envio"]).order("desde", { ascending: true }).limit(LIMITE_TRS);
+    .in("situacao", ["sem_trs", "aguardando_envio", "erro_envio", "rascunho"]).order("desde", { ascending: true }).limit(LIMITE_TRS);
   if (error) return [{ resultado: "falha", erro: `ler vw_devolucao_trs_retorno: ${error.message}` }];
   if (!pend?.length) return out;
   let segredo: string | null = null;
@@ -35,9 +35,10 @@ async function tratarTrsRetorno(db: any): Promise<any[]> {
       }
       const { data: trs, error: trsErro } = await db.from("pedidos").select("natureza_operacao_id").eq("id", p.trs_pedido_id).single();
       if (trsErro) throw trsErro;
-      const { data: direta, error: diretaErro } = await db.from("natureza_nf_direta").select("gera_nf_direta").eq("natureza_operacao_id", trs.natureza_operacao_id).maybeSingle();
+      const { data: direta, error: diretaErro } = await db.from("natureza_nf_direta").select("gera_nf_direta,transmite_automatico").eq("natureza_operacao_id", trs.natureza_operacao_id).maybeSingle();
       if (diretaErro) throw diretaErro;
       const nfDireta = direta?.gera_nf_direta === true;
+      if (p.situacao === "rascunho" && (!nfDireta || direta?.transmite_automatico !== true)) continue;
       // Erro reprocessável novo pertence apenas à NF direta; fluxo legado intacto.
       if (p.situacao === "erro_envio" && !nfDireta) continue;
       if (!nfDireta && !segredo) {
