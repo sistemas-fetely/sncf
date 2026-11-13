@@ -187,5 +187,8 @@ verify_jwt = false
 [functions.enviar-nf-email-xpm]
   verify_jwt = false
 
+[functions.enviar-nf-email-cliente]
+  verify_jwt = false
+
 [functions.enviar-pacote-drive]
   verify_jwt = false
