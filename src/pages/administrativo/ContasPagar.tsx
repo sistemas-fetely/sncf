@@ -184,7 +184,7 @@ export default function ContasPagar() {
   const { data, isLoading } = useQuery({
     queryKey: ["contas-pagar"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("vw_contas_pagar_consolidado")
         .select(
           "*, plano_contas:plano_contas_id(codigo,nome), parceiros_comerciais:parceiro_id(razao_social), formas_pagamento:forma_pagamento_id(codigo,nome,cobra_email,pula_aprovacao), meios_pagamento:meio_pagamento_id(codigo), cartoes_credito:cartao_id(nome,ultimos_digitos)",
