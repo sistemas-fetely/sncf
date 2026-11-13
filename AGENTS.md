@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Safrapay reconciliation diagnostics perform only GET probes after merchant authentication and persist responses exclusively in the private diagnostic table; restrict alternate bases to HTTPS Safrapay hosts and reject redirects so bearer credentials never reach another provider.
 - Fiscal-only TRS uses guarded creation/recovery and an injected transmission module: only the nature's explicit automatic flag plus readback nature/value checks permit sending; a durable CAS marker in the existing registry prevents repeat POSTs across failures/concurrency, while authorized readbacks reconcile without sending and physical transfers retain their legacy path.
 - Transfer stage badges share a tested presentation selector with send-error precedence; the unified transfer panel enriches pre-invoice TRS rows from their existing view, preserving TI rows and database-owned stages.
 - Supplier current-account balances share one presentation card with an optional content slot; only Accounts Payable supplies the lazy CNPJ-scoped statement, retaining signed running balances and movement counts without mixing supplier balances into title KPIs.
