@@ -60,7 +60,7 @@ export interface LinhaAviso {
   cliente_telefone?: string | null;
   situacao: string;
   modal: string | null;
-  pagamento: "pix" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
+  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
   link_pagamento?: string | null;
   codigo_rastreio?: string | null;
   rastreio_servico?: string | null;
@@ -105,7 +105,8 @@ async function linkPagamentoDe(l: LinhaAviso): Promise<string | null> {
   // Maquininha: sem link — o cliente paga na loja.
   if (l.pagamento === "cartao_maquininha") return null;
   if (l.pagamento === "pix") return l.link_pagamento ?? null;
-  if (l.pagamento === "cartao") {
+  // Cartão e PIX pelo Safra: o link aberto da Safrapay.
+  if (l.pagamento === "cartao" || l.pagamento === "pix_safra") {
     const { data, error } = await (supabase as any)
       .from("pagamento_link")
       .select("url")

@@ -19,6 +19,9 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { usePixSafrapayAtivo } from "@/hooks/pagamentos/usePixSafrapayAtivo";
+import { usePixNoLink } from "@/hooks/pagamentos/usePixNoLink";
+import { rotuloMeioLink } from "@/lib/pagamentos/meioLink";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { hojeISO } from "@/lib/data";
 import {
   fmtDataBR,
@@ -127,6 +130,8 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
   });
   const pixAtivoQ = usePixSafrapayAtivo();
   const pixAtivo = pixAtivoQ.data === true;
+  const pixNoLinkQ = usePixNoLink();
+  const pixNoLink = pixNoLinkQ.data === true;
   const abertas = provisoesQ.data ?? [];
   // PIX só tem QR enquanto a provisão está "prevista". "consumida" já virou título
   // depois da NF — a cobrança mora no título, não aqui.
@@ -139,6 +144,15 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
   const [tentAberto, setTentAberto] = useState(false);
   const atualizar = async () => {
     await invalidarPedido(qc, pedidoId);
+  };
+  const gerarPixSafra = async () => {
+    setOcupado("pix_safra");
+    try {
+      await chamarEdge("safrapay-link", { pedido_id: pedidoId, meio: "pix" });
+      toast.success("Link PIX pelo Safra gerado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally { await atualizar(); setOcupado(null); }
   };
   const gerar = async (meio: "cartao" | "pix") => {
     setOcupado(meio);
@@ -244,6 +258,21 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
               {meio === "cartao" ? "Gerar link de cartão" : "Gerar PIX"}
             </BotaoGuardado>
           ))}
+          {temPixPortao && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={pixNoLink ? -1 : 0}>
+                  <BotaoGuardado slug="acao.cobranca_gerar_link" rotuloAcao="Gerar link de pagamento"
+                    contexto={{ pedido_id: pedidoId }} size="sm" variant="outline" disabled={ocupado !== null || !pixNoLink}
+                    className="gap-1.5" onClick={() => void gerarPixSafra()}>
+                    {ocupado === "pix_safra" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                    Gerar PIX pelo Safra
+                  </BotaoGuardado>
+                </span>
+              </TooltipTrigger>
+              {!pixNoLink && <TooltipContent>{pixNoLinkQ.error ? `Configuração Safrapay: ${pixNoLinkQ.error.message}` : "PIX por link desligado"}</TooltipContent>}
+            </Tooltip>
+          )}
         </div>
         {linksApiQ.isLoading && <Skeleton className="h-12 w-full" />}
         {!pixAtivo && linhasPix.map((p) => (
@@ -258,7 +287,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
         {linksVisiveis.map((l) => (
           <div key={l.id} className="border-t pt-2 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium">{l.meio === "pix" ? "PIX" : "Cartão"}</span>
+              <span className="text-xs font-medium">{rotuloMeioLink(l.meio)}</span>
               <Badge variant="secondary" className="text-[10px]">{l.status}</Badge>
               <span className="text-[11px] text-muted-foreground">Válido até {fmtDataBR(l.expira_em)}</span>
             </div>
@@ -279,7 +308,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
               {tentativas.map((l) => (
                     <div key={l.id} className="border-t pt-2 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium">{l.meio === "pix" ? "PIX" : "Cartão"}</span>
+              <span className="text-xs font-medium">{rotuloMeioLink(l.meio)}</span>
               <Badge variant="secondary" className="text-[10px]">{l.status}</Badge>
               <span className="text-[11px] text-muted-foreground">Válido até {fmtDataBR(l.expira_em)}</span>
             </div>

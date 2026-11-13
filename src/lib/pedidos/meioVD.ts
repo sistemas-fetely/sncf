@@ -1,8 +1,10 @@
 /** Meios de pagamento da Venda Direta (código da regra de pagamento do pedido). */
-export type MeioVD = "pix" | "cartao" | "cartao_maquininha";
+/** pix = QR local na chave da Fetely; pix_safra = link PIX Safrapay (13/11/2026). */
+export type MeioVD = "pix" | "pix_safra" | "cartao" | "cartao_maquininha";
 
 export const ROTULO_MEIO_VD: Record<MeioVD, string> = {
-  pix: "PIX",
+  pix: "PIX (QR)",
+  pix_safra: "PIX pelo Safra",
   cartao: "Cartão (link)",
   cartao_maquininha: "Cartão maquininha",
 };
@@ -21,6 +23,7 @@ export function rotuloPagamentoVD(p: string | null | undefined): string {
 /** Normaliza o pagamento vindo do banco; qualquer cartão que não seja maquininha é link. */
 export function meioVD(p: string | null | undefined): MeioVD {
   if (p === "pix") return "pix";
+  if (p === "pix_safra") return "pix_safra";
   if (p === "cartao_maquininha") return "cartao_maquininha";
   return "cartao";
 }

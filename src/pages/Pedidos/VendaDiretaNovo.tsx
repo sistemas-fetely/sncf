@@ -4,7 +4,7 @@ import { AbasSiteSp } from "@/components/venda-direta/AbasSiteSp";
 import { useSaldoSiteSp } from "@/components/venda-direta/useEstoqueSiteSp";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { AlertTriangle, CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X, Zap } from "lucide-react";
 import { definirInstrucaoExpedicao, instrucaoMudou } from "@/lib/pedidos/instrucaoExpedicao";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { toast } from "sonner";
@@ -408,7 +408,6 @@ export default function VendaDiretaNovo() {
   const total = Math.max(valorItens - ben.desconto, 0) + freteCobrado;
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
   const cfgParcelasQ = useCfgParcelas();
-  const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
     const [parcelasManual, setParcelasManual] = useState<number | null>(null);
   // Haver Site SP: crédito do cliente — o banco aplica TODOS os haveres (por vencimento) até cobrir o pedido.
   const parceiroId = !edicao ? cliente?.id ?? null : null;
@@ -446,7 +445,7 @@ export default function VendaDiretaNovo() {
   const creditoResumo = edicao ? creditoEd : haverAtivo && !bonif ? haverAplicado : 0;
   const aPagarResumo = Math.max(total - creditoResumo, 0);
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
-  const rotPag = rotulosOpcaoPagamento(cfgPixNoLink, parcelasLink);
+  const rotPag = rotulosOpcaoPagamento(parcelasLink);
 
   const pendencia = useMemo((): string | null => {
     if (!edicao && !vendedorId) return "Informe a vendedora.";
@@ -668,7 +667,7 @@ export default function VendaDiretaNovo() {
               <p className="rounded-md border bg-muted/40 p-3 text-sm font-medium">Pedido bonificado criado — segue para faturamento.</p>
             ) : r.pagamento === "haver" ? (
               <p className="rounded-md border bg-muted/40 p-3 text-sm">Pedido coberto pelo crédito — sem cobrança.</p>
-            ) : r.pagamento === "pix" && cfgPixNoLink ? (
+            ) : r.pagamento === "pix_safra" ? (
               <LinkCartaoPainel
                 meio="pix"
                 pedidoId={r.pedido_id}
@@ -676,7 +675,6 @@ export default function VendaDiretaNovo() {
                 total={Number(r.valor_haver ?? 0) > 0 ? Number(r.valor_a_pagar ?? 0) : r.valor_total}
                 clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
                 telefone={telefoneCliente}
-                pixLocal={{ payload: r.pix_copia_cola, link: r.link_pagamento }}
               />
             ) : r.pagamento === "pix" ? (
               <PixSafrapayPainel
@@ -981,6 +979,13 @@ export default function VendaDiretaNovo() {
               </span>
             </label>
             <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="pix_safra" className="mt-0.5" />
+              <span>
+                <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5" />{rotPag.pixSafra}</span>
+                <span className="block text-xs text-muted-foreground">{rotPag.pixSafraLegenda}</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="cartao" className="mt-0.5" />
               <span>
                 <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" />{rotPag.cartao}</span>
@@ -1116,10 +1121,10 @@ export default function VendaDiretaNovo() {
                 </>
               )}
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                {bonif ? <Gift className="h-4 w-4" /> : pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                {bonif ? <Gift className="h-4 w-4" /> : pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "pix_safra" ? <Zap className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                 {haverAtivo && !bonif && haverCobreTudo
                   ? "Coberto pelo crédito · sem cobrança"
-                  : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
+                  : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? "PIX · QR na conta" : pagamento === "pix_safra" ? "PIX pelo Safra · link" : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">

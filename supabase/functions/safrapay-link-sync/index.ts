@@ -369,8 +369,9 @@ Deno.serve(async (req) => {
       const paga = charges.find((ch: any) => ch.status === 1);
       const pre = charges.find((ch: any) => ch.status === 2);
 
-      const pedidoPix = !l.titulo_id && formaPedido.get(l.pedido_id) === "pix";
-      if (paga && pedidoPix) {
+      // 13/11/2026 PIX-SAFRA-LINK: link PIX (B2B portão PIX ou Venda Direta pix_safra) confirma sozinho.
+      const linkPix = l.meio === "pix_link" || l.resposta_criacao?.meio_pedido === "pix" || (!l.titulo_id && formaPedido.get(l.pedido_id) === "pix");
+      if (paga && linkPix) {
         // Pedido PIX → link só com Pix: confirma a linha de portão com a prova PIX.
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
         if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
@@ -397,13 +398,8 @@ Deno.serve(async (req) => {
         if (eUp) throw new Error(`Gravar pagamento: ${eUp.message}`);
         resumo.pagos++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX pago (link)" });
       } else if (paga && paga.ehPix) {
-        const erro = "Pago via PIX no link — confirmar manualmente (fase de medição)";
-        const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
-        const { error: eUp } = await sb.from("pagamento_link").update({
-          ...base, erro, charge_id: paga.id, nsu: paga.pixRef, valor_pago: valorPago, pago_em: paga.data,
-        }).eq("id", l.id);
-        if (eUp) throw new Error(`Gravar PIX no link: ${eUp.message}`);
-        resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+        // FAIL-LOUD: PIX pago num link de cartão não tem prova de cartão — não confirma como cartão.
+        throw new Error("PIX pago em link de cartão — sem regra de confirmação; tratar na Cobrança.");
       } else if (paga) {
         if (!paga.nsu) throw new Error("Pagamento aprovado sem transactionId (NSU) — confirmar manualmente.");
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);

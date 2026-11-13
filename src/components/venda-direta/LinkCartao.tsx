@@ -59,21 +59,23 @@ export function parcelasPadrao(cfg: CfgParcelas, total: number) {
 export const textoParcelas = (n: number) => (n <= 1 ? "à vista" : `em até ${n}x`);
 
 /** Rótulo curto da forma de pagamento (coluna/selo da Gestão e resumo do pedido). */
-export function rotuloFormaPagamento(forma: "pix" | "cartao" | null | undefined, _pixNoLink?: boolean) {
-  if (forma === "pix") return "PIX";
+export function rotuloFormaPagamento(forma: "pix" | "pix_safra" | "cartao" | null | undefined) {
+  if (forma === "pix") return "PIX (QR)";
+  if (forma === "pix_safra") return "PIX pelo Safra";
   if (forma === "cartao") return "Cartão";
   return "—";
 }
 
-/** Rótulo e legenda das opções de pagamento da tela Novo pedido. */
-export function rotulosOpcaoPagamento(pixNoLink: boolean, parcelas = 3) {
+/** Rótulo e legenda das opções de pagamento da tela Novo pedido.
+ * 13/11/2026 (Flavio): PIX é sempre o QR local; o Safra só existe pela opção "PIX pelo Safra". */
+export function rotulosOpcaoPagamento(parcelas = 3) {
   return {
     cartao: "Cartão de crédito",
     cartaoLegenda: `Link Safrapay · até ${parcelas}x · vale 30 dias · confirma sozinho`,
-    pix: "PIX",
-    pixLegenda: pixNoLink
-      ? "Link Safrapay com QR PIX · vale 30 dias · confirma sozinho"
-      : "QR na chave da Fetely · confirma pelo extrato",
+    pix: "PIX (QR)",
+    pixLegenda: "QR na chave da Fetely · confirma pelo extrato",
+    pixSafra: "PIX pelo Safra",
+    pixSafraLegenda: "Link Safrapay com QR PIX · confirma sozinho",
   };
 }
 
@@ -112,7 +114,7 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa, meio, email }: { url: strin
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-medium">{meio === "pix" ? "Link de pagamento · PIX" : `Link de pagamento · cartão (${textoParcelas(maxParcelas)})`}</p>
+        <p className="text-sm font-medium">{meio === "pix" ? "Link de pagamento · PIX pelo Safra" : `Link de pagamento · cartão (${textoParcelas(maxParcelas)})`}</p>
         <SeloConfirmacaoAutomatica />
       </div>
       <div className="flex gap-2">
@@ -229,7 +231,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const [resultado, setResultado] = useState<string | null>(null);
   const [parcelas, setParcelas] = useState<number | null>(null);
   const cfgQ = useCfgParcelas();
-  const meioDlg: MeioLink = linha?.pagamento === "pix" ? "pix" : "cartao";
+  const meioDlg: MeioLink = linha?.pagamento === "pix_safra" ? "pix" : "cartao";
   const creditoLink = Number(linha?.credito_aplicado ?? 0);
   const aPagarLink = creditoLink > 0 ? Number(linha?.valor_a_pagar ?? 0) : linha?.valor_liquido ?? null;
 
@@ -325,7 +327,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Link de pagamento · {meioDlg === "pix" ? "PIX" : "cartão"} · {linha?.id_externo}</DialogTitle>
+          <DialogTitle>Link de pagamento · {meioDlg === "pix" ? "PIX pelo Safra" : "cartão"} · {linha?.id_externo}</DialogTitle>
           <DialogDescription>
             {linha?.cliente_nome} · {creditoLink > 0
               ? <>Total {formatBRL(linha?.valor_liquido ?? null)} · Crédito −{formatBRL(creditoLink)} · A pagar {formatBRL(aPagarLink)}</>

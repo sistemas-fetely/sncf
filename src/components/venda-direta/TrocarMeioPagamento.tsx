@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Loader2, QrCode, Smartphone } from "lucide-react";
-import { meioVD, type MeioVD } from "@/lib/pedidos/meioVD";
+import { CreditCard, Loader2, QrCode, Smartphone, Zap } from "lucide-react";
+import { ROTULO_MEIO_VD, meioVD, type MeioVD } from "@/lib/pedidos/meioVD";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
@@ -23,11 +23,11 @@ interface TrocaResultado {
   link_pagamento: string | null; pix_copia_cola: string | null; precisa_novo_link_cartao?: boolean | null;
 }
 
-const ROTULO: Record<MeioVD, string> = { pix: "PIX", cartao: "Cartão (link)", cartao_maquininha: "Cartão maquininha" };
-const MEIOS: MeioVD[] = ["pix", "cartao", "cartao_maquininha"];
-const ICONE: Record<MeioVD, typeof QrCode> = { pix: QrCode, cartao: CreditCard, cartao_maquininha: Smartphone };
+const ROTULO = ROTULO_MEIO_VD;
+const MEIOS: MeioVD[] = ["pix", "pix_safra", "cartao", "cartao_maquininha"];
+const ICONE: Record<MeioVD, typeof QrCode> = { pix: QrCode, pix_safra: Zap, cartao: CreditCard, cartao_maquininha: Smartphone };
 
-/** Troca o meio do pedido (PIX ↔ cartão) via vd_trocar_meio_pagamento e mostra o pagamento novo. */
+/** Troca o meio do pedido (PIX QR, PIX pelo Safra, cartão link, maquininha) via vd_trocar_meio_pagamento e mostra o pagamento novo. */
 export function TrocarMeioPagamentoDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
   const qc = useQueryClient();
   const cfgQ = useCfgParcelas();
@@ -69,7 +69,6 @@ export function TrocarMeioPagamentoDialog({ linha, onClose }: { linha: LinhaVD |
     }
   }
 
-  const pixNoLink = cfgQ.data?.pix_no_link === true;
   const valor = res?.valor ?? linha?.valor_liquido ?? null;
   const podeTrocar = motivo.trim().length >= 3 && !ocupado;
 
@@ -120,10 +119,9 @@ export function TrocarMeioPagamentoDialog({ linha, onClose }: { linha: LinhaVD |
           ) : res.meio === "cartao" ? (
             <LinkCartaoPainel meio="cartao" pedidoId={linha.id} idExterno={linha.id_externo} total={valor}
               clienteNome={linha.cliente_nome} telefone={linha.cliente_telefone ?? null} maxParcelas={parcelas} />
-          ) : pixNoLink ? (
+          ) : res.meio === "pix_safra" ? (
             <LinkCartaoPainel meio="pix" pedidoId={linha.id} idExterno={linha.id_externo} total={valor}
-              clienteNome={linha.cliente_nome} telefone={linha.cliente_telefone ?? null}
-              pixLocal={{ payload: res.pix_copia_cola, link: res.link_pagamento }} />
+              clienteNome={linha.cliente_nome} telefone={linha.cliente_telefone ?? null} />
           ) : (
             <PixPagamento payload={res.pix_copia_cola} link={res.link_pagamento} />
           )

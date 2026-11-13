@@ -3,7 +3,7 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SeloConfirmacaoAutomatica, usePixSafrapay } from "@/components/venda-direta/PixSafrapay";
-import { rotuloFormaPagamento, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
+import { rotuloFormaPagamento } from "@/components/venda-direta/LinkCartao";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,7 +30,7 @@ export interface LinhaGaveta {
   modal: string | null;
   endereco_entrega?: Record<string, unknown> | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
+  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
   pagamento_confirmado_em?: string | null;
   link_pagamento: string | null;
   nf_numero: string | number | null;
@@ -165,7 +165,6 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
     },
   });
   const pixSafraQ = usePixSafrapay(linha?.pagamento === "pix" ? id : null);
-  const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const evQ = useQuery({
     queryKey: [...QK_VD_GAVETA, "eventos", id],
     enabled: !!id,
@@ -253,9 +252,9 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
             </Secao>
 
             <Secao titulo="Pagamento">
-              <Par k="Forma" v={l.pagamento === "bonificacao" ? "Bonificação" : l.pagamento === "cartao_maquininha" ? "Cartão maquininha" : rotuloFormaPagamento(l.pagamento, cfgPixNoLink)} />
+              <Par k="Forma" v={l.pagamento === "bonificacao" ? "Bonificação" : l.pagamento === "cartao_maquininha" ? "Cartão maquininha" : rotuloFormaPagamento(l.pagamento)} />
               <Par k="Status" v={l.pagamento === "bonificacao" ? "Sem cobrança" : l.pagamento_confirmado_em ? `Confirmado em ${dataHora(l.pagamento_confirmado_em)}` : "Aguardando"} />
-              {(l.pagamento === "cartao" || linkQ.data) && (
+              {(l.pagamento === "cartao" || l.pagamento === "pix_safra" || linkQ.data) && (
                 linkQ.isLoading ? <Skeleton className="h-10 w-full" /> : linkQ.isError ? <Erro e={linkQ.error} /> : !linkQ.data ? (
                   <Par k="Link" v="Nenhum link gerado" />
                 ) : (
@@ -263,7 +262,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
                     {linkQ.data.erro?.startsWith("Pago via PIX no link") && (
                       <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-warning-strong">{linkQ.data.erro}</p>
                     )}
-                    <Par k="Link" v={linkQ.data.status === "pago" ? (l.pagamento === "pix" || linkQ.data.erro?.startsWith("Pago via PIX no link") ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
+                    <Par k="Link" v={linkQ.data.status === "pago" ? (l.pagamento === "pix" || l.pagamento === "pix_safra" ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
                     {linkQ.data.url && <Par k="URL" v={<a className="break-all text-primary underline-offset-2 hover:underline" href={linkQ.data.url} target="_blank" rel="noreferrer">abrir link</a>} />}
                     {l.pagamento === "cartao" && <Par k="Parcelas" v={linkQ.data.max_parcelas && linkQ.data.max_parcelas > 1 ? `em até ${linkQ.data.max_parcelas}x` : "à vista"} />}
                     <Par k="Validade" v={linkQ.data.expira_em ? `vale até ${dataHora(linkQ.data.expira_em)}` : "—"} />

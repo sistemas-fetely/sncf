@@ -21,6 +21,7 @@ export interface RemontarResultado {
   link_pagamento: string | null;
   pix_copia_cola: string | null;
   precisa_novo_link_cartao: boolean | null;
+  precisa_novo_link_pix?: boolean | null;
 }
 
 /** Confirma e chama vd_remontar_pagamento; depois abre PIX ou link do cartão. */
@@ -45,12 +46,12 @@ export function RemontarPagamentoDialog<T extends LinhaVD>({ linha, onClose, onP
       await invalidarVendaDireta(qc);
       const atualizada = { ...linha, valor_liquido: r.valor ?? linha.valor_liquido, link_pagamento: r.link_pagamento ?? linha.link_pagamento } as T;
       onClose();
-      if (r.precisa_novo_link_cartao || r.forma !== "pix") {
-        if (r.precisa_novo_link_cartao) {
+      if (r.precisa_novo_link_cartao || r.precisa_novo_link_pix || r.forma !== "pix") {
+        if (r.precisa_novo_link_cartao || r.precisa_novo_link_pix) {
           try {
             await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true });
             await invalidarVendaDireta(qc);
-            toast.success("Novo link do cartão gerado");
+            toast.success(r.precisa_novo_link_pix ? "Novo link PIX pelo Safra gerado" : "Novo link do cartão gerado");
           } catch (e) {
             toast.error(e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message) ? AVISO_409 : rawMessage(e));
           }

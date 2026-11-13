@@ -652,6 +652,20 @@
       "when": 1794411445979,
       "tag": "0092_dev_vinculo_no_processo",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1794590318761,
+      "tag": "0093_pix_safra_regra",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1794590475444,
+      "tag": "0094_pix_safra_funcoes_vd",
+      "breakpoints": true
     }
   ]
 }

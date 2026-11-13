@@ -101,3 +101,4 @@
 - Qive NFS-e keys come only from `_shared/nfse-xml.ts` (ADN Id "NFS…" or NFSE-<cnpj>-<numero>-<data>), the same convention as the manual xml_nfse upload, so the same note never gets two keys.
 - Manual MP-receivable decisions live only in `recebivel_b2c_decisao` (via fn_recebivel_b2c_vincular/classificar) and enter `vw_recebivel_b2c_pedido` as the 3rd rule after token and number, so automatic attribution is never overwritten; `shopify-pagamento-sync` stores every SUCCESS SALE/CAPTURE Mercado Pago token per order in a dated, resumable window logged in `shopify_pagamento_sync_execucao`.
 - Bloco K: `centro_distribuicao.posse`; gaps: RPC uses keys across output/own input/returns, deduplicated per issuer/series/number.
+- PIX pelo Safra: uma regra própria de pagamento ao lado do PIX por QR local; os links PIX são gravados como pix_link e se confirmam sozinhos pela conferência automática.

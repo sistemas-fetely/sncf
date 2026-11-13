@@ -185,7 +185,7 @@ async function gerarLinkTitulo(ctx: {
 
     const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
       criado_por: userId, pedido_id: tit.pedido_id, provisao_id: null, titulo_id: tituloId, gateway: "safrapay", ambiente: amb,
-      valor, max_parcelas: maxParcelas, expira_em: expira.toISOString(), status: "criando",
+      valor, max_parcelas: maxParcelas, expira_em: expira.toISOString(), status: "criando", meio: "cartao_link",
     }).select("id").single();
     if (eIns) return await falhar(`Registrar link: ${eIns.message}`, 409);
     linha = linhaNova;
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
 
   const { data: pedido, error: eP } = await sb
     .from("pedidos")
-    .select("id, id_externo, parceiro_id, valor_liquido, forma_solicitada, origem, estagio, cancelado_em, endereco_entrega, cliente_nome_snapshot")
+    .select("id, id_externo, parceiro_id, valor_liquido, forma_solicitada, origem, estagio, cancelado_em, endereco_entrega, cliente_nome_snapshot, regras_pagamento_pedido(codigo)")
     .eq("id", pedidoId).maybeSingle();
   if (eP) return json({ ok: false, erro: `Ler pedido: ${eP.message}` }, 500);
   if (!pedido) return json({ ok: false, erro: "Pedido não encontrado." }, 404);
@@ -302,6 +302,11 @@ Deno.serve(async (req) => {
   const abertas = (provs ?? []).filter((p: any) => p.pago_em == null && !["pago", "cancelado", "cancelada"].includes(String(p.status)));
   const forma = String(pedido.forma_solicitada);
   if (ehVD && !["pix", "cartao", "cartao_credito"].includes(forma)) return json({ ok: false, erro: `Forma do pedido não aceita link (${forma}).` }, 409);
+  // 13/11/2026 PIX-SAFRA-LINK: na Venda Direta o PIX comum é QR local (chave da Fetely); só a regra pix_safra gera link PIX no Safra.
+  const regraPedido = String((pedido as any).regras_pagamento_pedido?.codigo ?? "");
+  if (ehVD && forma === "pix" && regraPedido !== "pix_safra") {
+    return json({ ok: false, erro: "PIX da Venda Direta é QR na chave da Fetely — para link Safrapay, troque o meio para PIX pelo Safra." }, 409);
+  }
   let meioEscolhido = forma === "pix" ? "pix" : "cartao";
   if (!ehVD) {
     if (body?.meio != null && !["cartao", "pix"].includes(body.meio)) return json({ ok: false, erro: "meio deve ser cartao ou pix." }, 400);
@@ -380,6 +385,7 @@ Deno.serve(async (req) => {
     if (cancelarNoSafra.length) {
       if (!merchantId) return await falhar(`merchant_id_${amb} ausente em safrapay_config — não dá para cancelar o link anterior.`, 500);
       for (const ant of cancelarNoSafra) {
+        // Links de paymentlink (cartao_link / pix_link) cancelam por smartcheckout; charge só para o PIX legado (meio "pix", 03/10).
         const rotaAnt = ant.meio === "pix" ? "charge" : "smartcheckout";
         const rD = await fetch(`${apiBase}/v2/${rotaAnt}/${encodeURIComponent(ant.gateway_link_id)}`, {
           method: "DELETE", headers: { Authorization: `Bearer ${accessToken}`, MerchantId: merchantId },
@@ -410,7 +416,7 @@ Deno.serve(async (req) => {
 
     const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
       criado_por: userId, pedido_id: pedidoId, provisao_id: prov.id, gateway: "safrapay", ambiente: amb,
-      valor, max_parcelas: maxParcelas, expira_em: expira.toISOString(), status: "criando",
+      valor, max_parcelas: maxParcelas, expira_em: expira.toISOString(), status: "criando", meio: ehPix ? "pix_link" : "cartao_link",
     }).select("id").single();
     if (eIns) return await falhar(`Registrar link: ${eIns.message}`, 409);
     linha = linhaNova;
