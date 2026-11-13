@@ -7,6 +7,9 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ehTransferenciaMesa } from "./expedicao-sp/transferenciaInterna";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEstadoTela } from "@/lib/navegacao";
@@ -45,7 +48,7 @@ import {
 import {
   useAvisoTransportadoraNf, useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega, useTrocarModal,
-  useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
+  useEntregarTransferenciaMesa, useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
@@ -68,7 +71,7 @@ function modalDoEmbalado(eventos: EventoMesa[]): string | null {
 export default function ExpedicaoSp() {
   const pedidosQ = usePedidosMesaSp();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtro de CD na URL ("" = Todos; sem CD conta como Site SP).
-  const [navMesa, setNavMesa] = useEstadoTela({ cd: "" });
+  const [navMesa, setNavMesa] = useEstadoTela({ cd: "", canal: "", pedido: "" });
   const filtroCd = navMesa.cd;
   // Opções: CDs habilitados em algum canal (centro_canal) do mesmo estabelecimento do Site SP + os que aparecem nos pedidos.
   const cdsMesaQ = useQuery({
@@ -98,11 +101,11 @@ export default function ExpedicaoSp() {
     return [...m.entries()].map(([codigo, rotulo]) => ({ codigo, rotulo }));
   }, [pedidosQ.data, filtroCd, cdsMesaQ.data]);
   const pedidos = useMemo(
-    () => (pedidosQ.data ?? []).filter((p) => !filtroCd || (p.cd_codigo ?? CENTRO_SITE_SP) === filtroCd),
-    [pedidosQ.data, filtroCd],
+    () => (pedidosQ.data ?? []).filter((p) => !filtroCd || (p.cd_codigo ?? CENTRO_SITE_SP) === filtroCd).filter((p) => !navMesa.canal || p.canal.toLowerCase() === navMesa.canal),
+    [pedidosQ.data, filtroCd, navMesa.canal],
   );
   const eventosQ = useEventosMesaSp(pedidos.map((p) => p.id));
-  const identidadesQ = useIdentidadesMesaSp(pedidos.map((p) => p.id));
+  const identidadesQ = useIdentidadesMesaSp(pedidos.filter((p) => !ehTransferenciaMesa(p.canal)).map((p) => p.id));
   const modaisQ = useModaisEntrega();
   const regrasQ = useRegrasModal();
   const vdModosQ = useVdModosModal();
@@ -120,7 +123,9 @@ export default function ExpedicaoSp() {
   const [motivoDevolver, setMotivoDevolver] = useState("");
   const [encerrarAberto, setEncerrarAberto] = useState(false);
 
-  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(navMesa.pedido || null);
+  const [entregaAberta, setEntregaAberta] = useState(false);
+  const [recebidoPor, setRecebidoPor] = useState("");
   const eventosPorPedido = useMemo(() => {
     const mapa = new Map<string, EventoMesa[]>();
     for (const e of eventosQ.data ?? []) {
@@ -151,6 +156,7 @@ export default function ExpedicaoSp() {
     [modaisQ.data],
   );
   const prontos = pedidos.filter((p) => estacaoDe.get(p.id) === "despacho");
+  const entregas = pedidos.filter((p) => ehTransferenciaMesa(p.canal) && p.etapa === "entrega");
   const aguardandoNf = pedidos.filter((p) => estacaoDe.get(p.id) === "aguardando_nf");
   const nfEmitida = pedidos.filter((p) => estacaoDe.get(p.id) === "nf_emitida");
   const aguardandoRetirada = prontos.filter((p) => {
@@ -172,13 +178,14 @@ export default function ExpedicaoSp() {
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
   useEffect(() => {
     if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
-    setSelecionadoId(naMesa[0]?.id ?? aguardandoRetirada[0]?.id ?? prontosDespacho[0]?.id ?? fila[0]?.id ?? aguardandoNf[0]?.id ?? nfEmitida[0]?.id ?? null);
+    setSelecionadoId(naMesa[0]?.id ?? aguardandoRetirada[0]?.id ?? prontosDespacho[0]?.id ?? entregas[0]?.id ?? fila[0]?.id ?? aguardandoNf[0]?.id ?? nfEmitida[0]?.id ?? null);
   }, [pedidos, naMesa, aguardandoRetirada, prontosDespacho, fila, aguardandoNf, nfEmitida, selecionadoId]);
 
   const selecionado = pedidos.find((p) => p.id === selecionadoId) ?? null;
   const identidadesSelecionado = selecionado ? identidadesQ.data?.get(selecionado.id) : undefined;
   const eventosSelecionado = selecionado ? eventosPorPedido.get(selecionado.id) ?? [] : [];
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
+  const selecionadoInterno = ehTransferenciaMesa(selecionado?.canal);
   const selecionadoEhB2B = selecionado ? pedidoEhB2B(selecionado.canal) : false;
   const selecionadoEhVD = selecionado ? pedidoEhVendaDireta(selecionado.id_externo) : false;
   const modoEntregaSelecionado = selecionadoEhVD ? modoEntregaVendaDireta(selecionado?.endereco_entrega) : null;
@@ -194,7 +201,7 @@ export default function ExpedicaoSp() {
     : false;
 
   const itensQ = useItensPedidoMesa(selecionado?.id ?? null);
-  const avisoNfQ = useAvisoTransportadoraNf(selecionado?.id ?? null);
+  const avisoNfQ = useAvisoTransportadoraNf(selecionadoInterno ? null : selecionado?.id ?? null);
   // Fotos de conferência visual por SKU — se a leitura falhar, a mesa segue sem fotos.
   const imagensQ = useImagensProdutosMesa(
     (itensQ.data ?? []).map((i) => i.sku).filter((s): s is string => !!s),
@@ -203,6 +210,7 @@ export default function ExpedicaoSp() {
     selecionado && estacaoSelecionada === "embalagem" ? selecionado.id : null,
   );
 
+  const entregarTi = useEntregarTransferenciaMesa();
   const puxar = usePuxarPedido();
   const conferir = useRegistrarConferencia();
   const embalar = useEmbalar();
@@ -275,7 +283,7 @@ export default function ExpedicaoSp() {
         estado={
           pedidosQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF`
+            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF · ${entregas.length} para entrega`
         }
       />
 
@@ -287,6 +295,10 @@ export default function ExpedicaoSp() {
             <SelectItem value="__todos">Todos</SelectItem>
             {opcoesCd.map((o) => <SelectItem key={o.codigo} value={o.codigo}>{o.rotulo}</SelectItem>)}
           </SelectContent>
+        </Select>
+        <Select value={navMesa.canal || "__todos"} onValueChange={(v) => setNavMesa({ canal: v === "__todos" ? "" : v })}>
+          <SelectTrigger className="h-8 w-[180px]" aria-label="Filtrar por canal"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="__todos">Todos os canais</SelectItem><SelectItem value="b2c">B2C</SelectItem><SelectItem value="b2b">B2B</SelectItem><SelectItem value="interno">Transferências</SelectItem></SelectContent>
         </Select>
       </div>
 
@@ -427,6 +439,7 @@ export default function ExpedicaoSp() {
             </CardContent>
           </Card>
 
+          {entregas.length > 0 && <Card><CardContent className="space-y-3 p-4"><p className="text-sm font-medium">Entrega · {entregas.length}</p>{entregas.map((p) => <LinhaPedido key={p.id} pedido={p} ativo={p.id === selecionadoId} onSelecionar={() => setSelecionadoId(p.id)} />)}</CardContent></Card>}
           <Card>
             <CardContent className="space-y-3 p-4">
               <p className="text-sm font-medium">
@@ -503,19 +516,19 @@ export default function ExpedicaoSp() {
             />
           ) : (
             <>
-              <FaixaInstrucaoExpedicao pedido={selecionado} />
+              {!selecionadoInterno && <FaixaInstrucaoExpedicao pedido={selecionado} />}
               <Card>
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
                     <div className="min-w-0 space-y-1">
                     <p className="truncate text-sm font-medium">
-                       {selecionado.cliente_nome ?? "cliente sem nome"}
+                       {selecionadoInterno ? `${selecionado.id_externo} · ${selecionado.cd_rotulo ?? "—"} → ${selecionado.destino_interno ?? "—"}` : selecionado.cliente_nome ?? "cliente sem nome"}
                     </p>
-                     <IdentidadesPedido
+                     {selecionadoInterno ? <Selo estado="info">Transferência</Selo> : <IdentidadesPedido
                        sncf={selecionado.id_externo}
                        bling={identidadesSelecionado?.bling_pedido_numero}
                        nf={identidadesSelecionado?.nf_refs}
                        loja={identidadesSelecionado?.order_name}
-                     />
+                     />}
                      {selecionadoEhB2B && (
                        <div className="flex flex-wrap items-center gap-2">
                          <Selo estado="info">B2B</Selo>
@@ -531,7 +544,7 @@ export default function ExpedicaoSp() {
                        const correios = embSel?.modal
                          ? modalPorCodigo.get(embSel.modal)?.exige_etiqueta_correios === true
                          : !!selecionado.servico_correios;
-                       return correios ? (
+                       return !selecionadoInterno && correios ? (
                          <SeloServicoCorreios
                            servico={selecionado.servico_correios}
                            freteValor={selecionado.frete_cliente_valor}
@@ -548,7 +561,7 @@ export default function ExpedicaoSp() {
                        </div>
                      )}
                     <p className="text-xs text-muted-foreground">
-                      {formatBRL(selecionado.valor_liquido)} · recebido {fmtDataHora(selecionado.recebido_em)}
+                      {!selecionadoInterno && `${formatBRL(selecionado.valor_liquido)} · `}recebido {fmtDataHora(selecionado.recebido_em)}
                     </p>
                     {cancelamentoSelecionado && (
                       <div className="space-y-0.5">
@@ -673,7 +686,7 @@ export default function ExpedicaoSp() {
                 </DialogContent>
               </Dialog>
 
-              {estacaoSelecionada === "nf_emitida" && (() => {
+              {!selecionadoInterno && estacaoSelecionada === "nf_emitida" && (() => {
                 const emb = embalagemDoPedido(eventosSelecionado);
                 const nf = identidadesSelecionado?.nf_refs;
                 return (
@@ -698,7 +711,7 @@ export default function ExpedicaoSp() {
                 );
               })()}
 
-              {estacaoSelecionada === "aguardando_nf" && (
+              {!selecionadoInterno && estacaoSelecionada === "aguardando_nf" && (
                 <Card>
                   <CardContent className="space-y-2 p-4">
                     {(() => {
@@ -717,6 +730,17 @@ export default function ExpedicaoSp() {
                 </Card>
               )}
 
+              {selecionadoInterno && estacaoSelecionada === "entrega" && <Card><CardContent className="space-y-3 p-4">
+                <Button onClick={() => { setRecebidoPor(""); setEntregaAberta(true); }}>Entregue no {selecionado.destino_interno ?? "destino"}</Button>
+                <Dialog open={entregaAberta} onOpenChange={(v) => { if (!entregarTi.isPending) setEntregaAberta(v); }}><DialogContent>
+                  <DialogHeader><DialogTitle>Entregue no {selecionado.destino_interno ?? "destino"}</DialogTitle><DialogDescription>{selecionado.id_externo} · {selecionado.cd_rotulo} → {selecionado.destino_interno}</DialogDescription></DialogHeader>
+                  <Label htmlFor="ti-recebido-por">Recebido por (opcional)</Label><Input id="ti-recebido-por" value={recebidoPor} onChange={(e) => setRecebidoPor(e.target.value)} />
+                  {entregarTi.error && <p className="text-sm text-destructive">{formatError(entregarTi.error)}</p>}
+                  <DialogFooter><Button variant="outline" disabled={entregarTi.isPending} onClick={() => setEntregaAberta(false)}>Voltar</Button><Button disabled={entregarTi.isPending} onClick={async () => {
+                    try { await entregarTi.mutateAsync({ p_pedido_id: selecionado.id, p_recebido_por: recebidoPor.trim() || null }); setEntregaAberta(false); setSelecionadoId(null); } catch { /* erro exibido pela mutation */ }
+                  }}>{entregarTi.isPending && <Loader2 className="animate-spin" />}Confirmar entrega</Button></DialogFooter>
+                </DialogContent></Dialog>
+              </CardContent></Card>}
               {estacaoSelecionada === "fila" && (
                 <Card>
                   <CardContent className="space-y-3 p-4">
@@ -760,7 +784,7 @@ export default function ExpedicaoSp() {
                 />
               )}
 
-              {estacaoSelecionada === "embalagem" && (
+              {!selecionadoInterno && estacaoSelecionada === "embalagem" && (
                 <EstacaoEmbalagem
                   pedidoId={selecionado.id}
                   enderecoEntrega={selecionado.endereco_entrega}
@@ -808,7 +832,7 @@ export default function ExpedicaoSp() {
                 />
               )}
 
-              {estacaoSelecionada === "documentos" && (() => {
+              {!selecionadoInterno && estacaoSelecionada === "documentos" && (() => {
                 const emb = embalagemDoPedido(eventosSelecionado);
                 return (
                   <EstacaoDocumentos
@@ -821,7 +845,7 @@ export default function ExpedicaoSp() {
                 );
               })()}
 
-              {estacaoSelecionada === "despacho" && (
+              {!selecionadoInterno && estacaoSelecionada === "despacho" && (
                 <EstacaoDespacho
                   pedidoId={selecionado.id}
                   modais={modaisQ.data ?? []}
@@ -927,13 +951,14 @@ function LinhaPedido({
     >
       <span className="flex flex-wrap items-center gap-1.5 text-sm">
         <span className="truncate">{pedido.id_externo}</span>
-        <SeloInstrucaoExpedicao pedido={pedido} />
+        {!ehTransferenciaMesa(pedido.canal) && <SeloInstrucaoExpedicao pedido={pedido} />}
+        {ehTransferenciaMesa(pedido.canal) && <Selo estado="info">Transferência</Selo>}
         {pedidoEhVendaDireta(pedido.id_externo) && <Selo estado="info">Site SP · venda direta</Selo>}
         {pedidoEhB2B(pedido.canal) && <Selo estado="info">B2B</Selo>}
         {cancelamento && <Selo estado="destructive">Cancelamento solicitado · {cancelamento.numero}</Selo>}
       </span>
       <span className="block truncate text-xs text-muted-foreground">
-        {pedido.cliente_nome ?? "cliente sem nome"}
+        {ehTransferenciaMesa(pedido.canal) ? `${pedido.cd_rotulo ?? "—"} → ${pedido.destino_interno ?? "—"}` : pedido.cliente_nome ?? "cliente sem nome"}
         {rotulo ? ` · ${rotulo}` : ""}
       </span>
       <span className={cn("block truncate text-xs", pedido.estourou_limite ? "text-warning-strong" : "text-muted-foreground")}>
@@ -988,15 +1013,16 @@ function QuadroBancada({
                   >
                     <span className="flex flex-wrap items-center gap-0.5">
                       <span className="font-medium">{p.id_externo}</span>
-                      <SeloInstrucaoExpedicao pedido={p} />
+                      {!ehTransferenciaMesa(p.canal) && <SeloInstrucaoExpedicao pedido={p} />}
+                      {ehTransferenciaMesa(p.canal) && <Selo estado="info">Transferência</Selo>}
                       {pedidoEhVendaDireta(p.id_externo) && <Selo estado="info">VD</Selo>}
                       {pedidoEhB2B(p.canal) && <Selo estado="info">B2B</Selo>}
                       {p.cd_codigo && p.cd_codigo !== CENTRO_SITE_SP && p.cd_rotulo && <Selo estado="info">{p.cd_rotulo}</Selo>}
                       {cancelamentos.has(p.id) && <Selo estado="destructive">Cancel.</Selo>}
                     </span>
-                    <span className="block truncate text-muted-foreground">{p.cliente_nome ?? "cliente sem nome"}</span>
+                    <span className="block truncate text-muted-foreground">{ehTransferenciaMesa(p.canal) ? `${p.cd_rotulo ?? "—"} → ${p.destino_interno ?? "—"}` : p.cliente_nome ?? "cliente sem nome"}</span>
                     <span className={cn("block", p.estourou_limite ? "text-warning-strong" : "text-muted-foreground")}>
-                      {tempoParado(p.minutos_parado)}
+                      {ehTransferenciaMesa(p.canal) ? `${p.etapa_rotulo ?? p.etapa} · ` : ""}{tempoParado(p.minutos_parado)}
                     </span>
                   </button>
                 </li>

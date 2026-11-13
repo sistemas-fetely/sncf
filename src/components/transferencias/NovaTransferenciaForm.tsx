@@ -671,9 +671,9 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                   )}
                 >
                   <span>
-                    <span className="block font-medium">Entre CDs de SP (sem NF)</span>
+                    <span className="block font-medium">Transferência interna</span>
                     <span className="mt-1 block text-sm font-normal text-muted-foreground">
-                      Peças mudam entre Site SP e Show Room, no mesmo endereço e mesmo CNPJ: sem NF, sem viagem, baixa e entrada na hora.
+                      Entre Site SP, Show Room e Evento, sem NF.
                     </span>
                   </span>
                 </Button>

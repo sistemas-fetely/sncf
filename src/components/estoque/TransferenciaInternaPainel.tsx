@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { saidaSiteSp, finalidadeSaidaSite } from "@/pages/logistica/expedicao-sp/transferenciaInterna";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -47,7 +49,14 @@ export function TransferenciaInternaPainel({
   tituloHistorico = "Histórico", seloSemNf = false,
 }: PainelProps = {}) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [finalidade, setFinalidade] = useState("");
   const [nav, setNav] = useEstadoTela({ origem: "", destino: "", de: diasAtras(30), ate: hojeISO() }, { prefixo: "ti" });
+  const viaMesa = saidaSiteSp(nav.origem);
+  const finalidadesQ = useQuery({ queryKey: ["ti-finalidades-mesa"], enabled: viaMesa, queryFn: async () => {
+    const { data, error } = await supabase.from("transferencia_finalidade").select("codigo,rotulo,exige_descricao").eq("ativo", true).eq("automatica", false).order("ordem");
+    if (error) throw error; return (data ?? []).filter((f) => finalidadeSaidaSite(f.codigo));
+  }});
   const [itens, setItens] = useState<Item[]>([]);
   const [obs, setObs] = useState("");
   // Separação física antecipada: permite itens acima do disponível na origem (saldo negativo até a entrada).
@@ -78,7 +87,7 @@ export function TransferenciaInternaPainel({
     return cs.filter((c) => (porEstab.get(c.estab) ?? 0) > 1);
   }, [centrosQ.data]);
   const origemC = elegiveis.find((c) => c.codigo === nav.origem) ?? null;
-  const destinosPossiveis = elegiveis.filter((c) => origemC && c.estab === origemC.estab && c.codigo !== origemC.codigo);
+  const destinosPossiveis = elegiveis.filter((c) => origemC && c.estab === origemC.estab && c.codigo !== origemC.codigo && (!viaMesa || ["FET-SP-SR", "EVENTO-SP"].includes(c.codigo)));
   const destinoC = destinosPossiveis.find((c) => c.codigo === nav.destino) ?? null;
 
   // Padrão: primeiro par disponível.
@@ -86,7 +95,7 @@ export function TransferenciaInternaPainel({
     if (elegiveis.length === 0) return;
     if (origemC && destinoC) return;
     const o = origemC ?? elegiveis[0];
-    const d = elegiveis.find((c) => c.estab === o.estab && c.codigo !== o.codigo);
+    const d = elegiveis.find((c) => c.estab === o.estab && c.codigo !== o.codigo && (!saidaSiteSp(o.codigo) || ["FET-SP-SR", "EVENTO-SP"].includes(c.codigo)));
     if (d) setNav({ origem: o.codigo, destino: d.codigo });
   }, [elegiveis, origemC, destinoC]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -142,14 +151,25 @@ export function TransferenciaInternaPainel({
 
   const qtdInvalida = (v: string) => v === "" || isNaN(Number(v)) || Number(v) <= 0 || !Number.isInteger(Number(v));
   const passa = (i: Item) => !!saldoQ.data && Number(i.qtd) > disp(nav.origem, i.sku);
-  const algumPassa = itens.some(passa);
+  const algumPassa = !viaMesa && itens.some(passa);
   // Com item acima do disponível, exige o checkbox de separação antecipada E observação preenchida.
-  const podeEnviar = !algumPassa || (permitirNegativo && obs.trim().length > 0);
+  const podeEnviar = viaMesa ? !!finalidadesQ.data?.some((f) => f.codigo === finalidade && (!f.exige_descricao || !!obs.trim())) : !algumPassa || (permitirNegativo && obs.trim().length > 0);
   const algumInvalido = itens.some((i) => qtdInvalida(i.qtd));
   const pecas = itens.reduce((s, i) => s + (Number(i.qtd) || 0), 0);
 
   const transferir = useMutation({
     mutationFn: async () => {
+      if (viaMesa) {
+        if (!podeEnviar) throw new Error("Escolha a finalidade e preencha a descrição quando obrigatória.");
+        const { data, error } = await (supabase as any).rpc("criar_pedido_transferencia", {
+          p_origem_codigo: "SITE-SP", p_destino_codigo: nav.destino, p_regularizacao: false,
+          p_finalidade_codigo: finalidade, p_observacao: obs.trim() || null,
+          p_itens: itens.map((i) => ({ sku: i.sku, quantidade: Number(i.qtd) })),
+        });
+        if (error) throw error;
+        if (!data?.ok || !data?.pedido_id) throw new Error(data?.erro ?? "A transferência não foi criada.");
+        return data as { ok: boolean; id_externo: string; pedido_id: string; mesa_sp: boolean; numero?: string; itens?: number; pecas?: number; saldo_negativo?: boolean };
+      }
       const { data, error } = await (supabase as any).rpc("fn_transferencia_interna", {
         p_origem: nav.origem, p_destino: nav.destino,
         p_itens: itens.map((i) => ({ sku: i.sku, quantidade: Number(i.qtd) })),
@@ -157,12 +177,14 @@ export function TransferenciaInternaPainel({
         p_permitir_negativo: algumPassa && permitirNegativo,
       });
       if (error) throw error;
-      const r = (data ?? {}) as { ok?: boolean; numero?: string; itens?: number; pecas?: number; saldo_negativo?: boolean; erro?: string };
+      const r = (data ?? {}) as { mesa_sp?: boolean; id_externo?: string; pedido_id?: string; ok?: boolean; numero?: string; itens?: number; pecas?: number; saldo_negativo?: boolean; erro?: string };
       if (r.ok === false) throw new Error(r.erro ?? "A transferência não foi registrada.");
       return r;
     },
     onSuccess: async (r) => {
-      if (r.saldo_negativo) {
+      if (r.mesa_sp) {
+        toast.success(`${r.id_externo} criada — vai para a Mesa de Expedição SP`, { action: { label: "Abrir Mesa", onClick: () => navigate(`/logistica/expedicao-sp?pedido=${r.pedido_id}`) } });
+      } else if (r.saldo_negativo) {
         toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças — Transferência registrada com saldo negativo na origem — será abatido na entrada.`);
       } else {
         toast.success(`${r.numero ?? "Transferência"} — ${r.itens ?? itens.length} itens, ${r.pecas ?? pecas} peças transferidas`);
@@ -205,7 +227,7 @@ export function TransferenciaInternaPainel({
       <div className="flex flex-wrap items-center gap-3">
         <Select value={origemC?.codigo ?? ""} onValueChange={(v) => {
           const o = elegiveis.find((c) => c.codigo === v);
-          const d = elegiveis.find((c) => o && c.estab === o.estab && c.codigo !== v);
+          const d = elegiveis.find((c) => o && c.estab === o.estab && c.codigo !== v && (!saidaSiteSp(v) || ["FET-SP-SR", "EVENTO-SP"].includes(c.codigo)));
           setNav({ origem: v, destino: d?.codigo ?? "" });
         }}>
           <SelectTrigger className="w-[200px]" aria-label="Origem"><SelectValue placeholder="Origem" /></SelectTrigger>
@@ -225,6 +247,7 @@ export function TransferenciaInternaPainel({
       {centrosQ.isSuccess && elegiveis.length === 0 && <p className="text-sm text-destructive">Nenhum par de centros do mesmo estabelecimento fiscal encontrado.</p>}
       {saldoQ.isError && <p className="text-sm text-destructive">Falha ao ler saldos: {formatError(saldoQ.error)}</p>}
 
+      {viaMesa && <div className="space-y-2"><Select value={finalidade} onValueChange={setFinalidade}><SelectTrigger className="w-full sm:w-[260px]" aria-label="Finalidade da transferência"><SelectValue placeholder="Finalidade (obrigatória)" /></SelectTrigger><SelectContent>{(finalidadesQ.data ?? []).map((f) => <SelectItem key={f.codigo} value={f.codigo}>{f.rotulo}</SelectItem>)}</SelectContent></Select>{finalidadesQ.error && <p className="text-sm text-destructive">{formatError(finalidadesQ.error)}</p>}</div>}
       <div className="flex flex-wrap items-start gap-2">
         <div className="relative w-[320px]">
           <Input value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Buscar por código, SKU ou nome" />
@@ -233,7 +256,7 @@ export function TransferenciaInternaPainel({
               {buscaQ.isLoading ? <div className="p-2 text-sm text-muted-foreground">Buscando…</div>
                 : buscaQ.isError ? <div className="p-2 text-sm text-destructive">{formatError(buscaQ.error)}</div>
                 : (buscaQ.data ?? []).length === 0 ? <div className="p-2 text-sm text-muted-foreground">Nenhum produto</div>
-                : buscaQ.data!.map((p) => (
+                : (buscaQ.data ?? []).map((p) => (
                   <button key={p.sku} type="button" className="block w-full px-2 py-1.5 text-left text-sm hover:bg-accent"
                     onClick={() => { somar({ sku: p.sku, cod_cadastro: p.cod_cadastro, nome: p.nome_comercial }, 1); setTermo(""); }}>
                     <span className="font-mono text-xs">{p.cod_cadastro ?? p.sku}</span> · {p.nome_comercial ?? p.sku}
@@ -262,7 +285,7 @@ export function TransferenciaInternaPainel({
             </TableRow></TableHeader>
             <TableBody>
               {itens.map((i) => {
-                const excede = passa(i);
+                const excede = !viaMesa && passa(i);
                 return (
                   <TableRow key={i.sku} className={cn(excede && "bg-destructive/10")}>
                     <TableCell><CodProduto chave={i.sku} /></TableCell>
@@ -314,11 +337,12 @@ export function TransferenciaInternaPainel({
               disabled={itens.length === 0 || !origemC || !destinoC || !podeEnviar || algumInvalido || saldoQ.isLoading || transferir.isPending}
               onClick={() => transferir.mutate()}
             >
-              {transferir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} {rotuloBotao}
+              {transferir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} {viaMesa ? "Criar transferência" : rotuloBotao}
             </Button>
           )}
         </div>
       </div>
+      <p className="text-sm text-muted-foreground">Saídas do Site SP são separadas na Mesa de Expedição SP; a volta ao Site SP entra na hora.</p>
       </>)}
 
       {mostrarHistorico && <div className={cn("space-y-2", mostrarFormulario && "pt-4")}>

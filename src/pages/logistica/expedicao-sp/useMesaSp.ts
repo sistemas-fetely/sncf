@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ehTransferenciaMesa, mensagemEntregaTi, type EntregaTransferencia } from "./transferenciaInterna";
 import { dadosDaPrepostagem, montarEtiquetaCorreiosZpl } from "@/lib/logistica/etiquetaCorreiosZpl";
 import { escolherImpressora, imprimirZpl, listarImpressoras, qzDisponivel } from "@/lib/impressao/qz";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -62,9 +63,18 @@ export function usePedidosMesaSp() {
         )
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);
+      const internos = (data ?? []).filter((p) => ehTransferenciaMesa(p.canal)).map((p) => p.pedido_id);
+      const destinos = new Map<string, { destino_interno: string | null; destino_centro_id: string | null }>();
+      if (internos.length) {
+        const { data: ds, error: ed } = await supabaseMesa.from("pedidos").select("id,destino_interno,destino_centro_id").in("id", internos);
+        if (ed) throw new Error(`ler destinos internos: ${mensagemErro(ed)}`);
+        for (const d of ds ?? []) destinos.set(d.id, d);
+      }
       return ((data ?? []) as (Omit<PedidoMesa, "id"> & { pedido_id: string })[]).map(({ pedido_id, ...p }) => ({
         ...p,
         id: pedido_id,
+        ...destinos.get(pedido_id),
+        ...(ehTransferenciaMesa(p.canal) ? { instrucao_expedicao: null, instrucao_expedicao_lida_em: null, instrucao_pendente: false } : {}),
         valor_liquido: Number(p.valor_liquido ?? 0),
         minutos_parado: p.minutos_parado == null ? null : Number(p.minutos_parado),
         estourou_limite: p.estourou_limite === true,
@@ -578,6 +588,21 @@ export function usePuxarPedido() {
     "fn_mesa_sp_puxar_pedido",
     () => "Pedido puxado para separação.",
   );
+}
+
+export function useEntregarTransferenciaMesa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { p_pedido_id: string; p_recebido_por: string | null }) => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_entregar_transferencia", args);
+      if (error) throw new Error(mensagemErro(error));
+      const r = data as EntregaTransferencia & { erro?: string };
+      if (!r?.ok) throw new Error(r?.erro ?? "A entrega não foi registrada.");
+      return r;
+    },
+    onSuccess: async (r) => { await qc.invalidateQueries(); toast.success(mensagemEntregaTi(r)); },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
 }
 
 export function useIniciarConferencia() {

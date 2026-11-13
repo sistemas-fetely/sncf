@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { ehTransferenciaMesa } from "./transferenciaInterna";
 import { bloqueiaAvancoInstrucao } from "@/lib/pedidos/instrucaoExpedicao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { ArrowRight, ImageOff, Loader2, PackageSearch, Printer } from "lucide-react";
@@ -106,7 +107,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
         {/* ── Faixa de identificação da caixa (recorte) ── */}
         <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: "12pt", letterSpacing: "0.05em" }}>
-            {[pedido?.cliente_nome ?? "cliente sem nome", cidadeUf(pedido?.endereco_entrega), hojePtBr()]
+            {[ehTransferenciaMesa(pedido?.canal) ? `${pedido?.cd_rotulo ?? "—"} → ${pedido?.destino_interno ?? "—"}` : pedido?.cliente_nome ?? "cliente sem nome", ehTransferenciaMesa(pedido?.canal) ? null : cidadeUf(pedido?.endereco_entrega), hojePtBr()]
               .filter(Boolean)
               .join("  ·  ")}
           </p>

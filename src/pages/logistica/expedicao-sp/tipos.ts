@@ -9,7 +9,7 @@ import { normalizarGtin, normalizarLeitura } from "@/lib/estoque/resolverCodigoB
 
 /** Códigos das etapas ativas (`mesa_sp_etapa`). Rótulo e ordem vêm do banco. */
 export const ESTACOES = [
-  "fila", "separacao", "conferencia", "embalagem", "documentos", "despacho", "aguardando_nf", "nf_emitida",
+  "fila", "separacao", "conferencia", "entrega", "embalagem", "documentos", "despacho", "aguardando_nf", "nf_emitida",
 ] as const;
 
 /** `fn_mesa_sp_documentos_ok`: estação Documentos concluída. */
@@ -122,6 +122,8 @@ export interface PedidoMesa {
   estagio: string;
   canal: string;
   cliente_nome: string | null;
+  destino_interno?: string | null;
+  destino_centro_id?: string | null;
   /** CD do pedido (`vw_mesa_sp_quadro`); null = sem CD gravado. */
   cd_codigo: string | null;
   cd_rotulo: string | null;

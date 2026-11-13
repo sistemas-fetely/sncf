@@ -1,3 +1,4 @@
+import { ehTransferenciaMesa, estagioTiMesa } from "@/pages/logistica/expedicao-sp/transferenciaInterna";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
@@ -200,7 +201,7 @@ export default function TransferenciasInternas() {
   const linhas = listaQ.data ?? [];
   const visiveis = mostrarVendaFora
     ? linhas
-    : linhas.filter((t) => t.finalidade_codigo !== "venda_fora");
+    : linhas.filter((t) => t.finalidade_codigo !== "venda_fora" || ehTransferenciaMesa(t.canal));
   const nVendaFora = linhas.length - visiveis.length;
   useFocoAoVoltar({ pronto: listaQ.isSuccess, idsVisiveis: visiveis.map((t) => t.id), focoParam: "tr_foco" });
   useRestaurarScroll(null, listaQ.isSuccess);
@@ -416,10 +417,11 @@ export default function TransferenciasInternas() {
               <TableBody>
                 {visiveis.filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
                   // Linha TI (sem NF): id sintético, não existe em pedidos — abre a gaveta lateral.
-                  const ehTi = t.origem_registro === "ti";
+                  const mesaTi = ehTransferenciaMesa(t.canal);
+                  const ehTi = t.origem_registro === "ti" && !mesaTi;
                   const abrir = ehTi
                     ? () => setGavetaTi(t)
-                    : () => abrirDetalhe(navigate, location, `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
+                    : () => abrirDetalhe(navigate, location, mesaTi ? `/logistica/expedicao-sp?pedido=${t.id}` : `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
                   return (
                     <TableRow
                       key={t.id}
@@ -496,7 +498,7 @@ export default function TransferenciasInternas() {
                       </TableCell>
                       <TableCell>{t.destino_interno ?? "—"}</TableCell>
                       <TableCell>
-                        <SeloEstagioTransferencia estagio={t.estagio} blingIdDestino={t.bling_id_destino} blingEnvioErro={t.bling_envio_erro} />
+                        {estagioTiMesa(t) ? <Badge variant={t.recebido_em ? "secondary" : "outline"}>{estagioTiMesa(t)}</Badge> : <SeloEstagioTransferencia estagio={t.estagio} blingIdDestino={t.bling_id_destino} blingEnvioErro={t.bling_envio_erro} />}
                       </TableCell>
                       <TableCell>
                         {(() => {
