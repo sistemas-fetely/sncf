@@ -14,7 +14,7 @@ export function AcoesEtiquetaCorreiosZpl({ prepostagemId, codigo, disabled }: { 
   const [aberto, setAberto] = useState(false);
   async function abrirPrevia() {
     setAberto(true); setErro(null); setCarregando(true);
-    try { if (img) URL.revokeObjectURL(img); setImg(await previaZplCorreios(prepostagemId)); }
+    try { setImg(await previaZplCorreios(prepostagemId)); }
     catch (e) { setImg(null); setErro(formatError(e)); }
     finally { setCarregando(false); }
   }

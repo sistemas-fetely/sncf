@@ -74,6 +74,7 @@
         "vaul": "^0.9.9",
         "xlsx": "^0.18.5",
         "zod": "^3.25.76",
+        "zpl-renderer-js": "5.0.0",
         "zustand": "^5.0.12",
       },
       "devDependencies": {
@@ -1797,6 +1798,8 @@
     "zip-stream": ["zip-stream@4.1.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/zip-stream/-/zip-stream-4.1.1.tgz", { "dependencies": { "archiver-utils": "^3.0.4", "compress-commons": "^4.1.2", "readable-stream": "^3.6.0" } }, "sha512-9qv4rlDiopXg4E69k+vMHjNN63YFMe9sZMrdlvKnCjlCRWeCBswPPMPUfx+ipsAWq1LXHe70RcbaHdJJpS6hyQ=="],
 
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+
+    "zpl-renderer-js": ["zpl-renderer-js@5.0.0", "", {}, "sha512-6Nq2vOi/BUF6nDp8Eupr1L1uc+xlyPGhkWbieIuyhpceLzcm2IINE0Z1I+pIRU9Pw2TxyM5XEL38rx7T7bZWuw=="],
 
     "zustand": ["zustand@5.0.12", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/zustand/-/zustand-5.0.12.tgz", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g=="],
 

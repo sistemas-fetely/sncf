@@ -979,14 +979,23 @@ export async function imprimirCorreiosNaZebra(prepostagemId: string): Promise<{ 
   return { ok: true, codigo_objeto };
 }
 
-/** Prévia do ZPL como imagem (Labelary, 8 dpmm, 4x6). Devolve URL de objeto da imagem PNG. */
+let rendererZpl: Promise<typeof import("zpl-renderer-js/external")> | null = null;
+function carregarRendererZpl() {
+  rendererZpl ??= (async () => {
+    const [mod, wasm] = await Promise.all([import("zpl-renderer-js/external"), import("zpl-renderer-js/wasm?url")]);
+    await mod.init({ wasmUrl: wasm.default });
+    return mod;
+  })().catch((e) => { rendererZpl = null; throw e; });
+  return rendererZpl;
+}
+
+/** Prévia do ZPL como imagem, renderizada no navegador (8 dpmm, 10x15). Devolve data URL PNG. */
 export async function previaZplCorreios(prepostagemId: string): Promise<string> {
   const { zpl } = await lerZplCorreios(prepostagemId);
-  const r = await fetch("https://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/", {
-    method: "POST", headers: { Accept: "image/png", "Content-Type": "application/x-www-form-urlencoded" }, body: zpl,
-  });
-  if (!r.ok) throw new Error(`Labelary recusou a prévia (HTTP ${r.status}): ${await r.text()}`);
-  return URL.createObjectURL(await r.blob());
+  const { zplToBase64Async } = await carregarRendererZpl();
+  const b64 = await zplToBase64Async(zpl, 101.6, 152.4, 8, { grayscaleOutput: true });
+  if (!b64) throw new Error("O renderizador local não devolveu imagem para a prévia.");
+  return `data:image/png;base64,${b64}`;
 }
 
 /** Alternativa: PDF oficial dos Correios (edge existente, ação rotulo). */
