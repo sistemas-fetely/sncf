@@ -10,6 +10,7 @@ import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { contaCorrenteFornecedores, linhaPendente, rotuloMes, situacaoEntrada, situacaoMes, type RotinaContasPagar } from "@/lib/despesas/rotina";
+import { ContaCorrenteFornecedorCard } from "@/components/financeiro/ContaCorrenteFornecedorCard";
 
 // Typed boundary for the existing RPC until the generated client includes its signature.
 const consultarRotina = supabase.rpc.bind(supabase) as unknown as (nome: "fn_contas_pagar_rotina") => PromiseLike<{
@@ -77,24 +78,7 @@ export function HojeTab({ abrirClassificar }: { abrirClassificar: () => void }) 
       {contaCorrente.length > 0 && <section className="space-y-3" aria-labelledby="rotina-conta-corrente">
         <h2 id="rotina-conta-corrente" className="text-lg font-medium">Conta corrente de fornecedores</h2>
         <div className="grid gap-3 xl:grid-cols-2">
-          {contaCorrente.map((fornecedor) => <div key={fornecedor.cnpj ?? fornecedor.nome} className="flex flex-col gap-3 rounded-md border bg-card p-4 text-card-foreground">
-            <div className="min-w-0">
-              <p className="break-words font-medium">{fornecedor.nome}</p>
-              <p className="text-xs text-muted-foreground">Nota não gera título — a obrigação é o saldo</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Saldo devedor</p>
-              <p className="text-2xl font-medium tabular-nums">{formatBRL(fornecedor.saldo)}</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <div><p className="text-xs text-muted-foreground">Vencido</p><p className={cn("text-sm font-medium tabular-nums", fornecedor.vencido > 0 && "text-destructive")}>{formatBRL(fornecedor.vencido)}</p></div>
-              <div><p className="text-xs text-muted-foreground">A vencer</p><p className="text-sm font-medium tabular-nums">{formatBRL(fornecedor.a_vencer)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Sem vencimento na nota</p><p className="text-sm font-medium tabular-nums">{formatBRL(fornecedor.sem_vencimento)}</p></div>
-            </div>
-            <p className="break-words text-xs text-muted-foreground">
-              Notas: {formatBRL(fornecedor.documentado)} · Pago: {formatBRL(fornecedor.pago)} · Último pagamento: {fornecedor.ultimo_pagamento ? formatDateBR(fornecedor.ultimo_pagamento) : "—"} · {fornecedor.notas_abertas} {fornecedor.notas_abertas === 1 ? "nota em aberto" : "notas em aberto"}
-            </p>
-          </div>)}
+          {contaCorrente.map((fornecedor) => <ContaCorrenteFornecedorCard key={fornecedor.cnpj ?? fornecedor.nome} fornecedor={fornecedor} />)}
         </div>
       </section>}
       <section className="space-y-3" aria-labelledby="rotina-resolvido">
