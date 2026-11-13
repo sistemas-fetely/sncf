@@ -1,5 +1,6 @@
 import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AcoesEtiquetaCorreiosZpl } from "./AcoesEtiquetaCorreiosZpl";
 import { useGerarEtiquetaCorreios, usePrepostagemViva } from "./useMesaSp";
 
 /**
@@ -13,6 +14,7 @@ export function BotaoEtiquetaCorreios({ pedidoId, disabled }: { pedidoId: string
   if (ppQ.error) return <span className="text-xs text-destructive">{(ppQ.error as Error).message}</span>;
   if (!pp) return null;
   return (
+    <span className="inline-flex flex-wrap items-center gap-2">
     <Button
       type="button" size="sm" variant="outline"
       onClick={() => gerar.mutate({ pedidoId, prepostagemId: pp.id })}
@@ -21,5 +23,7 @@ export function BotaoEtiquetaCorreios({ pedidoId, disabled }: { pedidoId: string
       {gerar.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}
       Imprimir etiqueta Correios{pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}
     </Button>
+    <AcoesEtiquetaCorreiosZpl prepostagemId={pp.id} codigo={pp.codigo_objeto} disabled={disabled} />
+    </span>
   );
 }

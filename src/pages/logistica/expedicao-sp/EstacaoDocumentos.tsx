@@ -16,6 +16,7 @@ import { imprimirPdfBase64 } from "./useMesaSp";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
+import { AcoesEtiquetaCorreiosZpl } from "./AcoesEtiquetaCorreiosZpl";
 import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia, useCaixasAtivas, useCorrigirCaixaEmbalagem, useModaisEntrega } from "./useMesaSp";
 import { SeletorCaixaAvulsa } from "./SeletorCaixaAvulsa";
 import { dimAvulsa, embalagemSemCaixa, erroPedeCorrigirEmbalagem, type DimCaixaTexto } from "@/lib/logistica/caixaEmbalagem";
@@ -219,6 +220,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
               {trocaViva ? `Trocar etiqueta para ${servicoEscolhido}`
                 : pp ? `Reimprimir etiqueta Correios${pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}` : "Gerar etiqueta Correios"}
             </Button>
+            {pp && !trocaViva && <AcoesEtiquetaCorreiosZpl prepostagemId={pp.id} codigo={pp.codigo_objeto} disabled={bloqueado} />}
             <AlertDialog open={confirmarTroca} onOpenChange={setConfirmarTroca}>
               <AlertDialogContent>
                 <AlertDialogHeader>

@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { dadosDaPrepostagem, montarEtiquetaCorreiosZpl } from "@/lib/logistica/etiquetaCorreiosZpl";
+import { escolherImpressora, imprimirZpl, listarImpressoras, qzDisponivel } from "@/lib/impressao/qz";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } from "@/lib/logistica/postagemAgencia";
@@ -954,6 +956,51 @@ export function imprimirPdfBase64(b64: string, janela?: Window): boolean {
   return true;
 }
 
+/** Monta o ZPL da etiqueta Correios a partir da pré-postagem gravada (não cria nem altera nada). */
+export async function lerZplCorreios(prepostagemId: string): Promise<{ zpl: string; codigo_objeto: string }> {
+  const { data: pp, error } = await supabaseMesa.from("correios_prepostagem")
+    .select("codigo_objeto, servico, cartao, payload_envio, status").eq("id", prepostagemId).maybeSingle();
+  if (error) throw new Error(`ler pré-postagem: ${mensagemErro(error)}`);
+  if (!pp || pp.status === "cancelada") throw new Error("Pré-postagem não encontrada ou cancelada.");
+  const { data: ct, error: eC } = await supabaseMesa.from("correios_cartao_postagem").select("contrato").eq("cartao", pp.cartao).maybeSingle();
+  if (eC) throw new Error(`ler cartão de postagem: ${mensagemErro(eC)}`);
+  const dados = dadosDaPrepostagem(pp, ct?.contrato ?? null);
+  return { zpl: montarEtiquetaCorreiosZpl(dados), codigo_objeto: dados.codigoObjeto };
+}
+
+/** Envia o ZPL Correios à Zebra da estação (mesmo caminho QZ da etiqueta do marketplace). */
+export async function imprimirCorreiosNaZebra(prepostagemId: string): Promise<{ ok: true; codigo_objeto: string } | { ok: false; erro: string }> {
+  const { zpl, codigo_objeto } = await lerZplCorreios(prepostagemId);
+  const disp = await qzDisponivel();
+  if (!disp.ok) return { ok: false, erro: `QZ Tray: ${disp.erro}` };
+  const impressora = escolherImpressora(await listarImpressoras());
+  if (!impressora) return { ok: false, erro: "nenhuma impressora Zebra encontrada" };
+  await imprimirZpl(impressora, zpl);
+  return { ok: true, codigo_objeto };
+}
+
+/** Prévia do ZPL como imagem (Labelary, 8 dpmm, 4x6). Devolve URL de objeto da imagem PNG. */
+export async function previaZplCorreios(prepostagemId: string): Promise<string> {
+  const { zpl } = await lerZplCorreios(prepostagemId);
+  const r = await fetch("https://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/", {
+    method: "POST", headers: { Accept: "image/png", "Content-Type": "application/x-www-form-urlencoded" }, body: zpl,
+  });
+  if (!r.ok) throw new Error(`Labelary recusou a prévia (HTTP ${r.status}): ${await r.text()}`);
+  return URL.createObjectURL(await r.blob());
+}
+
+/** Alternativa: PDF oficial dos Correios (edge existente, ação rotulo). */
+export function useAbrirPdfCorreios() {
+  return useMutation({
+    mutationFn: async (prepostagemId: string) => {
+      const janela = window.open("", "_blank");
+      const rot = await chamarPrepostagem<{ pdf_base64: string }>({ acao: "rotulo", prepostagem_id: prepostagemId });
+      if (!imprimirPdfBase64(rot.pdf_base64, janela ?? undefined)) throw new Error("O navegador bloqueou a janela do PDF. Libere pop-ups para esta página.");
+    },
+    onError: (e: unknown) => toast.error(mensagemErro(e)),
+  });
+}
+
 /** Gera (ou reaproveita) a pré-postagem e imprime o rótulo no mesmo clique. */
 export function useGerarEtiquetaCorreios() {
   const qc = useQueryClient();
@@ -976,12 +1023,16 @@ export function useGerarEtiquetaCorreios() {
         });
         id = r.prepostagem.id;
       }
+      // MESA-SP-ETIQUETA-CORREIOS-ZPL: Zebra via QZ com o ZPL do SNCF; sem QZ, PDF dos Correios.
+      const zebra = await imprimirCorreiosNaZebra(id);
+      if (zebra.ok) return { pedidoId, modo: "zpl" as const, codigo_objeto: zebra.codigo_objeto, aviso: null as string | null, pdf_base64: null as string | null };
       const rot = await chamarPrepostagem<{ pdf_base64: string; codigo_objeto: string }>({ acao: "rotulo", prepostagem_id: id });
-      return { pedidoId, ...rot };
+      return { pedidoId, modo: "pdf" as const, codigo_objeto: rot.codigo_objeto, aviso: "erro" in zebra ? zebra.erro : null, pdf_base64: rot.pdf_base64 };
     },
     onSuccess: async (r) => {
-      if (!imprimirPdfBase64(r.pdf_base64)) toast.error("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página.");
-      else toast.success(`Etiqueta Correios ${r.codigo_objeto} enviada para impressão.`);
+      if (r.modo === "zpl") toast.success(`Etiqueta Correios ${r.codigo_objeto} enviada para a Zebra.`);
+      else if (!imprimirPdfBase64(r.pdf_base64!)) toast.error("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página.");
+      else toast.warning(`Zebra indisponível (${r.aviso}) — abrindo o PDF dos Correios ${r.codigo_objeto}.`);
       await qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, r.pedidoId] });
       void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
