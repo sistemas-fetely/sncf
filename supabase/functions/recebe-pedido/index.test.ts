@@ -20,6 +20,7 @@ export async function handlerFor(options: {
   tables?: Record<string, Row[]>;
   tableError?: string;
   rpc?: (name: string, args: Row) => Promise<Result>;
+  internal?: (url: string, init: RequestInit) => Promise<Response>;
 } = {}) {
   const tables = options.tables ?? {
     vd_modo_modal: mappings,
@@ -40,6 +41,8 @@ export async function handlerFor(options: {
       const query = {
         select: () => query,
         eq: (key: string, value: unknown) => { rows = rows.filter(row => row[key] === value); return query; },
+        in: (key: string, values: unknown[]) => { rows = rows.filter(row => values.includes(row[key])); return query; },
+        single: async () => ({ ...result(), data: rows[0] ?? null }),
         maybeSingle: async () => ({ ...result(), data: rows[0] ?? null }),
         then: (resolve: (value: Result) => unknown) => Promise.resolve(result()).then(resolve),
       };
@@ -60,6 +63,7 @@ export async function handlerFor(options: {
     { env: { get: () => "test-only" }, serve: (fn: typeof handler) => { handler = fn; } },
     async (_url: string, init: RequestInit) => {
       quotes.push(JSON.parse(String(init.body)));
+      if (options.internal) return options.internal(_url, init);
       return Response.json({ ok: false, erro: "Cotação simulada: nenhuma gravação" });
     },
   );
@@ -141,4 +145,72 @@ test("declaração preserva retorno e erro real da RPC", async () => {
     expect(response.status).toBe(error ? 400 : 200);
     expect(await response.json()).toEqual(error ? { ok: false, error: error.message } : { ok: true, declarado: true });
   }
+});
+
+const ids = { fop_profile_id: "11111111-1111-4111-8111-111111111111", pedido_id: "22222222-2222-4222-8222-222222222222" };
+const safraResponse = { ok: true, url: "https://example.test/pix", expira_em: "2026-11-14T17:00:00Z", pagamento_link_id: "link-test" };
+const internal = async (url: string, init: RequestInit) => {
+  expect(url.endsWith("/functions/v1/safrapay-link")).toBe(true);
+  expect((init.headers as Record<string, string>)["x-chamador"]).toBe("recebe-pedido-balcao");
+  return Response.json(safraResponse);
+};
+
+test("criação pix_safra devolve URL, validade, meio pix e id do link", async () => {
+  const { invoke, calls, quotes } = await handlerFor({ internal, rpc: async () => ({ data: { pedido_id: ids.pedido_id, pagamento: "pix_safra" }, error: null }) });
+  const data = await (await invoke({ tipo: "balcao_criar", ...ids, pagamento: "pix_safra" })).json();
+  expect(calls[0].args.p_pagamento).toBe("pix_safra");
+  expect(data).toMatchObject({ url: safraResponse.url, link_pagamento: safraResponse.url, expira_em: safraResponse.expira_em, meio: "pix", pagamento_link_id: "link-test" });
+  expect(quotes[0]).toEqual({ pedido_id: ids.pedido_id, forcar_novo: false });
+});
+
+test("criação PIX local não chama Safra; cartão continua chamando", async () => {
+  for (const pagamento of ["pix", "cartao"]) {
+    const { invoke, quotes } = await handlerFor({ internal, rpc: async () => ({ data: { pedido_id: ids.pedido_id, pagamento, link_pagamento: "qr-local" }, error: null }) });
+    const data = await (await invoke({ tipo: "balcao_criar", ...ids, pagamento })).json();
+    expect(quotes.length).toBe(pagamento === "pix" ? 0 : 1);
+    expect(data.link_pagamento).toBe(pagamento === "pix" ? "qr-local" : safraResponse.url);
+  }
+});
+
+test("balcao_link usa a regra e não a forma pix para distinguir QR e Safra", async () => {
+  for (const codigo of ["pix", "pix_safra"]) {
+    const { invoke, quotes } = await handlerFor({ internal, tables: {
+      vendedores: [{ id: "vend", fop_profile_id: ids.fop_profile_id }],
+      pedidos: [{ id: ids.pedido_id, origem: "venda_direta", vendedor_id: "vend", forma_solicitada: "pix", regra_pagamento_id: "regra" }],
+      regras_pagamento_pedido: [{ id: "regra", codigo }],
+      vw_venda_direta_gestao: [{ id: ids.pedido_id, link_pagamento: "qr-local" }],
+    } });
+    const data = await (await invoke({ tipo: "balcao_link", ...ids })).json();
+    expect(data.meio).toBe("pix");
+    expect(data.url).toBe(codigo === "pix" ? "qr-local" : safraResponse.url);
+    expect(quotes.length).toBe(codigo === "pix" ? 0 : 1);
+  }
+});
+
+test("edição e troca geram novo PIX Safra por regra ou sinal da RPC", async () => {
+  for (const tipo of ["balcao_editar", "balcao_trocar_meio"]) {
+    for (const res of [{ pagamento: "pix_safra", meio_trocado: true }, { precisa_novo_link_pix: true }]) {
+      const { invoke, quotes } = await handlerFor({ internal, rpc: async () => ({ data: res, error: null }) });
+      const data = await (await invoke({ tipo, ...ids, meio: "pix_safra" })).json();
+      expect(data).toMatchObject({ url: safraResponse.url, expira_em: safraResponse.expira_em, meio: "pix", pagamento_link_id: "link-test" });
+      expect(quotes[0]).toEqual({ pedido_id: ids.pedido_id, forcar_novo: true });
+    }
+  }
+});
+
+test("erro Safra após criação fica explícito sem desfazer pedido", async () => {
+  const { invoke } = await handlerFor({ internal: async () => Response.json({ erro: "PIX por link desligado" }, { status: 409 }), rpc: async () => ({ data: { pedido_id: ids.pedido_id, pagamento: "pix_safra" }, error: null }) });
+  const data = await (await invoke({ tipo: "balcao_criar", ...ids, pagamento: "pix_safra" })).json();
+  expect(data.pedido_id).toBe(ids.pedido_id);
+  expect(data.link_erro).toBe("PIX por link desligado");
+  expect(data.url).toBeNull();
+});
+
+test("declaração pix_safra propaga a recusa da regra persistida sem chamar Safra", async () => {
+  const message = "PIX pelo Safra confirma sozinho pelo link — nao precisa declarar.";
+  const { invoke, quotes } = await handlerFor({ rpc: async () => ({ data: null, error: { code: "22023", message } }) });
+  const response = await invoke({ tipo: "balcao_declarar_pagamento", ...ids, meio: "pix" });
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ ok: false, error: message });
+  expect(quotes).toHaveLength(0);
 });

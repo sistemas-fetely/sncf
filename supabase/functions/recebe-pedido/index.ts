@@ -224,7 +224,10 @@ Deno.serve(async (req) => {
         let link_erro: string | null = null;
         let link_expira_em: string | null = null;
         let max_parcelas: number | null = null;
-        if (body.pagamento === "cartao") {
+        let pagamento_link_id: string | null = null;
+        const regra = res.pagamento ?? body.pagamento;
+        const linkSafra = regra === "cartao" || regra === "pix_safra";
+        if (linkSafra) {
           const r = await chamarInterna("safrapay-link", {
             pedido_id: res.pedido_id, forcar_novo: false,
             ...(body.max_parcelas ? { max_parcelas: body.max_parcelas } : {}),
@@ -233,6 +236,7 @@ Deno.serve(async (req) => {
             link_pagamento = r.json.url ?? null;
             link_expira_em = r.json.expira_em ?? null;
             max_parcelas = r.json.max_parcelas ?? null;
+            pagamento_link_id = r.json.pagamento_link_id ?? null;
           } else {
             // Não desfaz o pedido: o vendedor gera de novo por balcao_link.
             link_erro = r.json?.erro ?? r.json?.error ?? `safrapay-link HTTP ${r.status}`;
@@ -241,7 +245,10 @@ Deno.serve(async (req) => {
         }
         return jsonResponse(200, {
           ok: true, ...res, link_pagamento, link_erro,
-          ...(body.pagamento === "cartao" ? { link_expira_em, max_parcelas } : {}),
+          ...(linkSafra ? {
+            link_expira_em, max_parcelas, url: link_pagamento, expira_em: link_expira_em,
+            meio: regra === "pix_safra" ? "pix" : "cartao", pagamento_link_id,
+          } : {}),
         });
       }
 
@@ -271,12 +278,17 @@ Deno.serve(async (req) => {
         const vendIds = (vend ?? []).map((v: any) => v.id);
         if (vendIds.length === 0) return jsonResponse(403, { ok: false, error: "Pedido não é deste vendedor." });
         const { data: ped, error: eP } = await supabase
-          .from("pedidos").select("id, forma_solicitada")
+          .from("pedidos").select("id, regra_pagamento_id")
           .eq("id", body.pedido_id).eq("origem", "venda_direta").in("vendedor_id", vendIds).maybeSingle();
         if (eP) return erroRpc(eP);
         if (!ped) return jsonResponse(403, { ok: false, error: "Pedido não é deste vendedor." });
 
-        if ((ped as any).forma_solicitada === "pix") {
+        const { data: regra, error: eRegra } = await supabase.from("regras_pagamento_pedido")
+          .select("codigo").eq("id", ped.regra_pagamento_id).single();
+        if (eRegra) return erroRpc(eRegra);
+        if (!regra) return jsonResponse(400, { ok: false, error: "Pedido sem regra de pagamento." });
+
+        if (regra.codigo === "pix") {
           const { data: g, error: eG } = await supabase
             .from("vw_venda_direta_gestao").select("link_pagamento").eq("id", body.pedido_id).maybeSingle();
           if (eG) return erroRpc(eG);
@@ -287,12 +299,17 @@ Deno.serve(async (req) => {
           pedido_id: body.pedido_id, forcar_novo: body.forcar_novo === true,
           ...(body.max_parcelas ? { max_parcelas: body.max_parcelas } : {}),
         });
-        return jsonResponse(r.status, r.json);
+        return jsonResponse(r.status, {
+          ...r.json,
+          ...(r.json?.ok && regra.codigo === "pix_safra" ? { meio: "pix" } : {}),
+        });
       }
 
       if (body.tipo === "balcao_declarar_pagamento") {
         const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
         if (inv) return inv;
+        // A RPC valida o dono e recusa pix_safra pela regra persistida (não pelo body).
+        // A confirmação desse instrumento pertence exclusivamente ao safrapay-link-sync.
         const { data, error } = await supabase.rpc("fn_balcao_declarar_pagamento", {
           p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
           p_nsu: typeof body.nsu === "string" && body.nsu.trim() ? body.nsu.trim() : null,
@@ -303,14 +320,20 @@ Deno.serve(async (req) => {
 
       // ── Balcão: abrir/editar pedido (27/10/2026) ──
       // Regra toda no banco (fn_balcao_*): só o vendedor dono edita; janela por pedido_edicao_campo.
-      const linkCartaoSePreciso = async (res: any, pedidoId: string) => {
+      const linkSafraSePreciso = async (res: any, pedidoId: string) => {
         const meio = res?.pagamento ?? res?.meio;
-        const precisa = meio === "cartao" &&
-          (res?.pagamento_refeito === true || res?.meio_trocado === true || res?.precisa_novo_link_cartao === true ||
-           (res?.meio_anterior !== undefined && res?.meio_anterior !== "cartao"));
+        const precisa = res?.precisa_novo_link_pix === true || res?.precisa_novo_link_cartao === true ||
+          ((meio === "cartao" || meio === "pix_safra") &&
+            (res?.pagamento_refeito === true || res?.meio_trocado === true ||
+              (res?.meio_anterior !== undefined && res?.meio_anterior !== meio)));
         if (!precisa) return { link_pagamento: res?.link_pagamento ?? null, link_erro: null as string | null };
         const r = await chamarInterna("safrapay-link", { pedido_id: pedidoId, forcar_novo: true });
-        if (r.json?.ok) return { link_pagamento: r.json.url ?? null, link_erro: null, link_expira_em: r.json.expira_em ?? null };
+        if (r.json?.ok) return {
+          link_pagamento: r.json.url ?? null, link_erro: null, link_expira_em: r.json.expira_em ?? null,
+          url: r.json.url ?? null, expira_em: r.json.expira_em ?? null,
+          meio: meio === "pix_safra" || res?.precisa_novo_link_pix === true ? "pix" : "cartao",
+          pagamento_link_id: r.json.pagamento_link_id ?? null,
+        };
         const link_erro = r.json?.erro ?? r.json?.error ?? `safrapay-link HTTP ${r.status}`;
         console.error("[recebe-pedido] balcao edicao: link falhou", pedidoId, link_erro);
         return { link_pagamento: null, link_erro };
@@ -336,7 +359,7 @@ Deno.serve(async (req) => {
         });
         if (error) return erroRpc(error);
         const res: any = data ?? {};
-        return jsonResponse(200, { ok: true, ...res, ...(await linkCartaoSePreciso(res, body.pedido_id)) });
+        return jsonResponse(200, { ok: true, ...res, ...(await linkSafraSePreciso(res, body.pedido_id)) });
       }
 
       if (body.tipo === "balcao_trocar_meio") {
@@ -348,7 +371,7 @@ Deno.serve(async (req) => {
         });
         if (error) return erroRpc(error);
         const res: any = data ?? {};
-        return jsonResponse(200, { ok: true, ...res, ...(await linkCartaoSePreciso(res, body.pedido_id)) });
+        return jsonResponse(200, { ok: true, ...res, ...(await linkSafraSePreciso(res, body.pedido_id)) });
       }
 
       if (body.tipo === "balcao_cliente_atualizar") {
