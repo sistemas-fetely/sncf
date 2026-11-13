@@ -19,6 +19,7 @@ import { SeloServicoCorreios } from "./SeloServicoCorreios";
 import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia, useCaixasAtivas, useCorrigirCaixaEmbalagem, useModaisEntrega } from "./useMesaSp";
 import { SeletorCaixaAvulsa } from "./SeletorCaixaAvulsa";
 import { dimAvulsa, embalagemSemCaixa, erroPedeCorrigirEmbalagem, type DimCaixaTexto } from "@/lib/logistica/caixaEmbalagem";
+import { modalDoCadastro } from "@/lib/logistica/despachoModal";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -70,7 +71,8 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   const danfeQ = useDanfeEtiqueta(usaZebra ? pedido.id : null, !!dados?.nf);
   const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
   // Serviço (PAC/SEDEX) só vai ao rodapé da etiqueta quando o modal é Correios (exige rastreio).
-  const ehCorreios = (modaisQ.data ?? []).find((m) => m.codigo === (dados?.modal ?? embalagem?.modal))?.exige_etiqueta_correios === true;
+  // dados.modal é o NOME ("Correios") e embalagem.modal é o CÓDIGO ("CORREIOS") — casa por código ou nome.
+  const ehCorreios = modalDoCadastro(modaisQ.data ?? [], embalagem?.modal, dados?.modal)?.exige_etiqueta_correios === true;
   // Etiqueta Correios gerada pelo SNCF (pré-postagem viva) — a linha fica ok pelo código registrado.
   const ppQ = usePrepostagemViva(ehCorreios ? pedido.id : null);
   const pp = ppQ.data ?? null;

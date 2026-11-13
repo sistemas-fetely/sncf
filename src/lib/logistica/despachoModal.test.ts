@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requisitosDespachoModal } from "./despachoModal";
+import { modalDoCadastro, requisitosDespachoModal } from "./despachoModal";
 
 const modal = { exige_etiqueta_correios: false, sem_despacho: false, tem_rastreio_automatico: false };
 describe("despacho por capacidades do cadastro", () => {
@@ -26,5 +26,32 @@ describe("despacho por capacidades do cadastro", () => {
     expect(requisitosDespachoModal({ ...modal, tem_rastreio_automatico: true }, [], "").permiteLote).toBe(true);
     expect(requisitosDespachoModal({ ...modal, tem_rastreio_automatico: true }, [{ codigo: "NOVO", exige_referencia: false }], "NOVO").permiteLote).toBe(false);
     expect(requisitosDespachoModal(modal, [], "").permiteLote).toBe(false);
+  });
+});
+
+describe("modalDoCadastro", () => {
+  const correios = { codigo: "CORREIOS", nome: "Correios", exige_etiqueta_correios: true };
+  const retirada = { codigo: "RETIRADA", nome: "Retirada no local", exige_etiqueta_correios: false };
+  const modais = [correios, retirada];
+
+  it("resolve pelo nome devolvido por fn_mesa_sp_dados_impressao", () => {
+    expect(modalDoCadastro(modais, "Correios")).toBe(correios);
+  });
+  it("resolve pelo código da embalagem", () => {
+    expect(modalDoCadastro(modais, "CORREIOS")).toBe(correios);
+  });
+  it("ignora maiúsculas e espaços", () => {
+    expect(modalDoCadastro(modais, " correios ")).toBe(correios);
+  });
+  it("código desconhecido devolve null", () => {
+    expect(modalDoCadastro(modais, "INEXISTENTE")).toBeNull();
+    expect(modalDoCadastro(modais, null, undefined, "")).toBeNull();
+  });
+  it("embalagem (código) tem precedência sobre dados (nome)", () => {
+    expect(modalDoCadastro(modais, "RETIRADA", "Correios")).toBe(retirada);
+    expect(modalDoCadastro(modais, null, "Correios")).toBe(correios);
+  });
+  it("exige_etiqueta_correios do modal resolvido", () => {
+    expect(modalDoCadastro(modais, "CORREIOS", "Correios")?.exige_etiqueta_correios).toBe(true);
   });
 });
