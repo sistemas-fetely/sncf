@@ -1,0 +1,1 @@
+- pagamento_link.meio: cartao_link e pix_link cancelam por smartcheckout; pix (legado) por charge. pix_link confirma sozinho no safrapay-link-sync.
