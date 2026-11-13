@@ -6,8 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
-import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
+import { SeloEstagioTransferencia } from "@/components/transferencias/SeloEstagioTransferencia";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { useFotosPrincipais } from "@/hooks/useFotosProduto";
 import { formatError } from "@/lib/format-error";
@@ -91,7 +90,7 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
           <div className="mt-4 space-y-5">
             <section className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                {v?.estagio && (v.estagio in ESTAGIO_LABELS ? <EstagioBadge estagio={v.estagio as EstagioPedido} /> : <Badge variant="outline">{v.estagio}</Badge>)}
+                {v?.estagio && <SeloEstagioTransferencia estagio={v.estagio} blingIdDestino={v.bling_id_destino} blingEnvioErro={v.bling_envio_erro} />}
                 {v?.finalidade_rotulo && <Badge variant="secondary">{v.finalidade_rotulo}</Badge>}
               </div>
               <div className="flex items-center gap-2 text-sm font-medium">

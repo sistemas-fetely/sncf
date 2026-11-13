@@ -46,8 +46,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
-import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
+import { SeloEstagioTransferencia } from "@/components/transferencias/SeloEstagioTransferencia";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
@@ -72,6 +71,8 @@ interface TransferenciaRow {
   id: string;
   id_externo: string | null;
   estagio: string | null;
+  bling_id_destino: string | null;
+  bling_envio_erro: string | null;
   destino_interno: string | null;
   observacao_pedido: string | null;
   finalidade_codigo: string | null;
@@ -116,16 +117,6 @@ function SeloTipo({ t }: { t: TransferenciaRow }) {
   return <span className="text-sm text-muted-foreground">—</span>;
 }
 
-
-/** Estágio da transferência: usa o mesmo selo da Casa dos Pedidos quando é
- *  um estágio canônico; fora da esteira, mostra o valor cru sem fingir cor. */
-function SeloEstagio({ estagio }: { estagio: string | null }) {
-  if (!estagio) return <span className="text-sm text-muted-foreground">—</span>;
-  if (estagio in ESTAGIO_LABELS) {
-    return <EstagioBadge estagio={estagio as EstagioPedido} />;
-  }
-  return <Badge variant="outline">{estagio}</Badge>;
-}
 
 export default function TransferenciasInternas() {
   const qc = useQueryClient();
@@ -183,7 +174,25 @@ export default function TransferenciasInternas() {
       if (error) throw error;
       // A view não garante ordem: coalesce(recebido_em, data_pedido) desc.
       const chave = (r: TransferenciaRow) => r.recebido_em ?? r.data_pedido ?? "";
-      return ((data ?? []) as TransferenciaRow[]).sort((a, b) => chave(b).localeCompare(chave(a)));
+      const linhas = (data ?? []) as TransferenciaRow[];
+      // O painel unificado inclui TI e não expõe os campos de envio da TRS.
+      const ids = linhas.filter((r) => r.origem_registro !== "ti" && r.estagio === "pre_faturamento").map((r) => r.id);
+      if (ids.length) {
+        const { data: envios, error: erroEnvios } = await supabase
+          .from("v_transferencias_internas")
+          .select("id, bling_id_destino, bling_envio_erro")
+          .in("id", ids);
+        if (erroEnvios) throw erroEnvios;
+        // Fronteira tipada enquanto o cliente gerado não inclui as novas colunas.
+        const enviosTipados = (envios ?? []) as unknown as Pick<TransferenciaRow, "id" | "bling_id_destino" | "bling_envio_erro">[];
+        const porId = new Map(enviosTipados.map((envio) => [envio.id, envio]));
+        for (const linha of linhas) {
+          const envio = porId.get(linha.id);
+          linha.bling_id_destino = envio?.bling_id_destino ?? null;
+          linha.bling_envio_erro = envio?.bling_envio_erro ?? null;
+        }
+      }
+      return linhas.sort((a, b) => chave(b).localeCompare(chave(a)));
     },
   });
   // Lista visível = tudo que a tela mostra e conta. Venda fora só entra quando o
@@ -487,7 +496,7 @@ export default function TransferenciasInternas() {
                       </TableCell>
                       <TableCell>{t.destino_interno ?? "—"}</TableCell>
                       <TableCell>
-                        <SeloEstagio estagio={t.estagio} />
+                        <SeloEstagioTransferencia estagio={t.estagio} blingIdDestino={t.bling_id_destino} blingEnvioErro={t.bling_envio_erro} />
                       </TableCell>
                       <TableCell>
                         {(() => {
