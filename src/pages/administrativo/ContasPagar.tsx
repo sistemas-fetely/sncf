@@ -4,6 +4,7 @@ import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { ContaCorrenteFornecedorCard } from "@/components/financeiro/ContaCorrenteFornecedorCard";
+import { ContaCorrenteFornecedorExtrato } from "@/components/financeiro/ContaCorrenteFornecedorExtrato";
 import type { ContaCorrenteFornecedor } from "@/lib/despesas/rotina";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
@@ -1200,11 +1201,14 @@ function ContasCorrentesFornecedorCard() {
     <section className="space-y-3" aria-labelledby="cp-conta-corrente">
       <div className="space-y-1">
         <h2 id="cp-conta-corrente" className="text-lg font-medium">Conta corrente de fornecedores</h2>
+        <p className="text-xs text-muted-foreground">{data.length} {data.length === 1 ? "fornecedor" : "fornecedores"}</p>
         <p className="text-sm text-muted-foreground">Não entra nos totais acima — estes fornecedores são pagos contra saldo, não por título.</p>
       </div>
       <div className="grid gap-3 xl:grid-cols-2">
         {data.map((fornecedor) => (
-          <ContaCorrenteFornecedorCard key={fornecedor.cnpj ?? fornecedor.nome} fornecedor={fornecedor} />
+          <ContaCorrenteFornecedorCard key={fornecedor.cnpj ?? fornecedor.nome} fornecedor={fornecedor}>
+            <ContaCorrenteFornecedorExtrato cnpj={fornecedor.cnpj} />
+          </ContaCorrenteFornecedorCard>
         ))}
       </div>
     </section>

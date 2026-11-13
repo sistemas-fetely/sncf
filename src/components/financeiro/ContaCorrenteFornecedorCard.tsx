@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import type { ContaCorrenteFornecedor } from "@/lib/despesas/rotina";
 
 /** Card de fornecedor em regime de conta corrente — desenho único usado na aba Hoje (Despesas) e em Contas a Pagar. */
-export function ContaCorrenteFornecedorCard({ fornecedor }: { fornecedor: ContaCorrenteFornecedor }) {
+export function ContaCorrenteFornecedorCard({ fornecedor, children }: { fornecedor: ContaCorrenteFornecedor; children?: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 rounded-md border bg-card p-4 text-card-foreground">
       <div className="min-w-0">
@@ -19,6 +20,7 @@ export function ContaCorrenteFornecedorCard({ fornecedor }: { fornecedor: ContaC
         <div><p className="text-xs text-muted-foreground">A vencer</p><p className="text-sm font-medium tabular-nums">{formatBRL(fornecedor.a_vencer)}</p></div>
         <div><p className="text-xs text-muted-foreground">Sem vencimento na nota</p><p className="text-sm font-medium tabular-nums">{formatBRL(fornecedor.sem_vencimento)}</p></div>
       </div>
+      {children}
       <p className="break-words text-xs text-muted-foreground">
         Notas: {formatBRL(fornecedor.documentado)} · Pago: {formatBRL(fornecedor.pago)} · Último pagamento: {fornecedor.ultimo_pagamento ? formatDateBR(fornecedor.ultimo_pagamento) : "—"} · {fornecedor.notas_abertas} {fornecedor.notas_abertas === 1 ? "nota em aberto" : "notas em aberto"}
       </p>

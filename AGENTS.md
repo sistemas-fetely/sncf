@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Supplier current-account balances share one presentation card with an optional content slot; only Accounts Payable supplies the lazy CNPJ-scoped statement, retaining signed running balances and movement counts without mixing supplier balances into title KPIs.
 - Invoice payment profiles share a tested installment parser and label helper; the card-match tab shares one typed RPC query with its counter and delegates guarded decisions to existing RPCs with awaited invalidation, because matching and expense deduplication belong to the database.
 - Balcão calculation resolves delivery modes from active modal mappings by center type, preserves legacy option ordering and passes the chosen center to the existing calculation RPC; the edge only orchestrates quotes and never creates orders during calculation.
 - Mandatory-cost marking lives in the existing expense tab with a typed 60-second RPC query and nominal expense-classification action guard; existing RPCs own writes, while tested pure helpers own monthly presentation, visible totals and session-retained decisions without creating financial records.
