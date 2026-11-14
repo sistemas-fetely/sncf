@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Safra COB foundation is hard-locked to the homologation host and fictitious self-payer; Vault credentials and bearer values are recursively redacted from the private per-call audit log, and no boleto, counter or CNAB writes are allowed in this phase.
 - Internal Site SP transfers reuse the Mesa picking/scanning stations and a dedicated delivery RPC, never sales packaging/documents; the existing no-invoice form routes Site SP origins to order creation while other origins retain immediate stock transfer, because the database owns stock validation and final movements.
 - Safrapay reconciliation diagnostics perform only GET probes after merchant authentication and persist responses exclusively in the private diagnostic table; restrict alternate bases to HTTPS Safrapay hosts and reject redirects so bearer credentials never reach another provider.
 - Fiscal-only TRS uses guarded creation/recovery and an injected transmission module: only the nature's explicit automatic flag plus readback nature/value checks permit sending; a durable CAS marker in the existing registry prevents repeat POSTs across failures/concurrency, while authorized readbacks reconcile without sending and physical transfers retain their legacy path.

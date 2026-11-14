@@ -673,6 +673,13 @@
       "when": 1794607416574,
       "tag": "0095_safrapay_api_conciliacao_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794648798465,
+      "tag": "0096_safra_api_log_hml",
+      "breakpoints": true
     }
   ]
 }

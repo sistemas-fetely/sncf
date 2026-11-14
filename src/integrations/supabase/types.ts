@@ -83684,6 +83684,51 @@ export type Database = {
           },
         ]
       }
+      safra_api_log: {
+        Row: {
+          ambiente: string
+          correlation_id: string
+          created_at: string | null
+          endpoint: string
+          erro_codigo: string | null
+          erro_msg: string | null
+          http_status: number | null
+          id: string
+          metodo: string
+          request: Json | null
+          response: Json | null
+          titulo_boleto_id: string | null
+        }
+        Insert: {
+          ambiente: string
+          correlation_id: string
+          created_at?: string | null
+          endpoint: string
+          erro_codigo?: string | null
+          erro_msg?: string | null
+          http_status?: number | null
+          id?: string
+          metodo: string
+          request?: Json | null
+          response?: Json | null
+          titulo_boleto_id?: string | null
+        }
+        Update: {
+          ambiente?: string
+          correlation_id?: string
+          created_at?: string | null
+          endpoint?: string
+          erro_codigo?: string | null
+          erro_msg?: string | null
+          http_status?: number | null
+          id?: string
+          metodo?: string
+          request?: Json | null
+          response?: Json | null
+          titulo_boleto_id?: string | null
+        }
+        Relationships: []
+      }
       safra_carteira_conferencia: {
         Row: {
           conta_bancaria_id: string
