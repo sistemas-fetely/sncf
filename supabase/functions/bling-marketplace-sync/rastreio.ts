@@ -38,7 +38,7 @@ export async function sincronizarRastreio(sb: any, get: Get) {
   if (eLog) throw new Error(eLog.message);
   const detalhes: unknown[] = []; let atualizados = 0; let erros = 0;
   try {
-    const { data, error } = await sb.from('vw_gestao_marketplace').select('pedido_id,bling_pedido_id').eq('estagio', 'em_transporte').order('rastreio_atualizado_em', { ascending: true, nullsFirst: true }).order('pedido_id').limit(50);
+    const { data, error } = await sb.from('vw_gestao_marketplace').select('pedido_id,bling_pedido_id').in('estagio', ['em_transporte', 'agendado']).order('rastreio_atualizado_em', { ascending: true, nullsFirst: true }).order('pedido_id').limit(50);
     if (error) throw new Error(error.message);
     for (const p of data ?? []) {
       if (Date.now() - inicio > 45_000) break;
