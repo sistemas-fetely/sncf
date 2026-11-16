@@ -81,7 +81,7 @@ describe("recuperação e gravação XPM", () => {
   });
   it("erro da gravação atômica alerta que Create ocorreu e não repete envio", async () => {
     const f = fixture({ registerError: true });
-    expect(await f.run()).toMatchObject({ status: 500, body: { erro: "Expedição PED-2380 CRIADA na XPM, mas o SNCF não gravou: gravação recusada. NÃO reenvie — o reenvio vai vincular a expedição existente." } });
+    expect(await f.run()).toMatchObject({ status: 500, body: { erro: "Expedição PED-2380 CRIADA na XPM, mas o SNCF não gravou: gravação recusada. NÃO reenvie pelo forçar — o reenvio normal vai vincular a expedição existente." } });
     expect(f.network).toHaveBeenCalledTimes(3);
   });
   it("Create recusado conserva log de falha e erro do pedido", async () => {

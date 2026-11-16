@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
         p_resposta_body: respBody,
         p_duracao_ms: Date.now() - t0,
       });
-      if (eReg) throw new Error(`Expedição ${codigo} CRIADA na XPM, mas o SNCF não gravou: ${eReg.message}. NÃO reenvie — o reenvio vai vincular a expedição existente.`);
+      if (eReg) throw new Error(`Expedição ${codigo} CRIADA na XPM, mas o SNCF não gravou: ${eReg.message}. NÃO reenvie pelo forçar — o reenvio normal vai vincular a expedição existente.`);
 
       // OVERRIDE deixa rastro no histórico do pedido. FAIL-LOUD.
       if (overrides.length > 0) {
