@@ -130,7 +130,7 @@ Deno.serve(async req => {
         resolvidos.push({ sku: produto.sku ?? item.sku, descricao: item.descricao ?? item.sku, quantidade: Number(item.quantidade), valor: Number(item.valor_unitario), produtoId: Number(produto.bling_id) });
       }
       const bling = makeBlingClient(db, cfg, await ensureFreshToken(db, cfg));
-      const rascunho = await gerarTrs({ codigo: pedido.id_externo, naturezaId: Number(nat.bling_natureza_id), lojaId: Number(sc.loja_bling_id), contato: { id: Number(parceiro.bling_id), numeroDocumento: CNPJ_MATRIZ }, itens: resolvidos, ...(ti ? { transporte, observacao: `Remessa para venda fora do estabelecimento ${pedido.id_externo} via SNCF — transmitir no Bling após conferência.` } : {}) }, anterior?.status === "erro" || anterior?.status === "gerando", { bling, registrar, evento });
+      const rascunho = await gerarTrs({ codigo: pedido.id_externo, naturezaId: Number(nat.bling_natureza_id), lojaId: Number(sc.loja_bling_id), contato: { id: Number(parceiro.bling_id), numeroDocumento: CNPJ_MATRIZ }, itens: resolvidos, ...(ti ? { transporte, observacao: `Remessa para venda fora do estabelecimento ${pedido.id_externo} via SNCF — transmitir no Bling após conferência.` } : {}) }, anterior?.status === "erro" || anterior?.status === "gerando", { bling, registrar, evento, criadoEm: anterior?.criado_em ?? lease });
       // Falhas de transmissão nunca passam pelo catch de geração (que limparia a reserva).
       try { return json(dim?.transmite_automatico === true ? await transmitir({ ...rascunho, erro: null }) : rascunho); }
       catch (e) { return json({ ok: false, erro: msg(e) }, 502); }
