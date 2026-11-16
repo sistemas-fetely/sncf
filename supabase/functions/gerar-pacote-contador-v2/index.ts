@@ -11,6 +11,7 @@ import { assinarPartes, BUCKET, enviarEmailRemessa, type Parte } from "../_share
 import { gerarResumoEntrada } from "../_shared/pacote-contador/resumo-entrada.ts";
 import { pastaEntrada, pastaDocumento, resumoEntradas } from "../_shared/pacote-contador/entrada.ts";
 import { montarRetencoes, xlsxRetencoes } from "../_shared/pacote-contador/retencoes.ts";
+import { montarClientesAberto, xlsxClientesAberto, dataClientesAberto } from "../_shared/pacote-contador/clientes-aberto.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
 const HEARTBEAT_VIVO_MS = 90_000;
@@ -198,7 +199,7 @@ async function retomarSozinho(c: { url: string; anon: string; auth: string; reme
 
 const seguro = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.() -]+/g, "_").replace(/\s+/g, " ").trim() || "sem_nome";
 
-async function inventario(c: { admin: any; userDb: any }, rem: any, simular = false) {
+export async function inventario(c: { admin: any; userDb: any }, rem: any, simular = false) {
   const { admin, userDb } = c;
   const ini = rem.periodo_inicio as string, fimP = rem.periodo_fim as string;
   const entradas: Entrada[] = [];
@@ -298,6 +299,13 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     if (!n.resumo_pdf_storage_path) { faltantes.push({ pasta: "05_despesas/nfse", referencia: `NFS-e ${n.numero ?? "?"} · ${n.prestador ?? "?"}`, motivo: "PDF (resumo do XML) não gerado — rode 'Gerar PDFs das NFS-e'" }); continue; }
     entradas.push({ zip: nomeUnico(`05_despesas/nfse/${seguro(`${n.numero ?? "sn"} - ${n.prestador ?? ""}`).slice(0, 80)}.pdf`), path: n.resumo_pdf_storage_path }); conta("05_despesas/nfse");
   }
+  const cab = await montarClientesAberto(admin, fimP);
+  const cabPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/clientes_em_aberto.xlsx`;
+  if (!simular) {
+    const up = await admin.storage.from(BUCKET).upload(cabPath, xlsxClientesAberto(cab, `${ini.slice(5, 7)}/${ini.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
+    if (up.error) throw new Error(`Falha ao gravar Clientes em aberto: ${up.error.message}`);
+  }
+  entradas.push({ zip: nomeUnico(`01_relatorios/Clientes_em_Aberto_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: cabPath }); conta("01_relatorios");
   const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta,ativo"));
   const nomeConta = new Map<string, string>(contas.map((k: any) => [k.id, seguro(k.nome_exibicao || `${k.banco} ${k.numero_conta ?? ""}`)]));
   const tiposDesp = await todas(admin.from("contabil_documento_despesa_tipo").select("id,nome,pasta,periodicidade,local,conta_bancaria_id,ativo"));
@@ -453,6 +461,7 @@ async function inventario(c: { admin: any; userDb: any }, rem: any, simular = fa
     arquivos_apoio_sem_original: {total:semArq.length,itens:semArq.map(descImp)},
     bloco_k: blocoK, numeracao_nf: { ...numeracao, itens: undefined, detalhe: numeracao.itens },
     retencoes_nfse: retencoesManifesto, documentos_despesa: despesasManifesto,
+    clientes_em_aberto: { posicao: cab.fim, qtd: cab.qtd, total: cab.total, qtd_vencidos: cab.qtd_vencidos, total_vencido: cab.total_vencido, clientes: cab.clientes, recebidos_depois: cab.titulos.filter(t => t.recebido_depois).length },
   };
   return { entradas, manifesto };
 }
@@ -525,7 +534,7 @@ async function pdfTexto(linhas: string[]): Promise<Uint8Array> {
 }
 
 const CABECALHO_PREVIA = "PRÉVIA — competência pré-fechada; posição de estoque inclui presunções";
-function pdfManifesto(m: any): Promise<Uint8Array> {
+export function pdfManifesto(m: any): Promise<Uint8Array> {
   const L: string[] = [...(m.natureza === "previa" ? [CABECALHO_PREVIA, ""] : []), `Manifesto do pacote contábil ${String(m.competencia).slice(5, 7)}/${String(m.competencia).slice(0, 4)} - versão ${m.versao}`, `Gerado em ${m.gerado_em} · ${m.partes} parte(s) · ${m.total_arquivos} arquivo(s)`, ""];
   if (m.faltantes_por_tipo) {
     const t = m.faltantes_por_tipo;
@@ -545,6 +554,14 @@ function pdfManifesto(m: any): Promise<Uint8Array> {
     if (r.pagas_no_mes_emitidas_antes != null) L.push(`  Pagas neste mês (emitidas antes): ${r.pagas_no_mes_emitidas_antes}`);
     if (r.em_aberto_meses_anteriores?.length) L.push(`  Em aberto de meses anteriores (informativo, entram no mês do pagamento): ${r.em_aberto_meses_anteriores.map((i: any) => `NFS-e ${i.numero} (${String(i.emissao).slice(5, 7)}/${String(i.emissao).slice(0, 4)})`).join(", ")}`);
     L.push(`  PDFs de NFS-e: ${r.pdf.com_pdf} com PDF, ${r.pdf.sem_pdf} sem PDF`, "");
+  }
+  if (m.clientes_em_aberto) {
+    const c = m.clientes_em_aberto;
+    const texto = `CLIENTES EM ABERTO (posição ${dataClientesAberto(c.posicao)}): ${c.qtd} títulos, ${brl(c.total)} · vencidos: ${c.qtd_vencidos}, ${brl(c.total_vencido)} · ${c.clientes} clientes`;
+    const corte = texto.length > 105 ? texto.lastIndexOf(" ", 100) : -1;
+    L.push(...(corte > 0 ? [texto.slice(0, corte), `  ${texto.slice(corte + 1)}`] : [texto]));
+    if (c.recebidos_depois > 0) L.push(`  Dos quais já recebidos após a competência: ${c.recebidos_depois}`);
+    L.push("");
   }
   if (m.documentos_despesa) {
     const d = m.documentos_despesa;
