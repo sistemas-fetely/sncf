@@ -98,7 +98,7 @@ export default function PedidosMarketplace() {
       subtitle="Pedidos TikTok Shop, Mercado Livre e Shopee vindos do Bling — o funil aqui é faturar, expedir, rastrear e entregar."
       actions={<Button variant="outline" size="sm" onClick={() => setConfig(true)}><Settings2 className="h-4 w-4" />Portadores</Button>} />
     <div className="space-y-4" style={{ '--fila-topo-colado': `${64 + alturaPipeline}px` } as CSSProperties}>
-      <div ref={pipelineRef} className="sticky top-16 z-20 -mx-6 border-b bg-background px-6 py-2">
+      <div ref={pipelineRef} className="sticky top-16 z-20 -mx-6 overflow-x-auto border-b bg-background px-6 py-2 [&>div]:min-w-[960px] lg:[&>div]:min-w-0">
         <PipelineFases fases={fases} estagioAtivo={estagioAtivo === 'todos' ? null : estagioAtivo}
           onClickEstagio={estagio => setEstado({ estagio, pagina: 1 })}
           onLimparFiltro={() => setEstado({ estagio: 'todos', pagina: 1 })}
@@ -117,9 +117,9 @@ export default function PedidosMarketplace() {
         <span className="text-xs text-muted-foreground">{filtrados.length} pedido{filtrados.length !== 1 ? 's' : ''} · {emAndamento.length} em andamento ({formatBRL(emAndamento.reduce((v, p) => v + Number(p.valor_liquido ?? 0), 0))})</span>
       </div>
       {erro ? <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{formatError(erro)} <Button variant="outline" size="sm" onClick={() => { void pedidos.refetch(); void cadastro.refetch(); }}>Tentar novamente</Button></div> : null}
-      <Card><CardContent className="p-0"><TooltipProvider><Table containerClassName="overflow-visible" className="w-full table-fixed">
+      <Card><CardContent className="p-0"><TooltipProvider><Table containerClassName="overflow-x-auto lg:overflow-visible" className="w-full min-w-[960px] table-fixed lg:min-w-0">
         <colgroup><col className="w-[15%]" /><col className="w-[5%]" /><col className="w-[10%]" /><col className="w-[12%]" /><col className="w-[8%]" /><col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[7%]" /><col className="w-[12%]" /><col className="w-[8%]" /><col className="w-[3%]" /></colgroup>
-        <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>
+        <TableHeader><TableRow className={`${LINHA_CABECALHO_COLADO} max-lg:[&>th]:static`}>
           {colunas.map(([c, rotulo]) => <CabecalhoOrdenavel key={c} rotulo={rotulo} dir={sort?.column === c ? sort.direction : null} onOrdenar={() => ordenar(c)} alinharDireita={c === 'valor_liquido'} className={c === 'valor_liquido' ? 'px-2 text-right' : 'px-2'} />)}
           <TableHead className="w-8 px-1"><span className="sr-only">Ações e alerta</span></TableHead>
         </TableRow></TableHeader><TableBody>
