@@ -21,7 +21,6 @@ Deno.serve(async (req) => {
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { global: { fetch: fetchLimitado } },
   );
 
   // AUTORIA-NAO-SE-PERDE: service role não tem auth.uid(), então o evento de
@@ -30,7 +29,7 @@ Deno.serve(async (req) => {
   const sbUser = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { fetch: fetchLimitado, headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
   );
 
 
@@ -114,6 +113,35 @@ Deno.serve(async (req) => {
         if (!g.ok) return json({ sucesso: false, erro: g.erro }, g.status);
       }
       rotulosOverride = (dims ?? []).map((d: { rotulo: string }) => d.rotulo);
+    }
+
+    // Recupera o Create já confirmado antes de montar/enviar outra expedição.
+    if (!overrides.includes("expedicao_existente")) {
+      const { data: adocao, error: eAdo } = await sb.rpc("fn_xpm_adotar_expedicao_orfa", {
+        p_pedido_id: pedido_id,
+        p_ator: userId,
+      });
+      if (eAdo) throw new Error(`adotar expedição órfã: ${eAdo.message}`);
+      if (adocao?.adotada) {
+        let avisoTransicao: string | undefined;
+        if (["pre_faturado", "pre_separacao"].includes(adocao.estagio)) {
+          const { error: errT } = await sbUser.rpc("transicionar_pedido", {
+            p_pedido_id: pedido_id,
+            p_para_estagio: "em_separacao",
+            p_proxima_acao: "Pedido no armazém — aguardar NF",
+            p_motivo: `Expedição ${adocao.codigo} já existia na XPM — vinculada no reenvio`,
+          });
+          if (errT) avisoTransicao = `Expedição vinculada, mas o estágio não avançou automaticamente — ${errT.message}`;
+        }
+        return json({
+          sucesso: true,
+          adotada: true,
+          codigo_expedicao: adocao.codigo,
+          avisos: [],
+          ...(avisoTransicao ? { aviso_transicao: avisoTransicao } : {}),
+          duracao_ms: Date.now() - t0,
+        });
+      }
     }
 
     // 1. Montador de payload mora no banco (FONTE-ÚNICA). A edge só transporta.
@@ -220,30 +248,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 7. Log sempre — sucesso e falha.
-    await sb.from("xpm_envios_log").insert({
-      pedido_id,
-      operacao: "create",
-      enviado_por: userId,
-      payload_enviado: { ...(payload ?? {}), overrides, motivo, avisos },
-      resposta_status: respStatus,
-      resposta_body: respBody as Record<string, unknown> | null,
-      expedicao_codigo_retornado: sucesso ? codigo : null,
-      expedicao_id_zenlog: expedicaoIdZenlog,
-      sucesso,
-      erro_msg: erroMsg,
-      duracao_ms: Date.now() - t0,
-    });
-
-    // 8. Estado do pedido (FAIL-LOUD: erro fica gravado e visível)
+    // 7–8. Sucesso: log e ponteiro gravados na mesma transação, sem timeout XPM.
     if (sucesso) {
-      const { error: eUp } = await sb.from("pedidos").update({
-        xpm_expedicao_codigo: codigo,
-        xpm_enviado_em: new Date().toISOString(),
-        xpm_enviado_por: userId,
-        xpm_envio_erro: null,
-      }).eq("id", pedido_id);
-      if (eUp) throw new Error(`gravar pedido: ${eUp.message}`);
+      const { error: eReg } = await sb.rpc("fn_xpm_registrar_create_sucesso", {
+        p_pedido_id: pedido_id,
+        p_codigo: codigo,
+        p_enviado_por: userId,
+        p_payload: { ...(payload ?? {}), overrides, motivo, avisos },
+        p_resposta_status: respStatus,
+        p_resposta_body: respBody,
+        p_duracao_ms: Date.now() - t0,
+      });
+      if (eReg) throw new Error(`Expedição ${codigo} CRIADA na XPM, mas o SNCF não gravou: ${eReg.message}. NÃO reenvie — o reenvio vai vincular a expedição existente.`);
 
       // OVERRIDE deixa rastro no histórico do pedido. FAIL-LOUD.
       if (overrides.length > 0) {
@@ -311,6 +327,21 @@ Deno.serve(async (req) => {
         duracao_ms: Date.now() - t0,
       });
     }
+
+    // Falha: mantém o log e o erro do envio sem vincular expedição.
+    await sb.from("xpm_envios_log").insert({
+      pedido_id,
+      operacao: "create",
+      enviado_por: userId,
+      payload_enviado: { ...(payload ?? {}), overrides, motivo, avisos },
+      resposta_status: respStatus,
+      resposta_body: respBody as Record<string, unknown> | null,
+      expedicao_codigo_retornado: sucesso ? codigo : null,
+      expedicao_id_zenlog: expedicaoIdZenlog,
+      sucesso,
+      erro_msg: erroMsg,
+      duracao_ms: Date.now() - t0,
+    });
 
     await sb.from("pedidos")
       .update({ xpm_envio_erro: erroMsg })

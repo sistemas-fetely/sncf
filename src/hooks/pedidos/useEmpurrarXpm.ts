@@ -6,6 +6,7 @@ import { tokenEnvioXpm } from "@/lib/pedidos/sessaoXpm";
 
 interface EmpurrarXpmResponse {
   sucesso: boolean;
+  adotada?: boolean;
   codigo_expedicao?: string;
   ambiente?: string;
   bloqueios?: string[];
@@ -84,7 +85,12 @@ export function useEmpurrarXpm() {
     onSuccess: async (data, vars) => {
       const amb = data.ambiente === "producao" ? "" : ` · ${data.ambiente}`;
       const avisos = data.avisos ?? [];
-      if (avisos.length > 0) {
+      if (data.adotada) {
+        toast({
+          title: "Expedição vinculada ao pedido",
+          description: `Expedição ${data.codigo_expedicao} já existia na XPM — vinculada ao pedido, nada foi duplicado.`,
+        });
+      } else if (avisos.length > 0) {
         toast({
           title: "Empurrado pra XPM — com aviso de saldo",
           description: `Expedição ${data.codigo_expedicao}${amb} · ${avisos[0]}`,
