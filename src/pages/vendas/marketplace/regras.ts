@@ -7,7 +7,7 @@ export function filtrarPedidos<T extends PedidoFiltro>(pedidos: T[], filtros: Fi
   return pedidos.filter(p =>
     (filtros.marketplace === 'todos' || p.marketplace_codigo === filtros.marketplace) &&
     (estagio === 'todos' || p.estagio === estagio) &&
-    (!filtros.comAlerta || p.alerta != null) &&
+    (!filtros.comAlerta || temAlertaMarketplace(p)) &&
     (!filtros.semTransportadora || !p.transportadora_id) &&
     (!filtros.semCusto || p.custo_transporte == null || Number(p.custo_transporte) === 0) &&
     (!busca || [p.id_externo, p.cliente_nome, p.numero_marketplace].some(v => v?.toLocaleLowerCase('pt-BR').includes(busca)))
@@ -27,6 +27,24 @@ export function normalizarEstagioMarketplace(estagio: string): string {
   if (estagio === 'no_cd') return 'todos';
   if (estagio === 'devolucao') return 'devolvido';
   return estagio;
+}
+
+export function podeAgendarMarketplace(estagio: string | null): boolean {
+  return ['recebido', 'pre_faturamento', 'agendado'].includes(estagio ?? '');
+}
+
+export function temAlertaMarketplace(p: { estagio: string | null; alerta?: string | null }): boolean {
+  return p.estagio !== 'agendado' && p.alerta != null;
+}
+
+export function amanhaMarketplace(agora = new Date()): string {
+  const data = new Date(`${hojeSaoPaulo(agora)}T12:00:00`);
+  data.setDate(data.getDate() + 1);
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+}
+
+export function dataAgendamentoValida(data: string, agora = new Date()): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(data) && data >= amanhaMarketplace(agora);
 }
 
 export function valorTransporte(texto: string): number | null {

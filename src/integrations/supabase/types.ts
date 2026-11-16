@@ -71022,6 +71022,7 @@ export type Database = {
           acrescimo_ie_origem: string | null
           acrescimo_ie_pct: number | null
           acrescimo_ie_valor: number | null
+          agendado_para: string | null
           alerta_logistica: string | null
           analise_pedido_detalhes: Json | null
           analise_pedido_executada_em: string | null
@@ -71151,6 +71152,7 @@ export type Database = {
           acrescimo_ie_origem?: string | null
           acrescimo_ie_pct?: number | null
           acrescimo_ie_valor?: number | null
+          agendado_para?: string | null
           alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
@@ -71280,6 +71282,7 @@ export type Database = {
           acrescimo_ie_origem?: string | null
           acrescimo_ie_pct?: number | null
           acrescimo_ie_valor?: number | null
+          agendado_para?: string | null
           alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
@@ -137776,6 +137779,7 @@ export type Database = {
       }
       vw_gestao_marketplace: {
         Row: {
+          agendado_para: string | null
           alerta: string | null
           area_responsavel: string | null
           bling_numero: string | null
@@ -174312,6 +174316,15 @@ export type Database = {
         Returns: number
       }
       fn_marcar_titulos_boleto_vencidos: { Args: never; Returns: Json }
+      fn_marketplace_acordar_agendados: { Args: never; Returns: number }
+      fn_marketplace_agendar_pedido: {
+        Args: {
+          p_agendado_para: string
+          p_operador_id?: string
+          p_pedido_id: string
+        }
+        Returns: undefined
+      }
       fn_marketplace_transportadora_padrao_set: {
         Args: {
           p_marketplace_codigo: string

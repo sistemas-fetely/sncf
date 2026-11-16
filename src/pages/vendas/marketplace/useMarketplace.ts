@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { nomeExibicao } from '@/lib/parceiros/nome';
 import { exigirSucesso } from './regras';
+import { useAuth } from '@/contexts/AuthContext';
 
 // These read models/RPCs are already hosted; do not hand-edit generated types.
 const db = supabase as any;
@@ -18,7 +19,7 @@ export type PedidoMarketplace = {
   subetapa: string | null; horas_no_estagio: number | null; alerta: string | null; faturado_em: string | null;
   xpm_expedicao_codigo: string | null; servico_marketplace: string | null; rastreio_status: string | null;
   devolucao_numero: string | null; devolucao_status: string | null; cancelado_em: string | null;
-  entregue_em: string | null; liquido_estimado: number | null; eh_desvio: boolean | null;
+  entregue_em: string | null; liquido_estimado: number | null; eh_desvio: boolean | null; agendado_para: string | null;
 };
 export type Portador = { id: string; nome: string };
 export type Loja = { codigo: string; nome: string; centro_codigo: string | null; parceiro_id: string | null; portador_nome: string | null };
@@ -36,6 +37,17 @@ async function lerTudo<T>(tabela: string, colunas = '*', ordenar = 'pedido_id'):
 
 export function useMarketplace() {
   return useQuery({ queryKey: ['marketplace', 'pedidos'], queryFn: () => lerTudo<PedidoMarketplace>('vw_gestao_marketplace', '*', 'pedido_id') });
+}
+export function useAgendarMarketplace() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({ mutationFn: async (args: { pedidoId: string; data: string }) => {
+    if (!user) throw new Error('Entre novamente para agendar o pedido.');
+    const { error } = await supabase.rpc('fn_marketplace_agendar_pedido', {
+      p_pedido_id: args.pedidoId, p_agendado_para: args.data, p_operador_id: user.id,
+    });
+    if (error) throw error;
+  }, onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['marketplace'] }); } });
 }
 export function useCadastroMarketplace() {
   return useQuery({ queryKey: ['marketplace', 'cadastros'], queryFn: async () => {

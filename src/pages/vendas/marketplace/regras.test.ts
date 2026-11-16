@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filtrarPedidos, valorTransporte, hojeSaoPaulo, exigirSucesso, podeAbrirDevolucao, podeIrMesaSp, normalizarEstagioMarketplace } from './regras';
+import { filtrarPedidos, valorTransporte, hojeSaoPaulo, exigirSucesso, podeAbrirDevolucao, podeIrMesaSp, normalizarEstagioMarketplace, podeAgendarMarketplace, temAlertaMarketplace, amanhaMarketplace, dataAgendamentoValida } from './regras';
 const filtros = { marketplace: 'todos', estagio: 'todos', semTransportadora: false, semCusto: false, busca: '' };
 const pedidos = [
   { id_externo: 'TIK-0001', marketplace_codigo: 'TIK', estagio: 'pre_faturamento', transportadora_id: null, custo_transporte: null, cliente_nome: 'Maria', numero_marketplace: '123' },
@@ -7,6 +7,23 @@ const pedidos = [
   { id_externo: 'SPE-0001', marketplace_codigo: 'SPE', estagio: 'entregue', transportadora_id: 'portador', custo_transporte: 20, cliente_nome: 'João', numero_marketplace: '789' },
 ];
 describe('Marketplace transporte', () => {
+  it.each(['recebido', 'pre_faturamento', 'agendado'])('permite agendar %s', estagio => expect(podeAgendarMarketplace(estagio)).toBe(true));
+  it.each(['faturado', 'em_separacao', 'em_transporte', 'entregue', 'cancelado', null])('não permite agendar %s', estagio => expect(podeAgendarMarketplace(estagio)).toBe(false));
+  it('mínimo amanhã, nunca hoje ou passado', () => {
+    const agora = new Date('2026-11-16T20:25:00Z');
+    expect(amanhaMarketplace(agora)).toBe('2026-11-17');
+    expect(dataAgendamentoValida('2026-11-16', agora)).toBe(false);
+    expect(dataAgendamentoValida('2026-11-15', agora)).toBe(false);
+    expect(dataAgendamentoValida('2026-11-17', agora)).toBe(true);
+    expect(amanhaMarketplace(new Date('2026-12-31T20:25:00Z'))).toBe('2027-01-01');
+  });
+  it('agendado não conta SLA nem entra no filtro de alertas', () => {
+    const agendado = { ...pedidos[0], estagio: 'agendado', alerta: 'SLA' };
+    expect(temAlertaMarketplace(agendado)).toBe(false);
+    expect(temAlertaMarketplace({ ...agendado, estagio: 'pre_faturamento' })).toBe(true);
+    expect(filtrarPedidos([agendado], { ...filtros, comAlerta: true })).toEqual([]);
+    expect(filtrarPedidos([agendado], { ...filtros, estagio: 'agendado' })).toEqual([agendado]);
+  });
   it('devolução em transporte ou entregue', () => { for (const estagio of ['em_transporte', 'entregue']) expect(podeAbrirDevolucao({ estagio, devolucao_numero: null, devolucao_status: null })).toBe(true); expect(podeAbrirDevolucao({ estagio: 'pre_faturamento', devolucao_numero: null, devolucao_status: null })).toBe(false); });
   it('devolução viva impede outra; cancelada permite', () => { expect(podeAbrirDevolucao({ estagio: 'entregue', devolucao_numero: 'DEV-1', devolucao_status: 'concluida' })).toBe(false); expect(podeAbrirDevolucao({ estagio: 'entregue', devolucao_numero: 'DEV-1', devolucao_status: 'cancelada' })).toBe(true); });
   it.each(['faturado', 'pre_separacao', 'em_separacao'])('Mesa SP permite %s apenas com CD fora XPM-SC', estagio => {
