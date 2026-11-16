@@ -36,6 +36,7 @@ import { SeloServicoCorreios } from "./SeloServicoCorreios";
  * gravado, não estado de tela: o operador sai, volta e encontra o que marcou.
  */
 interface Props {
+  transferenciaInterna?: boolean;
   pedidoId: string;
   enderecoEntrega: unknown;
   /** Preenchido somente para venda direta; nos demais pedidos vale a regra de CEP. */
@@ -68,7 +69,7 @@ interface Props {
 export function EstacaoEmbalagem({
   pedidoId, itens, modais, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
-  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false, instrucaoPendente = false, servicoCorreios,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false, instrucaoPendente = false, servicoCorreios, transferenciaInterna = false,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [pesoEditado, setPesoEditado] = useState(false);
@@ -104,7 +105,7 @@ export function EstacaoEmbalagem({
   const sugestaoQ = useModalSugerido(pedidoId);
   const sugestao = sugestaoQ.data ?? null;
   const sugerido = sugestao?.modal ?? null;
-  const modaisAtivos = useMemo(() => modais.filter((m) => m.ativo), [modais]);
+  const modaisAtivos = useMemo(() => modais.filter((m) => m.ativo && (!transferenciaInterna || m.codigo === sugerido)), [modais, transferenciaInterna, sugerido]);
   const exigeCaixaCorreios = modais.find((m) => m.codigo === modal)?.exige_etiqueta_correios === true;
 
   const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
@@ -126,8 +127,8 @@ export function EstacaoEmbalagem({
   const trocou = sugerido !== null && modal !== "" && modal !== sugerido;
 
   const itensDoModal = useMemo(
-    () => checklist.filter((i) => i.modal_codigo === modal),
-    [checklist, modal],
+    () => transferenciaInterna ? [] : checklist.filter((i) => i.modal_codigo === modal),
+    [checklist, modal, transferenciaInterna],
   );
 
   // Volumes seguem a caixa escolhida, com a mesma regra do peso: só sobrescreve
@@ -370,7 +371,7 @@ export function EstacaoEmbalagem({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
-            <Select value={modal} onValueChange={setModal} disabled={sugestaoQ.isLoading}>
+            <Select value={modal} onValueChange={setModal} disabled={sugestaoQ.isLoading || transferenciaInterna}>
               <SelectTrigger id="mesa-sp-modal">
                 <SelectValue placeholder="Escolher modal" />
               </SelectTrigger>

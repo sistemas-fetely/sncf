@@ -2,10 +2,11 @@ import type { BlingClient } from "../_shared/bling/bling-client.ts";
 
 export const CNPJ_MATRIZ = "63591078000148";
 export type NaturezaFiscal = { familia_processo: string; exige_expedicao: boolean; bling_natureza_id: number | string | null };
-export function recusaTrs(natureza: NaturezaFiscal | null, direta: boolean, blingPedidoId: unknown): string | null {
+export function recusaTrs(natureza: NaturezaFiscal | null, direta: boolean, blingPedidoId: unknown, ti = false): string | null {
   if (blingPedidoId != null) return "Transferência já enviada por pedido de venda ao Bling — não é permitido criar NF direta.";
-  if (!natureza || natureza.familia_processo !== "transferencia") return "Pedido não é uma transferência com natureza de operação definida.";
-  if (natureza.exige_expedicao !== false) return "Transferência física: mantenha o envio por pedido de venda ao Bling.";
+  if (!natureza || (!ti && natureza.familia_processo !== "transferencia")) return "Pedido não é uma transferência com natureza de operação definida.";
+  if (!ti && natureza.exige_expedicao !== false) return "Transferência física: mantenha o envio por pedido de venda ao Bling.";
+  if (ti && natureza.bling_natureza_id == null) return "Natureza da NF de remessa sem id no Bling — a Eva precisa cadastrar a natureza no Bling com o CFOP indicado pelo contador. Nada foi criado.";
   if (!direta) return "Natureza não habilitada para gerar NF direta.";
   if (!Number.isSafeInteger(Number(natureza.bling_natureza_id)) || Number(natureza.bling_natureza_id) <= 0) return "Natureza sem natureza fiscal do Bling configurada.";
   return null;
@@ -14,7 +15,15 @@ export type DadosTrs = {
   codigo: string; naturezaId: number; lojaId: number;
   contato: { id: number; numeroDocumento: string };
   itens: Array<{ sku: string; descricao: string; quantidade: number; valor: number; produtoId: number }>;
+  transporte?: { fretePorConta: number; quantidadeVolumes: number; pesoBruto: number };
+  observacao?: string;
 };
+export function transporteTi(metadata: unknown): NonNullable<DadosTrs["transporte"]> {
+  const m = metadata && typeof metadata === "object" ? metadata as Record<string, unknown> : {};
+  const volumes = Number(m.volumes), peso = Number(m.peso_kg);
+  if (!Number.isSafeInteger(volumes) || volumes < 1 || !Number.isFinite(peso) || peso <= 0) throw new Error("Registre a embalagem na Mesa SP antes de gerar a NF de remessa.");
+  return { fretePorConta: 3, quantidadeVolumes: volumes, pesoBruto: peso };
+}
 export function payloadTrs(d: DadosTrs, agora = new Date()) {
   if (!d.codigo.trim() || !d.naturezaId || !d.lojaId || !d.contato.id || d.contato.numeroDocumento.replace(/\D/g, "") !== CNPJ_MATRIZ) throw new Error("NF de transferência sem código, natureza, filial SC ou destinatário matriz válido.");
   if (!d.itens.length || d.itens.some(i => !i.sku || !Number.isSafeInteger(i.produtoId) || i.produtoId <= 0 || !Number.isFinite(i.quantidade) || i.quantidade <= 0 || !Number.isFinite(i.valor) || i.valor < 0)) throw new Error("Itens da transferência com produto, quantidade ou custo inválidos.");
@@ -24,7 +33,7 @@ export function payloadTrs(d: DadosTrs, agora = new Date()) {
     naturezaOperacao: { id: d.naturezaId }, loja: { id: d.lojaId }, contato: d.contato,
     numeroPedidoLoja: d.codigo,
     itens: d.itens.map(i => ({ codigo: i.sku, produto: { id: i.produtoId }, descricao: i.descricao, unidade: "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P" })),
-    parcelas: [], transporte: { fretePorConta: 9 }, observacoes: `Transferência fiscal ${d.codigo} via SNCF — somente rascunho; transmitir no Bling após conferência.`,
+    parcelas: [], transporte: d.transporte ?? { fretePorConta: 9 }, observacoes: d.observacao ?? `Transferência fiscal ${d.codigo} via SNCF — somente rascunho; transmitir no Bling após conferência.`,
   };
 }
 export const valorTrs = (d: DadosTrs) => Math.round(d.itens.reduce((s, i) => s + i.quantidade * i.valor, 0) * 100) / 100;

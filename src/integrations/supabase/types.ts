@@ -94892,6 +94892,7 @@ export type Database = {
           descricao: string | null
           exige_descricao: boolean
           id: string
+          natureza_nf_id: string | null
           ordem: number
           rotulo: string
         }
@@ -94903,6 +94904,7 @@ export type Database = {
           descricao?: string | null
           exige_descricao?: boolean
           id?: string
+          natureza_nf_id?: string | null
           ordem?: number
           rotulo: string
         }
@@ -94914,10 +94916,19 @@ export type Database = {
           descricao?: string | null
           exige_descricao?: boolean
           id?: string
+          natureza_nf_id?: string | null
           ordem?: number
           rotulo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transferencia_finalidade_natureza_nf_id_fkey"
+            columns: ["natureza_nf_id"]
+            isOneToOne: false
+            referencedRelation: "naturezas_operacao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transferencia_motivo_cancelamento: {
         Row: {
@@ -141791,6 +141802,7 @@ export type Database = {
           puxado_em: string | null
           recebido_em: string | null
           servico_correios: string | null
+          ti_exige_nf: boolean | null
           ultimo_evento: string | null
           ultimo_evento_em: string | null
           valor_liquido: number | null
@@ -175722,6 +175734,7 @@ export type Database = {
       }
       fn_termo_entrada_hash_linhas: { Args: { p_rows: Json }; Returns: string }
       fn_termo_entrada_proximo_numero: { Args: never; Returns: string }
+      fn_ti_exige_nf: { Args: { p_pedido_id: string }; Returns: boolean }
       fn_titulo_coberto_pela_conta: {
         Args: { p_titulo_id: string }
         Returns: boolean
@@ -175971,6 +175984,10 @@ export type Database = {
           valor_unit: number
         }[]
       }
+      fn_xpm_adotar_expedicao_orfa: {
+        Args: { p_ator?: string; p_pedido_id: string }
+        Returns: Json
+      }
       fn_xpm_aplicar_evento: {
         Args: {
           p_evento_id: number
@@ -176000,6 +176017,7 @@ export type Database = {
         Args: { p_fotos: string[] }
         Returns: undefined
       }
+      fn_xpm_expedicao_orfa: { Args: { p_pedido_id: string }; Returns: Json }
       fn_xpm_expedicao_viva: { Args: { p_id_externo: string }; Returns: string }
       fn_xpm_fatura_conferir: { Args: { p_fatura_id: string }; Returns: Json }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
@@ -176032,6 +176050,18 @@ export type Database = {
       fn_xpm_proximo_codigo_expedicao: {
         Args: { p_pedido_id: string }
         Returns: string
+      }
+      fn_xpm_registrar_create_sucesso: {
+        Args: {
+          p_codigo: string
+          p_duracao_ms: number
+          p_enviado_por: string
+          p_payload: Json
+          p_pedido_id: string
+          p_resposta_body: Json
+          p_resposta_status: number
+        }
+        Returns: Json
       }
       fn_xpm_reprocessar_expedicao: {
         Args: { p_expedicao_codigo: string }

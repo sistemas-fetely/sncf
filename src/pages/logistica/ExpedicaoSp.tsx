@@ -31,6 +31,7 @@ import { EstacaoConferencia } from "./expedicao-sp/EstacaoConferencia";
 import { DespachoB2b } from "./expedicao-sp/DespachoB2b";
 import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
+import { NfRemessaTi } from "./expedicao-sp/NfRemessaTi";
 import { EstacaoDocumentos } from "./expedicao-sp/EstacaoDocumentos";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { FaixaInstrucaoExpedicao, SeloInstrucaoExpedicao } from "./expedicao-sp/FaixaInstrucaoExpedicao";
@@ -428,9 +429,9 @@ export default function ExpedicaoSp() {
                           rotulo={medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}
                           onSelecionar={() => setSelecionadoId(p.id)}
                         />
-                        <div className="pl-2">
+                        {!ehTransferenciaMesa(p.canal) && <div className="pl-2">
                           <SolicitacaoNf linha={aguardandoNfPorPedido.get(p.id)} compacto />
-                        </div>
+                        </div>}
                       </li>
                     );
                   })}
@@ -711,6 +712,10 @@ export default function ExpedicaoSp() {
                 );
               })()}
 
+              {selecionadoInterno && selecionado.ti_exige_nf && estacaoSelecionada === "aguardando_nf" && (() => {
+                const emb = embalagemDoPedido(eventosSelecionado);
+                return <NfRemessaTi key={selecionado.id} pedidoId={selecionado.id} volumes={emb?.volumes ?? null} pesoKg={emb?.peso_kg ?? null} bloqueado={bloqueado} />;
+              })()}
               {!selecionadoInterno && estacaoSelecionada === "aguardando_nf" && (
                 <Card>
                   <CardContent className="space-y-2 p-4">
@@ -784,13 +789,14 @@ export default function ExpedicaoSp() {
                 />
               )}
 
-              {!selecionadoInterno && estacaoSelecionada === "embalagem" && (
+              {(!selecionadoInterno || selecionado.ti_exige_nf) && estacaoSelecionada === "embalagem" && (
                 <EstacaoEmbalagem
+                  transferenciaInterna={selecionadoInterno}
                   pedidoId={selecionado.id}
                   enderecoEntrega={selecionado.endereco_entrega}
                   modoVendaDireta={modoEntregaSelecionado}
                   modalVendaDireta={modalVdSelecionado}
-                  servicoCorreios={{ servico: selecionado.servico_correios, freteValor: selecionado.frete_cliente_valor, freteGratis: selecionado.frete_gratis }}
+                  servicoCorreios={selecionadoInterno ? undefined : { servico: selecionado.servico_correios, freteValor: selecionado.frete_cliente_valor, freteGratis: selecionado.frete_gratis }}
                   itens={itensQ.data ?? []}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
