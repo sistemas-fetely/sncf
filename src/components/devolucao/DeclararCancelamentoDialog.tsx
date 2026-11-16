@@ -275,6 +275,42 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
   async function confirmar() {
     setExecutando(true); setErroExec(null); setErroXpm(null);
     try {
+      if ((previa?.esteira ?? esteiraAtual?.esteira) === "cancelar_na_shopify") {
+        if (!selId) throw new Error("Selecione o pedido.");
+        const { data, error } = await supabase.functions.invoke("shopify-cancelar-pedido", { body: { pedido_id: selId, motivo: motivoTexto } });
+        let corpo: unknown = data;
+        if (error) {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") corpo = await ctx.json().catch(() => null);
+        }
+        const resp = (corpo ?? {}) as any;
+        if (resp.sucesso !== true) {
+          setErroExec([resp.erro ?? error?.message ?? "Falha ao cancelar na Shopify",
+            resp.resposta_shopify ? `Resposta da Shopify: ${JSON.stringify(resp.resposta_shopify).slice(0, 2000)}` : null].filter(Boolean).join(" — "));
+          return;
+        }
+        toast.success(`${resp.pedido ?? m?.id_externo}: cancelado e estornado na Shopify. O SNCF reflete em instantes.`);
+        if (resp.aviso_bling) toast.warning(resp.aviso_bling, { duration: 15000 });
+        let falhaXpm: string | null = null;
+        try {
+          const { data: ped, error: e1 } = await supabase.from("pedidos").select("xpm_expedicao_codigo").eq("id", selId).maybeSingle();
+          if (e1) throw new Error(e1.message);
+          if (ped?.xpm_expedicao_codigo) await cortarXpm(motivo.trim());
+        } catch (e) { falhaXpm = e instanceof Error ? e.message : String(e); }
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: ["vw_devolucao_funil"] }),
+          qc.invalidateQueries({ queryKey: ["fn_pedido_momento"] }),
+          qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes(selId) }),
+          qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").includes("pedido") }),
+        ]);
+        if (falhaXpm) {
+          setErroXpm(`Pedido cancelado, mas o corte na XPM falhou: ${falhaXpm} — corte manualmente`);
+          onConcluido?.();
+          return;
+        }
+        onConcluido?.(); setOpen(false); reset();
+        return;
+      }
       const d = await rpc("declarar_cancelamento", args(false));
       if (d?.ok === false) { setErroExec(d.erro ?? "Execução recusada"); return; }
       console.info("[declarar_cancelamento execução]", { esteira: d?.esteira, rpc: d?.rpc, resultado: d?.resultado });
