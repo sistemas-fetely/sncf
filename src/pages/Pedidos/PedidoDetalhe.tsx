@@ -62,6 +62,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PedidoStepper } from "@/components/pedidos/PedidoStepper";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
+import { TimelineTransferencia } from "@/components/transferencias/TimelineTransferencia";
 import { PedidoTarefasVinculadasTab } from "@/components/pedidos/PedidoTarefasVinculadasTab";
 import { PedidoTarefasBloco } from "@/components/pedidos/PedidoTarefasBloco";
 import { STATUS_ABERTOS, usePedidoTarefasVinculadas } from "@/hooks/pedidos/usePedidoTarefasVinculadas";
@@ -1739,6 +1740,7 @@ export default function PedidoDetalhe() {
       </div>
 
       {/* TRAVADO-B2B: motivo + saída onde o operador olha. */}
+      {rotaCentros && <div className="mx-6 mb-3"><TimelineTransferencia pedidoId={pedido.id} /></div>}
       <BlocoTravadoB2B pedidoId={pedido.id} idExterno={pedido.id_externo} />
 
       {/* BANCADA-SP-TRAVA — pedido B2B na Mesa da Expedição SP: etapa e trava visíveis no topo */}

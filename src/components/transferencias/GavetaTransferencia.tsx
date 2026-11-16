@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { SeloEstagioTransferencia } from "@/components/transferencias/SeloEstagioTransferencia";
+import { TimelineTransferencia } from "@/components/transferencias/TimelineTransferencia";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { useFotosPrincipais } from "@/hooks/useFotosProduto";
 import { formatError } from "@/lib/format-error";
@@ -88,6 +89,7 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
           <p className="p-4 text-sm text-destructive">Falha ao carregar: {formatError(q.error)}</p>
         ) : d && (
           <div className="mt-4 space-y-5">
+            {pedidoId && <TimelineTransferencia pedidoId={pedidoId} />}
             <section className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 {v?.estagio && <SeloEstagioTransferencia estagio={v.estagio} blingIdDestino={v.bling_id_destino} blingEnvioErro={v.bling_envio_erro} />}

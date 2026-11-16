@@ -32,6 +32,7 @@ import { DespachoB2b } from "./expedicao-sp/DespachoB2b";
 import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
 import { NfRemessaTi } from "./expedicao-sp/NfRemessaTi";
+import { TimelineTransferencia } from "@/components/transferencias/TimelineTransferencia";
 import { EstacaoDocumentos } from "./expedicao-sp/EstacaoDocumentos";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { FaixaInstrucaoExpedicao, SeloInstrucaoExpedicao } from "./expedicao-sp/FaixaInstrucaoExpedicao";
@@ -517,6 +518,7 @@ export default function ExpedicaoSp() {
             />
           ) : (
             <>
+              {selecionadoInterno && <TimelineTransferencia pedidoId={selecionado.id} />}
               {!selecionadoInterno && <FaixaInstrucaoExpedicao pedido={selecionado} />}
               <Card>
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">

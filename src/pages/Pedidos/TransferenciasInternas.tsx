@@ -59,6 +59,11 @@ import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDes
 import { AlertasTransferenciaFisica } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
 import { GavetaTransferenciaTi } from "@/components/transferencias/GavetaTransferenciaTi";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import { AndamentoTransferencias } from "@/components/transferencias/AndamentoTransferencias";
+import { aReceberNoDestino, correspondeNumero, correspondeEstagio, ordenarAndamento, type FaseTransferencia, type TransferenciaAndamento } from "@/components/transferencias/painelRegras";
 
 
 interface CentroDestino {
@@ -135,7 +140,7 @@ export default function TransferenciasInternas() {
   const qtdNfsOrfas = (nfsOrfas.data ?? []).filter((n) => !n.ignorada).length;
   const location = useLocation();
   // Filtros da lista (aba Transferências) na URL, prefixo "tr".
-  const [nav, setNav] = useEstadoTela({ orfaos: false, vendaFora: false, finalidade: "todas" }, { prefixo: "tr" });
+  const [nav, setNav] = useEstadoTela({ orfaos: false, vendaFora: false, finalidade: "todas", busca: "", fase: "", estagio: "todos", historico: false }, { prefixo: "tr" });
   const soOrfaos = nav.orfaos;
   const setSoOrfaos = (v: boolean | ((p: boolean) => boolean)) => setNav({ orfaos: typeof v === "function" ? v(nav.orfaos) : v });
   // Venda fora (Casa 22) é operação de consignado: fica fora da lista e dos
@@ -203,8 +208,45 @@ export default function TransferenciasInternas() {
     ? linhas
     : linhas.filter((t) => t.finalidade_codigo !== "venda_fora" || ehTransferenciaMesa(t.canal));
   const nVendaFora = linhas.length - visiveis.length;
-  useFocoAoVoltar({ pronto: listaQ.isSuccess, idsVisiveis: visiveis.map((t) => t.id), focoParam: "tr_foco" });
-  useRestaurarScroll(null, listaQ.isSuccess);
+  const fasesQ = useQuery({
+    queryKey: ["transferencia-fase-painel"],
+    queryFn: async (): Promise<FaseTransferencia[]> => {
+      const { data, error } = await (supabase as any).from("transferencia_fase_painel").select("codigo, rotulo, ordem, estagios, dias_alerta, ativo").eq("ativo", true).order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const andamentoQ = useQuery({
+    queryKey: ["transferencias-andamento"],
+    queryFn: async (): Promise<TransferenciaAndamento[]> => {
+      const todas: TransferenciaAndamento[] = [];
+      for (let inicio = 0; ; inicio += 1000) {
+        const { data, error } = await (supabase as any).from("vw_transferencias_andamento").select("*").order("fase_ordem").order("dias_na_fase", { ascending: false }).order("id").range(inicio, inicio + 999);
+        if (error) throw error;
+        todas.push(...(data ?? []));
+        if ((data ?? []).length < 1000) break;
+      }
+      return ordenarAndamento(todas);
+    },
+  });
+  useEffect(() => {
+    if (fasesQ.isError) toast.error(formatError(fasesQ.error));
+    if (andamentoQ.isError) toast.error(formatError(andamentoQ.error));
+  }, [fasesQ.isError, fasesQ.error, andamentoQ.isError, andamentoQ.error]);
+  const ocultos = new Set(linhas.filter((t) => !mostrarVendaFora && t.finalidade_codigo === "venda_fora" && !ehTransferenciaMesa(t.canal)).map((t) => t.id));
+  const andamento = (andamentoQ.data ?? []).filter((t) => !ocultos.has(t.id) && correspondeNumero(t.id_externo, nav.busca));
+  const historico = visiveis.filter((t) => (!soOrfaos || t.orfao === true) && (filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade) && correspondeEstagio(t.estagio, nav.estagio) && correspondeNumero(t.id_externo, nav.busca));
+  const abrirHistoricoAutomatico = nav.busca.trim().length > 0 && listaQ.isSuccess && andamentoQ.isSuccess && historico.length > 0 && andamento.length === 0;
+  const historicoAberto = nav.historico || soOrfaos || abrirHistoricoAutomatico;
+  const focoIds = [...andamento.filter((t) => !nav.fase || t.fase_codigo === nav.fase), ...(historicoAberto ? historico : [])].map((t) => t.id);
+  useFocoAoVoltar({ pronto: listaQ.isSuccess && andamentoQ.isSuccess, idsVisiveis: focoIds, focoParam: "tr_foco" });
+  useRestaurarScroll(null, listaQ.isSuccess && andamentoQ.isSuccess);
+  const abrirTransferencia = (t: TransferenciaRow | TransferenciaAndamento) => {
+    const original = linhas.find((linha) => linha.id === t.id);
+    const mesaTi = ehTransferenciaMesa(original?.canal);
+    if (original?.origem_registro === "ti" && !mesaTi) { setGavetaTi(original); return; }
+    abrirDetalhe(navigate, location, mesaTi ? `/logistica/expedicao-sp?pedido=${t.id}` : `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
+  };
   const nOrfaos = visiveis.filter((t) => t.orfao === true).length;
 
   const idsLista = linhas.filter((t) => t.origem_registro !== "ti").map((t) => t.id);
@@ -245,13 +287,7 @@ export default function TransferenciasInternas() {
   }, [semBaixaQ.isError, semBaixaQ.error]);
   const nSemBaixa = semBaixaQ.data?.length ?? 0;
   // TI já nasce recebida: só pedidos contam como "a receber".
-  const nAReceber = visiveis.filter(
-    (t) =>
-      t.origem_registro !== "ti" &&
-      t.sem_destino !== true &&
-      (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") &&
-      !recebMap.has(t.id),
-  ).length;
+  const nAReceber = visiveis.filter((t) => aReceberNoDestino(t, recebMap)).length;
   const temPendencia = nSemBaixa > 0 || nAReceber > 0 || nOrfaos > 0;
 
   return (
@@ -298,6 +334,13 @@ export default function TransferenciasInternas() {
           </TabsContent>
         )}
         <TabsContent value="transferencias" className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <Input aria-label="Buscar transferência por número" placeholder="Buscar por número" value={nav.busca} onChange={(e) => setNav({ busca: e.target.value })} className="w-full sm:max-w-xs" />
+        <Button variant="outline" size="sm" aria-pressed={mostrarVendaFora} onClick={() => setMostrarVendaFora((v) => !v)} className={cn(mostrarVendaFora && "border-primary bg-primary/10 text-primary")}>
+          <Eye className="h-3.5 w-3.5" />Mostrar venda fora (Casa 22){nVendaFora > 0 && ` (${nVendaFora})`}
+        </Button>
+      </div>
+      <AndamentoTransferencias fases={fasesQ.data ?? []} linhas={andamento} fase={nav.fase} onFase={(fase) => setNav({ fase })} onAbrir={abrirTransferencia} carregando={listaQ.isLoading || andamentoQ.isLoading || fasesQ.isLoading} erro={andamentoQ.isError ? formatError(andamentoQ.error) : fasesQ.isError ? formatError(fasesQ.error) : listaQ.isError ? formatError(listaQ.error) : null} />
       <AlertasTransferenciaFisica />
       {temPendencia && (
         <div className="flex flex-wrap gap-3">
@@ -340,17 +383,20 @@ export default function TransferenciasInternas() {
         <TransferenciasSemBaixaPainel onLancado={() => listaQ.refetch()} />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+      <Collapsible open={historicoAberto} onOpenChange={(historico) => setNav({ historico })}>
+        <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-between px-0 text-base font-medium">Histórico — {historico.length}<ChevronDown className={cn("h-4 w-4 transition-transform", historicoAberto && "rotate-180")} /></Button></CollapsibleTrigger>
+        <CollapsibleContent>
+      <section className="mt-4">
+        <CardHeader className="flex flex-wrap items-start justify-between gap-3 space-y-0 px-0 sm:flex-row sm:items-center">
           <CardTitle className="flex items-center gap-2 text-base">
-            Transferências
+            Histórico
             {nOrfaos > 0 && (
               <span className="text-xs font-normal text-muted-foreground">
                 {nOrfaos} {nOrfaos === 1 ? "sem origem/destino declarado" : "sem origem/destino declarados"}
               </span>
             )}
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               aria-pressed={mostrarVendaFora}
@@ -377,6 +423,15 @@ export default function TransferenciasInternas() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={nav.estagio} onValueChange={(estagio) => setNav({ estagio })}>
+              <SelectTrigger className="h-8 w-[180px]" aria-label="Filtrar histórico por estágio"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="entregue">Entregue</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+                <SelectItem value="andamento">Em andamento</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -388,7 +443,7 @@ export default function TransferenciasInternas() {
             <p className="p-6 text-sm text-destructive">
               Falha ao carregar transferências: {(listaQ.error as Error).message}
             </p>
-          ) : visiveis.length === 0 ? (
+          ) : historico.length === 0 ? (
             <p className="p-10 text-center text-sm text-muted-foreground">
               Nenhuma transferência interna registrada ainda.
             </p>
@@ -415,13 +470,11 @@ export default function TransferenciasInternas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visiveis.filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
+                {historico.map((t) => {
                   // Linha TI (sem NF): id sintético, não existe em pedidos — abre a gaveta lateral.
                   const mesaTi = ehTransferenciaMesa(t.canal);
                   const ehTi = t.origem_registro === "ti" && !mesaTi;
-                  const abrir = ehTi
-                    ? () => setGavetaTi(t)
-                    : () => abrirDetalhe(navigate, location, mesaTi ? `/logistica/expedicao-sp?pedido=${t.id}` : `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
+                  const abrir = () => abrirTransferencia(t);
                   return (
                     <TableRow
                       key={t.id}
@@ -596,7 +649,9 @@ export default function TransferenciasInternas() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </section>
+        </CollapsibleContent>
+      </Collapsible>
         </TabsContent>
       </Tabs>
 
