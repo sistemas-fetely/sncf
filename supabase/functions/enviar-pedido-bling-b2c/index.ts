@@ -505,7 +505,7 @@ Deno.serve(async (req) => {
           const { data: ped, error: ePedVd } = await supabase
             .from("pedidos")
             .select(
-              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem, natureza_operacao_id",
+              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem, natureza_operacao_id, transportadora_id",
             )
             .eq("id", pedidoIdVd)
             .maybeSingle();
@@ -591,11 +591,12 @@ Deno.serve(async (req) => {
 
           // Endereço: entrega → `pedidos.endereco_entrega`; retirada → cadastro do cliente.
           const endPed = (ped.endereco_entrega ?? {}) as Record<string, unknown>;
-          // Modal VD: retirada | balcao (= retirada) | sedex | pac | frete_fetely (legado `entrega` = PAC).
+          // Modal VD: retirada | balcao (= retirada) | sedex | pac | frete_fetely | transportadora (legado `entrega` = PAC).
           const modalVd = String(endPed.modal ?? "");
           // BALCAO (17/11/2026): venda presencial no evento = retirada (sem frete; endereço do cadastro do cliente).
           const retirada = modalVd === "retirada" || modalVd === "balcao";
           const freteFetely = modalVd === "frete_fetely";
+          const viaTransportadora = modalVd === "transportadora";
           const servicoVd = modalVd === "sedex" ? servicoSedex : servicoPac;
           const endVd = retirada
             ? {
@@ -622,19 +623,42 @@ Deno.serve(async (req) => {
             );
             continue;
           }
-          if (!retirada && !freteFetely && !["sedex", "pac", "entrega"].includes(modalVd)) {
+          if (!retirada && !freteFetely && !["sedex", "pac", "entrega", "transportadora"].includes(modalVd)) {
             await falharVd(`Pedido ${idExterno} com modal de entrega desconhecido ("${modalVd || "(vazio)"}") — nada enviado.`);
             continue;
           }
-          if (modalVd === "sedex" && !servicoSedex) {
+          if (!viaTransportadora && modalVd === "sedex" && !servicoSedex) {
             await falharVd("config do serviço SEDEX ausente (integracoes_config.b2c_servico_sedex) — pedido NÃO enviado.");
             continue;
           }
-          if (!retirada && !freteFetely && transporteCfgFaltando.length > 0) {
+          if (!retirada && !freteFetely && !viaTransportadora && transporteCfgFaltando.length > 0) {
             await falharVd(
               `Config de transporte B2C ausente em integracoes_config (${transporteCfgFaltando.join(", ")}) — pedido NÃO enviado sem transporte.`,
             );
             continue;
+          }
+
+          let transportadoraBlingVd: number | null = null;
+          if (viaTransportadora) {
+            const erroTransportadora = `Pedido ${idExterno} por transportadora sem transportadora com cadastro no Bling (bling_id) — nada enviado.`;
+            if (!ped.transportadora_id) {
+              await falharVd(erroTransportadora);
+              continue;
+            }
+            const { data: transportadoraVd, error: eTransportadoraVd } = await supabase
+              .from("parceiros_comerciais")
+              .select("bling_id, razao_social")
+              .eq("id", ped.transportadora_id)
+              .maybeSingle();
+            if (eTransportadoraVd) {
+              await falharVd(`ler transportadora em parceiros_comerciais: ${eTransportadoraVd.message}`);
+              continue;
+            }
+            transportadoraBlingVd = Number(transportadoraVd?.bling_id ?? 0);
+            if (!Number.isFinite(transportadoraBlingVd) || transportadoraBlingVd <= 0) {
+              await falharVd(erroTransportadora);
+              continue;
+            }
           }
 
           // Modal do frete — DIMENSAO-VIA-TABELA (`frete_tipos.mod_frete_nf`).
@@ -680,6 +704,20 @@ Deno.serve(async (req) => {
               pedido_id: pedidoIdVd,
               frete_tipo: ped.frete_tipo ?? null,
             });
+          }
+
+          let rotuloLojaVd = String(lojaId);
+          if (item.centro_id_resolvido) {
+            const { data: centroVd, error: eCentroVd } = await supabase
+              .from("centro_distribuicao")
+              .select("rotulo_curto")
+              .eq("id", item.centro_id_resolvido)
+              .maybeSingle();
+            if (eCentroVd) {
+              await falharVd(`ler centro_distribuicao: ${eCentroVd.message}`);
+              continue;
+            }
+            rotuloLojaVd = String(centroVd?.rotulo_curto ?? "").trim() || String(lojaId);
           }
 
           // Produtos — MESMA resolução do ramo Shopify (fn_bling_resolver_produto → API).
@@ -952,10 +990,11 @@ Deno.serve(async (req) => {
             ...(descontoVd > 0 ? { desconto: { valor: descontoVd, unidade: "REAL" } } : {}),
             transporte: retirada
               ? { fretePorConta: fretePorContaVd }
-              : freteFetely
+              : freteFetely || viaTransportadora
               ? {
                 fretePorConta: fretePorContaVd,
                 ...(freteVd > 0 ? { frete: freteVd } : {}),
+                ...(viaTransportadora ? { contato: { id: transportadoraBlingVd } } : {}),
                 etiqueta: {
                   nome: nomeVd,
                   endereco: endVd.logradouro,
@@ -1080,7 +1119,7 @@ Deno.serve(async (req) => {
           }
           const eEvOk = await registrarEvento(
             "outro",
-            `Pedido criado no Bling (loja Site SP) nº ${blingNumeroVd ?? blingIdVd}`,
+            `Pedido criado no Bling (loja ${rotuloLojaVd}) nº ${blingNumeroVd ?? blingIdVd}`,
             { bling_pedido_id: String(blingIdVd), bling_pedido_numero: blingNumeroVd, loja_bling_id: lojaId, natureza_bling_id: naturezaBlingVd },
           );
           if (eEvOk) errosPos.push(eEvOk);
