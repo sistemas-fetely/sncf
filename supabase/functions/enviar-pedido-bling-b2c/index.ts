@@ -505,7 +505,7 @@ Deno.serve(async (req) => {
           const { data: ped, error: ePedVd } = await supabase
             .from("pedidos")
             .select(
-              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem, natureza_operacao_id, transportadora_id",
+              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem, natureza_operacao_id, transportadora_id, peso_bruto_total",
             )
             .eq("id", pedidoIdVd)
             .maybeSingle();
@@ -974,6 +974,22 @@ Deno.serve(async (req) => {
             .filter(Boolean)
             .join(" · ");
 
+          let pesoReal = 0;
+          let qtdVolumes = 0;
+          if (viaTransportadora) {
+            const { data: pesoRealRpc, error: pesoRealErr } = await supabase.rpc(
+              "fn_pedido_peso_real",
+              { p_pedido_id: pedidoIdVd },
+            );
+            if (pesoRealErr) console.warn("fn_pedido_peso_real falhou:", pesoRealErr.message);
+            const rPeso = (Array.isArray(pesoRealRpc) ? pesoRealRpc[0] : pesoRealRpc) as
+              | { fonte?: string; peso?: number | string | null; volumes?: number | string | null }
+              | null;
+            const pesoFonte = Number(rPeso?.peso ?? 0);
+            pesoReal = pesoFonte > 0 ? pesoFonte : Number(ped.peso_bruto_total ?? 0);
+            qtdVolumes = Number(rPeso?.volumes ?? 0);
+          }
+
           const payloadVd: Record<string, unknown> = {
             // CHAVE DE CONTINUIDADE: a NF volta com numeroPedidoLoja = id_externo (VD-xxxx).
             numeroLoja: idExterno,
@@ -995,6 +1011,8 @@ Deno.serve(async (req) => {
                 fretePorConta: fretePorContaVd,
                 ...(freteVd > 0 ? { frete: freteVd } : {}),
                 ...(viaTransportadora ? { contato: { id: transportadoraBlingVd } } : {}),
+                ...(viaTransportadora && pesoReal > 0 ? { pesoBruto: Number(pesoReal.toFixed(3)) } : {}),
+                ...(viaTransportadora && qtdVolumes > 0 ? { quantidadeVolumes: qtdVolumes } : {}),
                 etiqueta: {
                   nome: nomeVd,
                   endereco: endVd.logradouro,

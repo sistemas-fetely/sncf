@@ -6440,7 +6440,7 @@ export type Database = {
       b2c_troca_cd: {
         Row: {
           de_centro: string | null
-          fila_id: string
+          fila_id: string | null
           id: string
           motivo: string
           order_name: string | null
@@ -6450,7 +6450,7 @@ export type Database = {
         }
         Insert: {
           de_centro?: string | null
-          fila_id: string
+          fila_id?: string | null
           id?: string
           motivo: string
           order_name?: string | null
@@ -6460,7 +6460,7 @@ export type Database = {
         }
         Update: {
           de_centro?: string | null
-          fila_id?: string
+          fila_id?: string | null
           id?: string
           motivo?: string
           order_name?: string | null

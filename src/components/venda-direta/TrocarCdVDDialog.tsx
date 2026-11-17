@@ -18,6 +18,7 @@ interface Resultado {
   ok: boolean; erro?: string; de: string; para: string;
   frete_estimado?: number | null; prazo_dias?: number | null;
   bling_cancelado?: string | number | null;
+  vai_para_xpm?: boolean;
   sem_saldo_destino?: { sku: string; quantidade: number; saldo: number }[];
 }
 
@@ -58,7 +59,8 @@ export function TrocarCdVDDialog({ pedido, onClose }: { pedido: PedidoTrocaCdVD;
     onSuccess: async (r) => {
       const linhas: string[] = [];
       if (r.frete_estimado != null) linhas.push(`Frete estimado ${formatBRL(r.frete_estimado)}${r.prazo_dias != null ? ` · ${r.prazo_dias} dias` : ""}`);
-      if (r.bling_cancelado) linhas.push(`Pedido Bling nº ${r.bling_cancelado} cancelado, desce de novo na loja nova`);
+      if (r.vai_para_xpm) linhas.push("Vai para a XPM separar. A NF sai depois do Conferido, com os volumes reais.");
+      else if (r.bling_cancelado) linhas.push(`Pedido Bling nº ${r.bling_cancelado} cancelado, desce de novo na loja nova`);
       toast.success(`CD trocado: ${r.de} → ${r.para}`, { description: linhas.join("\n") || undefined, duration: 10000 });
       if (r.sem_saldo_destino?.length) toast.warning("CD de destino sem saldo para alguns itens", {
         description: r.sem_saldo_destino.map((i) => `${i.sku} · quantidade ${i.quantidade} · saldo ${i.saldo}`).join("\n"), duration: 15000,

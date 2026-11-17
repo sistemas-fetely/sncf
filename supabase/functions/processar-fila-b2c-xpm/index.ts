@@ -51,23 +51,25 @@ Deno.serve(async (req) => {
         if (r.ok && rj?.sucesso) {
           // NF e expedicao juntas: liga a NF ao pedido AGORA, so depois do Create
           // confirmado. Isso dispara fn_trg_nf_enfileira_xpm sozinho (ja existente).
-          const { data: pedido } = await sb
-            .from("pedidos")
-            .select("id_externo")
-            .eq("id", item.pedido_id)
-            .maybeSingle();
+          if (item.nf_id) {
+            const { data: pedido } = await sb
+              .from("pedidos")
+              .select("id_externo")
+              .eq("id", item.pedido_id)
+              .maybeSingle();
 
-          const { error: eLink } = await sb
-            .from("nfs_emitidas")
-            .update({
-              pedido_venda_id: item.pedido_id,
-              vinculo_origem: "b2c_auto",
-              vinculo_pedido_ref: pedido?.id_externo ?? null,
-              vinculo_em: new Date().toISOString(),
-            })
-            .eq("id", item.nf_id)
-            .is("pedido_venda_id", null);
-          if (eLink) throw new Error(`ligar NF ao pedido: ${eLink.message}`);
+            const { error: eLink } = await sb
+              .from("nfs_emitidas")
+              .update({
+                pedido_venda_id: item.pedido_id,
+                vinculo_origem: "b2c_auto",
+                vinculo_pedido_ref: pedido?.id_externo ?? null,
+                vinculo_em: new Date().toISOString(),
+              })
+              .eq("id", item.nf_id)
+              .is("pedido_venda_id", null);
+            if (eLink) throw new Error(`ligar NF ao pedido: ${eLink.message}`);
+          }
 
           await sb
             .from("xpm_pedido_fila_b2c")
@@ -111,9 +113,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ sucesso: true, ...resultado });
+    return json(Object.assign({ sucesso: true }, resultado));
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ sucesso: false, erro: msg, ...resultado }, 500);
+    return json(Object.assign({ sucesso: false, erro: msg }, resultado), 500);
   }
 });
