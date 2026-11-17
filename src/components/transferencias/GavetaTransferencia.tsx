@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { CodProduto } from "@/components/produto/CodProduto";
-import { ArrowRight, FileText, Loader2 } from "lucide-react";
+import { ArrowRight, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { SeloEstagioTransferencia } from "@/components/transferencias/SeloEstagioTransferencia";
 import { TimelineTransferencia } from "@/components/transferencias/TimelineTransferencia";
+import { destinoDetalheTransferencia } from "@/components/transferencias/painelRegras";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { useFotosPrincipais } from "@/hooks/useFotosProduto";
 import { formatError } from "@/lib/format-error";
@@ -76,12 +78,21 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
   const pecas = (d?.itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
   const valor = (d?.itens ?? []).reduce((s: number, i: any) => s + Number(i.subtotal ?? Number(i.quantidade ?? 0) * Number(i.valor_unitario ?? 0)), 0);
   const divs = Array.isArray(recebimento?.divergencias) ? recebimento!.divergencias! : [];
+  const destinoDetalhe = v ? destinoDetalheTransferencia({ canal: v.canal ?? null, origem_codigo: v.origem_codigo ?? null, estagio: v.estagio ?? null }) : null;
 
   return (
     <Sheet open={!!pedidoId} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="superficie-tabelas w-full overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle>{v?.id_externo ?? "Transferência"}</SheetTitle>
+          {pedidoId && destinoDetalhe && (
+            <Link
+              to={destinoDetalhe === "mesa" ? `/logistica/expedicao-sp?pedido=${pedidoId}` : `/pedidos/${pedidoId}`}
+              className="inline-flex items-center gap-1 text-sm text-primary underline-offset-2 hover:underline"
+            >
+              {destinoDetalhe === "mesa" ? "Abrir na Expedição SP" : "Abrir pedido"}<ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </Link>
+          )}
         </SheetHeader>
         {q.isLoading ? (
           <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>

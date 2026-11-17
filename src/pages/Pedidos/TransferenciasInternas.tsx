@@ -1,7 +1,7 @@
 import { ehTransferenciaMesa, estagioTiMesa } from "@/pages/logistica/expedicao-sp/transferenciaInterna";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
+import { Link, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,11 +59,12 @@ import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDes
 import { AlertasTransferenciaFisica } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
 import { GavetaTransferenciaTi } from "@/components/transferencias/GavetaTransferenciaTi";
+import { GavetaTransferencia } from "@/components/transferencias/GavetaTransferencia";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { AndamentoTransferencias } from "@/components/transferencias/AndamentoTransferencias";
-import { aReceberNoDestino, correspondeNumero, correspondeEstagio, ordenarAndamento, type FaseTransferencia, type TransferenciaAndamento } from "@/components/transferencias/painelRegras";
+import { aReceberNoDestino, correspondeNumero, correspondeEstagio, ordenarAndamento, qualGavetaAbre, type FaseTransferencia, type TransferenciaAndamento } from "@/components/transferencias/painelRegras";
 
 
 interface CentroDestino {
@@ -126,7 +127,7 @@ function SeloTipo({ t }: { t: TransferenciaRow }) {
 
 export default function TransferenciasInternas() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const [, setParams] = useSearchParams();
   const permRetorno = usePermissoesTela("tela.regularizacao_estoque");
   const [abaUrl, setAba] = useAbaUrl("transferencias");
   // Aba válida: "nova"/"receber"; "retorno" só com permissão; qualquer outra → "transferencias".
@@ -138,7 +139,6 @@ export default function TransferenciasInternas() {
   const baixasQ = useBaixasUso();
   const qtdEmEvento = (baixasQ.data ?? []).filter((b) => b.status === "em_evento").length;
   const qtdNfsOrfas = (nfsOrfas.data ?? []).filter((n) => !n.ignorada).length;
-  const location = useLocation();
   // Filtros da lista (aba Transferências) na URL, prefixo "tr".
   const [nav, setNav] = useEstadoTela({ orfaos: false, vendaFora: false, finalidade: "todas", busca: "", fase: "", estagio: "todos", historico: false }, { prefixo: "tr" });
   const soOrfaos = nav.orfaos;
@@ -169,6 +169,8 @@ export default function TransferenciasInternas() {
 
   // Gaveta lateral da transferência sem NF (TI-*): linha TI clicada abre a gaveta.
   const [gavetaTi, setGavetaTi] = useState<TransferenciaRow | null>(null);
+  // Gaveta lateral do pedido (TRS/PED): qualquer linha que não seja TI abre nela.
+  const [gavetaPedidoId, setGavetaPedidoId] = useState<string | null>(null);
   const listaQ = useQuery({
     queryKey: ["transferencias-internas"],
     queryFn: async (): Promise<TransferenciaRow[]> => {
@@ -243,9 +245,14 @@ export default function TransferenciasInternas() {
   useRestaurarScroll(null, listaQ.isSuccess && andamentoQ.isSuccess);
   const abrirTransferencia = (t: TransferenciaRow | TransferenciaAndamento) => {
     const original = linhas.find((linha) => linha.id === t.id);
-    const mesaTi = ehTransferenciaMesa(original?.canal);
-    if (original?.origem_registro === "ti" && !mesaTi) { setGavetaTi(original); return; }
-    abrirDetalhe(navigate, location, mesaTi ? `/logistica/expedicao-sp?pedido=${t.id}` : `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
+    if (qualGavetaAbre(original?.origem_registro ?? null) === "ti" && original) { setGavetaTi(original); return; }
+    setGavetaPedidoId(t.id);
+  };
+  // Ao fechar a gaveta, marca a linha aberta para o foco/scroll de volta (tr_foco).
+  const fecharGavetaPedido = () => {
+    const id = gavetaPedidoId;
+    setGavetaPedidoId(null);
+    if (id) setParams((a) => { const p = new URLSearchParams(a); p.set("tr_foco", id); return p; }, { replace: true });
   };
   const nOrfaos = visiveis.filter((t) => t.orfao === true).length;
 
@@ -656,6 +663,7 @@ export default function TransferenciasInternas() {
       </Tabs>
 
       <GavetaTransferenciaTi linha={gavetaTi} onClose={() => setGavetaTi(null)} />
+      <GavetaTransferencia pedidoId={gavetaPedidoId} onClose={fecharGavetaPedido} recebimento={gavetaPedidoId ? recebMap.get(gavetaPedidoId) ?? null : null} />
     </PageShell>
   );
 }

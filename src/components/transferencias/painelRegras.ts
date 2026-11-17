@@ -44,6 +44,16 @@ export function ordenarAndamento(linhas: TransferenciaAndamento[]) {
   return [...linhas].sort((a, b) => (a.fase_ordem ?? Infinity) - (b.fase_ordem ?? Infinity) || (b.dias_na_fase ?? 0) - (a.dias_na_fase ?? 0));
 }
 
+/** Clique na linha: TI sintética abre a gaveta TI; qualquer pedido (TRS/PED, inclusive canal interno) abre a GavetaTransferencia. */
+export function qualGavetaAbre(origemRegistro: string | null): "ti" | "pedido" {
+  return origemRegistro === "ti" ? "ti" : "pedido";
+}
+
+/** Link de ação do cabeçalho da gaveta: Mesa SP só quando a transferência está de fato lá. */
+export function destinoDetalheTransferencia(t: { canal: string | null; origem_codigo: string | null; estagio: string | null }): "mesa" | "pedido" {
+  return t.canal === "interno" && t.origem_codigo === "SITE-SP" && (t.estagio === "pre_separacao" || t.estagio === "em_separacao") ? "mesa" : "pedido";
+}
+
 export function aReceberNoDestino(t: { origem_registro: string | null; tipo_transferencia: string | null; sem_destino: boolean | null; estagio: string | null; id: string }, recebidos: ReadonlyMap<string, unknown>) {
   return t.origem_registro !== "ti" && t.tipo_transferencia !== "regularizacao" && t.sem_destino !== true &&
     ["em_transito", "em_transporte", "entregue"].includes(t.estagio ?? "") && !recebidos.has(t.id);
