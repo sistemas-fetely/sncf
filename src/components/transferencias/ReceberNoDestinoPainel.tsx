@@ -1,4 +1,4 @@
-import { useRetornosEvento } from "./useRetornoEvento";
+import { useRetornosEvento, usePodeOperarRetorno } from "./useRetornoEvento";
 import { RetornosEventoPainel } from "./RetornosEventoPainel";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,6 +68,7 @@ function SeloEstagio({ estagio }: { estagio: string | null }) {
 export function ReceberNoDestinoPainel() {
   const qc = useQueryClient();
   const retornosQ = useRetornosEvento();
+  const permissaoRetorno = usePodeOperarRetorno();
   const [receber, setReceber] = useState<Linha | null>(null);
   const [gaveta, setGaveta] = useState<{ id: string; linha?: Linha; rec?: Recebida } | null>(null);
 
@@ -315,6 +316,8 @@ export function ReceberNoDestinoPainel() {
                           </TooltipTrigger>
                           <TooltipContent>NF com natureza errada — fale com o fiscal</TooltipContent>
                         </Tooltip>
+                      ) : retornoIds.has(p.id) ? (
+                        <Button size="sm" disabled={!permissaoRetorno.data} onClick={() => setReceber(p)}>Receber</Button>
                       ) : (
                         <BotaoGuardado slug="acao.trs_receber_destino" rotuloAcao="Receber transferência no centro de destino" size="sm" onClick={() => setReceber(p)}>Receber</BotaoGuardado>
                       )}

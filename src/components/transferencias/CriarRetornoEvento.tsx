@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
-import { exigirResultado } from "./useRetornoEvento";
+import { exigirResultado, usePodeOperarRetorno } from "./useRetornoEvento";
 
 export function CriarRetornoEvento() {
   const qc = useQueryClient();
+  const permissao = usePodeOperarRetorno();
   const [, setParams] = useSearchParams();
   const elegiveis = useQuery({ queryKey: ["ti-retorno-elegiveis"], queryFn: async () => {
     const { data: fins, error: fe } = await supabase.from("transferencia_finalidade").select("id").not("natureza_nf_retorno_id", "is", null);
@@ -64,7 +65,8 @@ export function CriarRetornoEvento() {
   }, onError: (e) => toast.error(formatError(e)) });
   return <section className="mt-4 space-y-3">
     <h3 className="font-medium">Retorno do evento</h3>
+    {permissao.isError && <p className="text-sm text-destructive">{formatError(permissao.error)}</p>}
     {elegiveis.isError ? <p className="text-sm text-destructive">{formatError(elegiveis.error)}</p> : elegiveis.isPending ? <p className="text-muted-foreground">Carregando remessas…</p> : !elegiveis.data.length ? <p className="text-muted-foreground">Nenhuma remessa elegível para retorno.</p> :
-      <Table><TableHeader><TableRow><TableHead>Remessa</TableHead><TableHead>Origem → Destino</TableHead><TableHead>Entrega</TableHead><TableHead>NF de remessa</TableHead><TableHead>Kits no CD agora</TableHead><TableHead /></TableRow></TableHeader><TableBody>{elegiveis.data.map((p) => <TableRow key={p.id}><TableCell>{p.id_externo}</TableCell><TableCell>{p.origem} → {p.destino}</TableCell><TableCell>{fmtData(p.entregue_em)}</TableCell><TableCell>{p.nf}</TableCell><TableCell>{p.kits}</TableCell><TableCell><Button type="button" disabled={criar.isPending} onClick={() => criar.mutate(p.id)}>Criar retorno</Button></TableCell></TableRow>)}</TableBody></Table>}
+      <Table><TableHeader><TableRow><TableHead>Remessa</TableHead><TableHead>Origem → Destino</TableHead><TableHead>Entrega</TableHead><TableHead>NF de remessa</TableHead><TableHead>Kits no CD agora</TableHead><TableHead /></TableRow></TableHeader><TableBody>{elegiveis.data.map((p) => <TableRow key={p.id}><TableCell>{p.id_externo}</TableCell><TableCell>{p.origem} → {p.destino}</TableCell><TableCell>{fmtData(p.entregue_em)}</TableCell><TableCell>{p.nf}</TableCell><TableCell>{p.kits}</TableCell><TableCell><Button type="button" disabled={criar.isPending || !permissao.data} onClick={() => criar.mutate(p.id)}>Criar retorno</Button></TableCell></TableRow>)}</TableBody></Table>}
   </section>;
 }

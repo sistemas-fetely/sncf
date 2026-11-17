@@ -1,3 +1,4 @@
+import { usePodeOperarRetorno } from "@/components/transferencias/useRetornoEvento";
 import { itensRecebimentoRetorno } from "@/components/transferencias/retornoEventoRegras";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
@@ -50,6 +51,7 @@ interface Props {
 }
 
 export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, destinoRotulo, onRecebido, retornoEvento = false }: Props) {
+  const permissaoRetorno = usePodeOperarRetorno();
   const [confirmando, setConfirmando] = useState(false);
   const [confirmarTudo, setConfirmarTudo] = useState(false);
   const [data, setData] = useState(hojeISO());
@@ -422,7 +424,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
             )}
             <DialogFooter className="gap-2">
               <Button type="button" variant="ghost" onClick={() => setEtapa(listaRecontagem.length ? "recontagem" : "grade")}>Voltar</Button>
-              <BotaoGuardado
+              {ehRetorno ? <Button disabled={!permissaoRetorno.data || receber.isPending || itens.length === 0 || invalido} onClick={() => setConfirmando(true)}>Confirmar recebimento</Button> : <BotaoGuardado
                 slug="acao.estoque_contagem_registrar"
                 rotuloAcao="Confirmar recebimento"
                 contexto={{ pedido_id: pedidoId }}
@@ -431,7 +433,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
               >
                 {receber.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar recebimento
-              </BotaoGuardado>
+              </BotaoGuardado>}
             </DialogFooter>
           </div>
         ) : (
