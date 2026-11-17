@@ -32330,6 +32330,7 @@ export type Database = {
           cancelado_em: string | null
           cancelado_motivo: string | null
           cancelado_por: string | null
+          centro_nf_nova: string | null
           chamado_id: string | null
           criado_em: string
           criado_por: string | null
@@ -32382,6 +32383,7 @@ export type Database = {
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_por?: string | null
+          centro_nf_nova?: string | null
           chamado_id?: string | null
           criado_em?: string
           criado_por?: string | null
@@ -32434,6 +32436,7 @@ export type Database = {
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_por?: string | null
+          centro_nf_nova?: string | null
           chamado_id?: string | null
           criado_em?: string
           criado_por?: string | null
@@ -32487,6 +32490,251 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "devolucao_canal"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["cd_expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "v_simples_remessas"
+            referencedColumns: ["destino_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "v_simples_remessas"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["destino_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_baixa_uso"
+            referencedColumns: ["origem"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["destino_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_bling_sync"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_canais_centro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_centro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_entradas"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_posicao"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_shopify_sync"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_triade_centro"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cd_saldo_a_corrigir"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nf_fora_do_cd"
+            referencedColumns: ["cd_da_nf"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nf_fora_do_cd"
+            referencedColumns: ["cd_do_pedido"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c_pedido"
+            referencedColumns: ["cd_escolhido_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_mesa_sp_quadro"
+            referencedColumns: ["cd_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_quarentena_fila"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_reg_remessa_saldo"
+            referencedColumns: ["centro_sugerido_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_regularizacao_lote"
+            referencedColumns: ["centro_destino"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sugerida"
+            referencedColumns: ["centro"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sugerida"
+            referencedColumns: ["origem"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada_resumo"
+            referencedColumns: ["centro_codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_interna"
+            referencedColumns: ["destino"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_interna"
+            referencedColumns: ["origem"]
+          },
+          {
+            foreignKeyName: "devolucao_centro_nf_nova_fkey"
+            columns: ["centro_nf_nova"]
+            isOneToOne: false
+            referencedRelation: "vw_transferencia_nf_sem_baixa"
+            referencedColumns: ["destino_pedido"]
           },
           {
             foreignKeyName: "devolucao_chamado_id_fkey"
@@ -172061,11 +172309,17 @@ export type Database = {
         Returns: Json
       }
       abrir_correcao_nf: {
-        Args: { p_dry_run?: boolean; p_motivo: string; p_pedido_id: string }
+        Args: {
+          p_centro_nf_nova?: string
+          p_dry_run?: boolean
+          p_motivo: string
+          p_pedido_id: string
+        }
         Returns: Json
       }
       abrir_correcao_nf_core: {
         Args: {
+          p_centro_nf_nova?: string
           p_com_chamado?: boolean
           p_dry_run?: boolean
           p_motivo: string

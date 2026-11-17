@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
@@ -25,6 +26,8 @@ const ddMMHHmm = (v: string | null | undefined) =>
 type Previa = {
   pedido?: string; nf_numero?: string; nf_valor?: number; emitida_em?: string; prazo_cancelamento?: string;
   carga_saiu?: boolean; estagio?: string; fiscal_acao?: "cancelar_nf" | "nf_devolucao";
+  venda_direta?: boolean; centro_original?: string | null;
+  centros_emitentes?: { codigo: string; rotulo: string; uf: string | null }[];
 };
 
 export function caminhoCorrecaoTexto(acao: string | undefined, prazo: string | null | undefined): string {
@@ -41,19 +44,24 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
   const [previaErro, setPreviaErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const [centro, setCentro] = useState("");
   const [executando, setExecutando] = useState(false);
   const [erroExec, setErroExec] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setPrevia(null); setPreviaErro(null); setMotivo(""); setErroExec(null);
+    setPrevia(null); setPreviaErro(null); setMotivo(""); setCentro(""); setErroExec(null);
     let vivo = true;
     setCarregando(true);
     (async () => {
       try {
         const { data, error } = await sb.rpc("abrir_correcao_nf", { p_pedido_id: pedidoId, p_motivo: "", p_dry_run: true });
         if (error) throw new Error(error.message);
-        if (vivo) setPrevia(data as Previa);
+        if (vivo) {
+          const p = data as Previa;
+          setPrevia(p);
+          setCentro(p.centro_original ?? "");
+        }
       } catch (e) {
         if (vivo) setPreviaErro(rawMessage(e));
       } finally {
@@ -64,11 +72,22 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
   }, [open, pedidoId]);
 
   const motivoOk = motivo.trim().length >= 5;
+  // CORRIGIR-NF-CD (17/11/2026): a escolha do CD sai do dry-run; só aparece quando há 2+ emitentes.
+  const centros = previa?.centros_emitentes ?? [];
+  const podeTrocarCentro = centros.length >= 2;
+  const rotuloCentro = (codigo: string | null | undefined) =>
+    centros.find((c) => c.codigo === codigo)?.rotulo ?? codigo ?? "—";
 
   const confirmar = async () => {
     setExecutando(true); setErroExec(null);
     try {
-      const { data, error } = await sb.rpc("abrir_correcao_nf", { p_pedido_id: pedidoId, p_motivo: motivo.trim(), p_dry_run: false });
+      const { data, error } = await sb.rpc("abrir_correcao_nf", {
+        p_pedido_id: pedidoId,
+        p_motivo: motivo.trim(),
+        p_dry_run: false,
+        // Só envia quando o operador trocou o CD de origem da NF nova.
+        p_centro_nf_nova: centro && centro !== previa?.centro_original ? centro : null,
+      });
       if (error) throw new Error(error.message);
       const r = data as any;
       const chamado = r?.chamado ? (typeof r.chamado === "object" ? (r.chamado.numero ?? r.chamado.protocolo ?? r.chamado.id) : r.chamado) : null;
@@ -110,6 +129,32 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
                 <div>{caminhoCorrecaoTexto(previa.fiscal_acao, previa.prazo_cancelamento)}</div>
               </div>
               <p className="text-xs text-muted-foreground">A venda não é desfeita: títulos, etapa e expedição continuam. Abre um chamado para o Fiscal.</p>
+              {podeTrocarCentro && (
+                <div className="space-y-1">
+                  <Label htmlFor="corrigir-nf-centro">NF nova sai de *</Label>
+                  <Select value={centro} onValueChange={setCentro}>
+                    <SelectTrigger id="corrigir-nf-centro">
+                      <SelectValue placeholder="Selecione o CD" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centros.map((c) => (
+                        <SelectItem key={c.codigo} value={c.codigo}>{`${c.rotulo} (${c.uf ?? "—"})`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Troque só se a mercadoria saiu de outro CD. O estoque é baixado no CD escolhido e estornado no original.
+                  </p>
+                  {centro && centro !== previa?.centro_original && (
+                    <Alert>
+                      <AlertDescription>
+                        A NF nova sai de {rotuloCentro(centro)}, não de {rotuloCentro(previa?.centro_original)}.
+                        {" "}Natureza e loja do Bling seguem o CD escolhido.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="corrigir-nf-motivo">Motivo *</Label>
                 <Textarea id="corrigir-nf-motivo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="O que saiu errado na NF" />
