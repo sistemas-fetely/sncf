@@ -1,7 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
-import { acaoModalDespacho, executarAcaoModalMesa, transportadoraNfDiverge } from "./trocaModalMesa";
+import { acaoModalDespacho, executarAcaoModalMesa, transportadoraNfDiverge, opcoesTrocaModal, podeTrocarModalDocumentos } from "./trocaModalMesa";
 
 describe("troca individual de modal na Mesa SP", () => {
+  it("Documentos oferece só modais ativos diferentes do vigente", () => {
+    const modais = [{ codigo: "CORREIOS", ativo: true }, { codigo: "FRETE_FETELY", ativo: true }, { codigo: "LEGADO", ativo: false }];
+    expect(opcoesTrocaModal(modais, "CORREIOS")).toEqual([{ codigo: "FRETE_FETELY", ativo: true }]);
+  });
+  it("Documentos exige motivo com pelo menos 5 caracteres sem espaços nas pontas", () => {
+    const args = { modal: "FRETE_FETELY", vigente: "CORREIOS", motivo: "  abcd  ", bloqueado: false, pendente: false };
+    expect(podeTrocarModalDocumentos(args)).toBe(false);
+    expect(podeTrocarModalDocumentos({ ...args, motivo: "  abcde  " })).toBe(true);
+  });
+  it("Documentos não troca sem novo modal, bloqueado ou durante a confirmação", () => {
+    const args = { modal: "FRETE_FETELY", vigente: "CORREIOS", motivo: "Troca de entrega", bloqueado: false, pendente: false };
+    expect(podeTrocarModalDocumentos({ ...args, modal: "" })).toBe(false);
+    expect(podeTrocarModalDocumentos({ ...args, modal: "CORREIOS" })).toBe(false);
+    expect(podeTrocarModalDocumentos({ ...args, bloqueado: true })).toBe(false);
+    expect(podeTrocarModalDocumentos({ ...args, pendente: true })).toBe(false);
+  });
   it("avisa CC-e quando a transportadora da NF não corresponde ao novo modal", () => {
     expect(transportadoraNfDiverge("CORREIOS", null)).toBe(true);
     expect(transportadoraNfDiverge("CORREIOS", "CORREIOS")).toBe(false);

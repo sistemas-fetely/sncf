@@ -1,4 +1,12 @@
 /** A troca individual refaz documentos; agência é uma escolha explícita. */
+export function opcoesTrocaModal<T extends { codigo: string; ativo: boolean }>(modais: T[], vigente: string | null): T[] {
+  return modais.filter((modal) => modal.ativo && modal.codigo !== vigente);
+}
+
+export function podeTrocarModalDocumentos(args: { modal: string; vigente: string | null; motivo: string; bloqueado: boolean; pendente: boolean }): boolean {
+  return !!args.modal && args.modal !== args.vigente && args.motivo.trim().length >= 5 && !args.bloqueado && !args.pendente;
+}
+
 export function transportadoraNfDiverge(modalAtual: string | null, modalNf: string | null): boolean {
   return !!modalAtual && modalAtual !== (modalNf ?? "TRANSPORTADORA");
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, CircleAlert, ExternalLink, Loader2, Printer } from "lucide-react";
+import { ArrowLeftRight, CheckCircle2, CircleAlert, ExternalLink, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import { SeloServicoCorreios } from "./SeloServicoCorreios";
 import { AcoesEtiquetaCorreiosZpl } from "./AcoesEtiquetaCorreiosZpl";
 import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio, useEtiquetaSncfAgencia, useCaixasAtivas, useCorrigirCaixaEmbalagem, useModaisEntrega } from "./useMesaSp";
 import { SeletorCaixaAvulsa } from "./SeletorCaixaAvulsa";
+import { TrocarModalDocumentosDialog } from "./TrocarModalDocumentosDialog";
 import { dimAvulsa, embalagemSemCaixa, erroPedeCorrigirEmbalagem, type DimCaixaTexto } from "@/lib/logistica/caixaEmbalagem";
 import { modalDoCadastro } from "@/lib/logistica/despachoModal";
 import {
@@ -45,6 +46,7 @@ interface Props {
 
 export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Props) {
   const docsQ = useDocumentosMesa(pedido.id);
+  const [trocandoModal, setTrocandoModal] = useState(false);
   const marcar = useMarcarDocumento();
   const registrarEvento = useRegistrarEventoPedido();
   const [etiquetaMkt, setEtiquetaMkt] = useState<{ documento: DocumentoMesa; etiqueta: EtiquetaMarketplace } | null>(null);
@@ -401,7 +403,13 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
             <AlertDialogFooter><AlertDialogCancel disabled={ocupadoMkt}>Não imprimiu</AlertDialogCancel><Button disabled={bloqueado || ocupadoMkt} onClick={() => void confirmarMarketplace()}>{ocupadoMkt && <Loader2 className="animate-spin" />}Confirmar impressão</Button></AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <p className="text-sm font-medium">Documentos do pedido</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">Documentos do pedido</p>
+          <Button type="button" variant="outline" size="sm" disabled={bloqueado} onClick={() => setTrocandoModal(true)}>
+            <ArrowLeftRight aria-hidden="true" />Trocar modal
+          </Button>
+        </div>
+        {trocandoModal && <TrocarModalDocumentosDialog key={pedido.id} pedidoId={pedido.id} modalEmbalado={embalagem?.modal ?? null} bloqueado={bloqueado} onFechar={() => setTrocandoModal(false)} />}
         {modaisQ.error && <p role="alert" className="text-sm text-destructive">{formatError(modaisQ.error)}</p>}
         {erroGerar && <p role="alert" className="whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{erroGerar}</p>}
 
