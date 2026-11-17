@@ -71271,6 +71271,7 @@ export type Database = {
           acrescimo_ie_pct: number | null
           acrescimo_ie_valor: number | null
           agendado_para: string | null
+          agendamento_liberado_em: string | null
           alerta_logistica: string | null
           analise_pedido_detalhes: Json | null
           analise_pedido_executada_em: string | null
@@ -71401,6 +71402,7 @@ export type Database = {
           acrescimo_ie_pct?: number | null
           acrescimo_ie_valor?: number | null
           agendado_para?: string | null
+          agendamento_liberado_em?: string | null
           alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
@@ -71531,6 +71533,7 @@ export type Database = {
           acrescimo_ie_pct?: number | null
           acrescimo_ie_valor?: number | null
           agendado_para?: string | null
+          agendamento_liberado_em?: string | null
           alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
@@ -108831,7 +108834,7 @@ export type Database = {
           concluido_em: string | null
           enfileirado_em: string
           id: string
-          nf_id: string
+          nf_id: string | null
           pedido_id: string | null
           shopify_id: string
           status: string
@@ -108843,7 +108846,7 @@ export type Database = {
           concluido_em?: string | null
           enfileirado_em?: string
           id?: string
-          nf_id: string
+          nf_id?: string | null
           pedido_id?: string | null
           shopify_id: string
           status?: string
@@ -108855,7 +108858,7 @@ export type Database = {
           concluido_em?: string | null
           enfileirado_em?: string
           id?: string
-          nf_id?: string
+          nf_id?: string | null
           pedido_id?: string | null
           shopify_id?: string
           status?: string
@@ -139132,6 +139135,7 @@ export type Database = {
       vw_gestao_marketplace: {
         Row: {
           agendado_para: string | null
+          agendamento_liberado_em: string | null
           alerta: string | null
           area_responsavel: string | null
           bling_numero: string | null
@@ -139158,6 +139162,7 @@ export type Database = {
           frete_marketplace: number | null
           horas_no_estagio: number | null
           id_externo: string | null
+          liberado_para_postar: boolean | null
           liquido_estimado: number | null
           marketplace_codigo: string | null
           marketplace_nome: string | null
@@ -143133,6 +143138,7 @@ export type Database = {
       }
       vw_mesa_sp_quadro: {
         Row: {
+          agendado_para: string | null
           canal: string | null
           cd_codigo: string | null
           cd_rotulo: string | null
@@ -143152,9 +143158,11 @@ export type Database = {
           instrucao_expedicao: string | null
           instrucao_expedicao_lida_em: string | null
           instrucao_pendente: boolean | null
+          liberado_para_postar: boolean | null
           limite_min: number | null
           minutos_parado: number | null
           pedido_id: string | null
+          postagem_bloqueada: boolean | null
           puxado_em: string | null
           recebido_em: string | null
           servico_correios: string | null
@@ -179463,6 +179471,16 @@ export type Database = {
       }
       vd_solicitar_devolucao: {
         Args: { p_desfecho?: string; p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      vd_trocar_cd: {
+        Args: {
+          p_centro_codigo: string
+          p_frete_tipo?: string
+          p_motivo: string
+          p_pedido_id: string
+          p_transportadora_id?: string
+        }
         Returns: Json
       }
       vd_trocar_meio_pagamento: {

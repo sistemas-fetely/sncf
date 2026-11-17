@@ -7,6 +7,8 @@ import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/Confirmar
 import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
+import { TrocarCdVDDialog } from "@/components/venda-direta/TrocarCdVDDialog";
+import { podeTrocarCdVD } from "@/components/venda-direta/trocarCdVD";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -63,7 +65,8 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   cliente_id?: string | null;
   recebido_em: string | null;
   cancelado_em: string | null;
-  modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
+  estagio: string | null;
+  modal: "retirada" | "balcao" | "transportadora" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; fonte?: string | null; gratis?: boolean | null } | null;
   pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
   cliente_telefone: string | null;
@@ -176,6 +179,7 @@ export default function VendaDiretaGestao() {
   const [linkCartao, setLinkCartao] = useState<Linha | null>(null);
   const [remontar, setRemontar] = useState<Linha | null>(null);
   const [trocarMeio, setTrocarMeio] = useState<Linha | null>(null);
+  const [trocarCd, setTrocarCd] = useState<Linha | null>(null);
   const [pixNovo, setPixNovo] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState<Linha | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -576,6 +580,7 @@ export default function VendaDiretaGestao() {
                           <div className="flex items-center justify-end gap-0.5">
                             {aviso}
                             {etapa.map((a) => <BotaoIcone key={a.k} a={a} />)}
+                            {podeEditar && podeTrocarCdVD(l) && <BotaoIcone a={{ k: "trocar-cd", label: "Trocar CD", icon: ArrowLeftRight, onClick: () => setTrocarCd(l) }} />}
                             {(aviso || etapa.length > 0) && <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />}
                             <BotaoIcone a={{ k: "itens", label: "Ver itens", icon: List, onClick: () => setGavetaId(l.id) }} />
                             <BotaoIcone a={{ k: "imprimir", label: "Imprimir", icon: Printer, onClick: () => abrirImpressaoVD(l.id) }} />
@@ -659,6 +664,7 @@ export default function VendaDiretaGestao() {
       </AlertDialog>
 
       <RegistrarRetiradaDialog linha={retirada} onClose={fechar(setRetirada)} />
+      {trocarCd && <TrocarCdVDDialog pedido={trocarCd} onClose={() => setTrocarCd(null)} />}
       <RegistrarEntregaDialog linha={entrega} onClose={fechar(setEntrega)} />
       <VerPixDialog linha={pix} payloadNovo={pixNovo} onClose={() => { setPix(null); setPixNovo(null); void invalidarVendaDireta(qc); }} />
       <RemontarPagamentoDialog
