@@ -1,3 +1,5 @@
+import { useRetornosEvento } from "./useRetornoEvento";
+import { RetornosEventoPainel } from "./RetornosEventoPainel";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -65,6 +67,7 @@ function SeloEstagio({ estagio }: { estagio: string | null }) {
 
 export function ReceberNoDestinoPainel() {
   const qc = useQueryClient();
+  const retornosQ = useRetornosEvento();
   const [receber, setReceber] = useState<Linha | null>(null);
   const [gaveta, setGaveta] = useState<{ id: string; linha?: Linha; rec?: Recebida } | null>(null);
 
@@ -75,7 +78,7 @@ export function ReceberNoDestinoPainel() {
         .from("naturezas_operacao").select("id").eq("exige_receber_destino", true);
       if (eN) throw eN;
       const natIds = ((nat ?? []) as { id: string }[]).map((n) => n.id);
-      if (!natIds.length) return [];
+      // Retornos usam sua própria porta de recebimento, mesmo sem natureza de TRS.
       const { data: peds, error: eP } = await (supabase as any)
         .from("pedidos")
         .select("id, id_externo, data_pedido, estagio, destino_centro_id")
@@ -85,7 +88,18 @@ export function ReceberNoDestinoPainel() {
         .order("data_pedido", { ascending: false })
         .limit(500);
       if (eP) throw eP;
-      const lista = (peds ?? []) as any[];
+      const { data: retornos, error: eRet } = await supabase.from("ti_retorno").select("pedido_id,recebido_em");
+      if (eRet) throw eRet;
+      const naoRecebidos = retornos.filter((r) => !r.recebido_em).map((r) => r.pedido_id);
+      const retornosIds = new Set(retornos.map((r) => r.pedido_id));
+      let extras: any[] = [];
+      if (naoRecebidos.length) {
+        const { data, error } = await supabase.from("pedidos").select("id,id_externo,data_pedido,estagio,destino_centro_id").in("id", naoRecebidos);
+        if (error) throw error;
+        extras = data;
+      }
+      const recebidosRetorno = new Set(retornos.filter((r) => r.recebido_em).map((r) => r.pedido_id));
+      const lista = [...new Map([...(peds ?? []), ...extras].map((p: any) => [p.id, p])).values()].filter((p: any) => !recebidosRetorno.has(p.id)) as any[];
       if (!lista.length) return [];
       const ids = lista.map((p) => p.id);
       const { data: rec, error: eR } = await (supabase as any)
@@ -114,7 +128,7 @@ export function ReceberNoDestinoPainel() {
         .from("v_transferencias_internas").select("id, nf_numero, nf_data_emissao, finalidade_codigo, finalidade_rotulo").in("id", alvoBruto.map((p) => p.id));
       if (eV) throw eV;
       const vm = new Map(((vs ?? []) as any[]).map((x) => [x.id, x]));
-      const alvo = alvoBruto.filter((p) => vm.get(p.id)?.finalidade_codigo !== "venda_fora");
+      const alvo = alvoBruto.filter((p) => retornosIds.has(p.id) || vm.get(p.id)?.finalidade_codigo !== "venda_fora");
       if (!alvo.length) return [];
       const { data: its, error: eI } = await (supabase as any)
         .from("pedido_itens").select("pedido_id, quantidade").in("pedido_id", alvo.map((p) => p.id));
@@ -224,6 +238,7 @@ export function ReceberNoDestinoPainel() {
   }, [recebidasQ.isError, recebidasQ.error]);
 
   const pendentes = pendentesQ.data ?? [];
+  const retornoIds = new Set((retornosQ.data ?? []).map((r) => r.pedido_id));
   const atrasQ = useTrsAtrasados();
   const divQ = useTrsNaturezaDivergente();
   const diasAtraso = new Map((atrasQ.data ?? []).map((a) => [a.id_externo, a.dias_em_transito]));
@@ -368,6 +383,8 @@ export function ReceberNoDestinoPainel() {
         </Collapsible>
       </section>
 
+      {retornosQ.isError ? <p role="alert" className="text-sm text-destructive">{formatError(retornosQ.error)}</p> : <RetornosEventoPainel retornos={retornosQ.data ?? []} />}
+
       <div className="text-right">
         <Link to="/vendas/produto/estoque/inventario" className="text-sm text-muted-foreground hover:text-foreground hover:underline">Fazer inventário →</Link>
       </div>
@@ -376,7 +393,7 @@ export function ReceberNoDestinoPainel() {
         pedidoId={gaveta?.id ?? null}
         onClose={() => setGaveta(null)}
         recebimento={gaveta?.rec ?? null}
-        onReceber={gaveta?.linha && !(gaveta.linha.id_externo && divergentes.has(gaveta.linha.id_externo)) ? () => { const l = gaveta.linha!; setGaveta(null); setReceber(l); } : undefined}
+        onReceber={gaveta?.linha && !(gaveta.linha.id_externo && divergentes.has(gaveta.linha.id_externo)) ? () => { const l = gaveta.linha; if (!l) return; setGaveta(null); setReceber(l); } : undefined}
       />
 
       {receber && (
@@ -384,13 +401,12 @@ export function ReceberNoDestinoPainel() {
           aberto
           onFechar={() => setReceber(null)}
           pedidoId={receber.id}
+          retornoEvento={retornoIds.has(receber.id)}
           titulo={receber.id_externo ?? receber.id.slice(0, 8)}
           destinoCodigo={receber.destinoCodigo}
           destinoRotulo={receber.destinoRotulo}
-          onRecebido={() => {
-            void qc.invalidateQueries({ queryKey: ["recebimento-loja"] });
-            void qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
-            void qc.invalidateQueries({ queryKey: ["trs-recebimento"] });
+          onRecebido={async () => {
+            await qc.invalidateQueries();
           }}
         />
       )}

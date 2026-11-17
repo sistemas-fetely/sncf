@@ -11,6 +11,7 @@ import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEstadoTela } from "@/lib/navegacao";
 import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
+import { CriarRetornoEvento } from "./CriarRetornoEvento";
 import { BaixaUsoForm } from "@/components/transferencias/BaixaUsoForm";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -431,9 +432,10 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
   const [tipoNav, setTipoNav] = useEstadoTela({ tipo: "" });
   const entreCds = !remessa && tipoNav.tipo === "entre_cds";
   const baixaUso = !remessa && tipoNav.tipo === "baixa_uso";
+  const retornoEvento = !remessa && tipoNav.tipo === "retorno_evento";
 
   const selecionarTipo = (novoRegularizacao: boolean) => {
-    if (entreCds || baixaUso) setTipoNav({ tipo: "" });
+    if (entreCds || baixaUso || retornoEvento) setTipoNav({ tipo: "" });
     if (novoRegularizacao === regularizacao) return;
     setRegularizacao(novoRegularizacao);
     if (novoRegularizacao && modo === "sugestao") trocarModo("item");
@@ -629,11 +631,11 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                 <Button
                   type="button"
                   variant="outline"
-                  aria-pressed={!entreCds && !baixaUso && !regularizacao}
+                  aria-pressed={!entreCds && !baixaUso && !retornoEvento && !regularizacao}
                   onClick={() => selecionarTipo(false)}
                   className={cn(
                     "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
-                    !entreCds && !baixaUso && !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                    !entreCds && !baixaUso && !retornoEvento && !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
                   )}
                 >
                   <span>
@@ -646,11 +648,11 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                 <Button
                   type="button"
                   variant="outline"
-                  aria-pressed={!entreCds && !baixaUso && regularizacao}
+                  aria-pressed={!entreCds && !baixaUso && !retornoEvento && regularizacao}
                   onClick={() => selecionarTipo(true)}
                   className={cn(
                     "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
-                    !entreCds && !baixaUso && regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                    !entreCds && !baixaUso && !retornoEvento && regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
                   )}
                 >
                   <span>
@@ -694,10 +696,11 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                     </span>
                   </span>
                 </Button>
+                <Button type="button" variant="outline" aria-pressed={retornoEvento} onClick={() => setTipoNav({ tipo: "retorno_evento" })} className={cn("h-auto min-h-24 whitespace-normal p-4", retornoEvento && "border-primary bg-primary/5 ring-1 ring-primary")}>Retorno do evento</Button>
               </div>
             </fieldset>
             )}
-            {!entreCds && !baixaUso && (<>
+            {!entreCds && !baixaUso && !retornoEvento && (<>
             <div className="grid gap-4 md:grid-cols-2">
               {!remessa && <div className="space-y-1.5">
                 <label htmlFor="destino" className="text-sm font-medium">
@@ -1001,6 +1004,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
             </div>
             </>)}
           </form>
+          {retornoEvento && <CriarRetornoEvento />}
           {entreCds && <div className="mt-4"><TransferenciaInternaPainel mostrarHistorico={false} rotuloBotao="Transferir agora" /></div>}
           {baixaUso && <div className="mt-4"><BaixaUsoForm onCriado={() => { setTipoNav({ tipo: "" }); (onBaixaCriada ?? onCriado)(); }} /></div>}
         </CardContent>

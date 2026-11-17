@@ -1,3 +1,4 @@
+import { itensRecebimentoRetorno } from "@/components/transferencias/retornoEventoRegras";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { CodProduto } from "@/components/produto/CodProduto";
@@ -44,10 +45,11 @@ interface Props {
   titulo: string;
   destinoCodigo: string | null;
   destinoRotulo?: string | null;
-  onRecebido: () => void;
+  onRecebido: () => void | Promise<void>;
+  retornoEvento?: boolean;
 }
 
-export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, destinoRotulo, onRecebido }: Props) {
+export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, destinoRotulo, onRecebido, retornoEvento = false }: Props) {
   const [confirmando, setConfirmando] = useState(false);
   const [confirmarTudo, setConfirmarTudo] = useState(false);
   const [data, setData] = useState(hojeISO());
@@ -64,6 +66,12 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   const [errosPlanilha, setErrosPlanilha] = useState<string[]>([]);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
+  const retornoQ = useQuery({ queryKey: ["receber-ti-retorno", pedidoId], enabled: aberto, queryFn: async () => {
+    const { data, error } = await supabase.from("ti_retorno").select("pedido_id").eq("pedido_id", pedidoId).maybeSingle();
+    if (error) throw error;
+    return !!data;
+  } });
+  const ehRetorno = retornoEvento || retornoQ.data === true;
   const itensQ = useQuery({
     queryKey: ["receber-trs-itens", pedidoId],
     enabled: aberto && !!pedidoId,
@@ -170,6 +178,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
         setErrosPlanilha(r.erros);
         return;
       }
+      if (ehRetorno && Object.values(r.avariado).some((v) => Number(v) !== 0)) throw new Error("Retorno do evento: informe todas as peças que voltaram em Recebido, sem avariado separado.");
       setBipando(false);
       setRecebido(r.recebido);
       setAvariado(r.avariado);
@@ -223,6 +232,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     }
   }
   function alternarCega(v: boolean) {
+    if (ehRetorno) return;
     setCega(v);
     setEtapa("grade");
     setListaRecontagem([]);
@@ -262,6 +272,14 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
 
   const receber = useMutation({
     mutationFn: async () => {
+      if (!retornoQ.isSuccess) throw new Error("Não foi possível confirmar o tipo do recebimento.");
+      if (ehRetorno) {
+        const { data: r, error } = await supabase.rpc("fn_ti_retorno_receber", { p_pedido_id: pedidoId, p_itens: itensRecebimentoRetorno(itens, efetivo) });
+        if (error) throw error;
+        const res = r as any;
+        if (res?.ok !== true) throw new Error(res?.erro ?? "O recebimento não foi registrado.");
+        return { ok: true, itens: itens.length, divergencias: res.diferenca ?? [], contagens_iniciais: 0 } as Resultado;
+      }
       const { data: r, error } = await (supabase as any).rpc("fn_trs_receber_destino", {
         p_pedido_id: pedidoId,
         p_data: data,
@@ -273,15 +291,15 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
       if (res.ok === false) throw new Error(res.erro ?? "O recebimento não foi registrado.");
       return res;
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       setResultado(res);
       toast.success("Recebimento registrado.");
-      onRecebido();
+      await onRecebido();
     },
     onError: (e) => toast.error(formatError(e)),
   });
 
-  const invalido = itens.some((i) => num(recebido[i.sku]) < 0 || num(avariado[i.sku]) < 0);
+  const invalido = !retornoQ.isSuccess || itens.some((i) => num(recebido[i.sku]) < 0 || num(avariado[i.sku]) < 0 || (ehRetorno && (!Number.isFinite(efetivo(i.sku)) || efetivo(i.sku) > i.enviado)));
   const futuro = data > hojeISO() || !data;
   const semDestino = !destinoCodigo && !centro;
 
@@ -291,10 +309,11 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
         <DialogHeader>
           <DialogTitle>Receber no destino — {titulo}</DialogTitle>
           <DialogDescription>
-            Confirme o que chegou na loja. O saldo contábil já foi movido pela nota de transferência — aqui fica a conferência física e a diferença.
+            {ehRetorno ? "Retorno do evento — contagem cega obrigatória. Só as peças contadas entram no estoque; a diferença fica pendente." : "Confirme o que chegou na loja. O saldo contábil já foi movido pela nota de transferência — aqui fica a conferência física e a diferença."}
           </DialogDescription>
         </DialogHeader>
 
+        {retornoQ.isError && <p role="alert" className="text-sm text-destructive">{formatError(retornoQ.error)}</p>}
         {resultado ? (
           <div className="space-y-3">
             <p className="text-sm font-medium">
@@ -433,7 +452,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
               )}
               <div className="space-y-1">
                 <label className="text-sm font-medium">Data de recebimento</label>
-                <Input type="date" value={data} max={hojeISO()} onChange={(e) => setData(e.target.value)} />
+                <Input disabled={ehRetorno} type="date" value={data} max={hojeISO()} onChange={(e) => setData(e.target.value)} />
               </div>
             </div>
 
@@ -444,14 +463,14 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                   Conferir bipando
                 </label>
                 <label className="flex items-center gap-2 text-sm font-medium">
-                  <Switch checked={cega} onCheckedChange={alternarCega} />
+                  <Switch checked={cega} onCheckedChange={alternarCega} disabled={ehRetorno || !retornoQ.isSuccess} />
                   Contagem cega
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" disabled={itens.length === 0}
+                  {!ehRetorno && retornoQ.isSuccess && <Button type="button" variant="outline" size="sm" disabled={itens.length === 0}
                     onClick={() => (cega ? setConfirmarTudo(true) : preencherTudo())}>
                     <CheckCheck className="mr-2 h-4 w-4" />Conferir tudo
-                  </Button>
+                  </Button>}
                   {cega && (
                     <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => void baixarFolhaPdf()}>
                       <FileText className="mr-2 h-4 w-4" />Folha de contagem (PDF)
@@ -505,7 +524,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                       <TableHead>Produto</TableHead>
                       {!cega && <TableHead className="text-right">Enviado</TableHead>}
                       <TableHead className="w-28 text-right">Recebido</TableHead>
-                      <TableHead className="w-28 text-right">Avariado</TableHead>
+                      {!ehRetorno && <TableHead className="w-28 text-right">Avariado</TableHead>}
                       {!cega && <TableHead className="text-right">Diferença</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -525,12 +544,12 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                               value={recebido[i.sku] ?? ""}
                               onChange={(e) => setRecebido((s) => ({ ...s, [i.sku]: e.target.value }))} />
                           </TableCell>
-                          <TableCell className="text-right">
+                          {!ehRetorno && <TableCell className="text-right">
                             <Input type="number" min={0} className="h-8 w-24 text-right tabular-nums"
                               aria-label={`Avariado de ${i.sku}`}
                               value={avariado[i.sku] ?? ""}
                               onChange={(e) => setAvariado((s) => ({ ...s, [i.sku]: e.target.value }))} />
-                          </TableCell>
+                          </TableCell>}
                           {!cega && (
                             <TableCell className={cn("text-right tabular-nums font-medium", dif === 0 ? "text-success" : "text-destructive")}>
                               {dif}
