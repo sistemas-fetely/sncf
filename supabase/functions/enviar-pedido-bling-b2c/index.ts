@@ -591,9 +591,10 @@ Deno.serve(async (req) => {
 
           // Endereço: entrega → `pedidos.endereco_entrega`; retirada → cadastro do cliente.
           const endPed = (ped.endereco_entrega ?? {}) as Record<string, unknown>;
-          // Modal VD: retirada | sedex | pac | frete_fetely (legado `entrega` = PAC).
+          // Modal VD: retirada | balcao (= retirada) | sedex | pac | frete_fetely (legado `entrega` = PAC).
           const modalVd = String(endPed.modal ?? "");
-          const retirada = modalVd === "retirada";
+          // BALCAO (17/11/2026): venda presencial no evento = retirada (sem frete; endereço do cadastro do cliente).
+          const retirada = modalVd === "retirada" || modalVd === "balcao";
           const freteFetely = modalVd === "frete_fetely";
           const servicoVd = modalVd === "sedex" ? servicoSedex : servicoPac;
           const endVd = retirada
