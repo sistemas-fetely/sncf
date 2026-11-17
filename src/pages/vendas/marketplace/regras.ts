@@ -18,8 +18,8 @@ export function podeAbrirDevolucao(p: { estagio: string | null; devolucao_numero
   return (p.estagio === 'em_transporte' || p.estagio === 'entregue') &&
     !(p.devolucao_numero && p.devolucao_status !== 'cancelada');
 }
-export function podeIrMesaSp(p: { estagio: string | null; cd_codigo: string | null }): boolean {
-  return ['faturado', 'pre_separacao', 'em_separacao'].includes(p.estagio ?? '') && p.cd_codigo != null && p.cd_codigo !== 'XPM-SC';
+export function podeIrMesaSp(p: { estagio: string | null; estagio_pedido?: string | null; cd_codigo: string | null }): boolean {
+  return ['faturado', 'pre_separacao', 'em_separacao'].includes(p.estagio_pedido ?? p.estagio ?? '') && p.cd_codigo != null && p.cd_codigo !== 'XPM-SC';
 }
 
 export function normalizarEstagioMarketplace(estagio: string): string {
@@ -30,7 +30,12 @@ export function normalizarEstagioMarketplace(estagio: string): string {
 }
 
 export function podeAgendarMarketplace(estagio: string | null): boolean {
-  return ['recebido', 'pre_faturamento', 'agendado'].includes(estagio ?? '');
+  return ['recebido', 'pre_faturamento', 'faturado', 'pre_separacao', 'em_separacao'].includes(estagio ?? '');
+}
+
+export function ordenarFasesMarketplace<T extends { codigo: string; ordem: number }>(fases: T[], pedidos: { estagio: string | null; estagio_ordem: number }[]): T[] {
+  const ordens = new Map(pedidos.map(p => [p.estagio, p.estagio_ordem]));
+  return [...fases].sort((a, b) => (ordens.get(a.codigo) ?? a.ordem) - (ordens.get(b.codigo) ?? b.ordem));
 }
 
 export function temAlertaMarketplace(p: { estagio: string | null; alerta?: string | null }): boolean {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filtrarPedidos, valorTransporte, hojeSaoPaulo, exigirSucesso, podeAbrirDevolucao, podeIrMesaSp, normalizarEstagioMarketplace, podeAgendarMarketplace, temAlertaMarketplace, amanhaMarketplace, dataAgendamentoValida } from './regras';
+import { filtrarPedidos, valorTransporte, hojeSaoPaulo, exigirSucesso, podeAbrirDevolucao, podeIrMesaSp, normalizarEstagioMarketplace, podeAgendarMarketplace, temAlertaMarketplace, amanhaMarketplace, dataAgendamentoValida, ordenarFasesMarketplace } from './regras';
 const filtros = { marketplace: 'todos', estagio: 'todos', semTransportadora: false, semCusto: false, busca: '' };
 const pedidos = [
   { id_externo: 'TIK-0001', marketplace_codigo: 'TIK', estagio: 'pre_faturamento', transportadora_id: null, custo_transporte: null, cliente_nome: 'Maria', numero_marketplace: '123' },
@@ -7,8 +7,12 @@ const pedidos = [
   { id_externo: 'SPE-0001', marketplace_codigo: 'SPE', estagio: 'entregue', transportadora_id: 'portador', custo_transporte: 20, cliente_nome: 'João', numero_marketplace: '789' },
 ];
 describe('Marketplace transporte', () => {
-  it.each(['recebido', 'pre_faturamento', 'agendado'])('permite agendar %s', estagio => expect(podeAgendarMarketplace(estagio)).toBe(true));
-  it.each(['faturado', 'em_separacao', 'em_transporte', 'entregue', 'cancelado', null])('não permite agendar %s', estagio => expect(podeAgendarMarketplace(estagio)).toBe(false));
+  it('ordena espera pela ordem 45 da view entre separação e trânsito', () => {
+    expect(ordenarFasesMarketplace([{ codigo: 'agendado', ordem: 15 }, { codigo: 'em_transporte', ordem: 50 }, { codigo: 'em_separacao', ordem: 40 }], [{ estagio: 'agendado', estagio_ordem: 45 }]).map(f => f.codigo)).toEqual(['em_separacao', 'agendado', 'em_transporte']);
+  });
+  it.each(['recebido', 'pre_faturamento', 'faturado', 'pre_separacao', 'em_separacao'])('permite agendar %s', estagio => expect(podeAgendarMarketplace(estagio)).toBe(true));
+  it.each(['agendado', 'em_transporte', 'entregue', 'cancelado', null])('não permite agendar estágio físico %s', estagio => expect(podeAgendarMarketplace(estagio)).toBe(false));
+  it('pedido na espera pode operar na Mesa pelo estágio real', () => expect(podeIrMesaSp({ estagio: 'agendado', estagio_pedido: 'faturado', cd_codigo: 'SITE-SP' })).toBe(true));
   it('mínimo amanhã, nunca hoje ou passado', () => {
     const agora = new Date('2026-11-16T20:25:00Z');
     expect(amanhaMarketplace(agora)).toBe('2026-11-17');

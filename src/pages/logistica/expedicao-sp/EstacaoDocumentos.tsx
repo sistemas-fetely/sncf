@@ -1,3 +1,5 @@
+import { AvisoPostagem } from '@/components/logistica/SeloPostagem';
+import { avisoPostagem } from '@/lib/logistica/agendamentoPostagem';
 import { useState } from "react";
 import { ArrowLeftRight, CheckCircle2, CircleAlert, ExternalLink, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
@@ -45,6 +47,8 @@ interface Props {
 }
 
 export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Props) {
+  const aviso = avisoPostagem(pedido);
+  const postagemBloqueada = pedido.postagem_bloqueada === true;
   const docsQ = useDocumentosMesa(pedido.id);
   const [trocandoModal, setTrocandoModal] = useState(false);
   const marcar = useMarcarDocumento();
@@ -150,16 +154,16 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
 
   function registrarRastreio() {
     const c = codigo.trim().toUpperCase();
-    if (!c) return;
+    if (!c || postagemBloqueada) return;
     rastreio.mutate({ p_pedido_id: pedido.id, p_codigo: c }, { onSuccess: () => setCodigo("") });
   }
 
   function acao(d: DocumentoMesa) {
     if (d.codigo === "etiqueta_marketplace") return (
       <div className="space-y-2">
-        <Button size="sm" variant="outline" disabled={bloqueado || ocupadoMkt} onClick={() => void imprimirMarketplace(d)}>
+        <AvisoPostagem mensagem={aviso}><Button size="sm" variant="outline" disabled={bloqueado || postagemBloqueada || ocupadoMkt} onClick={() => void imprimirMarketplace(d)}>
           {ocupadoMkt ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}Imprimir etiqueta
-        </Button>
+        </Button></AvisoPostagem>
         {erroMkt && <p role="alert" className="break-words text-sm text-destructive">{erroMkt}</p>}
       </div>
     );
@@ -289,25 +293,25 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
               className="h-8 w-44 font-mono uppercase"
               placeholder="AA123456789BR"
               value={codigo}
-              disabled={bloqueado || rastreio.isPending}
+              disabled={bloqueado || postagemBloqueada || rastreio.isPending}
               onChange={(e) => setCodigo(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); registrarRastreio(); } }}
             />
-            <Button size="sm" onClick={registrarRastreio} disabled={bloqueado || rastreio.isPending || codigo.trim() === ""}>
+            <AvisoPostagem mensagem={aviso}><Button size="sm" onClick={registrarRastreio} disabled={bloqueado || postagemBloqueada || rastreio.isPending || codigo.trim() === ""}>
               {rastreio.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {d.liberado ? "Registrar outro" : "Registrar"}
-            </Button>
+            </Button></AvisoPostagem>
             </>)}
             {!d.liberado && !pp && (
-              <Button
+              <AvisoPostagem mensagem={aviso}><Button
                 size="sm"
                 variant="outline"
                 onClick={() => postar.mutate({ p_pedido_id: pedido.id })}
-                disabled={bloqueado || postar.isPending}
+                disabled={bloqueado || postagemBloqueada || postar.isPending}
               >
                 {postar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                 Postar na agência
-              </Button>
+              </Button></AvisoPostagem>
             )}
           </div>
         );
@@ -336,6 +340,7 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   }
 
   async function imprimirMarketplace(documento: DocumentoMesa) {
+    if (postagemBloqueada) return;
     // Reserve the PDF fallback window in the click gesture; QZ success closes it.
     const janela = window.open("", "_blank");
     setOcupadoMkt(true); setErroMkt(null); setEtiquetaMkt(null);

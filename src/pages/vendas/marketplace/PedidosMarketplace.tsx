@@ -1,6 +1,7 @@
+import { toast } from 'sonner';
+import { SeloPostagem } from '@/components/logistica/SeloPostagem';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Settings2, AlertTriangle, MoreHorizontal, CalendarIcon } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { usePermissaoAcaoOuSuperAdmin } from '@/hooks/usePermissaoAcao';
 import { PageShell } from '@/components/layout/PageShell';
@@ -26,8 +27,8 @@ import { usePreferenciaTela } from '@/hooks/usePreferenciaTela';
 import { formatBRL } from '@/lib/format-currency';
 import { fmtDataHora } from '@/lib/data';
 import { formatError } from '@/lib/format-error';
-import { useMarketplace, useCadastroMarketplace } from './useMarketplace';
-import { filtrarPedidos, normalizarEstagioMarketplace, podeAgendarMarketplace, temAlertaMarketplace } from './regras';
+import { useMarketplace, useCadastroMarketplace, useAgendarMarketplace } from './useMarketplace';
+import { filtrarPedidos, normalizarEstagioMarketplace, podeAgendarMarketplace, temAlertaMarketplace, ordenarFasesMarketplace } from './regras';
 import { AgendarMarketplaceDialog } from './AgendarMarketplaceDialog';
 import { MarketplaceDrawer } from './MarketplaceDrawer';
 import { TransporteDialog } from './TransporteDialog';
@@ -43,6 +44,11 @@ const colunas: [Coluna, string][] = [
 const descendentes: Coluna[] = ['id_externo', 'bling_numero', 'data_pedido', 'valor_liquido'];
 export default function PedidosMarketplace() {
   const pedidos = useMarketplace(); const cadastro = useCadastroMarketplace();
+  const agendamentoMutation = useAgendarMarketplace();
+  const removerAgendamento = async (pedidoId: string) => {
+    try { await agendamentoMutation.mutateAsync({ pedidoId, data: null }); toast.success('Agendamento removido.'); }
+    catch (e) { toast.error(formatError(e)); }
+  };
   const agendar = usePermissaoAcaoOuSuperAdmin('acao.marketplace_agendar_pedido');
   const [pedidoAgendar, setPedidoAgendar] = useState<string | null>(null);
   const [estado, setEstado] = useEstadoTela({ busca: '', marketplace: 'todos', estagio: 'todos', comAlerta: false, ordem: '', pagina: 1, detalhe: '' }, { replaceKeys: ['busca'] });
@@ -73,7 +79,7 @@ export default function PedidosMarketplace() {
     valor_liquido: p => p.valor_liquido == null ? null : Number(p.valor_liquido), estagio_ordem: p => p.estagio_ordem,
     area_responsavel: p => p.area_responsavel, proxima_acao: p => p.proxima_acao, rastreio_codigo: p => p.rastreio_codigo,
   }), [base, estado, sort?.column, sort?.direction]);
-  const fases = useMemo(() => (cadastro.data?.estagios ?? []).map(f => {
+  const fases = useMemo(() => ordenarFasesMarketplace(cadastro.data?.estagios ?? [], base).map(f => {
     const lista = base.filter(p => p.estagio === f.codigo);
     return { codigo: f.codigo, rotulo: f.rotulo, proxima_acao: f.proxima_acao,
       qtd: lista.length, valor: lista.reduce((v, p) => v + Number(p.valor_liquido ?? 0), 0),
@@ -130,11 +136,11 @@ export default function PedidosMarketplace() {
             <TableCell className="px-2 text-xs"><div className="truncate" title={p.cliente_nome ?? ''}>{p.cliente_nome ?? '—'}</div><div className="truncate text-muted-foreground">{[p.cidade, p.uf].filter(Boolean).join('/') || '—'}</div></TableCell>
             <TableCell className="break-words px-2 text-xs">{p.cd_nome ?? '—'}</TableCell>
             <TableCell className="px-2 text-right text-xs tabular-nums">{p.valor_liquido == null ? '—' : formatBRL(p.valor_liquido)}</TableCell>
-            <TableCell className="px-2"><Selo estado={p.estagio === 'cancelado' ? 'destructive' : p.eh_final ? 'success' : 'info'} className="max-w-full whitespace-normal">{p.estagio_rotulo ?? '—'}{p.estagio === 'agendado' && p.agendado_para ? ` · ${format(parseISO(p.agendado_para), 'dd/MM')}` : ''}</Selo>{p.subetapa && <p className="mt-1 truncate text-[10px] text-muted-foreground" title={p.subetapa}>{p.subetapa}</p>}</TableCell>
+            <TableCell className="px-2"><Selo estado={p.estagio === 'cancelado' ? 'destructive' : p.eh_final ? 'success' : 'info'} className="max-w-full whitespace-normal">{p.estagio_rotulo ?? '—'}</Selo><SeloPostagem pedido={{ ...p, postagem_bloqueada: p.estagio === 'agendado' }} />{p.subetapa && <p className="mt-1 truncate text-[10px] text-muted-foreground" title={p.subetapa}>{p.subetapa}</p>}</TableCell>
             <TableCell className="break-words px-2 text-xs text-muted-foreground">{p.area_responsavel ?? '—'}</TableCell>
             <TableCell className="px-2 text-xs"><span className="line-clamp-2" title={p.proxima_acao ?? ''}>{p.proxima_acao ?? '—'}</span></TableCell>
             <TableCell className="px-2"><div className="break-words font-mono text-xs">{p.rastreio_codigo ?? '—'}</div>{p.rastreio_status && <div className="mt-1 break-words text-[10px] text-muted-foreground">{p.rastreio_status}</div>}</TableCell>
-            <TableCell className="px-1" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>{temAlertaMarketplace(p) && <Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label={p.alerta ?? undefined} className="inline-flex text-warning-strong"><AlertTriangle className="h-4 w-4" /></span></TooltipTrigger><TooltipContent className="max-w-xs">{p.alerta}</TooltipContent></Tooltip>}{podeAgendarMarketplace(p.estagio) && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Ações de ${p.id_externo}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem disabled={!agendar.permitido} onSelect={() => setPedidoAgendar(p.pedido_id)}><CalendarIcon className="mr-2 h-4 w-4" />{p.estagio === 'agendado' ? 'Reagendar' : 'Agendar'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}</TableCell>
+            <TableCell className="px-1" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>{temAlertaMarketplace(p) && <Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label={p.alerta ?? undefined} className="inline-flex text-warning-strong"><AlertTriangle className="h-4 w-4" /></span></TooltipTrigger><TooltipContent className="max-w-xs">{p.alerta}</TooltipContent></Tooltip>}{podeAgendarMarketplace(p.estagio_pedido) && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Ações de ${p.id_externo}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem disabled={!agendar.permitido} onSelect={() => setPedidoAgendar(p.pedido_id)}><CalendarIcon className="mr-2 h-4 w-4" />{p.agendado_para ? 'Alterar data' : 'Agendar'}</DropdownMenuItem>{p.agendado_para && <DropdownMenuItem disabled={!agendar.permitido || agendamentoMutation.isPending} onSelect={() => void removerAgendamento(p.pedido_id)}>Remover agendamento</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu>}</TableCell>
           </TableRow>)}{!pedidos.isPending && !cadastro.isPending && !visiveis.length && <TableRow><TableCell colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum pedido nesta seleção.</TableCell></TableRow>}
         </TableBody>
       </Table></TooltipProvider><RodapePaginacao total={filtrados.length} pagina={pagina} tamanhoPagina={tamanho as PageSizeOption} onPagina={p => setEstado({ pagina: p })} onTamanhoPagina={v => { salvar({ tamanho: v }); setEstado({ pagina: 1 }); }} /></CardContent></Card>

@@ -59,7 +59,7 @@ export function usePedidosMesaSp() {
       const { data, error } = await supabaseMesa
         .from("vw_mesa_sp_quadro")
         .select(
-          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente, ti_exige_nf",
+          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente, ti_exige_nf, agendado_para, postagem_bloqueada, liberado_para_postar",
         )
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);

@@ -73,6 +73,7 @@ interface Props {
   erroDespacho?: string | null;
   /** Cancelamento solicitado no pedido selecionado: não despacha. */
   bloqueado?: boolean;
+  avisoPostagem?: string;
   /** Dados do pedido para o diálogo de retirada no balcão. */
   idExterno?: string | null;
   clienteNome?: string | null;
@@ -108,7 +109,7 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 
 export function EstacaoDespacho({
   pedidoId, modais, modalEmbalado, despachando, onDespachar,
-  gruposColeta, despachandoLote, onDespacharLote, bloqueado = false,
+  gruposColeta, despachandoLote, onDespacharLote, bloqueado = false, avisoPostagem,
   idExterno = null, clienteNome = null, onRetiradaRegistrada, erroDespacho = null,
 }: Props) {
   const qc = useQueryClient();
@@ -304,6 +305,7 @@ export function EstacaoDespacho({
             modais={modais}
             despachando={despachando}
             bloqueado={bloqueado}
+            avisoPostagem={avisoPostagem}
             clienteNome={clienteNome}
             erroDespacho={erroDespacho}
             onDespachar={(ref, exec, modal) => onDespachar(modal, ref, exec)}

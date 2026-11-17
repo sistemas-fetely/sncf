@@ -11,6 +11,10 @@ const b2c = { id: "b2c", canal: "B2C", etapa: "despacho" };
 const b2b = { id: "b2b", canal: "B2B", etapa: "nf_emitida" };
 
 describe("coleta conjunta da Mesa SP", () => {
+  it('bloqueia postagem nas duas fontes e mantém liberados no lote', () => {
+    expect(pedidosColetaMesa([{ ...b2c, postagem_bloqueada: true }], [{ ...b2b, postagem_bloqueada: true }], () => 'POSTAL_DO_CADASTRO', modais, new Set())).toEqual([]);
+    expect(pedidosColetaMesa([{ ...b2c, postagem_bloqueada: false }], [], () => 'POSTAL_DO_CADASTRO', modais, new Set())).toHaveLength(1);
+  });
   it("inclui B2C em despacho e B2B nf_emitida com modalidade postal definida pelo cadastro", () => {
     expect(pedidosColetaMesa([b2c], [b2b], () => "POSTAL_DO_CADASTRO", modais, new Set())).toEqual([b2c, b2b]);
   });

@@ -1,3 +1,4 @@
+import { AvisoPostagem } from '@/components/logistica/SeloPostagem';
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Truck } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +40,7 @@ interface Props {
   modais: ModalEntrega[];
   despachando: boolean;
   bloqueado?: boolean;
+  avisoPostagem?: string;
   /** Nome do cliente (razão social) — pré-preenche "Quem retirou". */
   clienteNome?: string | null;
   /** Presente quando o form vive num diálogo: mostra "Cancelar" no rodapé. */
@@ -49,7 +51,7 @@ interface Props {
   erroDespacho?: string | null;
 }
 
-export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onCancelar, onDespachar, onModalTrocado, erroDespacho = null }: Props) {
+export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, avisoPostagem, clienteNome = null, onCancelar, onDespachar, onModalTrocado, erroDespacho = null }: Props) {
   const qc = useQueryClient();
   // Modal vigente: considera troca registrada depois da embalagem.
   const vigenteQ = useQuery({
@@ -75,7 +77,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
   const opcoesModal = modais.filter((m) => m.ativo || m.codigo === modalVigente);
 
   async function despachar(refFinal: string | null, execFinal: string | null) {
-    if (!modalCodigo) return;
+    if (!modalCodigo || (avisoPostagem && acao !== "trocar")) return;
     setSalvandoTroca(true); setErroTroca(null);
     try {
       await executarAcaoModalMesa(acao, houveTroca, {
@@ -156,7 +158,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
   const erroSro = campo?.id === "ref-correios" && ref !== "" ? erroCodigoSro(ref) : null;
   if (soTroca || peloRastreio) campo = null;
   const pode =
-    (soTroca || requisitos.executorValido) &&
+    (soTroca || !avisoPostagem) && (soTroca || requisitos.executorValido) &&
     (soTroca || !campo?.obrigatorio || ref !== "") &&
     (soTroca || erroSro === null) && !peloRastreio &&
     (!houveTroca || motivoTroca.trim() !== "") &&
@@ -185,7 +187,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
 
       {ehCorreios && (
         <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={jaPostei} onCheckedChange={(v) => setJaPostei(v === true)} disabled={salvandoTroca || despachando || bloqueado} />
+          <Checkbox checked={jaPostei} onCheckedChange={(v) => setJaPostei(v === true)} disabled={salvandoTroca || despachando || bloqueado || !!avisoPostagem} />
           Já postei na agência
         </label>
       )}
@@ -253,7 +255,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
             Cancelar
           </Button>
         )}
-        <BotaoGuardado
+        <AvisoPostagem mensagem={avisoPostagem}><BotaoGuardado
           slug="acao.expedicao_sp_operar"
           rotuloAcao={soTroca ? "Trocar modal e refazer documentos" : "Despachar pedido"}
           onClick={() => void despachar(ref || null, execEscolhido?.codigo ?? null)}
@@ -261,7 +263,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
         >
           {despachando || salvandoTroca ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
           {soTroca ? "Trocar modal e refazer documentos" : peloRastreio ? "Aguardando coleta" : modal?.sem_despacho ? "Registrar retirada" : "Despachar"}
-        </BotaoGuardado>
+        </BotaoGuardado></AvisoPostagem>
       </DialogFooter>
     </div>
   );

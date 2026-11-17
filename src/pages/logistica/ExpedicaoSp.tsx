@@ -1,3 +1,5 @@
+import { SeloPostagem } from '@/components/logistica/SeloPostagem';
+import { avisoPostagem, ordenarDespacho } from '@/lib/logistica/agendamentoPostagem';
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Inbox, Loader2, PackageCheck, Undo2 } from "lucide-react";
 import {
@@ -591,6 +593,7 @@ export default function ExpedicaoSp() {
                         Devolver p/ fila
                       </Button>
                     )}
+                    <SeloPostagem pedido={selecionado} />
                     <Selo estado={selecionado.estourou_limite ? "warning" : "info"}>
                       {selecionado.etapa_rotulo ?? selecionado.etapa} · {tempoParado(selecionado.minutos_parado)}
                     </Selo>
@@ -705,7 +708,8 @@ export default function ExpedicaoSp() {
                     nfRotulo={nf ? `NF ${nf}` : null}
                     clienteNome={selecionado.cliente_nome}
                     despachando={despachar.isPending}
-                    bloqueado={bloqueado}
+                    bloqueado={bloqueado || selecionado.postagem_bloqueada === true}
+                    avisoPostagem={avisoPostagem(selecionado)}
                     onDespachar={(modal, referencia, executor) =>
                       despachar.mutate({
                         p_pedido_id: selecionado.id,
@@ -871,16 +875,17 @@ export default function ExpedicaoSp() {
                       p_executor: executor,
                     })
                   }
+                  avisoPostagem={avisoPostagem(selecionado)}
                   gruposColeta={selecionadoAguardandoRetirada ? [] : gruposColeta}
                   despachandoLote={despacharLote.isPending}
-                  bloqueado={bloqueado}
+                  bloqueado={bloqueado || selecionado.postagem_bloqueada === true}
                   idExterno={selecionado.id_externo}
                   clienteNome={selecionado.cliente_nome}
                   onRetiradaRegistrada={() => setSelecionadoId(null)}
                   erroDespacho={despachar.isError && despachar.variables?.p_pedido_id === selecionado.id ? formatError(despachar.error) : null}
                   onDespacharLote={(modalCodigo, itens, aoTerminar) =>
                     {
-                      const lista = itens.filter((i) => !cancelamentos.has(i.pedido_id));
+                      const lista = itens.filter((i) => !cancelamentos.has(i.pedido_id) && !pedidos.find(p => p.id === i.pedido_id)?.postagem_bloqueada);
                       if (lista.length > 0) despacharLote.mutate({ p_modal: modalCodigo, p_itens: lista }, { onSuccess: aoTerminar });
                     }
                   }
@@ -967,6 +972,7 @@ function LinhaPedido({
         {ehTransferenciaMesa(pedido.canal) && <Selo estado="info">Transferência</Selo>}
         {pedidoEhVendaDireta(pedido.id_externo) && <Selo estado="info">Site SP · venda direta</Selo>}
         {pedidoEhB2B(pedido.canal) && <Selo estado="info">B2B</Selo>}
+        <SeloPostagem pedido={pedido} />
         {cancelamento && <Selo estado="destructive">Cancelamento solicitado · {cancelamento.numero}</Selo>}
       </span>
       <span className="block truncate text-xs text-muted-foreground">
@@ -998,7 +1004,9 @@ function QuadroBancada({
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {colunas.map((c) => {
-        const doGrupo = pedidos.filter((p) => c.etapas.includes(p.etapa));
+        const grupoBase = pedidos.filter((p) => c.etapas.includes(p.etapa));
+        const ehDespacho = c.etapas.includes("despacho");
+        const doGrupo = ehDespacho ? ordenarDespacho(grupoBase) : grupoBase;
         return (
           <div
             key={c.codigo}
@@ -1012,8 +1020,9 @@ function QuadroBancada({
               <span>{doGrupo.length}</span>
             </p>
             <ul className="h-[180px] space-y-0.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
-              {doGrupo.map((p) => (
+              {doGrupo.map((p, indice) => (
                 <li key={p.id}>
+                  {ehDespacho && p.postagem_bloqueada && !doGrupo[indice - 1]?.postagem_bloqueada && <p className="border-t pt-2 text-xs font-medium text-warning-strong">Aguardando etiqueta</p>}
                   <button
                     type="button"
                     onClick={() => onSelecionar(p.id)}
@@ -1029,6 +1038,7 @@ function QuadroBancada({
                       {ehTransferenciaMesa(p.canal) && <Selo estado="info">Transferência</Selo>}
                       {pedidoEhVendaDireta(p.id_externo) && <Selo estado="info">VD</Selo>}
                       {pedidoEhB2B(p.canal) && <Selo estado="info">B2B</Selo>}
+                      <SeloPostagem pedido={p} />
                       {p.cd_codigo && p.cd_codigo !== CENTRO_SITE_SP && p.cd_rotulo && <Selo estado="info">{p.cd_rotulo}</Selo>}
                       {cancelamentos.has(p.id) && <Selo estado="destructive">Cancel.</Selo>}
                     </span>

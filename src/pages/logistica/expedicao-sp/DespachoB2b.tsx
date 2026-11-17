@@ -1,3 +1,4 @@
+import { AvisoPostagem } from '@/components/logistica/SeloPostagem';
 import { useState } from "react";
 import { Truck } from "lucide-react";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
@@ -23,10 +24,11 @@ interface Props {
   despachando: boolean;
   onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   bloqueado?: boolean;
+  avisoPostagem?: string;
   clienteNome?: string | null;
 }
 
-export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false, clienteNome = null }: Props) {
+export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false, avisoPostagem, clienteNome = null }: Props) {
   const [aberto, setAberto] = useState(false);
   const modal = modais.find((m) => m.codigo === modalCodigo);
   const nome = modal?.nome ?? modalCodigo ?? "sem modal";
@@ -41,14 +43,15 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
               ? "aguardando coleta — o despacho é registrado pelo rastreio dos Correios."
               : "pronto para despacho."}
           </p>
-          <BotaoGuardado
+          <AvisoPostagem mensagem={avisoPostagem}><BotaoGuardado
             slug="acao.expedicao_sp_operar"
             rotuloAcao="Despachar pedido B2B"
+            disabled={bloqueado}
             onClick={() => setAberto(true)}
           >
             <Truck aria-hidden="true" />
             Despachar
-          </BotaoGuardado>
+          </BotaoGuardado></AvisoPostagem>
         </CardContent>
       </Card>
 
@@ -65,6 +68,7 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
               modais={modais}
               despachando={despachando}
               bloqueado={bloqueado}
+              avisoPostagem={avisoPostagem}
               clienteNome={clienteNome}
               onCancelar={() => setAberto(false)}
               onModalTrocado={() => setAberto(false)}

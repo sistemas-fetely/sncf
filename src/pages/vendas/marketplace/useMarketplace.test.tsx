@@ -14,6 +14,14 @@ function setup() {
   return { invalidate, ...renderHook(useAgendarMarketplace, { wrapper }) };
 }
 describe('agendamento Marketplace', () => {
+  it('remove agendamento enviando data nula sem alterar estágio', async () => {
+    mocks.user = { id: 'operador-logado' };
+    mocks.rpc.mockResolvedValue({ error: null });
+    const { result, unmount } = setup();
+    await act(async () => { await result.current.mutateAsync({ pedidoId: 'pedido-1', data: null }); });
+    expect(mocks.rpc).toHaveBeenCalledWith('fn_marketplace_agendar_pedido', { p_pedido_id: 'pedido-1', p_agendado_para: null, p_operador_id: 'operador-logado' });
+    unmount();
+  });
   beforeEach(() => { vi.clearAllMocks(); mocks.user = { id: 'operador-logado' }; });
   it('envia pedido, data civil e operador logado e aguarda atualização', async () => {
     mocks.rpc.mockResolvedValue({ error: null });

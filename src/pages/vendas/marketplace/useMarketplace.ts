@@ -20,6 +20,7 @@ export type PedidoMarketplace = {
   xpm_expedicao_codigo: string | null; servico_marketplace: string | null; rastreio_status: string | null;
   devolucao_numero: string | null; devolucao_status: string | null; cancelado_em: string | null;
   entregue_em: string | null; liquido_estimado: number | null; eh_desvio: boolean | null; agendado_para: string | null;
+  estagio_pedido: string | null; liberado_para_postar: boolean | null; agendamento_liberado_em: string | null;
 };
 export type Portador = { id: string; nome: string };
 export type Loja = { codigo: string; nome: string; centro_codigo: string | null; parceiro_id: string | null; portador_nome: string | null };
@@ -41,9 +42,9 @@ export function useMarketplace() {
 export function useAgendarMarketplace() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  return useMutation({ mutationFn: async (args: { pedidoId: string; data: string }) => {
+  return useMutation({ mutationFn: async (args: { pedidoId: string; data: string | null }) => {
     if (!user) throw new Error('Entre novamente para agendar o pedido.');
-    const { error } = await supabase.rpc('fn_marketplace_agendar_pedido', {
+    const { error } = await db.rpc('fn_marketplace_agendar_pedido', {
       p_pedido_id: args.pedidoId, p_agendado_para: args.data, p_operador_id: user.id,
     });
     if (error) throw error;
