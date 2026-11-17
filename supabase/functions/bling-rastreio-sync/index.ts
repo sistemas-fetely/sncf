@@ -1,6 +1,7 @@
 // bling-rastreio-sync: busca o codigo de rastreio SRO dos pedidos em transporte
 // via Correios, lendo a etiqueta PDF gerada na integracao de logistica do Bling.
-// Fontes: B2B (pedido_remessa.bling_pedido_id) e B2C (bling_pedido_fila_b2c).
+// Fontes: B2B e transferências internas (canal 'interno') (pedido_remessa.bling_pedido_id)
+// e B2C (bling_pedido_fila_b2c).
 //
 // Fluxo por pedido:
 //   1. GET /logisticas/etiquetas?formato=PDF&idsVendas[]={bling_pedido_id}
@@ -124,12 +125,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Remessas com bling_pedido_id de pedidos B2B em transporte via Correios
+    // 2. Remessas com bling_pedido_id de pedidos B2B e transferências internas
+    //    (canal 'interno') em transporte via Correios
     const { data: remessas, error: errRem } = await supabase
       .from("pedido_remessa")
       .select("pedido_id, bling_pedido_id, pedidos!inner(id, canal, estagio, transportadora_id)")
       .not("bling_pedido_id", "is", null)
-      .eq("pedidos.canal", "B2B")
+      .in("pedidos.canal", ["B2B", "interno"])
       .eq("pedidos.estagio", "em_transporte")
       .in("pedidos.transportadora_id", correiosIds);
     if (errRem) throw new Error(`erro ao buscar remessas: ${errRem.message}`);
