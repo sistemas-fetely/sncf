@@ -10,7 +10,8 @@ import type { ModalEntrega } from "./tipos";
 
 /**
  * Despacho do B2B expedido pelo Site SP: só em `faturado` (depois da NF), só
- * individual. O modal é o da embalagem (fixo); os campos seguem o modal —
+ * individual para os demais modais; Correios também integra a coleta conjunta.
+ * Os campos seguem o modal da embalagem —
  * Retirada pede "quem retirou" e fecha o pedido como entregue.
  */
 interface Props {
@@ -27,7 +28,8 @@ interface Props {
 
 export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false, clienteNome = null }: Props) {
   const [aberto, setAberto] = useState(false);
-  const nome = modais.find((m) => m.codigo === modalCodigo)?.nome ?? modalCodigo ?? "sem modal";
+  const modal = modais.find((m) => m.codigo === modalCodigo);
+  const nome = modal?.nome ?? modalCodigo ?? "sem modal";
 
   return (
     <>
@@ -35,7 +37,9 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
           <p className="text-sm">
             {medidas}
-            {nfRotulo ? ` — ${nfRotulo}` : ""} — {nome} — pronto para despacho.
+            {nfRotulo ? ` — ${nfRotulo}` : ""} — {nome} — {modal?.exige_etiqueta_correios
+              ? "aguardando coleta — o despacho é registrado pelo rastreio dos Correios."
+              : "pronto para despacho."}
           </p>
           <BotaoGuardado
             slug="acao.expedicao_sp_operar"

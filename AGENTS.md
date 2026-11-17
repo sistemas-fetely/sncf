@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Mesa collection adds invoiced B2B boxes only through the packaged modal's postal capability, excludes cancellations and deduplicates IDs in a tested selector; board sources/counts and individual non-postal dispatch stay unchanged.
 - Mesa SP Documents modal changes use the existing swap hook and active modal catalog, exclude the freshly read current modal, require a trimmed five-character reason and await Mesa cache refresh before closing; errors stay verbatim so backend guards remain authoritative.
 - Event TI returns use their own user-JWT RPCs for creation, blind receipt, differences and NF registration; the entry-NF edge matches matrix/nature/return observation/items in a bounded two-page/40-detail search and never retries POST, so stock and fiscal actions remain independent and database-owned.
 - Safra COB foundation is hard-locked to the homologation host and fictitious self-payer; Vault credentials and bearer values are recursively redacted from the private per-call audit log, and no boleto, counter or CNAB writes are allowed in this phase.

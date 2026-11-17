@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
+import { pedidosColetaMesa } from "@/lib/logistica/coletaMesa";
 import { EstacaoConferencia } from "./expedicao-sp/EstacaoConferencia";
 import { DespachoB2b } from "./expedicao-sp/DespachoB2b";
 import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
@@ -228,14 +229,17 @@ export default function ExpedicaoSp() {
   const marcarRotina = useMarcarRotina();
 
   /**
-   * Fila de coleta: TODA a mesa em despacho, agrupada pelo modal que a embalagem
-   * registrou. O Correios não busca um pedido, busca as caixas do dia — por isso
+   * Fila de coleta: despacho + B2B com NF emitida e embalagem postal, sem cancelamentos,
+   * agrupados pelo modal registrado. Correios busca as caixas do dia — por isso
    * a lista não é a do pedido selecionado. Modal desconhecido na dimensão fica
    * num grupo próprio, sem lote: caixa invisível seria pior que caixa estranha.
    */
   const gruposColeta = useMemo<GrupoColeta[]>(() => {
     const porModal = new Map<string, GrupoColeta>();
-    for (const p of prontosDespacho) {
+    const coleta = pedidosColetaMesa(prontosDespacho, nfEmitida,
+      (id) => embalagemDoPedido(eventosPorPedido.get(id) ?? [])?.modal ?? null,
+      modaisQ.data ?? [], cancelamentos);
+    for (const p of coleta) {
       const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
       if (!emb) continue;
       const codigo = emb.modal ?? "SEM_MODAL";
@@ -262,7 +266,7 @@ export default function ExpedicaoSp() {
     const grupos = [...porModal.values()];
     for (const g of grupos) g.caixas.sort((a, b) => a.embaladoEm.localeCompare(b.embaladoEm));
     return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
-  }, [prontosDespacho, eventosPorPedido, modaisQ.data]);
+  }, [prontosDespacho, nfEmitida, eventosPorPedido, modaisQ.data, cancelamentos]);
 
   const iniciarConferencia = useIniciarConferencia();
   const voltarSeparacao = useVoltarSeparacao();
