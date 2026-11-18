@@ -13,6 +13,7 @@ import { pastaEntrada, pastaDocumento, resumoEntradas } from "../_shared/pacote-
 import { montarRetencoes, xlsxRetencoes } from "../_shared/pacote-contador/retencoes.ts";
 import { montarClientesAberto, xlsxClientesAberto, dataClientesAberto } from "../_shared/pacote-contador/clientes-aberto.ts";
 import { montarVendasPlataforma, xlsxVendasPlataforma } from "../_shared/pacote-contador/vendas-plataforma.ts";
+import { montarEstoqueEstabelecimento, xlsxEstoqueEstabelecimento } from "../_shared/pacote-contador/estoque-estabelecimento.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
 const HEARTBEAT_VIVO_MS = 90_000;
@@ -277,7 +278,15 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
   entradas.push({ zip: nomeUnico("01_relatorios/resumo.pdf"), path: resumoPath }); conta("01_relatorios");
 
   // Bloco K (posse por centro, NCM/unidade) e numeração das NFs (canceladas, inutilizadas, buracos)
-  const blocoK = resumoBlocoK(await todas(userDb.rpc("fn_contabil_bloco_k", { p_competencia: rem.competencia })));
+  const linhasBlocoK = await todas(userDb.rpc("fn_contabil_bloco_k", { p_competencia: rem.competencia }));
+  const blocoK = resumoBlocoK(linhasBlocoK);
+  const estoqueEstabelecimento = await montarEstoqueEstabelecimento(admin, linhasBlocoK);
+  const estoqueEstPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/estoque_por_estabelecimento.xlsx`;
+  if (!simular) {
+    const up = await admin.storage.from(BUCKET).upload(estoqueEstPath, xlsxEstoqueEstabelecimento(estoqueEstabelecimento, `${ini.slice(5, 7)}/${ini.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
+    if (up.error) throw new Error(`Falha ao gravar estoque por estabelecimento: ${up.error.message}`);
+  }
+  entradas.push({ zip: nomeUnico(`01_relatorios/Fetely_Estoque_2_por_Estabelecimento_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: estoqueEstPath }); conta("01_relatorios");
   const numeracao = resumoNumeracao(await todas(userDb.rpc("fn_contabil_nf_numeracao", { p_competencia: rem.competencia })));
   const numPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/canceladas_inutilizadas.csv`;
   if (!simular) {
@@ -468,6 +477,7 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
     avisos_extratos_mensais: avisosMensais,
     arquivos_apoio_sem_original: {total:semArq.length,itens:semArq.map(descImp)},
     bloco_k: blocoK, numeracao_nf: { ...numeracao, itens: undefined, detalhe: numeracao.itens },
+    estoque_por_estabelecimento: estoqueEstabelecimento.resumo,
     retencoes_nfse: retencoesManifesto, documentos_despesa: despesasManifesto,
     vendas_plataforma: { qtd: vp.qtd, total: vp.total, total_vendas: vp.total_vendas, por_canal: vp.por_canal },
     clientes_em_aberto: { posicao: cab.fim, qtd: cab.qtd, total: cab.total, qtd_vencidos: cab.qtd_vencidos, total_vencido: cab.total_vencido, clientes: cab.clientes, recebidos_depois: cab.titulos.filter(t => t.recebido_depois).length },
@@ -614,6 +624,10 @@ export function pdfManifesto(m: any): Promise<Uint8Array> {
     for (const c of b.centros_sem_cnpj_participante ?? []) L.push(`  AVISO: centro ${c} em poder de terceiros sem CNPJ do participante`);
     L.push(`  Produtos sem NCM/unidade: ${b.produtos_sem_cadastro.total} (sem NCM ${b.produtos_sem_cadastro.sem_ncm}, sem unidade ${b.produtos_sem_cadastro.sem_unidade})`);
     for (const p of b.produtos_sem_cadastro.itens ?? []) L.push(`    ${p.codigo} ${p.produto}: ${[p.sem_ncm ? "sem NCM" : "", p.sem_unidade ? "sem unidade" : ""].filter(Boolean).join(", ")}`);
+  }
+  if (m.estoque_por_estabelecimento) {
+    L.push("", "ESTOQUE POR ESTABELECIMENTO (relatório de estoque 2)");
+    for (const e of m.estoque_por_estabelecimento) L.push(`  ${e.estabelecimento} · ${DOC(e.cnpj)}: ${e.linhas} linhas, ${e.quantidade} un, ${brl(e.valor)}`);
   }
   if (m.numeracao_nf) {
     const n = m.numeracao_nf;

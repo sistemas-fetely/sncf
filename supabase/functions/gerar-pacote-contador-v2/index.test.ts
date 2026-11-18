@@ -22,7 +22,10 @@ Deno.test("inventário simulado inclui relatório uma vez e manifesto só com to
   const r = await inventario({ admin: client, userDb: client }, rem, true);
   assertEquals(uploads, []);
   assertEquals(r.entradas.filter(e => e.zip.includes("Clientes_em_Aberto")), [{ zip: "01_relatorios/Clientes_em_Aberto_10-2026.xlsx", path: "pacotes/2026-10/v7/clientes_em_aberto.xlsx" }]);
-  assertEquals(r.manifesto.pastas["01_relatorios"].arquivos, 5);
+  assertEquals(r.manifesto.pastas["01_relatorios"].arquivos, 7);
+  assertEquals(r.entradas.filter(e => e.zip.includes("Estoque_2")), [{ zip: "01_relatorios/Fetely_Estoque_2_por_Estabelecimento_10-2026.xlsx", path: "pacotes/2026-10/v7/estoque_por_estabelecimento.xlsx" }]);
+  assertEquals(r.entradas.some(e => e.zip === "01_relatorios/Fetely_Estoque_Contabil_10-2026.xlsx"), true);
+  assertEquals(r.manifesto.estoque_por_estabelecimento, []);
   assertEquals(r.manifesto.clientes_em_aberto, { posicao: "2026-10-31", qtd: 1, total: 120.25, qtd_vencidos: 1, total_vencido: 120.25, clientes: 1, recebidos_depois: 1 });
   assertEquals((await pdfManifesto({ ...r.manifesto, partes: 1, gerado_em: "2026-11-16" })).length > 0, true);
 });
@@ -30,6 +33,7 @@ Deno.test("inventário real grava relatório no caminho versionado e propaga err
   const { client, uploads } = clientesInventario();
   await inventario({ admin: client, userDb: client }, rem);
   assertEquals(uploads.filter(p => p.endsWith("clientes_em_aberto.xlsx")), ["pacotes/2026-10/v7/clientes_em_aberto.xlsx"]);
+  assertEquals(uploads.filter(p => p.endsWith("estoque_por_estabelecimento.xlsx")), ["pacotes/2026-10/v7/estoque_por_estabelecimento.xlsx"]);
   const ruim = clientesInventario(true);
   await assertRejects(() => inventario({ admin: ruim.client, userDb: ruim.client }, rem), Error, "Falha ao gravar Clientes em aberto: armazenamento negado");
 });
