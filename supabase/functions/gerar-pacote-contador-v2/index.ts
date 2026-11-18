@@ -12,6 +12,7 @@ import { gerarResumoEntrada } from "../_shared/pacote-contador/resumo-entrada.ts
 import { pastaEntrada, pastaDocumento, resumoEntradas } from "../_shared/pacote-contador/entrada.ts";
 import { montarRetencoes, xlsxRetencoes } from "../_shared/pacote-contador/retencoes.ts";
 import { montarClientesAberto, xlsxClientesAberto, dataClientesAberto } from "../_shared/pacote-contador/clientes-aberto.ts";
+import { montarVendasPlataforma, xlsxVendasPlataforma } from "../_shared/pacote-contador/vendas-plataforma.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
 const HEARTBEAT_VIVO_MS = 90_000;
@@ -306,6 +307,13 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
     if (up.error) throw new Error(`Falha ao gravar Clientes em aberto: ${up.error.message}`);
   }
   entradas.push({ zip: nomeUnico(`01_relatorios/Clientes_em_Aberto_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: cabPath }); conta("01_relatorios");
+  const vp = await montarVendasPlataforma(userDb, rem.competencia);
+  const vpPath = `pacotes/${String(rem.competencia).slice(0, 7)}/v${rem.versao}/vendas_por_plataforma.xlsx`;
+  if (!simular) {
+    const up = await admin.storage.from(BUCKET).upload(vpPath, xlsxVendasPlataforma(vp, `${ini.slice(5, 7)}/${ini.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
+    if (up.error) throw new Error(`Falha ao gravar Vendas por plataforma: ${up.error.message}`);
+  }
+  entradas.push({ zip: nomeUnico(`01_relatorios/Vendas_por_Plataforma_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: vpPath }); conta("01_relatorios");
   const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta,ativo"));
   const nomeConta = new Map<string, string>(contas.map((k: any) => [k.id, seguro(k.nome_exibicao || `${k.banco} ${k.numero_conta ?? ""}`)]));
   const tiposDesp = await todas(admin.from("contabil_documento_despesa_tipo").select("id,nome,pasta,periodicidade,local,conta_bancaria_id,ativo"));
@@ -461,6 +469,7 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
     arquivos_apoio_sem_original: {total:semArq.length,itens:semArq.map(descImp)},
     bloco_k: blocoK, numeracao_nf: { ...numeracao, itens: undefined, detalhe: numeracao.itens },
     retencoes_nfse: retencoesManifesto, documentos_despesa: despesasManifesto,
+    vendas_plataforma: { qtd: vp.qtd, total: vp.total, total_vendas: vp.total_vendas, por_canal: vp.por_canal },
     clientes_em_aberto: { posicao: cab.fim, qtd: cab.qtd, total: cab.total, qtd_vencidos: cab.qtd_vencidos, total_vencido: cab.total_vencido, clientes: cab.clientes, recebidos_depois: cab.titulos.filter(t => t.recebido_depois).length },
   };
   return { entradas, manifesto };
@@ -561,6 +570,12 @@ export function pdfManifesto(m: any): Promise<Uint8Array> {
     const corte = texto.length > 105 ? texto.lastIndexOf(" ", 100) : -1;
     L.push(...(corte > 0 ? [texto.slice(0, corte), `  ${texto.slice(corte + 1)}`] : [texto]));
     if (c.recebidos_depois > 0) L.push(`  Dos quais já recebidos após a competência: ${c.recebidos_depois}`);
+    L.push("");
+  }
+  if (m.vendas_plataforma) {
+    const v = m.vendas_plataforma;
+    L.push(`VENDAS POR PLATAFORMA: ${v.qtd} NFs, ${brl(v.total_vendas)} em vendas (sem transferências)`);
+    for (const c of v.por_canal) L.push(`  ${c.canal}: ${c.qtd} NFs, ${brl(c.total)}`);
     L.push("");
   }
   if (m.documentos_despesa) {
