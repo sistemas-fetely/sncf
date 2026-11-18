@@ -18,6 +18,7 @@ import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useToast } from "@/hooks/use-toast";
 import { chamarEdge } from "@/lib/pedidos/edgePagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 
 /**
  * Estação de PRÉ-FATURAMENTO.
@@ -269,6 +270,8 @@ export function PreFaturamentoCard({
           “Enviar pro Bling (tentativa X)” abaixo.
         </p>
       )}
+
+      {jaEnviado && <ReenviarBlingDialog pedidoId={pedidoId} idExterno={data.id_externo} blingIdAtual={idEnviado} />}
 
       {podeEscrever && (
         <p className="text-xs text-muted-foreground leading-snug">

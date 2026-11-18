@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Human Bling resend requires live API cancellation/404 and no live NF; a service-only CAS RPC atomically records the event and clears the old pointer/remessas, then the same normal handler sends. Fiscal system resend remains separate.
 - VD payment option labels come from meioVD; email payment rendering accepts an explicit PIX display label so local QR and gateway links keep the same send flow without conflating their names.
 - Safra B2B card/PIX gate links share a tested trail helper (São Paulo dates, idempotent reuse); successful closure matches order + URL and skips title links, so replacements never invalidate the newer link and VD remains outside the trail.
 - VD center swaps live only in the management row action/dialog, read enabled B2C centers and Bling-linked carriers, and submit four arguments to the existing RPC with awaited order/management refresh; vai_para_xpm communicates separation before invoicing. XPM queue rows without NF skip only linking; VD carrier payloads reuse the B2B real-weight RPC and aggregate volume count without inventing per-box volumes, leaving fiscal sequencing database-owned.

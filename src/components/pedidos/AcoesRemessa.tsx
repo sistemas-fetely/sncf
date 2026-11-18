@@ -9,7 +9,6 @@ import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { usePreviaEmpurrarXpm } from "@/hooks/pedidos/usePreviaEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
-import { useAuth } from "@/contexts/AuthContext";
 import { useNivel } from "@/hooks/useNivel";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
@@ -55,8 +54,6 @@ export function AcoesRemessa({
   const enviar = useEnviarBling();
   const empurrarXpm = useEmpurrarXpm();
   const sync = useSyncContato();
-  const { roles } = useAuth();
-  const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { temNivel } = useNivel();
   // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA). Quem não tem vê o botão
   // DESABILITADO com o motivo — nunca escondido.
@@ -171,24 +168,10 @@ export function AcoesRemessa({
 
   const mostrarAlerta = precisaSincronizar;
 
-  // Reenvio: só super_admin, só em (pré-)separação, e só se existe uma tentativa VIVA
-  // carregando exatamente o id que o pedido aponta hoje (a "vigente").
-  // REENVIO-SEGUE-O-ENVIO (28/08/2026): pre_separacao entrou porque pedido devolvido
-  // para Cobranca e corrigido volta nesse estagio com bling_id_destino preenchido —
-  // sem isso ele nao tem botao nenhum para corrigir o Bling.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const temTentativaVigente = (remessas ?? []).some((r: any) =>
-    r.status !== "cancelada" && !!r.bling_pedido_id &&
-    String(r.bling_pedido_id) === String(bling_id_destino)
-  );
-  // BOTAO-SEGUE-O-PROBLEMA (11/09/2026): a regra de refaturamento NAO se repete
-  // aqui — quem julga e a RPC `fn_pedido_libera_refaturamento`, a mesma que a edge
-  // `enviar-pedido-bling` consulta. Caso real PED-2174: NF de remessa em consignacao
-  // saiu com desconto errado, cliente devolveu a nota inteira e a carga ja estava
-  // em transito (`em_transporte`) — estagio nenhum na lista antiga tinha botao.
+  // Pré-faturamento tem sua ação no cartão da conferência; demais estágios usam esta porta.
   const podeReenviar =
-    isSuperAdmin && !!bling_id_destino && temTentativaVigente
-    && (estagio === "pre_separacao" || estagio === "em_separacao" || liberaRefaturamento);
+    podeEnviarBling && temNivel(2) && !!bling_id_destino
+    && estagio !== "pre_faturamento";
 
   if (!mostrarExpedirPor && !mostrarAlerta && elegiveis.length === 0 && !podeReenviar
       && !podeEmpurrarXpm && !jaEmpurrado && !pedidoXpm?.xpm_envio_erro) return null;

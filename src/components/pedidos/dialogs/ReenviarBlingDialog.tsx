@@ -7,7 +7,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Loader2, RotateCcw, AlertTriangle } from "lucide-react";
-import { useReenviarBling, ReenvioPrecisaConfirmacao } from "@/hooks/pedidos/useReenviarBling";
+import { useReenviarBling } from "@/hooks/pedidos/useReenviarBling";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { useNivel } from "@/hooks/useNivel";
+import { rawMessage } from "@/lib/format-error";
 
 interface Props {
   pedidoId: string;
@@ -16,31 +19,29 @@ interface Props {
 }
 
 /**
- * Reenvio ao Bling — só super_admin, só em pre_separacao/em_separacao (a gate fica em AcoesRemessa).
- * Pressupõe que o pedido JÁ foi cancelado no Bling. A edge verifica a situação lá
- * e, se não estiver cancelado (ou se não conseguir verificar), exige confirmação
- * explícita antes de prosseguir. SISTEMA SUGERE / HUMANO DECIDE.
+ * Reenvio humano: a conferência no Bling é obrigatória e não admite override.
  */
 export function ReenviarBlingDialog({ pedidoId, idExterno, blingIdAtual }: Props) {
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
-  const [aviso, setAviso] = useState<{ texto: string; situacao: string } | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const reenviar = useReenviarBling();
+  const { permitido } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
+  const { temNivel } = useNivel();
+  if (!permitido || !temNivel(2)) return null;
 
   const fechar = (v: boolean) => {
+    if (reenviar.isPending) return;
     setOpen(v);
     if (!v) { setMotivo(""); setAviso(null); }
   };
 
-  const disparar = async (confirmar: boolean) => {
+  const disparar = async () => {
     try {
-      await reenviar.mutateAsync({ pedido_id: pedidoId, motivo: motivo.trim(), confirmar_nao_cancelado: confirmar });
+      await reenviar.mutateAsync({ pedido_id: pedidoId, motivo: motivo.trim() });
       fechar(false);
     } catch (e) {
-      if (e instanceof ReenvioPrecisaConfirmacao) {
-        setAviso({ texto: e.message, situacao: e.situacaoAtual });
-        return;
-      }
+      setAviso(rawMessage(e));
       // erro real: o hook já mostrou o toast; mantém o diálogo aberto pra nova tentativa
     }
   };
@@ -57,19 +58,20 @@ export function ReenviarBlingDialog({ pedidoId, idExterno, blingIdAtual }: Props
         <DialogHeader>
           <DialogTitle>Reenviar {idExterno} ao Bling</DialogTitle>
           <DialogDescription>
-            Cancela a tentativa atual (id Bling <strong>{blingIdAtual}</strong>) e cria uma nova, que vai ao Bling na hora.
-            O id antigo fica guardado no histórico. <strong>Use só depois de cancelar o pedido no Bling.</strong>
+            O SNCF vai conferir no Bling se o pedido <strong>{blingIdAtual}</strong> está cancelado ou excluído e se não tem NF viva.
+            Só depois cria o novo envio. O id antigo fica no histórico. Cancele no Bling primeiro.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">
-          <Label htmlFor="motivo-reenvio">Motivo (obrigatório)</Label>
+          <Label htmlFor="motivo-reenvio">Motivo (mínimo 10 caracteres)</Label>
           <Textarea
             id="motivo-reenvio"
             value={motivo}
             onChange={(e) => { setMotivo(e.target.value); setAviso(null); }}
             placeholder="Ex.: item com preço errado no Bling — cancelado lá para reenviar corrigido"
             rows={3}
+            disabled={reenviar.isPending}
           />
         </div>
 
@@ -77,24 +79,16 @@ export function ReenviarBlingDialog({ pedidoId, idExterno, blingIdAtual }: Props
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-xs leading-relaxed">
-              {aviso.texto}
-              <br />
-              <span className="font-medium">Situação no Bling: {aviso.situacao}</span>
+              {aviso}
             </AlertDescription>
           </Alert>
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="ghost" onClick={() => fechar(false)} disabled={reenviar.isPending}>Cancelar</Button>
-          {aviso ? (
-            <Button variant="destructive" disabled={reenviar.isPending} onClick={() => disparar(true)}>
-              {reenviar.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Reenviando…</> : "Reenviar assim mesmo"}
-            </Button>
-          ) : (
-            <Button disabled={reenviar.isPending || motivo.trim().length === 0} onClick={() => disparar(false)}>
-              {reenviar.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Reenviando…</> : "Reenviar"}
-            </Button>
-          )}
+          <Button disabled={reenviar.isPending || motivo.trim().length < 10} onClick={() => void disparar()}>
+            {reenviar.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Conferindo e reenviando…</> : "Confirmar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

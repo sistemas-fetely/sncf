@@ -18,6 +18,7 @@ import {
   escolherCandidatoApi,
 } from "../_shared/bling/card-canonico.ts";
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
+import { reenviarVerificado } from "../_shared/bling/reenvio-verificado.ts";
 
 
 const corsHeaders = {
@@ -61,7 +62,7 @@ async function pedidoLiberaRefaturamento(
 // CORRIGIR-NF / REFATURAR (27/10/2026): contexto do modo sistema (ver wrapper no fim do arquivo).
 type ModoSistema = { devolucaoId: string; criadoPor: string; body: any };
 
-async function handle(req: Request, sis: ModoSistema | null): Promise<Response> {
+async function handle(req: Request, sis: ModoSistema | null, reenvioAutorizado = false): Promise<Response> {
 
   const t0 = Date.now();
   // Compensação de remessa órfã acessível pelo catch externo (erro inesperado antes do POST).
@@ -78,6 +79,8 @@ async function handle(req: Request, sis: ModoSistema | null): Promise<Response> 
     const auth = req.headers.get("Authorization") ?? "";
     let userId: string;
     let ehSuperAdmin = false;
+    const bodyEntrada = sis ? sis.body : await req.clone().json().catch(() => ({}));
+    const reenvioHumano = !sis && bodyEntrada?.acao === "reenviar";
     if (sis) {
       userId = sis.criadoPor;
     } else {
@@ -96,7 +99,7 @@ async function handle(req: Request, sis: ModoSistema | null): Promise<Response> 
       const rolesArr = (roles || []).map((r: any) => String(r.role));
       ehSuperAdmin = rolesArr.includes("super_admin");
       const allowed = rolesArr.some((r) => ["super_admin", "admin_rh", "sops"].includes(r));
-      if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
+      if (!allowed && !reenvioHumano && !reenvioAutorizado) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
     }
 
     // Input (modo sistema: o wrapper já leu o body)
@@ -119,6 +122,26 @@ async function handle(req: Request, sis: ModoSistema | null): Promise<Response> 
         "enviar pedido pro Bling",
       );
       if (!guardaAcao.ok) return err(guardaAcao.erro ?? "Sem permissão", guardaAcao.status);
+    }
+
+    // Reenvio humano verificado; a correção fiscal de sistema mantém sua porta própria.
+    if (reenvioHumano) {
+      const { data: nivel, error: nivelErro } = await supabase.rpc("nivel_do_usuario", { _user_id: userId });
+      if (nivelErro) return err(nivelErro.message, 500);
+      if (Number(nivel) < 2) return err("Sem permissão para reenviar ao Bling. Ação do time de Operações.", 403);
+      if (typeof pedido_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pedido_id)) return err("pedido_id inválido", 400);
+      try {
+        const { data: cfg, error: cfgErr } = await supabase.from("integracoes_config").select("*").eq("sistema", "bling").single();
+        if (cfgErr) throw new Error(cfgErr.message);
+        if (!cfg?.access_token) throw new Error("Bling não conectado");
+        const token = await ensureFreshToken(supabase, cfg);
+        return await reenviarVerificado({
+          db: supabase, client: makeBlingClient(supabase, cfg, token), pedidoId: pedido_id, usuario: userId, motivo: body.motivo,
+          enviar: () => handle(new Request(req.url, { method: "POST", headers: req.headers, body: JSON.stringify({ pedido_id, motivo: body.motivo }) }), null, true),
+        });
+      } catch (e) {
+        return err(e instanceof Error ? e.message : String(e), 409);
+      }
     }
 
     // ── Branch: anexos_nf ────────────────────────────────────────────────

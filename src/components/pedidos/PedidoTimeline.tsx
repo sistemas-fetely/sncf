@@ -15,6 +15,7 @@ const EVENTO_LABELS: Record<string, string> = {
   pagamento_solicitado: "💳 Pagamento solicitado",
   pagamento_confirmado: "✅ Pagamento confirmado",
   exportado_bling: "📤 Exportado pro Bling",
+  bling_reenvio: "Reenvio ao Bling",
   faturado: "🧾 Faturado",
   msg_comercial: "📩 do Comercial",
   msg_sops: "💬 do SOPS",
@@ -129,9 +130,9 @@ export function PedidoTimeline({ eventos }: Props) {
                     )}
                   </div>
                 )}
-                {ev.descricao_efetiva && (
+                {(ev.descricao_efetiva || ev.descricao) && (
                   <div className="text-sm text-muted-foreground mt-1 italic">
-                    “{ev.descricao_efetiva}”
+                    “{ev.descricao_efetiva || ev.descricao}”
                   </div>
                 )}
               </li>

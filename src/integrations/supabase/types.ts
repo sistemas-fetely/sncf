@@ -77850,6 +77850,7 @@ export type Database = {
           codigo: string
           descricao_oficial: string
           ordem: number
+          origem_prod_codigo: string | null
           rotulo: string
           variantes: string[]
         }
@@ -77858,6 +77859,7 @@ export type Database = {
           codigo: string
           descricao_oficial: string
           ordem?: number
+          origem_prod_codigo?: string | null
           rotulo: string
           variantes?: string[]
         }
@@ -77866,10 +77868,19 @@ export type Database = {
           codigo?: string
           descricao_oficial?: string
           ordem?: number
+          origem_prod_codigo?: string | null
           rotulo?: string
           variantes?: string[]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produto_origem_fiscal_dim_origem_prod_codigo_fkey"
+            columns: ["origem_prod_codigo"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       produto_origem_prod_dim: {
         Row: {
@@ -157269,6 +157280,7 @@ export type Database = {
       }
       vw_produto_export_shopify: {
         Row: {
+          atributos_lido_em: string | null
           cod_cadastro: string | null
           inventoryitem_countrycodeoforigin: string | null
           inventoryitem_harmonizedsystemcode: string | null
@@ -157277,9 +157289,11 @@ export type Database = {
           inventoryitem_tracked: string | null
           inventoryitem_unitcost: string | null
           inventoryitem_weight: number | null
+          inventoryitem_weight_original: string | null
           inventorylevel_por_local: string | null
           mf_custom_codigo: string | null
           mf_custom_colecao: string | null
+          mf_custom_gramatura: string | null
           mf_custom_linha: string | null
           mf_custom_marca: string | null
           mf_custom_material: string | null
@@ -157287,18 +157301,28 @@ export type Database = {
           mf_custom_nome_produto: string | null
           mf_custom_produto: string | null
           mf_custom_tipo_produto: string | null
+          mf_facebook_categoria: string | null
+          mf_google_shopping_categoria: string | null
           mf_meucorreios_altura: string | null
           mf_meucorreios_comprimento: string | null
           mf_meucorreios_largura: string | null
+          mf_shopify_birthday_candle_type: string | null
+          mf_shopify_celebration_type: string | null
+          mf_shopify_material: string | null
+          mf_shopify_shape: string | null
           product_category: string | null
           product_collections: string | null
           product_createdat: string | null
+          product_description_texto: string | null
           product_descriptionhtml: string | null
           product_handle: string | null
           product_hasvariantsthatrequirescomponents: boolean | null
           product_id: string | null
           product_image: string | null
+          product_image_alt: string | null
+          product_images_com_alt: number | null
           product_images_qtd: number | null
+          product_images_urls: string | null
           product_media_qtd: number | null
           product_options: string | null
           product_producttype: string | null
@@ -157312,11 +157336,13 @@ export type Database = {
           product_title: string | null
           product_updatedat: string | null
           product_vendor: string | null
+          product_videos_qtd: number | null
           variant_barcode: Json | null
           variant_compareatprice: Json | null
           variant_createdat: Json | null
           variant_id: Json | null
           variant_image_id: Json | null
+          variant_image_url: string | null
           variant_inventorypolicy: Json | null
           variant_inventoryquantity: Json | null
           variant_option1: Json | null
@@ -174419,6 +174445,16 @@ export type Database = {
         Args: { p_execucao: string }
         Returns: Json
       }
+      fn_bling_reenvio_verificado_preparar: {
+        Args: {
+          p_bling_id_anterior: string
+          p_motivo: string
+          p_pedido_id: string
+          p_situacao_bling: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
       fn_bling_resolver_produto: { Args: { p_codigo: string }; Returns: Json }
       fn_bling_situacao_enfileirar: {
         Args: { p_motivo: string; p_pedido_id: string; p_situacao_nome: string }
@@ -175790,6 +175826,7 @@ export type Database = {
         Args: { p_fim: string; p_ini: string }
         Returns: number
       }
+      fn_html_para_texto: { Args: { p_html: string }; Returns: string }
       fn_ie_valida: { Args: { p_ie: string; p_uf?: string }; Returns: boolean }
       fn_importacao_completar_cabecalho: {
         Args: { p_pedido_id: number }
