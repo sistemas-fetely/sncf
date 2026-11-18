@@ -67,3 +67,27 @@ describe('dimensões automáticas estritas', () => {
     expect(concluidas).toEqual([['1']]);
   });
 });
+
+describe('grupo automático herda a categoria do produto', () => {
+  test('cria por categoria, deduplica e reenvia', async () => {
+    const cadastros: [string, string, string | undefined][] = [];
+    const criados = new Set<string>();
+    const cat: Record<string, string> = { '1': 'cat-mesa', '2': 'cat-imaginar', '3': 'cat-imaginar' };
+    const aplicar = criarAplicadorAutomatico({
+      listar: async () => [], original: i => String(i.valor_novo),
+      categoria: async i => cat[i.cod_cadastro],
+      cadastrar: async (campo, nome, categoriaId) => { cadastros.push([campo, nome, categoriaId]); criados.add(String(categoriaId)); return { nome }; },
+      enviar: async itens => ({ resultados: itens.map(i => criados.has(cat[i.cod_cadastro]) ? { id: i.id, status: 'aplicada' } : ausente(i)) }),
+    });
+    const r = await aplicar([item('1', 'Bandeja', 'grupo'), item('2', 'Bandeja', 'grupo'), item('3', 'Bandeja', 'grupo')]) as { resultados: ResultadoFop[] };
+    expect(cadastros).toEqual([['grupo', 'Bandeja', 'cat-mesa'], ['grupo', 'Bandeja', 'cat-imaginar']]);
+    expect(r.resultados.map(x => x.status)).toEqual(['aplicada', 'aplicada', 'aplicada']);
+  });
+  test('sem categoria não cadastra e explica', async () => {
+    let cadastros = 0;
+    const aplicar = criarAplicadorAutomatico({ listar: async () => [], original: () => 'X', categoria: async () => undefined, cadastrar: async () => { cadastros++; return { nome: 'X' }; }, enviar: async itens => ({ resultados: itens.map(ausente) }) });
+    const r = await aplicar([item('1', 'X', 'grupo')]) as { resultados: ResultadoFop[] };
+    expect(cadastros).toBe(0);
+    expect(r.resultados[0].erro).toBe('Grupo novo sem categoria conhecida no produto.');
+  });
+});

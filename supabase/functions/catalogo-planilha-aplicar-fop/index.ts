@@ -14,6 +14,8 @@ import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const Body = z.object({ leitura_id: z.string().uuid(), ids: z.array(z.string().uuid()).min(1).max(5000) }).strict();
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const kindOriginal = (campo: string) => campo === 'colecao' ? 'colecao' : campo === 'grupo' ? 'grupo' : 'cor';
+const normNome = (n: string) => n.trim().replace(/\s+/g, ' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const msg = (e: unknown) => e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
 
 Deno.serve(async req => {
@@ -58,6 +60,7 @@ Deno.serve(async req => {
     if (tk.error || !tk.data) return json({ ok: false, erro: "FOP_INBOUND_TOKEN indisponível no Vault." }, 500);
 
     const originais = new Map<string, string>();
+    let categoriasFop: Map<string, string> | undefined;
     const primeiros = new Map<string, string>();
     const chamar = async (rota: string, corpo: unknown) => {
         await trava?.verificar();
@@ -82,11 +85,11 @@ Deno.serve(async req => {
         const slugs = (rows[2] ?? []).map(v => String(v ?? '').trim());
         for (const row of rows.slice(4)) {
           const cod = normalizarCodigo(row[slugs.indexOf('cod_cadastro')]);
-          for (const campo of ['cor', 'cor_nome', 'colecao']) {
+          for (const campo of ['cor', 'cor_nome', 'colecao', 'grupo']) {
             const valor = row[slugs.indexOf(campo)];
             if (typeof valor !== 'string' || !valor.trim()) continue;
             originais.set(`${cod}:${campo}`, valor);
-            const key = `${campo === 'colecao' ? 'colecao' : 'cor'}:${chaveDimensao(valor)}`;
+            const key = `${kindOriginal(campo)}:${chaveDimensao(valor)}`;
             if (!primeiros.has(key)) primeiros.set(key, valor);
           }
         }
@@ -109,22 +112,39 @@ Deno.serve(async req => {
         return out;
       },
       original: item => {
-        const kind = item.campo === 'colecao' ? 'colecao' : 'cor';
+        const kind = kindOriginal(item.campo);
         const valor = primeiros.get(`${kind}:${chaveDimensao(String(item.valor_novo))}`) ?? originais.get(`${item.cod_cadastro}:${item.campo}`);
         if (!valor) throw new Error('Valor original da planilha não encontrado.');
         return valor;
       },
-      cadastrar: (campo, nome) => cadastrarDimensao(campo, nome, quem, {
+      categoria: async item => {
+        if (!categoriasFop) {
+          categoriasFop = new Map();
+          const r = await sb.from('fop_categorias').select('id,nome');
+          if (r.error) throw r.error;
+          for (const c of r.data ?? []) categoriasFop.set(normNome(c.nome), c.id);
+        }
+        // Same precedence as the FOP: a category cell in this batch wins over the product's current category.
+        const celula = celulas.find(c => c.cod_cadastro === item.cod_cadastro && c.campo === 'categoria');
+        let nome = typeof celula?.valor_planilha === 'string' && celula.valor_planilha.trim() ? celula.valor_planilha : undefined;
+        if (!nome) {
+          const p = await sb.from('sncf_produtos').select('categoria').eq('cod_cadastro', item.cod_cadastro).maybeSingle();
+          if (p.error) throw p.error;
+          nome = p.data?.categoria ?? undefined;
+        }
+        return nome ? categoriasFop.get(normNome(nome)) : undefined;
+      },
+      cadastrar: (campo, nome, categoriaId) => cadastrarDimensao(campo, nome, quem, {
         chamarFop: corpo => chamar('catalogo-dimensao-cadastrar', corpo),
         auditar: async d => {
           if (!d.criado) return;
-          const tabela = d.kind === 'cor' ? 'fop_cores' : 'fop_colecoes';
-          const r = await sb.from('dimensao_auto_provisionada').insert({ tabela, codigo: d.nome, rotulo: d.nome, origem: 'planilha-catalogo', conferido: false }).select('id').single();
+          const tabela = d.kind === 'cor' ? 'fop_cores' : d.kind === 'grupo' ? 'fop_grupos' : 'fop_colecoes';
+          const r = await sb.from('dimensao_auto_provisionada').insert({ tabela, codigo: d.kind === 'grupo' ? d.id : d.nome, rotulo: d.nome, origem: 'planilha-catalogo', conferido: false }).select('id').single();
           if (r.error) throw new Error(`Dimensão cadastrada, mas registro automático falhou: ${r.error.message}`);
           const a = await sb.from('audit_log').insert({ user_id: quem.id, user_nome: quem.nome, acao: 'catalogo_dimensao_automatica', tabela: 'dimensao_auto_provisionada', registro_id: String(r.data.id), dados_depois: { ...d, leitura_id }, justificativa: `Leitura ${leitura_id}` });
           if (a.error) throw new Error(`Dimensão cadastrada, mas auditoria da leitura falhou: ${a.error.message}`);
         },
-      }),
+      }, categoriaId),
     });
     const resumo = await aplicarNoFop(celulas, ids, leitura_id, quem, {
       chamarFop: corpo => automatico(corpo.celulas),

@@ -1,4 +1,4 @@
-import { kindDoCampo } from './campos.ts';
+import { kindAutomaticoDoCampo } from './campos.ts';
 import type { ItemFop, ResultadoFop } from '../catalogo-planilha/aplicar-fop.ts';
 
 /** Comparison only: no fuzzy matching and no normalized spelling is ever written. */
@@ -13,7 +13,9 @@ export function criarAplicadorAutomatico(deps: {
   enviar: (itens: ItemFop[]) => Promise<unknown>;
   listar: () => Promise<Dimensao[]>;
   original: (item: ItemFop) => string;
-  cadastrar: (campo: string, nome: string) => Promise<{ nome: string }>;
+  cadastrar: (campo: string, nome: string, categoriaId?: string) => Promise<{ nome: string }>;
+  /** FOP category id of the product (batch category cell first, else current). Required for grupo. */
+  categoria?: (item: ItemFop) => Promise<string | undefined>;
 }) {
   let dimensoes: Dimensao[] | undefined;
   const mapeados = new Map<string, string>();
@@ -29,13 +31,17 @@ export function criarAplicadorAutomatico(deps: {
       const item = novos.find(i => i.id === r.id);
       if (!item || typeof item.valor_novo !== 'string') continue;
       try {
-        const kind = kindDoCampo(item.campo);
-        const chave = `${kind}:${chaveDimensao(item.valor_novo)}`;
+        const kind = kindAutomaticoDoCampo(item.campo);
+        // Grupo hangs under a category: inherit the product's category; same name in two categories = two groups.
+        const categoriaId = kind === 'grupo' ? await deps.categoria?.(item) : undefined;
+        if (kind === 'grupo' && !categoriaId) throw new Error('Grupo novo sem categoria conhecida no produto.');
+        const chave = `${kind}:${categoriaId ?? ''}:${chaveDimensao(item.valor_novo)}`;
         let nome = mapeados.get(chave);
         if (!nome) {
-          const existente = dimensoes.find(d => d.kind === kind && chaveDimensao(d.nome) === chaveDimensao(String(item.valor_novo)));
+          // The mirror has no category per group, so grupo always goes through the FOP door (idempotent per category).
+          const existente = kind === 'grupo' ? undefined : dimensoes.find(d => d.kind === kind && chaveDimensao(d.nome) === chaveDimensao(String(item.valor_novo)));
           // Even an existing mirror name is checked through the same live, idempotent FOP door.
-          nome = (await deps.cadastrar(item.campo, existente?.nome ?? deps.original(item))).nome;
+          nome = (await deps.cadastrar(item.campo, existente?.nome ?? deps.original(item), categoriaId)).nome;
           if (chaveDimensao(nome) !== chaveDimensao(item.valor_novo)) throw new Error('FOP retornou dimensão não equivalente.');
           mapeados.set(chave, nome);
           dimensoes.push({ kind, nome });
