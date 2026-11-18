@@ -6,6 +6,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { aplicarNoFop, type CelulaFop } from "../_shared/catalogo-planilha/aplicar-fop.ts";
 import { pegarTrava } from "../_shared/catalogo-planilha/trava.ts";
+import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { agruparMensagens, ErroCatalogo } from "../_shared/catalogo-planilha/mensagens.ts";
 import { criarAplicadorAutomatico, chaveDimensao } from '../_shared/catalogo-dimensao/automaticas.ts';
 import { cadastrarDimensao } from '../_shared/catalogo-dimensao/cadastrar.ts';
@@ -13,6 +14,10 @@ import { normalizarCodigo } from '../_shared/catalogo-planilha/comparacao.ts';
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const Body = z.object({ leitura_id: z.string().uuid(), ids: z.array(z.string().uuid()).min(1).max(5000) }).strict();
+// Daily cron (after the reading): applies on its own only clean changes (tipo mudanca, no error).
+// Conflicts and errors stay on the screen for a human.
+const BodyAutomatico = z.object({ automatico: z.literal(true) }).strict();
+const ROTINA = { id: "00000000-0000-4000-8000-00000000ca7a", nome: "Rotina diária do catálogo" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const kindOriginal = (campo: string) => campo === 'colecao' ? 'colecao' : campo === 'grupo' ? 'grupo' : 'cor';
 const normNome = (n: string) => n.trim().replace(/\s+/g, ' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -26,21 +31,52 @@ Deno.serve(async req => {
   if (!authHeader.startsWith("Bearer ")) return json({ ok: false, erro: "Sessão obrigatória." }, 401);
   const usuario = createClient(url, Deno.env.get("SUPABASE_ANON_KEY") ?? "", { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } });
   const sb = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", { auth: { persistSession: false } });
+  const cron = !!req.headers.get("x-cron-secret");
   let trava: Awaited<ReturnType<typeof pegarTrava>> | null = null;
   try {
-    const { data: u, error: eU } = await usuario.auth.getUser(authHeader.slice(7));
-    if (eU || !u.user) return json({ ok: false, erro: "Sessão inválida." }, 401);
-    const perm = await usuario.rpc("usuario_tem_acao", { p_slug: "acao.produto_importar_planilha_cadastro" });
-    if (perm.error) throw perm.error;
-    if (perm.data !== true) return json({ ok: false, erro: "Sem permissão para aplicar catálogo." }, 403);
-    const parsed = Body.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) return json({ ok: false, erro: "Pedido inválido.", detalhes: parsed.error.flatten().fieldErrors }, 400);
-    const { leitura_id, ids } = parsed.data;
-    trava = await pegarTrava((nome, args) => sb.rpc(nome, args), "aplicacao", u.user.id);
-
-    const ref = await sb.from("catalogo_planilha_leitura").select("id,storage_path,origem_chave").eq("ambiente", "oficial").in("status", ["comparada", "aplicada_parcial", "aplicada"]).order("lida_em", { ascending: false }).limit(1).maybeSingle();
-    if (ref.error) throw ref.error;
-    if (ref.data?.id !== leitura_id) return json({ ok: false, erro: "Há uma leitura mais nova. Recarregue a tela.", codigo: "leitura_mais_nova" }, 409);
+    let leitura_id: string;
+    let ids: string[];
+    let quem: { id: string; nome: string };
+    const ref = async () => {
+      const r = await sb.from("catalogo_planilha_leitura").select("id,storage_path,origem_chave").eq("ambiente", "oficial").in("status", ["comparada", "aplicada_parcial", "aplicada"]).order("lida_em", { ascending: false }).limit(1).maybeSingle();
+      if (r.error) throw r.error;
+      return r;
+    };
+    let leitura: Awaited<ReturnType<typeof ref>>;
+    if (cron) {
+      const negado = await gateCronOuSessao(req, sb, corsHeaders);
+      if (negado) return negado;
+      if (!BodyAutomatico.safeParse(await req.json().catch(() => null)).success) return json({ ok: false, erro: "Pedido inválido." }, 400);
+      quem = ROTINA;
+      trava = await pegarTrava((nome, args) => sb.rpc(nome, args), "aplicacao", null, true);
+      leitura = await ref();
+      if (!leitura.data) return json({ ok: true, automatico: true, aplicadas: 0, conflitos: 0, erros: 0, lotes: 0 });
+      leitura_id = leitura.data.id;
+      ids = [];
+      for (let de = 0; ; de += 1000) {
+        const r = await sb.from("catalogo_planilha_mudanca").select("id").eq("leitura_id", leitura_id).eq("status", "pendente").eq("tipo", "mudanca").is("erro", null).order("id").range(de, de + 999);
+        if (r.error) throw r.error;
+        ids.push(...(r.data ?? []).map(x => x.id as string));
+        if ((r.data?.length ?? 0) < 1000) break;
+      }
+      ids = ids.slice(0, 5000);
+      if (!ids.length) return json({ ok: true, automatico: true, aplicadas: 0, conflitos: 0, erros: 0, lotes: 0 });
+    } else {
+      const { data: u, error: eU } = await usuario.auth.getUser(authHeader.slice(7));
+      if (eU || !u.user) return json({ ok: false, erro: "Sessão inválida." }, 401);
+      const perm = await usuario.rpc("usuario_tem_acao", { p_slug: "acao.produto_importar_planilha_cadastro" });
+      if (perm.error) throw perm.error;
+      if (perm.data !== true) return json({ ok: false, erro: "Sem permissão para aplicar catálogo." }, 403);
+      const parsed = Body.safeParse(await req.json().catch(() => null));
+      if (!parsed.success) return json({ ok: false, erro: "Pedido inválido.", detalhes: parsed.error.flatten().fieldErrors }, 400);
+      ({ leitura_id, ids } = parsed.data);
+      trava = await pegarTrava((nome, args) => sb.rpc(nome, args), "aplicacao", u.user.id);
+      leitura = await ref();
+      if (leitura.data?.id !== leitura_id) return json({ ok: false, erro: "Há uma leitura mais nova. Recarregue a tela.", codigo: "leitura_mais_nova" }, 409);
+      const perfil = await sb.from("profiles").select("full_name").eq("user_id", u.user.id).maybeSingle();
+      if (perfil.error) throw perfil.error;
+      quem = { id: u.user.id, nome: perfil.data?.full_name || u.user.email || u.user.id };
+    }
 
     const celulas: CelulaFop[] = [];
     for (let i = 0; i < ids.length; i += 200) {
@@ -48,9 +84,6 @@ Deno.serve(async req => {
       if (r.error) throw r.error;
       celulas.push(...(r.data ?? []) as CelulaFop[]);
     }
-    const perfil = await sb.from("profiles").select("full_name").eq("user_id", u.user.id).maybeSingle();
-    if (perfil.error) throw perfil.error;
-    const quem = { id: u.user.id, nome: perfil.data?.full_name || u.user.email || u.user.id };
 
     const cfg = await sb.from("integracoes_config").select("config").eq("sistema", "fop").maybeSingle();
     if (cfg.error) throw cfg.error;
@@ -73,10 +106,10 @@ Deno.serve(async req => {
       enviar: itens => chamar('catalogo-planilha-aplicar', { quem, leitura_id, celulas: itens }),
       listar: async () => {
         // Read the archived source, not SharePoint; preserve first spelling in spreadsheet order.
-        if (!ref.data?.storage_path) throw new Error('Cópia original da leitura indisponível.');
-        const arquivo = await sb.storage.from('catalogo-planilha').download(ref.data.storage_path);
+        if (!leitura.data?.storage_path) throw new Error('Cópia original da leitura indisponível.');
+        const arquivo = await sb.storage.from('catalogo-planilha').download(leitura.data.storage_path);
         if (arquivo.error || !arquivo.data) throw new Error(arquivo.error?.message ?? 'Cópia da leitura indisponível.');
-        const aba = ref.data.origem_chave?.split('|').at(-1);
+        const aba = leitura.data.origem_chave?.split('|').at(-1);
         if (!aba) throw new Error('Aba original da leitura indisponível.');
         const wb = XLSX.read(await arquivo.data.arrayBuffer(), { type: 'array', sheets: aba, cellStyles: false, cellHTML: false, cellFormula: false });
         const ws = wb.Sheets[aba];
@@ -162,7 +195,7 @@ Deno.serve(async req => {
         if (r.data?.registradas !== pendentes.length) throw new Error(`FOP respondeu, mas o SNCF registrou só ${r.data?.registradas ?? 0} de ${pendentes.length} células.`);
       },
     });
-    return json({ ok: true, ...resumo });
+    return json({ ok: true, ...(cron ? { automatico: true } : {}), ...resumo });
   } catch (e) {
     console.error("[catalogo-planilha-aplicar-fop]", msg(e));
     return json({ ok: false, erro: msg(e), codigo: e instanceof ErroCatalogo ? e.codigo : undefined }, e instanceof ErroCatalogo ? e.status : 502);
