@@ -335,6 +335,9 @@ Deno.serve(async (req) => {
   const agora = Date.now();
   const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string; meio: string; pedido_id: string; url: string | null; titulo_id: string | null }[] = [];
   for (const l of vig ?? []) {
+    // 17/11/2026 PED-2443: um meio nunca reaproveita nem encerra links do outro meio.
+    const meioAnterior = l.meio === "pix" || l.meio === "pix_link" ? "pix" : "cartao";
+    if (meioAnterior !== meioEscolhido) continue;
     const mesmoPortao = l.provisao_id != null && l.provisao_id === prov.id;
     const mesmoValor = Math.round(Number(l.valor ?? 0) * 100) === Math.round(valor * 100);
     const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
@@ -397,7 +400,11 @@ Deno.serve(async (req) => {
         });
         const cD = await lerCorpo(rD);
         let statusAnt = "cancelado";
-        if (!rD.ok) {
+        // 17/11/2026 PED-2443: PIX legado sem DELETE (405 na charge) expira sozinho.
+        if (rotaAnt === "charge" && rD.status === 405) {
+          statusAnt = ant.novoStatus;
+          avisos.push(`Cobrança PIX anterior ${ant.gateway_link_id} não aceita cancelamento pela API — expira sozinha no Safra.`);
+        } else if (!rD.ok) {
           if (!deleteToleravel(rD.status, cD)) {
             return await falhar(`Cancelar link anterior no Safra (${ant.gateway_link_id}): ${msgApi(cD, rD.status)}`);
           }
