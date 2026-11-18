@@ -96,7 +96,7 @@ export function PedidoTimeline({ eventos }: Props) {
             }
 
             return (
-              <li key={ev.id} className="ml-4">
+              <li key={ev.id} className="ml-4 min-w-0 break-words">
                 <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-primary" />
                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1">
                   <span>{new Date(ev.criado_em).toLocaleString("pt-BR")}</span>
@@ -131,7 +131,7 @@ export function PedidoTimeline({ eventos }: Props) {
                   </div>
                 )}
                 {(ev.descricao_efetiva || ev.descricao) && (
-                  <div className="text-sm text-muted-foreground mt-1 italic">
+                  <div className="text-sm text-muted-foreground mt-1 italic whitespace-normal break-words">
                     “{ev.descricao_efetiva || ev.descricao}”
                   </div>
                 )}

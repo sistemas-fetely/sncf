@@ -24,3 +24,4 @@ UPDATE public.acao_superficie SET rotulo='Reenviar ao Bling', dispara='enviar-pe
 - PED-2417 manteve `bling_id_destino=27443803842`, carimbo e erro inalterados. Não executado reenvio real; sucesso/erro posterior exercitados com dependências simuladas.
 - Tipos regenerados automaticamente pela migration também capturaram diferenças de catálogo preexistentes; nenhuma edição manual.
 - Sem publicação do aplicativo. Lint amplo de AcoesRemessa conserva sete erros de `any` preexistentes; o gate obrigatório passa.
+- Revisão adicional: PED-2417, SHP-1670 (ação da remessa) e VD-0093 (sem expedição) conferidos em computador/celular, claro/escuro. Sucesso e falha simulados lidos no histórico; PED-2417 e VD-0093 voltam ao envio normal após falha. SHP-1670 permanece condicionado ao estágio normal de envio. Nenhuma operação real. Histórico recebeu quebra de texto para conter ids/motivo no celular.
