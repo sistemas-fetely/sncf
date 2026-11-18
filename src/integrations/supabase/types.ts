@@ -177318,6 +177318,10 @@ export type Database = {
         Args: { p_cliente: Json; p_entrega: Json; p_itens: Json }
         Returns: Json
       }
+      fn_vd_cotar_transportadora: {
+        Args: { p_cep: string; p_itens: Json; p_valor: number }
+        Returns: Json
+      }
       fn_vd_cliente_buscar: {
         Args: { p_termo: string }
         Returns: {

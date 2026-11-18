@@ -23,7 +23,11 @@ import { Switch } from "@/components/ui/switch";
 import { useCoberturaPorCd } from "@/hooks/estoque/useCoberturaPorCd";
 import { CdCoberturaTag } from "@/components/estoque/CdCoberturaTag";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
+import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd as ModalFreteVd } from "@/components/venda-direta/EntregaVendaDireta";
+import { CartoesTransportadora, useCotacaoTransportadora } from "@/components/venda-direta/CotacaoTransportadoraVD";
+type ModalVd = ModalFreteVd | "transportadora";
+/** CD de onde a Venda Direta só sai por transportadora (regra espelhada de fn_vd_calcular). */
+const CD_SO_TRANSPORTADORA = "XPM-SC";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
@@ -89,7 +93,7 @@ interface Resultado {
   pagamento_refeito?: boolean | null; meio_trocado?: boolean | null; valor_anterior?: number | null;
   frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
 }
-const MODAIS: ModalVd[] = ["retirada", "sedex", "pac", "frete_fetely"];
+const MODAIS: ModalVd[] = ["retirada", "sedex", "pac", "frete_fetely", "transportadora"];
 const ATIVAS_DEVOLUCAO = ["solicitada", "aprovada", "aguardando_devolucao", "estorno_enviado", "falhou"];
 const numTexto = (n: unknown) => (n == null || n === "" ? "" : String(n).replace(".", ","));
 /** Remove da observação o sufixo automático de benefício (fn_vd_calcular.obs_beneficio). */
@@ -102,9 +106,9 @@ interface PedidoEdicao {
   linha: LinhaVD & { pagamento_confirmado_em: string | null };
   estagio: string; cancelado_em: string | null; reembolsoAtivo: boolean;
   cliente: ClienteBusca | null; itens: Item[]; modo: ModalVd; endereco: Endereco; beneficio: BeneficioEstado; observacao: string;
-  instrucaoExpedicao: string;
+  instrucaoExpedicao: string; transportadoraId: string | null;
 }
-const ROTULO_MODAL: Record<ModalVd, string> = { retirada: "Retirada no Site SP", sedex: "Correios SEDEX", pac: "Correios PAC", frete_fetely: "Frete Fetely" };
+const ROTULO_MODAL: Record<ModalVd, string> = { retirada: "Retirada no Site SP", sedex: "Correios SEDEX", pac: "Correios PAC", frete_fetely: "Frete Fetely", transportadora: "Transportadora" };
 
 function CamposEndereco({ v, onChange, cepObrigatorio }: { v: Endereco; onChange: (e: Endereco) => void; cepObrigatorio?: boolean }) {
   const [buscando, setBuscando] = useState(false);
@@ -190,7 +194,7 @@ export default function VendaDiretaNovo() {
     queryFn: async (): Promise<PedidoEdicao> => {
       const { data: p, error } = await (supabase as any)
         .from("pedidos")
-        .select("id, id_externo, estagio, cancelado_em, parceiro_id, forma_solicitada, valor_liquido, endereco_entrega, observacao_pedido, itens_json, instrucao_expedicao")
+        .select("id, id_externo, estagio, cancelado_em, parceiro_id, forma_solicitada, valor_liquido, endereco_entrega, observacao_pedido, itens_json, instrucao_expedicao, transportadora_id")
         .eq("id", editId).maybeSingle();
       if (error) throw error;
       if (!p) throw new Error("Pedido não encontrado.");
@@ -256,6 +260,7 @@ export default function VendaDiretaNovo() {
         beneficio,
         observacao: observacaoSemBeneficio(p.observacao_pedido),
         instrucaoExpedicao: p.instrucao_expedicao ?? "",
+        transportadoraId: p.transportadora_id ?? null,
       };
     },
   });
@@ -266,7 +271,7 @@ export default function VendaDiretaNovo() {
     if (inicializado.current) return;
     inicializado.current = true;
     setPagamento(meioVD(d.linha.pagamento));
-    setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setEndereco(d.endereco);
+    setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setTransportadoraId(d.transportadoraId); setEndereco(d.endereco);
     setEnderecoEditado(true); setBeneficio(d.beneficio); setObservacao(d.observacao);
     setInstrucaoExpedicao(d.instrucaoExpedicao);
   }, [edQ.data]);
@@ -397,13 +402,28 @@ export default function VendaDiretaNovo() {
   const valorItens = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
   const pecas = itens.reduce((s, i) => s + i.quantidade, 0);
   const frete = useFreteVendaDireta(soDigitos(endereco.cep), itens);
+  // XPM SC (criação) ou pedido já por transportadora (edição): entrega só por transportadora.
+  const soTransportadora = edicao ? modo === "transportadora" : cdCodigo === CD_SO_TRANSPORTADORA;
+  const cotTransp = useCotacaoTransportadora(soDigitos(endereco.cep), itens, valorItens, soTransportadora);
+  const [transportadoraId, setTransportadoraId] = useState<string | null>(null);
+  useEffect(() => {
+    if (soTransportadora && modo !== "transportadora") setModo("transportadora");
+    if (!soTransportadora && modo === "transportadora") setModo("retirada");
+  }, [soTransportadora, modo]);
+  useEffect(() => {
+    const c = cotTransp.cotacao;
+    if (!c?.ok) return;
+    if (!transportadoraId || !c.opcoes.some((o) => o.transportadora_id === transportadoraId))
+      setTransportadoraId(c.recomendada?.transportadora_id ?? c.opcoes[0]?.transportadora_id ?? null);
+  }, [cotTransp.cotacao, transportadoraId]);
+  const transpSel = cotTransp.cotacao?.ok ? cotTransp.cotacao.opcoes.find((o) => o.transportadora_id === transportadoraId) ?? null : null;
   const opcaoSel = frete.opcoes.find((o) => o.modal === modo);
-  const freteCotado = modo === "retirada" ? 0 : (opcaoSel?.cobrado ?? 0);
+  const freteCotado = modo === "retirada" ? 0 : modo === "transportadora" ? Number(transpSel?.valor ?? 0) : (opcaoSel?.cobrado ?? 0);
   const ben = calcularBeneficio(bonif ? BENEFICIO_VAZIO : beneficio, valorItens, freteCotado, modo !== "retirada");
   const freteCobrado = ben.freteCobrado;
   // Opção escolhida ficou indisponível (CEP/itens mudaram) → volta para retirada.
   useEffect(() => {
-    if (modo !== "retirada" && opcaoSel && !opcaoSel.disponivel && !frete.cotando) setModo("retirada");
+    if (modo !== "retirada" && modo !== "transportadora" && opcaoSel && !opcaoSel.disponivel && !frete.cotando) setModo("retirada");
   }, [modo, opcaoSel, frete.cotando]);
   const total = Math.max(valorItens - ben.desconto, 0) + freteCobrado;
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
@@ -462,15 +482,20 @@ export default function VendaDiretaNovo() {
       if (soDigitos(endereco.cep).length !== 8) return "CEP de entrega obrigatório.";
       if (!endereco.logradouro.trim() || !endereco.numero.trim() || !endereco.cidade.trim() || !endereco.uf.trim())
         return "Complete o endereço de entrega.";
-      if (frete.cotando) return "Aguarde a cotação do frete.";
-      if (!opcaoSel?.disponivel) return opcaoSel?.motivo ?? "Modalidade de entrega indisponível.";
+      if (modo === "transportadora") {
+        if (cotTransp.cotando) return "Aguarde a cotação da transportadora.";
+        if (cotTransp.erro) return cotTransp.erro;
+        if (cotTransp.cotacao && !cotTransp.cotacao.ok) return cotTransp.cotacao.erro ?? "Cotação de transportadora indisponível.";
+        if (!transpSel) return "Escolha a transportadora.";
+      } else if (frete.cotando) return "Aguarde a cotação do frete.";
+      else if (!opcaoSel?.disponivel) return opcaoSel?.motivo ?? "Modalidade de entrega indisponível.";
     }
     if (ben.ativo && beneficio.motivo.trim().length < 3) return "Informe o motivo do benefício.";
     if (bonif && bonifAutorizado.trim().length < 2) return "Informe quem autorizou a bonificação.";
     if (bonif && !bonifMotivo) return "Informe o motivo da bonificação.";
     if (edicao && motivo.trim().length < 3) return "Informe o motivo da alteração.";
     return null;
-  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo, vendedorId, bonif, bonifAutorizado, bonifMotivo]);
+  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo, vendedorId, bonif, bonifAutorizado, bonifMotivo, cotTransp.cotando, cotTransp.erro, cotTransp.cotacao, transpSel]);
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
@@ -503,6 +528,7 @@ export default function VendaDiretaNovo() {
           ? { modo: "retirada", beneficio: beneficioPayload, ...(edicao ? {} : { centro_codigo: cdCodigo }) }
           : {
               modo, cotacao_id,
+              ...(modo === "transportadora" && transportadoraId ? { transportadora_id: transportadoraId } : {}),
               ...(edicao ? {} : { centro_codigo: cdCodigo }),
               endereco: { ...endereco, cep: soDigitos(endereco.cep) },
               beneficio: beneficioPayload,
@@ -568,7 +594,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setInstrucaoExpedicao(""); criadoAguardandoInstrucao.current = null;
-    setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
+    setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setTransportadoraId(null); setEndereco(ENDERECO_VAZIO);
     setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setBonifAutorizado(""); setBonifMotivo("brinde"); setBonifObs(""); setObservacao(""); setVendedorId(null);
     setCdCodigo("SITE-SP"); setResultado(null);
   };
@@ -742,7 +768,7 @@ export default function VendaDiretaNovo() {
       {!edicao && (
         <Card className="bg-card">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">CD</CardTitle>
+            <CardTitle className="text-base">Sai de</CardTitle>
           </CardHeader>
           <CardContent>
             {cdsQ.isLoading ? (
@@ -929,11 +955,18 @@ export default function VendaDiretaNovo() {
         <CardHeader><CardTitle className="text-base">Entrega</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <CamposEndereco v={endereco} cepObrigatorio onChange={(e) => { setEnderecoEditado(true); setEndereco(e); }} />
-          {frete.aguardandoDados && soDigitos(endereco.cep).length !== 8 && (
-            <p className="text-xs text-muted-foreground">Informe o CEP de entrega para cotar SEDEX, PAC e Frete Fetely.</p>
+          {soTransportadora ? (
+            <CartoesTransportadora cotacao={cotTransp.cotacao} cotando={cotTransp.cotando} erro={cotTransp.erro}
+              valor={transportadoraId} onChange={setTransportadoraId} cepOk={soDigitos(endereco.cep).length === 8} />
+          ) : (
+            <>
+              {frete.aguardandoDados && soDigitos(endereco.cep).length !== 8 && (
+                <p className="text-xs text-muted-foreground">Informe o CEP de entrega para cotar SEDEX, PAC e Frete Fetely.</p>
+              )}
+              <CartoesEntrega opcoes={frete.opcoes} valor={modo as ModalFreteVd} onChange={(m) => setModo(m)} cotando={frete.cotando} />
+              <AvisosFrete correiosErro={frete.correiosErro} tabelaErro={frete.tabelaErro} paramErro={frete.paramErro} pesoIncompleto={frete.pesoIncompleto} />
+            </>
           )}
-          <CartoesEntrega opcoes={frete.opcoes} valor={modo} onChange={(m) => setModo(m)} cotando={frete.cotando} />
-          <AvisosFrete correiosErro={frete.correiosErro} tabelaErro={frete.tabelaErro} paramErro={frete.paramErro} pesoIncompleto={frete.pesoIncompleto} />
         </CardContent>
       </Card>
 
