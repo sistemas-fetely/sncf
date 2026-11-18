@@ -9,8 +9,9 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send, MinusCircle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send, MinusCircle, RefreshCw } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { pedidoDividido as ehPedidoDividido, remessasAtivas } from "@/lib/pedidos/remessasDivididas";
 import { useNivel } from "@/hooks/useNivel";
@@ -72,12 +73,13 @@ function IconeEstado({ item }: { item: ItemChecklist & { naoSeAplica?: boolean }
 }
 
 export function PreFaturamentoCard({
-  pedidoId, exigeExpedicao = true, blingIdDestino = null,
-}: { pedidoId: string; exigeExpedicao?: boolean; blingIdDestino?: string | number | null }) {
+  pedidoId, exigeExpedicao = true, blingIdDestino = null, parceiroId,
+}: { pedidoId: string; exigeExpedicao?: boolean; blingIdDestino?: string | number | null; parceiroId?: string | null }) {
   const { temNivel } = useNivel();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const enviar = useEnviarBling();
+  const sync = useSyncContato();
   const { data: remessas } = useRemessas(pedidoId);
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -237,6 +239,26 @@ export function PreFaturamentoCard({
               </div>
               {item.detalhe && (
                 <div className="text-xs text-muted-foreground break-words">{item.detalhe}</div>
+              )}
+              {item.codigo === "cliente_bling" && !item.ok && parceiroId && podeEscrever && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 gap-1.5 h-auto whitespace-normal py-2"
+                  disabled={sync.isPending}
+                  onClick={async () => {
+                    try {
+                      await sync.mutateAsync(parceiroId);
+                      await qc.invalidateQueries({ queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId) });
+                    } catch {
+                      // O hook já mostra o toast de erro.
+                    }
+                  }}
+                >
+                  {sync.isPending
+                    ? <><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Sincronizando…</>
+                    : <><RefreshCw className="h-4 w-4 shrink-0" />Sincronizar cliente no Bling</>}
+                </Button>
               )}
             </div>
           </li>

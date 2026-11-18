@@ -847,6 +847,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber, exigeExped
   if (estagio === "pre_faturamento") return (
     <PreFaturamentoCard
       pedidoId={pedido.id}
+      parceiroId={pedido.parceiro_id}
       exigeExpedicao={exigeExpedicao}
       blingIdDestino={pedido.bling_id_destino ?? null}
     />
