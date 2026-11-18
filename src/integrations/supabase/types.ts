@@ -6788,6 +6788,402 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_d008_importacao_linha_20261118b: {
+        Row: {
+          atualizado_em: string | null
+          cbm_caixa_master: number | null
+          cbm_total: number | null
+          colecao: string | null
+          criado_em: string | null
+          custo_fob_kit: number | null
+          custo_fob_total: number | null
+          custo_setup: number | null
+          custo_total: number | null
+          custo_unitario: number | null
+          custo_unitario_vigente: number | null
+          descricao_original: string | null
+          ean: string | null
+          grupo_produto: string | null
+          id: number | null
+          importacao_pedido_id: number | null
+          qtd_confirmada_iv: number | null
+          qtd_inner_master: number | null
+          qtd_kits: number | null
+          qtd_kits_inner: number | null
+          qtd_kits_master: number | null
+          qtd_und_kit: number | null
+          qtd_unitaria: number | null
+          ref_item: string | null
+          ref_pi: string | null
+          sku: string | null
+          total_caixas_inner: number | null
+          total_caixas_master: number | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          cbm_caixa_master?: number | null
+          cbm_total?: number | null
+          colecao?: string | null
+          criado_em?: string | null
+          custo_fob_kit?: number | null
+          custo_fob_total?: number | null
+          custo_setup?: number | null
+          custo_total?: number | null
+          custo_unitario?: number | null
+          custo_unitario_vigente?: number | null
+          descricao_original?: string | null
+          ean?: string | null
+          grupo_produto?: string | null
+          id?: number | null
+          importacao_pedido_id?: number | null
+          qtd_confirmada_iv?: number | null
+          qtd_inner_master?: number | null
+          qtd_kits?: number | null
+          qtd_kits_inner?: number | null
+          qtd_kits_master?: number | null
+          qtd_und_kit?: number | null
+          qtd_unitaria?: number | null
+          ref_item?: string | null
+          ref_pi?: string | null
+          sku?: string | null
+          total_caixas_inner?: number | null
+          total_caixas_master?: number | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          cbm_caixa_master?: number | null
+          cbm_total?: number | null
+          colecao?: string | null
+          criado_em?: string | null
+          custo_fob_kit?: number | null
+          custo_fob_total?: number | null
+          custo_setup?: number | null
+          custo_total?: number | null
+          custo_unitario?: number | null
+          custo_unitario_vigente?: number | null
+          descricao_original?: string | null
+          ean?: string | null
+          grupo_produto?: string | null
+          id?: number | null
+          importacao_pedido_id?: number | null
+          qtd_confirmada_iv?: number | null
+          qtd_inner_master?: number | null
+          qtd_kits?: number | null
+          qtd_kits_inner?: number | null
+          qtd_kits_master?: number | null
+          qtd_und_kit?: number | null
+          qtd_unitaria?: number | null
+          ref_item?: string | null
+          ref_pi?: string | null
+          sku?: string | null
+          total_caixas_inner?: number | null
+          total_caixas_master?: number | null
+        }
+        Relationships: []
+      }
+      backup_d008_invoice_linha_20261118: {
+        Row: {
+          codigo_fornecedor: string | null
+          criado_em: string | null
+          descricao: string | null
+          id: number | null
+          invoice_id: number | null
+          item_seq: number | null
+          quantidade: number | null
+          sku: string | null
+          valor_total: number | null
+          valor_unit: number | null
+        }
+        Insert: {
+          codigo_fornecedor?: string | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: number | null
+          invoice_id?: number | null
+          item_seq?: number | null
+          quantidade?: number | null
+          sku?: string | null
+          valor_total?: number | null
+          valor_unit?: number | null
+        }
+        Update: {
+          codigo_fornecedor?: string | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: number | null
+          invoice_id?: number | null
+          item_seq?: number | null
+          quantidade?: number | null
+          sku?: string | null
+          valor_total?: number | null
+          valor_unit?: number | null
+        }
+        Relationships: []
+      }
+      backup_d008_nf_linha_sku_20261118b: {
+        Row: {
+          base_rateio: string | null
+          confirmado_em: string | null
+          confirmado_por: string | null
+          criado_em: string | null
+          id: number | null
+          importacao_pedido_id: number | null
+          nf_linha_id: string | null
+          origem: string | null
+          quantidade: number | null
+          sku: string | null
+          valor_rateado: number | null
+        }
+        Insert: {
+          base_rateio?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          criado_em?: string | null
+          id?: number | null
+          importacao_pedido_id?: number | null
+          nf_linha_id?: string | null
+          origem?: string | null
+          quantidade?: number | null
+          sku?: string | null
+          valor_rateado?: number | null
+        }
+        Update: {
+          base_rateio?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          criado_em?: string | null
+          id?: number | null
+          importacao_pedido_id?: number | null
+          nf_linha_id?: string | null
+          origem?: string | null
+          quantidade?: number | null
+          sku?: string | null
+          valor_rateado?: number | null
+        }
+        Relationships: []
+      }
+      backup_d008_sncf_produtos_20261118: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          atualizado_em: string | null
+          canal_venda: string | null
+          categoria: string | null
+          cest: string | null
+          cod_cadastro: string | null
+          codigo_externo: string | null
+          colecao: string | null
+          cor: string | null
+          cor_nome: string | null
+          curvavel_embalagem: boolean | null
+          departamento: string | null
+          descricao_colecao: string | null
+          descricao_produto: string | null
+          dun: string | null
+          ean: string | null
+          estampa: string | null
+          familia: string | null
+          fase: string | null
+          fase_alterada_motivo: string | null
+          fase_alterada_por: string | null
+          grupo: string | null
+          grupo_tributario_bling: string | null
+          is_vela_numerica: boolean | null
+          largura_cm: number | null
+          linha: string | null
+          marca: string | null
+          material: string | null
+          material_descritivo: string | null
+          meta_descricao: string | null
+          multiplos: number | null
+          ncm: string | null
+          nome_comercial: string | null
+          nome_completo: string | null
+          nome_operacional: string | null
+          numero_vela: number | null
+          origem_fisc: string | null
+          origem_prod: string | null
+          peso_g: number | null
+          preco_atacado: number | null
+          preco_custo: number | null
+          preco_site: number | null
+          preco_varejo: number | null
+          profundidade_cm: number | null
+          qtd_kit: number | null
+          sku: string | null
+          sub_colecao: string | null
+          sub_colecao2: string | null
+          tamanho_numero: string | null
+          tamanho_ref: string | null
+          tipo: string | null
+          tipo_embalagem: string | null
+        }
+        Insert: {
+          altura_cm?: number | null
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          canal_venda?: string | null
+          categoria?: string | null
+          cest?: string | null
+          cod_cadastro?: string | null
+          codigo_externo?: string | null
+          colecao?: string | null
+          cor?: string | null
+          cor_nome?: string | null
+          curvavel_embalagem?: boolean | null
+          departamento?: string | null
+          descricao_colecao?: string | null
+          descricao_produto?: string | null
+          dun?: string | null
+          ean?: string | null
+          estampa?: string | null
+          familia?: string | null
+          fase?: string | null
+          fase_alterada_motivo?: string | null
+          fase_alterada_por?: string | null
+          grupo?: string | null
+          grupo_tributario_bling?: string | null
+          is_vela_numerica?: boolean | null
+          largura_cm?: number | null
+          linha?: string | null
+          marca?: string | null
+          material?: string | null
+          material_descritivo?: string | null
+          meta_descricao?: string | null
+          multiplos?: number | null
+          ncm?: string | null
+          nome_comercial?: string | null
+          nome_completo?: string | null
+          nome_operacional?: string | null
+          numero_vela?: number | null
+          origem_fisc?: string | null
+          origem_prod?: string | null
+          peso_g?: number | null
+          preco_atacado?: number | null
+          preco_custo?: number | null
+          preco_site?: number | null
+          preco_varejo?: number | null
+          profundidade_cm?: number | null
+          qtd_kit?: number | null
+          sku?: string | null
+          sub_colecao?: string | null
+          sub_colecao2?: string | null
+          tamanho_numero?: string | null
+          tamanho_ref?: string | null
+          tipo?: string | null
+          tipo_embalagem?: string | null
+        }
+        Update: {
+          altura_cm?: number | null
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          canal_venda?: string | null
+          categoria?: string | null
+          cest?: string | null
+          cod_cadastro?: string | null
+          codigo_externo?: string | null
+          colecao?: string | null
+          cor?: string | null
+          cor_nome?: string | null
+          curvavel_embalagem?: boolean | null
+          departamento?: string | null
+          descricao_colecao?: string | null
+          descricao_produto?: string | null
+          dun?: string | null
+          ean?: string | null
+          estampa?: string | null
+          familia?: string | null
+          fase?: string | null
+          fase_alterada_motivo?: string | null
+          fase_alterada_por?: string | null
+          grupo?: string | null
+          grupo_tributario_bling?: string | null
+          is_vela_numerica?: boolean | null
+          largura_cm?: number | null
+          linha?: string | null
+          marca?: string | null
+          material?: string | null
+          material_descritivo?: string | null
+          meta_descricao?: string | null
+          multiplos?: number | null
+          ncm?: string | null
+          nome_comercial?: string | null
+          nome_completo?: string | null
+          nome_operacional?: string | null
+          numero_vela?: number | null
+          origem_fisc?: string | null
+          origem_prod?: string | null
+          peso_g?: number | null
+          preco_atacado?: number | null
+          preco_custo?: number | null
+          preco_site?: number | null
+          preco_varejo?: number | null
+          profundidade_cm?: number | null
+          qtd_kit?: number | null
+          sku?: string | null
+          sub_colecao?: string | null
+          sub_colecao2?: string | null
+          tamanho_numero?: string | null
+          tamanho_ref?: string | null
+          tipo?: string | null
+          tipo_embalagem?: string | null
+        }
+        Relationships: []
+      }
+      backup_d008_xpm_categoria_map_20261118: {
+        Row: {
+          categoria_codigo: string | null
+          categoria_descricao: string | null
+          categoria_id: number | null
+          criado_em: string | null
+          grupo: string | null
+        }
+        Insert: {
+          categoria_codigo?: string | null
+          categoria_descricao?: string | null
+          categoria_id?: number | null
+          criado_em?: string | null
+          grupo?: string | null
+        }
+        Update: {
+          categoria_codigo?: string | null
+          categoria_descricao?: string | null
+          categoria_id?: number | null
+          criado_em?: string | null
+          grupo?: string | null
+        }
+        Relationships: []
+      }
+      backup_d008_xpm_medida_ref_20261118: {
+        Row: {
+          altura_cm: number | null
+          atualizado_em: string | null
+          comprimento_cm: number | null
+          grupo: string | null
+          largura_cm: number | null
+          observacao: string | null
+          peso_kg: number | null
+        }
+        Insert: {
+          altura_cm?: number | null
+          atualizado_em?: string | null
+          comprimento_cm?: number | null
+          grupo?: string | null
+          largura_cm?: number | null
+          observacao?: string | null
+          peso_kg?: number | null
+        }
+        Update: {
+          altura_cm?: number | null
+          atualizado_em?: string | null
+          comprimento_cm?: number | null
+          grupo?: string | null
+          largura_cm?: number | null
+          observacao?: string | null
+          peso_kg?: number | null
+        }
+        Relationships: []
+      }
       backup_embalagens_expedicao_20261025: {
         Row: {
           altura_cm: number
@@ -8126,6 +8522,21 @@ export type Database = {
           tipos?: string[] | null
           uf?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      backup_parceiros_dedup_gabriela_20261118: {
+        Row: {
+          dado: Json | null
+          tipo: string | null
+        }
+        Insert: {
+          dado?: Json | null
+          tipo?: string | null
+        }
+        Update: {
+          dado?: Json | null
+          tipo?: string | null
         }
         Relationships: []
       }
@@ -12715,6 +13126,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: true
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -36943,6 +37361,7 @@ export type Database = {
           padrao_descricao: string | null
           papel: string
           periodicidade: string | null
+          sla_dias_uteis: number | null
           updated_at: string
         }
         Insert: {
@@ -36961,6 +37380,7 @@ export type Database = {
           padrao_descricao?: string | null
           papel: string
           periodicidade?: string | null
+          sla_dias_uteis?: number | null
           updated_at?: string
         }
         Update: {
@@ -36979,6 +37399,7 @@ export type Database = {
           padrao_descricao?: string | null
           papel?: string
           periodicidade?: string | null
+          sla_dias_uteis?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -39985,6 +40406,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -45361,6 +45789,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -45863,6 +46298,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -47045,6 +47487,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -47919,6 +48368,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -77474,6 +77930,30 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_familia_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          variantes: string[] | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[] | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[] | null
+        }
+        Relationships: []
+      }
       produto_fase_destino: {
         Row: {
           ativo: boolean
@@ -77927,6 +78407,30 @@ export type Database = {
           nome?: string
           ordem?: number
           slug?: string
+        }
+        Relationships: []
+      }
+      produto_subcolecao_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          variantes: string[] | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[] | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[] | null
         }
         Relationships: []
       }
@@ -81544,6 +82048,13 @@ export type Database = {
             foreignKeyName: "regularizacao_item_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -82720,6 +83231,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -87139,6 +87657,13 @@ export type Database = {
             foreignKeyName: "sku_depara_sku_canonico_fkey"
             columns: ["sku_canonico"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -88181,6 +88706,20 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_familia"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "produto_familia_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
@@ -88209,6 +88748,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "fk_produto_origem_fisc"
             columns: ["origem_fisc"]
             isOneToOne: false
@@ -88220,6 +88766,20 @@ export type Database = {
             columns: ["origem_prod"]
             isOneToOne: false
             referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_sub_colecao"
+            columns: ["sub_colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_subcolecao_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_sub_colecao2"
+            columns: ["sub_colecao2"]
+            isOneToOne: false
+            referencedRelation: "produto_subcolecao_dim"
             referencedColumns: ["rotulo"]
           },
           {
@@ -110435,6 +110995,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -111369,6 +111936,15 @@ export type Database = {
           tem_recebimento: boolean | null
           tipo_meio: string | null
           uf: string | null
+        }
+        Relationships: []
+      }
+      mv_conciliacao_contagem_produto: {
+        Row: {
+          atualizado_em: string | null
+          cod_cadastro: string | null
+          pendencias: number | null
+          sistemas: string[] | null
         }
         Relationships: []
       }
@@ -114104,6 +114680,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
@@ -114123,6 +114706,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_marca_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -114148,7 +114738,15 @@ export type Database = {
           updated_at: string | null
           usado_mas_nao_canonico: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       vw_bling_card_fila: {
         Row: {
@@ -114188,11 +114786,25 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
             referencedRelation: "produto_grupo_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -116285,6 +116897,13 @@ export type Database = {
             referencedRelation: "cartorio_estado_dim"
             referencedColumns: ["slug"]
           },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       vw_catalogo_arvore: {
@@ -116417,6 +117036,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -121144,6 +121770,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -122003,6 +122636,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -128535,6 +129175,13 @@ export type Database = {
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
           },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       vw_estoque_bling_sync: {
@@ -128560,7 +129207,15 @@ export type Database = {
           sku: string | null
           un_por_dia: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       vw_estoque_canais_centro: {
         Row: {
@@ -128650,6 +129305,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
           {
             foreignKeyName: "fk_produto_grupo"
@@ -128959,6 +129621,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -136668,7 +137337,15 @@ export type Database = {
           status_slug: string | null
           status_texto: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       vw_fop_status_pendente: {
         Row: {
@@ -136683,7 +137360,15 @@ export type Database = {
           status_slug: string | null
           status_texto: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       vw_fornecedor_produto: {
         Row: {
@@ -136982,6 +137667,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -139985,6 +140677,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -140405,6 +141104,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -140699,6 +141405,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -143347,6 +144060,8 @@ export type Database = {
           instrucao_expedicao: string | null
           instrucao_expedicao_lida_em: string | null
           instrucao_pendente: boolean | null
+          item_pode_ter_chegado: boolean | null
+          itens_faltando: Json | null
           liberado_para_postar: boolean | null
           limite_min: number | null
           minutos_parado: number | null
@@ -143707,11 +144422,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
             referencedRelation: "produto_grupo_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm_cadastro"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -147349,13 +148078,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
@@ -147364,13 +148086,20 @@ export type Database = {
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
@@ -150039,14 +150768,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -156647,6 +157376,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
@@ -156689,6 +157425,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
           {
             foreignKeyName: "fk_produto_grupo"
@@ -156962,6 +157705,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
@@ -157043,11 +157793,25 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
             referencedRelation: "produto_grupo_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -157118,11 +157882,25 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
             referencedRelation: "produto_grupo_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -157447,6 +158225,20 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_familia"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "produto_familia_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
@@ -157475,6 +158267,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "fk_produto_origem_fisc"
             columns: ["origem_fisc"]
             isOneToOne: false
@@ -157486,6 +158285,20 @@ export type Database = {
             columns: ["origem_prod"]
             isOneToOne: false
             referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_sub_colecao"
+            columns: ["sub_colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_subcolecao_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_sub_colecao2"
+            columns: ["sub_colecao2"]
+            isOneToOne: false
+            referencedRelation: "produto_subcolecao_dim"
             referencedColumns: ["rotulo"]
           },
           {
@@ -157557,6 +158370,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "fk_produto_origem_fisc"
             columns: ["origem_fisc"]
             isOneToOne: false
@@ -157590,6 +158410,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
           {
             foreignKeyName: "produto_ficha_nascimento_regra_formato_fkey"
@@ -157762,6 +158589,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_familia"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "produto_familia_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
@@ -157788,6 +158622,212 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_material_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_fisc"
+            columns: ["origem_fisc"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_fiscal_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_prod"
+            columns: ["origem_prod"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_tipo"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_tipo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
+      vw_produto_mesa_v2: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          ativo_shopify: boolean | null
+          atualizado_em: string | null
+          barcode_shopify: string | null
+          bling_ativo: boolean | null
+          bling_canonico_motivo: string | null
+          bling_canonico_por: string | null
+          bling_card_canonico: string | null
+          bling_codigo: string | null
+          bling_gtin: string | null
+          bling_marca: string | null
+          bling_n_cards: number | null
+          bling_ncm: string | null
+          bling_nome: string | null
+          bling_preco: number | null
+          busca_texto: string | null
+          campos_fora_do_espelho: string[] | null
+          canal_venda: string | null
+          cartorio_estado: string | null
+          cartorio_inner: number | null
+          cartorio_sku: string | null
+          categoria: string | null
+          cest: string | null
+          cod_bling: string | null
+          cod_cadastro: string | null
+          cod_shopify: string | null
+          cod_xpm: string | null
+          colecao: string | null
+          cor: string | null
+          cor_nome: string | null
+          departamento: string | null
+          descricao_produto: string | null
+          dif_barcode_shopify: boolean | null
+          dif_marca_bling: boolean | null
+          dif_preco_bling: boolean | null
+          dif_preco_shopify: boolean | null
+          divergencias: string[] | null
+          donos_pendencia: string[] | null
+          dun: string | null
+          ean: string | null
+          estampa: string | null
+          existe_bling: boolean | null
+          existe_xpm: boolean | null
+          falta_fase_atual: string[] | null
+          falta_proxima_fase: string[] | null
+          falta_separada: string[] | null
+          familia: string | null
+          fase: string | null
+          fase_nome: string | null
+          fase_ordem: number | null
+          ficha_completa: boolean | null
+          foto_exata: boolean | null
+          foto_origem: string | null
+          foto_url: string | null
+          grupo: string | null
+          handle: string | null
+          inner_qtd: number | null
+          inventory_items: number | null
+          largura_cm: number | null
+          linha: string | null
+          marca: string | null
+          material: string | null
+          material_descritivo: string | null
+          multiplos: number | null
+          ncm: string | null
+          no_shopify: boolean | null
+          nome_comercial: string | null
+          nome_completo: string | null
+          nome_operacional: string | null
+          origem_fisc: string | null
+          origem_prod: string | null
+          pendencias: number | null
+          peso_g: number | null
+          preco_atacado: number | null
+          preco_custo: number | null
+          preco_shopify: number | null
+          preco_varejo: number | null
+          profundidade_cm: number | null
+          pronto_proxima_fase: boolean | null
+          proxima_fase: string | null
+          qtd_divergencias: number | null
+          qtd_falta_atual: number | null
+          qtd_falta_proxima: number | null
+          qtd_kit: number | null
+          saldo_disponivel: number | null
+          shopify_sku_diverge: boolean | null
+          shopify_status: string | null
+          sistemas_pendencia: string[] | null
+          situacao: string | null
+          sku: string | null
+          sugestao: string | null
+          tamanho_numero: string | null
+          tem_bling: boolean | null
+          tem_ficha_bling: boolean | null
+          tipo: string | null
+          tipo_embalagem: string | null
+          variantes_shopify: number | null
+          xpm_codigo: string | null
+          xpm_ean: string | null
+          xpm_ncm: string | null
+          xpm_peso_kg: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cartorio_estado"
+            columns: ["cartorio_estado"]
+            isOneToOne: false
+            referencedRelation: "cartorio_estado_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "fk_produto_canal_venda"
+            columns: ["canal_venda"]
+            isOneToOne: false
+            referencedRelation: "produto_canal_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_embalagem"
+            columns: ["tipo_embalagem"]
+            isOneToOne: false
+            referencedRelation: "produto_embalagem_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_familia"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "produto_familia_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_marca"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "produto_marca_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_material"
+            columns: ["material"]
+            isOneToOne: false
+            referencedRelation: "produto_material_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "fk_produto_origem_fisc"
@@ -162933,6 +163973,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_tipo"
             columns: ["tipo"]
             isOneToOne: false
@@ -162967,6 +164014,13 @@ export type Database = {
           v90_sr: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "fk_produto_tipo"
             columns: ["tipo"]
@@ -163004,6 +164058,13 @@ export type Database = {
           v90: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
             columns: ["centro_id"]
@@ -164764,6 +165825,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_familia"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "produto_familia_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
           {
             foreignKeyName: "fk_produto_grupo"
@@ -171401,6 +172476,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_reposicao_classe_sku"
             referencedColumns: ["sku"]
           },
@@ -171520,11 +172602,25 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
             isOneToOne: false
             referencedRelation: "produto_grupo_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_ncm"
+            columns: ["ncm_sncf"]
+            isOneToOne: false
+            referencedRelation: "ncm_oficial"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -171563,6 +172659,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
           {
             foreignKeyName: "fk_produto_grupo"
@@ -172308,6 +173411,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
             referencedColumns: ["sku"]
           },
           {
@@ -175403,6 +176513,10 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: number
       }
+      fn_dim_resolver: {
+        Args: { p_extra?: Json; p_tabela: string; p_valor: string }
+        Returns: string
+      }
       fn_dim_slug: { Args: { p_rotulo: string }; Returns: string }
       fn_dividir_captura_cartao: {
         Args: { p_capturas: Json; p_pedido_id: string; p_simular?: boolean }
@@ -176043,6 +177157,11 @@ export type Database = {
           pessoa_id: string
         }[]
       }
+      fn_mesa_produto: { Args: { p?: Json }; Returns: Json }
+      fn_mesa_sp_aguardar_item: {
+        Args: { p_itens: Json; p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
       fn_mesa_sp_caixa_aprende: {
         Args: { p_caixa_codigo: string; p_pedido_id: string; p_volumes: number }
         Returns: Json
@@ -176153,6 +177272,10 @@ export type Database = {
       }
       fn_mesa_sp_iniciar_conferencia: {
         Args: { p_pedido_id: string }
+        Returns: Json
+      }
+      fn_mesa_sp_item_chegou: {
+        Args: { p_observacao?: string; p_pedido_id: string }
         Returns: Json
       }
       fn_mesa_sp_ler_instrucao: { Args: { p_pedido_id: string }; Returns: Json }

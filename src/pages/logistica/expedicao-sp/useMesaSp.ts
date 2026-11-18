@@ -55,11 +55,12 @@ export function usePedidosMesaSp() {
   return useQuery({
     queryKey: CHAVE_PEDIDOS_MESA,
     staleTime: 15 * 1000,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<PedidoMesa[]> => {
       const { data, error } = await supabaseMesa
         .from("vw_mesa_sp_quadro")
         .select(
-          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente, ti_exige_nf, agendado_para, postagem_bloqueada, liberado_para_postar",
+          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente, ti_exige_nf, agendado_para, postagem_bloqueada, liberado_para_postar, itens_faltando, item_pode_ter_chegado",
         )
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);
@@ -610,6 +611,28 @@ export function useIniciarConferencia() {
     "fn_mesa_sp_iniciar_conferencia",
     () => "Separação concluída — pedido em conferência.",
   );
+}
+
+function useRpcEsperaItem<T extends Record<string, unknown>>(nome: string, mensagem: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: T) => {
+      const { data, error } = await supabaseMesa.rpc(nome, args);
+      if (error) throw new Error(mensagemErro(error));
+      if (data?.ok !== true) throw new Error(data?.erro ?? 'A espera por item não foi atualizada.');
+      return data;
+    },
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['mesa-sp'] }); toast.success(mensagem); },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+}
+
+export function useAguardarItemMesa() {
+  return useRpcEsperaItem<{ p_pedido_id: string; p_itens: { sku: string; quantidade: number }[]; p_motivo: string }>('fn_mesa_sp_aguardar_item', 'Espera por item registrada.');
+}
+
+export function useItemChegouMesa() {
+  return useRpcEsperaItem<{ p_pedido_id: string; p_observacao: string | null }>('fn_mesa_sp_item_chegou', 'Item chegou — pedido voltou para separação.');
 }
 
 export function useVoltarSeparacao() {

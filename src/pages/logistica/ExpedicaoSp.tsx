@@ -38,6 +38,7 @@ import { NfRemessaTi } from "./expedicao-sp/NfRemessaTi";
 import { TimelineTransferencia } from "@/components/transferencias/TimelineTransferencia";
 import { EstacaoDocumentos } from "./expedicao-sp/EstacaoDocumentos";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
+import { AguardandoItemMesa, SeloItensFaltantes } from "./expedicao-sp/AguardandoItemMesa";
 import { FaixaInstrucaoExpedicao, SeloInstrucaoExpedicao } from "./expedicao-sp/FaixaInstrucaoExpedicao";
 import { bloqueiaAvancoInstrucao } from "@/lib/pedidos/instrucaoExpedicao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
@@ -154,7 +155,7 @@ export default function ExpedicaoSp() {
   const proximoDaFila = fila.find((p) => !cancelamentos.has(p.id)) ?? null;
   const naMesa = pedidos.filter((p) => {
     const estacao = estacaoDe.get(p.id);
-    return estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem" || estacao === "documentos";
+    return estacao === "separacao" || estacao === "aguardando_item" || estacao === "conferencia" || estacao === "embalagem" || estacao === "documentos";
   });
   const modalPorCodigo = useMemo(
     () => new Map((modaisQ.data ?? []).map((modal) => [modal.codigo, modal])),
@@ -174,7 +175,7 @@ export default function ExpedicaoSp() {
   const gruposMesa = useMemo(
     () =>
       colunas
-        .filter((c) => c.codigo === "separacao" || c.codigo === "conferencia" || c.codigo === "embalagem" || c.codigo === "documentos")
+        .filter((c) => c.codigo === "separacao" || c.codigo === "aguardando_item" || c.codigo === "conferencia" || c.codigo === "embalagem" || c.codigo === "documentos")
         .map((c) => ({ estacao: c.codigo, rotulo: c.rotulo, doGrupo: naMesa.filter((p) => p.etapa === c.codigo) }))
         .filter(({ doGrupo }) => doGrupo.length > 0),
     [naMesa, colunas],
@@ -200,7 +201,7 @@ export default function ExpedicaoSp() {
   const cancelamentoSelecionado = selecionado ? cancelamentos.get(selecionado.id) ?? null : null;
   const bloqueado = cancelamentoSelecionado != null;
   const podeDevolver =
-    estacaoSelecionada === "separacao" || estacaoSelecionada === "conferencia" || estacaoSelecionada === "embalagem";
+    estacaoSelecionada === "separacao" || estacaoSelecionada === "aguardando_item" || estacaoSelecionada === "conferencia" || estacaoSelecionada === "embalagem";
   const selecionadoAguardandoRetirada = selecionado
     ? aguardandoRetirada.some((pedido) => pedido.id === selecionado.id)
     : false;
@@ -291,7 +292,7 @@ export default function ExpedicaoSp() {
         estado={
           pedidosQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF · ${entregas.length} para entrega`
+            : `${fila.length} na fila · ${naMesa.length} na mesa · ${pedidos.filter(p => p.etapa === 'aguardando_item').length} ${(colunas.find(c => c.codigo === 'aguardando_item')?.rotulo ?? 'aguardando_item').toLowerCase()} · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF · ${entregas.length} para entrega`
         }
       />
 
@@ -774,6 +775,8 @@ export default function ExpedicaoSp() {
                 </Card>
               )}
 
+              <AguardandoItemMesa key={selecionado.id} pedido={selecionado} itens={itensQ.data ?? []} eventos={eventosSelecionado} bloqueado={bloqueado} carregando={itensQ.isLoading} erroItens={itensQ.error} />
+
               {estacaoSelecionada === "separacao" && (
                 <EstacaoSeparacao
                   itens={itensQ.data ?? []}
@@ -982,6 +985,7 @@ function LinhaPedido({
       <span className={cn("block truncate text-xs", pedido.estourou_limite ? "text-warning-strong" : "text-muted-foreground")}>
         {pedido.etapa_rotulo ?? pedido.etapa} · {tempoParado(pedido.minutos_parado)}
       </span>
+      <SeloItensFaltantes pedido={pedido} />
       {pedidoEhVendaDireta(pedido.id_externo) && (
         <span className="block truncate text-xs text-muted-foreground">
           Entrega: {rotuloEntregaVendaDireta(modoEntregaVendaDireta(pedido.endereco_entrega), modaisQ.data ?? [], vdModosQ.data ?? [])}
@@ -1042,6 +1046,7 @@ function QuadroBancada({
                       {p.cd_codigo && p.cd_codigo !== CENTRO_SITE_SP && p.cd_rotulo && <Selo estado="info">{p.cd_rotulo}</Selo>}
                       {cancelamentos.has(p.id) && <Selo estado="destructive">Cancel.</Selo>}
                     </span>
+                    <SeloItensFaltantes pedido={p} />
                     <span className="block truncate text-muted-foreground">{ehTransferenciaMesa(p.canal) ? `${p.cd_rotulo ?? "—"} → ${p.destino_interno ?? "—"}` : p.cliente_nome ?? "cliente sem nome"}</span>
                     <span className={cn("block", p.estourou_limite ? "text-warning-strong" : "text-muted-foreground")}>
                       {ehTransferenciaMesa(p.canal) ? `${p.etapa_rotulo ?? p.etapa} · ` : ""}{tempoParado(p.minutos_parado)}

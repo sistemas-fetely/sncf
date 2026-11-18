@@ -9,7 +9,7 @@ import { normalizarGtin, normalizarLeitura } from "@/lib/estoque/resolverCodigoB
 
 /** Códigos das etapas ativas (`mesa_sp_etapa`). Rótulo e ordem vêm do banco. */
 export const ESTACOES = [
-  "fila", "separacao", "conferencia", "entrega", "embalagem", "documentos", "despacho", "aguardando_nf", "nf_emitida",
+  "fila", "separacao", "aguardando_item", "conferencia", "entrega", "embalagem", "documentos", "despacho", "aguardando_nf", "nf_emitida",
 ] as const;
 
 /** `fn_mesa_sp_documentos_ok`: estação Documentos concluída. */
@@ -114,6 +114,8 @@ export const ESTAGIO_FATURADO = "faturado";
 export const CENTRO_SITE_SP = "SITE-SP";
 
 export interface PedidoMesa {
+  itens_faltando?: unknown;
+  item_pode_ter_chegado?: boolean;
   instrucao_expedicao: string | null;
   instrucao_expedicao_lida_em: string | null;
   instrucao_pendente: boolean;

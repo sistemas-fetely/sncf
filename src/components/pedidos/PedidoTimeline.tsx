@@ -16,6 +16,8 @@ const EVENTO_LABELS: Record<string, string> = {
   pagamento_confirmado: "✅ Pagamento confirmado",
   exportado_bling: "📤 Exportado pro Bling",
   bling_reenvio: "Reenvio ao Bling",
+  mesa_aguardando_item: "Mesa SP: aguardando item",
+  mesa_item_chegou: "Mesa SP: item chegou, voltou para separação",
   faturado: "🧾 Faturado",
   msg_comercial: "📩 do Comercial",
   msg_sops: "💬 do SOPS",

@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, PackageSearch, RefreshCw, Truck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
@@ -31,6 +32,8 @@ import { listaNfs } from "@/components/regularizacao/types";
 import type { RegularizacaoItem, RegularizacaoLote, RegularizacaoRetorno, RegularizacaoRetornoItem } from "@/components/regularizacao/types";
 
 type ProdutoJoin = { cod_cadastro?: string | null; nome_comercial?: string | null };
+// Generated relationship inference is circular for this joined query; retain its local result contract.
+const regularizacaoDb = supabase as unknown as SupabaseClient;
 const produtoJoin = (p: unknown): ProdutoJoin => Array.isArray(p) ? (p[0] as ProdutoJoin | undefined) ?? {} : (p as ProdutoJoin | null) ?? {};
 export default function RegularizacaoLoteDetalhe() {
   const { id } = useParams(); const qc = useQueryClient(); const [aba, setAba] = useAbaUrl("inventario"); const { podeEditar } = usePermissoesTela("tela.regularizacao_estoque");
@@ -38,7 +41,7 @@ export default function RegularizacaoLoteDetalhe() {
   const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { prefixo: "inv", replaceKeys: ["busca"] });
   const buscaInventario = nav.busca; const setBuscaInventario = (v: SetStateAction<typeof buscaInventario>) => setNav({ busca: resolverAcao(v, buscaInventario) as never }); const paginaInventario = nav.pagina; const setPaginaInventario = (v: SetStateAction<typeof paginaInventario>) => setNav({ pagina: resolverAcao(v, paginaInventario) as never }); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo()); const [cancelarAberto, setCancelarAberto] = useState(false);
   const loteQ = useQuery({ queryKey: ["regularizacao", "lote", id], enabled: !!id, refetchInterval: 30_000, queryFn: async () => { const { data, error } = await supabase.from("vw_regularizacao_lote").select("*").eq("id", id ?? "").single(); if (error) throw error; return data as RegularizacaoLote; } });
-  const itensQ = useQuery({ queryKey: ["regularizacao", "itens", id], enabled: !!id, queryFn: async () => { const { data, error } = await supabase.from("regularizacao_item").select("id,lote_id,sku,quantidade,quantidade_coberta,sncf_produtos(cod_cadastro,nome_comercial)").eq("lote_id", id ?? "").order("sku"); if (error) throw error; return (data ?? []).map((r) => { const produto = produtoJoin(r.sncf_produtos); return { id: r.id, lote_id: r.lote_id, sku: r.sku, quantidade: r.quantidade, quantidade_coberta: r.quantidade_coberta, cod_cadastro: produto.cod_cadastro ?? null, nome_comercial: produto.nome_comercial ?? null }; }) as RegularizacaoItem[]; } });
+  const itensQ = useQuery({ queryKey: ["regularizacao", "itens", id], enabled: !!id, queryFn: async () => { const { data, error } = await regularizacaoDb.from("regularizacao_item").select("id,lote_id,sku,quantidade,quantidade_coberta,sncf_produtos(cod_cadastro,nome_comercial)").eq("lote_id", id ?? "").order("sku"); if (error) throw error; return (data ?? []).map((r) => { const produto = produtoJoin(r.sncf_produtos); return { id: r.id, lote_id: r.lote_id, sku: r.sku, quantidade: r.quantidade, quantidade_coberta: r.quantidade_coberta, cod_cadastro: produto.cod_cadastro ?? null, nome_comercial: produto.nome_comercial ?? null }; }) as RegularizacaoItem[]; } });
   const retornosQ = useQuery({ queryKey: ["regularizacao", "retornos", id], enabled: !!id, refetchInterval: 30_000, queryFn: async () => {
     // A relação aninhada é castada manualmente (tipos gerados não inferem o duplo aninhamento).
     const { data, error } = await supabase.from("regularizacao_retorno_nf").select("*,regularizacao_retorno_item(*,sncf_produtos(cod_cadastro,nome_comercial))").eq("lote_id", id ?? "").order("nf_origem_data", { ascending: false });

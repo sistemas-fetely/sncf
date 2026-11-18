@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Mesa missing-item waits are event-only RPCs with order locks; the DB derives the stage and all-items physical-stock hint, while the existing operation permission and awaited refresh own the UI actions, preserving reservations and requiring fresh conference after arrival.
 - The second accountant stock workbook reuses raw Bloco K rows once, resolves fiscal establishments from center metadata and consolidates by establishment/code/external holder; inventory and manifest share its summary without changing the original workbook.
 - Product Mesa reads only fn_mesa_produto for consolidated rows, counts, facets and cards, with URL parameters, 300ms search debounce and retained page data; format alerts keep their separate ordered batch query so diagnostics remain complete.
 - Human Bling resend requires live API cancellation/404 and no live NF; a service-only CAS RPC atomically records the event and clears the old pointer/remessas, then the same normal handler sends. Fiscal system resend remains separate.

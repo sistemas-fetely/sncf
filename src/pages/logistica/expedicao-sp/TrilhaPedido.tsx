@@ -20,11 +20,11 @@ export function TrilhaPedido({ eventos }: { eventos: EventoMesa[] }) {
         ) : (
           <ol className="space-y-3">
             {ordenados.map((e) => (
-              <li key={e.id} className="border-l-2 border-border pl-3">
+              <li key={e.id} className="min-w-0 break-words border-l-2 border-border pl-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  {e.tipo_evento}
+                  {e.tipo_evento === 'mesa_aguardando_item' ? 'Mesa SP' : e.tipo_evento === 'mesa_item_chegou' ? 'Mesa SP' : e.tipo_evento}
                 </p>
-                <p className="text-sm">{e.descricao ?? "—"}</p>
+                <p className="text-sm [overflow-wrap:anywhere]">{e.descricao ?? "—"}</p>
                 <p className="text-xs text-muted-foreground">{fmtDataHora(e.criado_em)}</p>
               </li>
             ))}
