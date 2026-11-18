@@ -8998,6 +8998,13 @@ export type Database = {
             foreignKeyName: "baixa_uso_nf_baixa_id_fkey"
             columns: ["nf_baixa_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "baixa_uso_nf_baixa_id_fkey"
+            columns: ["nf_baixa_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -9222,6 +9229,13 @@ export type Database = {
             foreignKeyName: "baixa_uso_nf_retorno_id_fkey"
             columns: ["nf_retorno_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "baixa_uso_nf_retorno_id_fkey"
+            columns: ["nf_retorno_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -9440,6 +9454,13 @@ export type Database = {
             columns: ["nf_saida_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "baixa_uso_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -18771,6 +18792,13 @@ export type Database = {
             foreignKeyName: "comissao_apuracao_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -24119,6 +24147,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -32901,6 +32936,13 @@ export type Database = {
             foreignKeyName: "devolucao_nf_original_id_fkey"
             columns: ["nf_original_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_original_id_fkey"
+            columns: ["nf_original_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -33119,6 +33161,13 @@ export type Database = {
             columns: ["nf_substituta_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -50697,6 +50746,13 @@ export type Database = {
             foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -53715,6 +53771,13 @@ export type Database = {
             foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -54105,6 +54168,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: true
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_email_cliente_fila_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: true
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -54899,6 +54969,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: true
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_email_xpm_fila_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: true
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -56951,6 +57028,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -57799,6 +57883,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -82212,6 +82303,13 @@ export type Database = {
             foreignKeyName: "regularizacao_lote_nf_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "regularizacao_lote_nf_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -82845,6 +82943,13 @@ export type Database = {
             foreignKeyName: "regularizacao_retorno_nf_nf_origem_id_fkey"
             columns: ["nf_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_nf_nf_origem_id_fkey"
+            columns: ["nf_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -83063,6 +83168,13 @@ export type Database = {
             columns: ["nf_retorno_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_nf_nf_retorno_id_fkey"
+            columns: ["nf_retorno_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -93552,6 +93664,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -96384,6 +96503,13 @@ export type Database = {
             columns: ["nf_remessa_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "transferencia_remessa_vinculo_nf_remessa_id_fkey"
+            columns: ["nf_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -103705,6 +103831,13 @@ export type Database = {
             foreignKeyName: "venda_fora_unidade_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "venda_fora_unidade_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -108122,6 +108255,13 @@ export type Database = {
             foreignKeyName: "xpm_nf_fila_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "xpm_nf_fila_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -108907,6 +109047,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: true
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "xpm_pedido_fila_b2c_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: true
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -119827,6 +119974,13 @@ export type Database = {
             foreignKeyName: "comissao_apuracao_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -123204,6 +123358,23 @@ export type Database = {
           receita_produto: number | null
           receita_total: number | null
           unidades: number | null
+        }
+        Relationships: []
+      }
+      vw_contabil_vendas_plataforma: {
+        Row: {
+          canal: string | null
+          cliente: string | null
+          competencia: string | null
+          data_emissao: string | null
+          estabelecimento: string | null
+          meio_pagamento: string | null
+          nf_id: string | null
+          numero: string | null
+          pedido: string | null
+          serie: string | null
+          tipo_cliente: string | null
+          valor_nota: number | null
         }
         Relationships: []
       }
@@ -129455,6 +129626,13 @@ export type Database = {
             columns: ["nf_saida_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -144832,6 +145010,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -159773,6 +159958,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -161039,6 +161231,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -167190,6 +167389,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_vinculo_mesa"
             referencedColumns: ["nf_saida_id"]
           },
@@ -168548,6 +168754,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_vendas_plataforma"
             referencedColumns: ["nf_id"]
           },
           {
@@ -174336,6 +174549,10 @@ export type Database = {
         Args: { p_ambiente: string; p_token: string }
         Returns: boolean
       }
+      fn_centro_armazem_terceiro: {
+        Args: { p_centro_id: string }
+        Returns: boolean
+      }
       fn_chamado_minha_relacao: {
         Args: { p_chamado_id: string }
         Returns: Json
@@ -177318,10 +177535,6 @@ export type Database = {
         Args: { p_cliente: Json; p_entrega: Json; p_itens: Json }
         Returns: Json
       }
-      fn_vd_cotar_transportadora: {
-        Args: { p_cep: string; p_itens: Json; p_valor: number }
-        Returns: Json
-      }
       fn_vd_cliente_buscar: {
         Args: { p_termo: string }
         Returns: {
@@ -177341,6 +177554,10 @@ export type Database = {
           telefone: string
           uf: string
         }[]
+      }
+      fn_vd_cotar_transportadora: {
+        Args: { p_cep: string; p_itens: Json; p_valor?: number }
+        Returns: Json
       }
       fn_vd_credito_aplicado: { Args: { p_pedido_id: string }; Returns: number }
       fn_vd_declarar_pagamento_balcao: {

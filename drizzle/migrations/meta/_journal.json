@@ -680,6 +680,13 @@
       "when": 1794648798465,
       "tag": "0096_safra_api_log_hml",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794964786604,
+      "tag": "0097_lock_selected_security_backup_tables",
+      "breakpoints": true
     }
   ]
 }
