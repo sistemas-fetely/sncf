@@ -160,7 +160,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
 const fmtDateTime = (s: string | null | undefined) => s ? new Date(s).toLocaleString("pt-BR") : "—";
 
-const TIPO_LABEL: Record<TipoTituloPagamento, string> = { boleto: "Boleto", pix: "PIX", cartao: "Cartão", troca_mercadoria: "Troca" };
+const TIPO_LABEL: Record<TipoTituloPagamento, string> = { boleto: "Boleto", pix: "PIX na hora (QR)", cartao: "Cartão", troca_mercadoria: "Troca" };
 const STATUS_CORES: Record<StatusTitulo, string> = {
   aguardando_pagamento: "bg-warning text-white border-0", aberto: "bg-info text-white border-0",
   aguardando_emissao_nf: "bg-info text-white border-0", vigente: "bg-info text-white border-0",

@@ -184,7 +184,7 @@ function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">PIX copia e cola</Label>
+        <Label className="text-xs">PIX na hora (QR) · copia e cola</Label>
         <div className="rounded-md border bg-muted/50 p-2 max-h-24 overflow-y-auto">
           <code className="text-[11px] font-mono break-all leading-relaxed">
             {inst.payload}
@@ -797,7 +797,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                     <Select value={novoInstrumento} onValueChange={(v) => setNovoInstrumento(v as NovoInstrumento)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="pix">PIX na hora (QR)</SelectItem>
                         <SelectItem value="cartao">Cartão (link SafraPay)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -882,7 +882,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                           <SelectTrigger className="w-28" aria-label={`Meio da parcela ${i + 1}`}><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="boleto">Boleto</SelectItem>
-                            <SelectItem value="pix">PIX</SelectItem>
+                            <SelectItem value="pix">PIX na hora (QR)</SelectItem>
                             <SelectItem value="cartao">Cartão</SelectItem>
                           </SelectContent>
                         </Select>

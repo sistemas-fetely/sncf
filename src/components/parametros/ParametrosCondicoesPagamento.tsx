@@ -37,7 +37,7 @@ interface CondicaoPagamento {
 const sb = supabase as any;
 
 const FORMAS: Array<{ value: "pix" | "cartao" | "boleto"; label: string }> = [
-  { value: "pix", label: "PIX" },
+  { value: "pix", label: "PIX na hora (QR)" },
   { value: "cartao", label: "Cartão" },
   { value: "boleto", label: "Boleto" },
 ];

@@ -32,8 +32,8 @@ const fmtDH = (s: string | null | undefined) => {
 };
 
 export function EnviarEmailPagamentoVD({
-  ctx, meio, link, expiraEm,
-}: { ctx: EmailPagamentoCtx; meio: "pix" | "cartao"; link: string | null; expiraEm?: string | null }) {
+  ctx, meio, link, expiraEm, rotuloPix = "PIX na hora (QR)",
+}: { ctx: EmailPagamentoCtx; meio: "pix" | "cartao"; link: string | null; expiraEm?: string | null; rotuloPix?: string }) {
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [email, setEmail] = useState("");
@@ -81,7 +81,7 @@ export function EnviarEmailPagamentoVD({
       if (!EMAIL_RE.test(dest)) throw new Error("E-mail inválido.");
       const templateData: Record<string, string> = {
         parceiro_nome: ctx.clienteNome ?? "",
-        tipo: meio === "pix" ? "PIX" : "Cartão de Crédito",
+        tipo: meio === "pix" ? rotuloPix : "Cartão de Crédito",
         link_pagamento: link,
         valor: formatBRL(ctx.total),
         pedido_id_externo: ctx.idExterno ?? "",

@@ -36,7 +36,7 @@ export function useGerarPixProvisao() {
     },
     onSuccess: (data, vars) => {
       toast({
-        title: "QR Code PIX gerado",
+        title: "PIX na hora (QR) gerado",
         description: `Identificador no extrato: ${data?.txid ?? "—"}`,
       });
       for (const key of [

@@ -170,7 +170,7 @@ export function CriarAcordoDialog({
               {(["boleto", "pix"] as const).map((v) => (
                 <Button key={v} size="sm" type="button"
                   variant={tipo === v ? "default" : "outline"} onClick={() => setTipo(v)}>
-                  {v === "boleto" ? "Boleto" : "PIX"}
+                  {v === "boleto" ? "Boleto" : "PIX na hora (QR)"}
                 </Button>
               ))}
             </div>

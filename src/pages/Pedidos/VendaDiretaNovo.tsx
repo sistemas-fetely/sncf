@@ -1157,7 +1157,7 @@ export default function VendaDiretaNovo() {
                 {bonif ? <Gift className="h-4 w-4" /> : pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "pix_safra" ? <Zap className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                 {haverAtivo && !bonif && haverCobreTudo
                   ? "Coberto pelo crédito · sem cobrança"
-                  : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? "PIX · QR na conta" : pagamento === "pix_safra" ? "PIX pelo Safra · link" : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
+                  : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? rotuloPagamentoVD("pix") : pagamento === "pix_safra" ? rotuloPagamentoVD("pix_safra") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">

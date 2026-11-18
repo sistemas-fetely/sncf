@@ -52,7 +52,7 @@ interface Props {
  */
 const NOME_INSTRUMENTO_REGUA: Record<string, string> = {
   boleto: "boleto",
-  pix: "PIX",
+  pix: "PIX na hora (QR)",
   cartao: "pagamento no cartão",
   conta_corrente: "pagamento em conta corrente",
 };

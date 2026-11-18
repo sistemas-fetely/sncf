@@ -36,7 +36,7 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 const FORMA_LABEL: Record<string, string> = {
-  pix: "PIX",
+  pix: "PIX na hora (QR)",
   cartao: "Cartão",
   boleto: "Boleto",
 };

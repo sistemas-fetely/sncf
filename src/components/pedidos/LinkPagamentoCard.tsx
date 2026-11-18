@@ -149,7 +149,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
     setOcupado("pix_safra");
     try {
       await chamarEdge("safrapay-link", { pedido_id: pedidoId, meio: "pix" });
-      toast.success("Link PIX pelo Safra gerado");
+      toast.success("Link PIX Safra gerado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally { await atualizar(); setOcupado(null); }
@@ -266,11 +266,11 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                     contexto={{ pedido_id: pedidoId }} size="sm" variant="outline" disabled={ocupado !== null || !pixNoLink}
                     className="gap-1.5" onClick={() => void gerarPixSafra()}>
                     {ocupado === "pix_safra" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                    Gerar PIX pelo Safra
+                    Gerar link PIX Safra
                   </BotaoGuardado>
                 </span>
               </TooltipTrigger>
-              {!pixNoLink && <TooltipContent>{pixNoLinkQ.error ? `Configuração Safrapay: ${pixNoLinkQ.error.message}` : "PIX por link desligado"}</TooltipContent>}
+              <TooltipContent>{pixNoLink ? "O cliente paga pela página do Safra e o pedido confirma sozinho." : pixNoLinkQ.error ? `Configuração Safrapay: ${pixNoLinkQ.error.message}` : "PIX por link desligado"}</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -278,7 +278,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
         {!pixAtivo && linhasPix.map((p) => (
           <div key={p.id} className="border-t pt-2 space-y-1">
             {linhasPix.length > 1 && (
-              <p className="text-xs font-medium">PIX · parcela {p.numero_parcela ?? "—"} · {formatBRL(Number(p.valor ?? 0))}</p>
+              <p className="text-xs font-medium">PIX na hora (QR) · parcela {p.numero_parcela ?? "—"} · {formatBRL(Number(p.valor ?? 0))}</p>
             )}
             <PixQrCode provisaoId={p.id} pedidoId={p.pedido_id} tipoPagamento="pix"
               linkPagamento={p.link_pagamento} pixTxid={p.pix_txid} valor={Number(p.valor ?? 0)} />

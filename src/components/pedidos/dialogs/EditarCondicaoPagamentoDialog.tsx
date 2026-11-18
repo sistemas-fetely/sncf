@@ -49,7 +49,7 @@ interface Props {
 const MODELO_PERSONALIZADO = "__personalizado__";
 
 const FORMA_LABEL: Record<string, string> = {
-  pix: "PIX",
+  pix: "PIX na hora (QR)",
   cartao: "Cartão",
   boleto: "Boleto",
 };

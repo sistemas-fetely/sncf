@@ -139,7 +139,7 @@ const ROTULO_CAMADA: Record<Camada, string> = {
 const ROTULO_INSTRUMENTO: Record<Instrumento, string> = {
   boleto: "Boleto",
   cartao: "Cartão",
-  pix: "PIX",
+  pix: "PIX na hora (QR)",
   conta_corrente: "Conta corrente",
   haver: "Haver",
 };
@@ -431,7 +431,7 @@ export default function PrevisaoRecebimentos() {
                 <SelectItem value="todos">Todos os instrumentos</SelectItem>
                 <SelectItem value="boleto">Boleto</SelectItem>
                 <SelectItem value="cartao">Cartão</SelectItem>
-                <SelectItem value="pix">PIX</SelectItem>
+                <SelectItem value="pix">PIX na hora (QR)</SelectItem>
                 <SelectItem value="outros">Outros</SelectItem>
               </SelectContent>
             </Select>

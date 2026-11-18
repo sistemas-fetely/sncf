@@ -82,6 +82,8 @@ export function PixTituloBloco({ tituloId }: { tituloId: string }) {
 
   return (
     <div className="space-y-2">
+      <p className="text-sm font-medium">PIX na hora (QR)</p>
+      <p className="text-xs text-muted-foreground">Gerado pelo SNCF na chave da Fetely. Confirmação pelo comprovante/extrato.</p>
       <div style={{ position: "absolute", left: -9999, top: -9999 }} aria-hidden>
         <QRCodeCanvas ref={canvasRef as any} value={d.link_pagamento} size={320} level="M" marginSize={2} bgColor="#FFFFFF" fgColor="#000000" />
       </div>
@@ -121,7 +123,7 @@ export function PixTituloBloco({ tituloId }: { tituloId: string }) {
           {!d.pix_qr_url && (
             <Button size="sm" variant="outline" onClick={() => gerarQr.mutate()} disabled={gerarQr.isPending}>
               {gerarQr.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <QrCode className="h-3.5 w-3.5 mr-1" />}
-              Gerar QR
+              Gerar QR PIX
             </Button>
           )}
           {copiado && <span className="sr-only">{copiado}</span>}

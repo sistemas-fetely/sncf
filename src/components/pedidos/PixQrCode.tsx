@@ -143,7 +143,7 @@ export function PixQrCode({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <QrCode className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">QR Code PIX da cobrança</span>
+            <span className="text-sm font-medium text-foreground">PIX na hora (QR)</span>
           </div>
           {temQr && (
             <Button
@@ -163,6 +163,8 @@ export function PixQrCode({
           )}
         </div>
 
+        <p className="text-xs text-muted-foreground">Gerado pelo SNCF na chave da Fetely. Confirmação pelo comprovante/extrato.</p>
+
         {/* canvas oculto — fonte do PNG 320x320 com fundo branco sólido */}
         {payload && (
           <div style={{ position: "absolute", left: -9999, top: -9999 }} aria-hidden>
@@ -181,7 +183,7 @@ export function PixQrCode({
         {!temQr ? (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              O QR Code é gerado pelo próprio SNCF, com valor exato e identificador único.
+              Valor exato e identificador único.
             </p>
             <Button
               size="sm"
@@ -193,7 +195,7 @@ export function PixQrCode({
               ) : (
                 <QrCode className="h-4 w-4 mr-2" />
               )}
-              Gerar QR Code PIX
+              Gerar QR PIX
             </Button>
           </div>
         ) : (

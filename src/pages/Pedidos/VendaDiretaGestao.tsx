@@ -93,7 +93,7 @@ const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
 };
 const modalLabel = (m: string | null) => (m ? (MODAL_LABEL[m] ?? m) : "—");
-const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX" : p === "pix_safra" ? "PIX Safra" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : p === "bonificacao" ? "Bonificação" : "—";
+const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX na hora (QR)" : p === "pix_safra" ? "Link PIX Safra" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : p === "bonificacao" ? "Bonificação" : "—";
 const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
 
 const soDigitos = (s: string) => s.replace(/\D/g, "");
@@ -328,7 +328,7 @@ export default function VendaDiretaGestao() {
     if (l.situacao === "aguardando_pagamento") {
       if (l.pagamento === "cartao_maquininha") a.push({ k: "conf", label: "Anexar comprovante", icon: Paperclip, onClick: () => setConfManual(l) });
       if (l.pagamento === "cartao" || l.pagamento === "pix_safra") a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
-      if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
+      if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX na hora (QR)", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l), disabled: !l.provisao_id });
     }

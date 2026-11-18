@@ -42,7 +42,7 @@ const STATUS_COR: Record<string, string> = {
 
 const TIPO_LABEL: Record<string, string> = {
   boleto: "Boleto",
-  pix: "PIX",
+  pix: "PIX na hora (QR)",
   cartao: "Cartão",
   cartao_sem_juros: "Cartão s/j",
 };

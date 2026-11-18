@@ -1,4 +1,5 @@
 import { ErroEdge, chamarEdge } from "@/lib/pedidos/edgePagamento";
+import { ROTULO_MEIO_VD } from "@/lib/pedidos/meioVD";
 import { useEffect, useRef, useState } from "react";
 import { EnviarEmailPagamentoVD, type EmailPagamentoCtx } from "@/components/venda-direta/EnviarEmailPagamentoVD";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -60,8 +61,8 @@ export const textoParcelas = (n: number) => (n <= 1 ? "à vista" : `em até ${n}
 
 /** Rótulo curto da forma de pagamento (coluna/selo da Gestão e resumo do pedido). */
 export function rotuloFormaPagamento(forma: "pix" | "pix_safra" | "cartao" | null | undefined) {
-  if (forma === "pix") return "PIX (QR)";
-  if (forma === "pix_safra") return "PIX pelo Safra";
+  if (forma === "pix") return ROTULO_MEIO_VD.pix;
+  if (forma === "pix_safra") return "Link PIX Safra";
   if (forma === "cartao") return "Cartão";
   return "—";
 }
@@ -72,10 +73,10 @@ export function rotulosOpcaoPagamento(parcelas = 3) {
   return {
     cartao: "Cartão de crédito",
     cartaoLegenda: `Link Safrapay · até ${parcelas}x · vale 30 dias · confirma sozinho`,
-    pix: "PIX (QR)",
-    pixLegenda: "QR na chave da Fetely · confirma pelo extrato",
-    pixSafra: "PIX pelo Safra",
-    pixSafraLegenda: "Link Safrapay com QR PIX · confirma sozinho",
+    pix: ROTULO_MEIO_VD.pix,
+    pixLegenda: "Gerado pelo SNCF na chave da Fetely. Confirmação pelo comprovante/extrato.",
+    pixSafra: ROTULO_MEIO_VD.pix_safra,
+    pixSafraLegenda: "O cliente paga pela página do Safra e o pedido confirma sozinho.",
   };
 }
 
@@ -106,7 +107,7 @@ function whatsappUrl(telefone: string | null | undefined, nome: string | null | 
   if (t.length < 10) return null;
   const tel = t.length <= 11 ? `55${t}` : t;
   const primeiro = (nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. ${meio === "pix" ? "Pague com PIX" : `Pague com cartão ${textoParcelas(n)}`} neste link: ${url}`;
+  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. ${meio === "pix" ? "Pague pelo Link PIX Safra" : `Pague com cartão ${textoParcelas(n)}`} neste link: ${url}`;
   return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -114,7 +115,7 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa, meio, email }: { url: strin
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-medium">{meio === "pix" ? "Link de pagamento · PIX pelo Safra" : `Link de pagamento · cartão (${textoParcelas(maxParcelas)})`}</p>
+        <p className="text-sm font-medium">{meio === "pix" ? "Link PIX Safra" : `Link de pagamento · cartão (${textoParcelas(maxParcelas)})`}</p>
         <SeloConfirmacaoAutomatica />
       </div>
       <div className="flex gap-2">
@@ -131,7 +132,7 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa, meio, email }: { url: strin
         <Button disabled={!wa} onClick={() => wa && window.open(wa, "_blank", "noopener")}>
           <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
         </Button>
-        {email && <EnviarEmailPagamentoVD ctx={email} meio={meio === "pix" ? "pix" : "cartao"} link={url} expiraEm={expiraEm} />}
+        {email && <EnviarEmailPagamentoVD ctx={email} meio={meio === "pix" ? "pix" : "cartao"} link={url} expiraEm={expiraEm} rotuloPix="Link PIX Safra" />}
         {!wa && <span className="text-xs text-muted-foreground">Cliente sem telefone válido.</span>}
         <span className="text-sm text-muted-foreground">vale até {fmtDataHora(expiraEm)}</span>
       </div>
@@ -177,14 +178,14 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
   const nome = (clienteNome ?? "").trim().split(/\s+/)[0] ?? "";
   const tel = (telefone ?? "").replace(/\D/g, "");
   const waLocal = pixLocal?.link && tel.length >= 10
-    ? `https://wa.me/${tel.length <= 11 ? `55${tel}` : tel}?text=${encodeURIComponent(`Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${pixLocal.link}`)}`
+    ? `https://wa.me/${tel.length <= 11 ? `55${tel}` : tel}?text=${encodeURIComponent(`Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX na hora (QR) nesta página: ${pixLocal.link}`)}`
     : null;
   if (meio === "pix" && pixLocal && estado.fase !== "ok") {
     const msg = estado.fase === "off" ? "integração aguardando ativação" : estado.msg;
     return (
       <div className="space-y-3">
         <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning-strong">
-          Link PIX indisponível ({msg}) — usando QR na conta; confirmação pelo extrato.
+          Link PIX Safra indisponível ({msg}) — usando PIX na hora (QR); confirmação pelo comprovante/extrato.
         </div>
         <Button variant="outline" size="sm" onClick={gerar}><RefreshCw className="h-4 w-4" /> Tentar o link de novo</Button>
         <PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} email={emailCtx} />
@@ -289,7 +290,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
         await clienteQ.refetch();
       }
       const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true, ...(meioDlg === "cartao" ? { max_parcelas: parcelasEfetivas } : {}) });
-      toast.success(meioDlg === "pix" ? "Novo link PIX gerado" : `Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
+      toast.success(meioDlg === "pix" ? "Novo Link PIX Safra gerado" : `Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
       setParcelas(null);
        await invalidarVendaDireta(qc);
     } catch (e) {
@@ -327,7 +328,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Link de pagamento · {meioDlg === "pix" ? "PIX pelo Safra" : "cartão"} · {linha?.id_externo}</DialogTitle>
+          <DialogTitle>Link de pagamento · {meioDlg === "pix" ? "Link PIX Safra" : "cartão"} · {linha?.id_externo}</DialogTitle>
           <DialogDescription>
             {linha?.cliente_nome} · {creditoLink > 0
               ? <>Total {formatBRL(linha?.valor_liquido ?? null)} · Crédito −{formatBRL(creditoLink)} · A pagar {formatBRL(aPagarLink)}</>

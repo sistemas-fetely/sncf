@@ -51,7 +51,7 @@ export function RemontarPagamentoDialog<T extends LinhaVD>({ linha, onClose, onP
           try {
             await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true });
             await invalidarVendaDireta(qc);
-            toast.success(r.precisa_novo_link_pix ? "Novo link PIX pelo Safra gerado" : "Novo link do cartão gerado");
+            toast.success(r.precisa_novo_link_pix ? "Novo Link PIX Safra gerado" : "Novo link do cartão gerado");
           } catch (e) {
             toast.error(e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message) ? AVISO_409 : rawMessage(e));
           }

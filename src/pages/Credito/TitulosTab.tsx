@@ -325,7 +325,7 @@ function KpiCard({
 function tipoLabel(t: string): string {
   const map: Record<string, string> = {
     boleto: "Boleto",
-    pix: "PIX",
+    pix: "PIX na hora (QR)",
     cartao: "Cartão",
     cartao_credito: "Cartão",
     cartao_debito: "Cartão",

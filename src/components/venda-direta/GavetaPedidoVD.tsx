@@ -262,7 +262,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
                     {linkQ.data.erro?.startsWith("Pago via PIX no link") && (
                       <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-warning-strong">{linkQ.data.erro}</p>
                     )}
-                    <Par k="Link" v={linkQ.data.status === "pago" ? (l.pagamento === "pix" || l.pagamento === "pix_safra" ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
+                    <Par k={l.pagamento === "pix_safra" ? "Link PIX Safra" : "Link"} v={linkQ.data.status === "pago" ? (l.pagamento === "pix" || l.pagamento === "pix_safra" ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
                     {linkQ.data.url && <Par k="URL" v={<a className="break-all text-primary underline-offset-2 hover:underline" href={linkQ.data.url} target="_blank" rel="noreferrer">abrir link</a>} />}
                     {l.pagamento === "cartao" && <Par k="Parcelas" v={linkQ.data.max_parcelas && linkQ.data.max_parcelas > 1 ? `em até ${linkQ.data.max_parcelas}x` : "à vista"} />}
                     <Par k="Validade" v={linkQ.data.expira_em ? `vale até ${dataHora(linkQ.data.expira_em)}` : "—"} />
@@ -271,9 +271,9 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
                 )
               )}
               {l.pagamento === "pix" && !linkQ.data && (pixSafraQ.data ? (
-                <Par k="PIX" v={<SeloConfirmacaoAutomatica />} />
+                <Par k="Link PIX Safra" v={<SeloConfirmacaoAutomatica />} />
               ) : (
-                <Par k="PIX" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir link</a> : "—"} />
+                <Par k="PIX na hora (QR)" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir página do QR</a> : "—"} />
               ))}
             </Secao>
 

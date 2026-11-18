@@ -53,14 +53,14 @@ export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD |
   const telefone = (linha?.cliente_telefone ?? "").replace(/\D/g, "");
   const tel = telefone.length <= 11 ? `55${telefone}` : telefone;
   const nome = (linha?.cliente_nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const mensagem = linha ? `Olá ${nome}! Seu pedido ${linha.id_externo} na Fetely ficou em ${formatBRL(linha.valor_liquido)}. Pague pelo PIX neste link: ${linha.link_pagamento ?? ""}` : "";
+  const mensagem = linha ? `Olá ${nome}! Seu pedido ${linha.id_externo} na Fetely ficou em ${formatBRL(linha.valor_liquido)}. Pague pelo PIX na hora (QR) nesta página: ${linha.link_pagamento ?? ""}` : "";
   const whatsappUrl = linha?.link_pagamento && telefone.length >= 10 ? `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}` : null;
 
   return (
     <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>PIX · {linha?.id_externo}</DialogTitle>
+          <DialogTitle>PIX na hora (QR) · {linha?.id_externo}</DialogTitle>
           <DialogDescription>{linha?.cliente_nome}</DialogDescription>
         </DialogHeader>
         {payloadNovo ? (
