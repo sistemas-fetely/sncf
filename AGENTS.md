@@ -1,6 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
-- Full product Mesa queries use buscarTodos with mandatory stable ordering and fresh builders per 1000-row range, so API caps never truncate filters or counts.
+- Product Mesa reads only fn_mesa_produto for consolidated rows, counts, facets and cards, with URL parameters, 300ms search debounce and retained page data; format alerts keep their separate ordered batch query so diagnostics remain complete.
 - Human Bling resend requires live API cancellation/404 and no live NF; a service-only CAS RPC atomically records the event and clears the old pointer/remessas, then the same normal handler sends. Fiscal system resend remains separate.
 - VD payment option labels come from meioVD; email payment rendering accepts an explicit PIX display label so local QR and gateway links keep the same send flow without conflating their names.
 - Safra B2B card/PIX gate links share a tested trail helper (São Paulo dates, idempotent reuse); successful closure matches order + URL and skips title links, so replacements never invalidate the newer link and VD remains outside the trail.

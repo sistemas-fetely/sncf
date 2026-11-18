@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { Fragment, useEffect, useMemo, useState, type SetStateAction } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom, resolverAcao, lerLista, escreverLista } from "@/lib/navegacao";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check,
   ChevronDown, Columns3, Download, GripVertical,
@@ -9,7 +9,9 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { buscarTodos } from "@/lib/supabaseLotes";
+import { buscarAlertasFormatoMesa } from "@/lib/acervo/mesaFormato";
+import { BUSCA_MESA_DEBOUNCE_MS, parametrosMesaProduto } from "@/lib/acervo/mesaProdutoRpc";
+import type { Json } from "@/integrations/supabase/types";
 import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
 import { FormatoInvalidoDialog, type AlertaFormato } from "@/components/acervo/FormatoInvalidoDialog";
 // 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
@@ -28,7 +30,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { normalizarBusca } from "@/lib/normalizar-busca";
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tabela/RodapePaginacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
@@ -48,7 +49,17 @@ type Linha = Record<string, unknown> & {
   foto_url: string | null; foto_exata: boolean | null; foto_origem: string | null;
 };
 
-type LinhaUnida = Linha & Partial<ConcLinha>;
+type LinhaUnida = Linha & Partial<ConcLinha> & {
+  pendencias: number; sistemas_pendencia: string[] | null; situacao: string | null;
+  proxima_fase: string | null; cod_bling: string | null; cod_shopify: string | null; cod_xpm: string | null;
+  shopify_sku_diverge: boolean | null; shopify_status: string | null;
+};
+type FacetaMesa = { valor: string; rotulo: string; contagem: number };
+type MesaResultado = {
+  total: number; pagina: number; tamanho: number; linhas: LinhaUnida[];
+  facetas: Record<"situacao" | "fase" | "colecao" | "grupo" | "sistemas", FacetaMesa[]>;
+  cards: { id: string; label: string; n: number; linha: string | null }[];
+};
 type FaseProduto = { slug: string; nome: string; ordem: number };
 type CampoFicha = { campo: string; rotulo: string | null };
 type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias" | "foto";
@@ -56,30 +67,12 @@ type ColDef = { key: string; rotulo: string; tipo: TipoCol; direita?: boolean };
 // Indicador: slug da fase selecionada no funil — a Mesa é gestão de fase; os cards de
 // problema (impacto, furo, pendência separada, anúncios) moram na Conciliação.
 type Indicador = string | null;
-type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
-
-
-
 type SituacaoDim = { slug: string; rotulo: string; descricao: string | null; fase_slug: string | null; tom: string | null; ordem: number };
-type Pendencia = { cod_cadastro: string; pendencias: number | null; sistemas: string[] | null };
 const TOM_SITUACAO: Record<string, string> = {
   alerta: "border-destructive/40 bg-destructive/10 text-destructive-strong",
   atencao: "border-warning/40 bg-warning/10 text-warning-strong",
   bom: "border-success/40 bg-success/10 text-success-strong",
 };
-const SISTEMAS = [
-  ["sem_bling", "Sem Bling"], ["bling_card_duplicado", "Card duplicado no Bling"],
-  ["sem_shopify", "Sem Shopify"],
-  ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"], ["sem_foto_propria", "Sem foto própria"],
-] as const;
-const predSistemaBase = (l: LinhaUnida, v: string): boolean =>
-  v === "sem_bling" ? !temValor(l.cod_bling)
-  : v === "bling_card_duplicado" ? (l.bling_n_cards ?? 0) > 1
-  : v === "sem_shopify" ? l.no_shopify !== true
-  : v === "sem_xpm" ? !temValor(l.cod_xpm)
-  : v === "sem_foto_propria" ? l.foto_origem !== "propria" && l.foto_origem !== "produto"
-  : (l.qtd_divergencias ?? 0) > 0;
-
 const COLUNAS_PADRAO = [
   "foto_url", "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
   "nome_comercial", "fase_nome", "pendencias", "grupo", "colecao",
@@ -140,21 +133,23 @@ function MiniFoto({ url, origem, nome, onAmpliar }: { url: string | null; origem
 }
 
 function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label:string; opcoes:{valor:string;rotulo:string;contagem:number}[]; selecionados:string[]; onChange:(v:string[])=>void }) {
-  return <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 font-normal"><span className="text-muted-foreground">{label}</span>{selecionados.length>0&&<Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{selecionados.length}</Badge>}<ChevronDown className="h-3.5 w-3.5 opacity-50" /></Button></PopoverTrigger><PopoverContent align="start" className="w-64 p-1"><div className="max-h-72 overflow-auto">{opcoes.map(o=><Button key={o.valor} variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal" onClick={()=>onChange(selecionados.includes(o.valor)?selecionados.filter(v=>v!==o.valor):[...selecionados,o.valor])}><span className={cn("flex h-4 w-4 items-center justify-center rounded border",selecionados.includes(o.valor)&&"border-primary bg-primary text-primary-foreground")}>{selecionados.includes(o.valor)&&<Check className="h-3 w-3"/>}</span><span className="flex-1 truncate text-left">{o.rotulo}</span><span className="tabular-nums text-muted-foreground">{o.contagem}</span></Button>)}</div>{selecionados.length>0&&<Button variant="ghost" size="sm" className="mt-1 w-full" onClick={()=>onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
+  return <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 font-normal"><span className="text-muted-foreground">{label}</span>{selecionados.length>0&&<Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{selecionados.length}</Badge>}<ChevronDown className="h-3.5 w-3.5 opacity-50" /></Button></PopoverTrigger><PopoverContent align="start" className="w-64 p-1"><div className="max-h-72 overflow-auto">{opcoes.map(o=><Button key={o.valor} variant="ghost" size="sm" className={cn("w-full justify-start gap-2 font-normal",o.contagem===0&&"text-muted-foreground")} onClick={()=>onChange(selecionados.includes(o.valor)?selecionados.filter(v=>v!==o.valor):[...selecionados,o.valor])}><span className={cn("flex h-4 w-4 items-center justify-center rounded border",selecionados.includes(o.valor)&&"border-primary bg-primary text-primary-foreground")}>{selecionados.includes(o.valor)&&<Check className="h-3 w-3"/>}</span><span className="flex-1 truncate text-left">{o.rotulo}</span><span className="tabular-nums text-muted-foreground">{o.contagem}</span></Button>)}</div>{selecionados.length>0&&<Button variant="ghost" size="sm" className="mt-1 w-full" onClick={()=>onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
 }
 
 export default function MesaProduto() {
   const location=useLocation();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: recorte, ordem e página vivem na URL.
   const [nav,setNav]=useEstadoTela({busca:"",sit:"",fase:"",col:"",grp:"",sis:"",ind:"",ordem:"cod_cadastro:asc",pagina:1},{replaceKeys:["busca"]});
-  const busca=nav.busca; const setBusca=(v:string)=>setNav({busca:v});
-  const situacoes=useMemo(()=>lerLista(nav.sit),[nav.sit]); const setSituacoes=(v:string[])=>setNav({sit:escreverLista(v)});
-  const fasesSel=useMemo(()=>lerLista(nav.fase),[nav.fase]); const setFasesSel=(v:string[])=>setNav({fase:escreverLista(v)});
+  const busca=nav.busca; const setBusca=(v:string)=>setNav({busca:v,pagina:1});
+  const [buscaBanco,setBuscaBanco]=useState(busca);
+  useEffect(()=>{const timer=setTimeout(()=>setBuscaBanco(busca),BUSCA_MESA_DEBOUNCE_MS);return()=>clearTimeout(timer);},[busca]);
+  const situacoes=useMemo(()=>lerLista(nav.sit),[nav.sit]); const setSituacoes=(v:string[])=>setNav({sit:escreverLista(v),pagina:1});
+  const fasesSel=useMemo(()=>lerLista(nav.fase),[nav.fase]); const setFasesSel=(v:string[])=>setNav({fase:escreverLista(v),pagina:1});
   const [exportCad,setExportCad]=useState(false);
   const [exportSoMedicao,setExportSoMedicao]=useState(false);
   const [exportCods,setExportCods]=useState<string[]|null>(null);
   const [formatoAberto,setFormatoAberto]=useState(false);
-  const formato=useQuery({queryKey:["mesa-formato-alerta"],staleTime:5*60_000,queryFn:()=>buscarTodos<AlertaFormato>(()=>(supabase.from as any)("vw_produto_formato_alerta").select("cod_cadastro,sku,colecao,fase,campo,valor,regra,motivo"),["cod_cadastro","campo","sku"])});
+  const formato=useQuery({queryKey:["mesa-formato-alerta"],staleTime:5*60_000,queryFn:buscarAlertasFormatoMesa});
   const nFormato=new Set((formato.data??[]).filter(a=>a.fase!=="inativo").map(a=>a.cod_cadastro)).size;
   const aguardandoMedicao=useQuery({queryKey:["mesa-aguardando-medicao"],staleTime:5*60_000,queryFn:async()=>{
     const {data,error}=await supabase.functions.invoke("exportar-planilha-produto",{body:{so_contagem:true}});
@@ -162,18 +157,18 @@ export default function MesaProduto() {
     if(!data?.ok)throw new Error(data?.erro??"Resposta inválida do FOP");
     return Number(data.aguardando_medicao);
   }});
-  const colecoes=useMemo(()=>lerLista(nav.col),[nav.col]); const setColecoes=(v:string[])=>setNav({col:escreverLista(v)});
-  const grupos=useMemo(()=>lerLista(nav.grp),[nav.grp]); const setGrupos=(v:string[])=>setNav({grp:escreverLista(v)});
-  const sistemas=useMemo(()=>lerLista(nav.sis),[nav.sis]); const setSistemas=(v:string[])=>setNav({sis:escreverLista(v)});
-  const indicador:Indicador=nav.ind||null; const setIndicador=(v:Indicador)=>setNav({ind:v??""}); const [visiveis,setVisiveis]=useState<string[]>(COLUNAS_PADRAO);
+  const colecoes=useMemo(()=>lerLista(nav.col),[nav.col]); const setColecoes=(v:string[])=>setNav({col:escreverLista(v),pagina:1});
+  const grupos=useMemo(()=>lerLista(nav.grp),[nav.grp]); const setGrupos=(v:string[])=>setNav({grp:escreverLista(v),pagina:1});
+  const sistemas=useMemo(()=>lerLista(nav.sis),[nav.sis]); const setSistemas=(v:string[])=>setNav({sis:escreverLista(v),pagina:1});
+  const indicador:Indicador=nav.ind||null; const setIndicador=(v:Indicador)=>setNav({ind:v??"",pagina:1}); const [visiveis,setVisiveis]=useState<string[]>(COLUNAS_PADRAO);
   const [ordemColunas,setOrdemColunas]=useState<string[]>(COLUNAS.map(c=>c.key)); const [arrastando,setArrastando]=useState<string|null>(null);
   const ordem=useMemo(()=>{const [coluna,dir]=nav.ordem.split(":");return{coluna:coluna||"cod_cadastro",dir:(dir==="desc"?"desc":"asc") as "asc"|"desc"};},[nav.ordem]);
-  const setOrdem=(v:SetStateAction<{coluna:string;dir:"asc"|"desc"}>)=>{const o=resolverAcao(v,ordem);setNav({ordem:`${o.coluna}:${o.dir}`});};
+  const setOrdem=(v:SetStateAction<{coluna:string;dir:"asc"|"desc"}>)=>{const o=resolverAcao(v,ordem);setNav({ordem:`${o.coluna}:${o.dir}`,pagina:1});};
   const pagina=nav.pagina; const setPagina=(v:number)=>setNav({pagina:v}); const [tamanho,setTamanho]=useState<number>(DEFAULT_PAGE_SIZE);
   const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
   // Seleção em lote (por SKU). Limpa quando o recorte de filtros muda.
   const qc=useQueryClient();
-  const recarregarMesa=()=>{for(const k of ["mesa-produto-lista","mesa-produto-conciliacao-360","mesa-produto-sugestoes","conciliacao-contagem-produto"])void qc.invalidateQueries({queryKey:[k]});};
+  const recarregarMesa=()=>qc.invalidateQueries({queryKey:["mesa-produto"]});;
   // A regressão em lote (mutirão) mora na tela Conciliação de Cadastro.
 
 
@@ -200,48 +195,35 @@ export default function MesaProduto() {
   },[hidratado,visiveis,ordemColunas]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:()=>buscarTodos<Linha>(()=>supabase.from("vw_produto_mesa_lista" as never).select("*"),["cod_cadastro","sku"])});
+  const params=useMemo(()=>parametrosMesaProduto({busca:buscaBanco,situacao:situacoes,fase:fasesSel,colecao:colecoes,grupo:grupos,sistemas,indicador,ordem_coluna:ordem.coluna,ordem_dir:ordem.dir,pagina,tamanho}),[buscaBanco,situacoes,fasesSel,colecoes,grupos,sistemas,indicador,ordem,pagina,tamanho]);
+  const mesa=useQuery({queryKey:["mesa-produto",params],placeholderData:keepPreviousData,queryFn:async({signal})=>{
+    // RPC já existente no banco, ainda ausente dos tipos gerados.
+    const {data,error}=await supabase.rpc("fn_mesa_produto" as never,{p:params as unknown as Json} as never).abortSignal(signal);
+    if(error)throw error;
+    if(!data)throw new Error("A consulta da Mesa não retornou dados.");
+    return data as unknown as MesaResultado;
+  }});
   const fasesDim=useQuery({queryKey:["produto-fase-dim"],queryFn:async()=>{const {data,error}=await supabase.from("produto_fase_dim").select("slug, nome, ordem").order("ordem");if(error)throw error;return(data??[]) as FaseProduto[];}});
   const camposDim=useQuery({queryKey:["produto-ficha-rotulos"],queryFn:async()=>{const {data,error}=await supabase.from("produto_ficha_nascimento").select("campo, rotulo");if(error)throw error;return(data??[]) as CampoFicha[];}});
-  const conc=useQuery({queryKey:["mesa-produto-conciliacao-360"],queryFn:()=>buscarTodos<ConcLinha>(()=>supabase.from("vw_produto_conciliacao_360" as never).select("*"),["sku"])});
   const regrasDim=useQuery({queryKey:["divergencia-regra"],queryFn:async()=>{const {data,error}=await supabase.from("divergencia_regra" as never).select("slug, nome, sistema, consequencia, o_que_fazer, onde_resolver, ordem").order("ordem");if(error)throw error;return(data??[]) as RegraDiv[];}});
   const regraPorSlug=useMemo(()=>new Map((regrasDim.data??[]).map(r=>[r.slug,r])),[regrasDim.data]);
   const rotuloCampoPorSlug=useMemo(()=>new Map((camposDim.data??[]).map(c=>[c.campo,c.rotulo?.trim()||c.campo])),[camposDim.data]);
   const situacoesDim=useQuery({queryKey:["produto-mesa-situacao-dim"],staleTime:10*60*1000,queryFn:async()=>{const {data,error}=await (supabase as any).from("produto_mesa_situacao_dim").select("slug, rotulo, descricao, fase_slug, tom, ordem").eq("ativo",true).order("ordem");if(error)throw error;return(data??[]) as SituacaoDim[];}});
-  const pendenciasQ=useQuery({queryKey:["conciliacao-contagem-produto"],staleTime:10*60*1000,queryFn:()=>buscarTodos<Pendencia>(()=>(supabase as any).from("vw_conciliacao_contagem_produto").select("cod_cadastro, pendencias, sistemas"),["cod_cadastro"])});
   const situacaoPorSlug=useMemo(()=>new Map((situacoesDim.data??[]).map(s=>[s.slug,s])),[situacoesDim.data]);
-  const pendenciaPorCod=useMemo(()=>new Map((pendenciasQ.data??[]).map(p=>[p.cod_cadastro,p])),[pendenciasQ.data]);
   const rotuloSituacao=(slug:string|null|undefined)=>slug?(situacaoPorSlug.get(slug)?.rotulo??slug):"";
   const rotuloDoSlug=(slug:string)=>regraPorSlug.get(slug)?.nome??slug;
-  const sugestoes=useQuery({queryKey:["mesa-produto-sugestoes",(situacoesDim.data??[]).map(s=>s.slug).join(",")],enabled:!!situacoesDim.data,queryFn:async()=>{const slugs=(situacoesDim.data??[]).map(s=>s.slug);const respostas=await Promise.all(slugs.map(slug=>buscarTodos<{sku:string;sugestao:string|null}>(()=>supabase.from("vw_produto_mesa_fase" as never).select("sku, sugestao").eq("sugestao",slug),["sku"])));return respostas.flat();}});
-  const linhas=useMemo(()=>{const mapa=new Map((conc.data??[]).map(c=>[c.sku,c]));const sugestaoPorSku=new Map((sugestoes.data??[]).map(l=>[l.sku,l.sugestao]));return(lista.data??[]).map(l=>{const unida={...l,...(mapa.get(l.sku)??{}),pendencias:l.cod_cadastro?(pendenciaPorCod.get(l.cod_cadastro)?.pendencias??0):0} as LinhaUnida;const sugestaoRecebida=sugestaoPorSku.get(l.sku)??l.sugestao;if(unida.fase!=="ativo")return{...unida,sugestao:sugestaoRecebida};if(!temValor(unida.cod_bling))return{...unida,sugestao:"ativo_sem_bling"};if((unida.qtd_falta_atual??0)>0)return{...unida,sugestao:"ativo_com_furo"};return{...unida,sugestao:null};}) as LinhaUnida[];},[lista.data,conc.data,sugestoes.data,pendenciaPorCod]);
-  const carregando=situacoesDim.isLoading||pendenciasQ.isLoading||lista.isLoading||conc.isLoading||sugestoes.isLoading||fasesDim.isLoading||camposDim.isLoading||regrasDim.isLoading; const erro=situacoesDim.error??pendenciasQ.error??lista.error??conc.error??sugestoes.error??fasesDim.error??camposDim.error??regrasDim.error;
-  const fases=useMemo(()=>{const m=new Map<string,{valor:string;rotulo:string;ordem:number}>();for(const l of linhas){const v=l.fase??"__sem__";if(!m.has(v))m.set(v,{valor:v,rotulo:l.fase_nome??l.fase??"Sem fase",ordem:l.fase_ordem??999});}return[...m.values()].sort((a,b)=>a.ordem-b.ordem);},[linhas]);
-  const valores=(key:"colecao"|"grupo")=>[...new Set(linhas.map(l=>l[key]).filter(temValor).map(String))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
-
-  function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
-    const q=normalizarBusca(busca); if(q&&![l.cod_cadastro,l.sku,l.nome_comercial,l.ean].filter(temValor).some(v=>normalizarBusca(String(v)).includes(q)))return false;
-    if(ignorar!=="situacao"&&situacoes.length&&!situacoes.includes(l.sugestao??"__sem__"))return false;
-    if(ignorar!=="fase"&&fasesSel.length&&!fasesSel.includes(l.fase??"__sem__"))return false;
-    if(ignorar!=="colecao"&&colecoes.length&&!colecoes.includes(String(l.colecao??"")))return false;
-    if(ignorar!=="grupo"&&grupos.length&&!grupos.includes(String(l.grupo??"")))return false;
-    if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>predSistemaBase(l,s)))return false;
-    if(!semIndicador&&indicador&&l.fase!==indicador)return false;
-    return true;
-  }
-  const recorte=(()=>{const base=linhas.filter(l=>aplica(l));const mult=ordem.dir==="asc"?1:-1;return [...base].sort((a,b)=>{const va=a[ordem.coluna],vb=b[ordem.coluna];if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;if(typeof va==="number"&&typeof vb==="number")return(va-vb)*mult;return String(va).localeCompare(String(vb),"pt-BR",{numeric:true})*mult;});})();
-  const primeiraRender=useRef(true);
-  useEffect(()=>{if(primeiraRender.current){primeiraRender.current=false;return;}setPagina(1);},[nav.busca,nav.sit,nav.fase,nav.col,nav.grp,nav.sis,nav.ind,tamanho]); // eslint-disable-line react-hooks/exhaustive-deps
-  const conta=(pred:(l:LinhaUnida)=>boolean,ignorar?:GrupoFiltro)=>linhas.filter(l=>aplica(l,ignorar,true)&&pred(l)).length;
-  // A Mesa é tela de GESTÃO de fase: um cartão por fase (funil), quebra por situação.
-  const cards=(fasesDim.data??[]).map(f=>{const sits=(situacoesDim.data??[]).filter(s=>s.fase_slug===f.slug);let linha:string|null=null;if(f.slug==="ativo"){const n=conta(l=>l.fase==="ativo"&&(l.sugestao==="ativo_sem_bling"||l.sugestao==="ativo_com_furo"));linha=n>0?`${n} com pendência`:"tudo em ordem";}else{const partes=sits.map(s=>({s,n:conta(l=>l.fase===f.slug&&l.sugestao===s.slug)})).filter(x=>x.n>0).map(x=>`${x.n} ${x.s.rotulo.toLocaleLowerCase("pt-BR")}`);linha=partes.length?partes.join(" · "):null;}return{id:f.slug as Indicador,label:f.nome,n:conta(l=>l.fase===f.slug),linha};});
-  const facet=(grupo:GrupoFiltro,ops:{valor:string;rotulo:string}[],pred:(l:LinhaUnida,v:string)=>boolean)=>ops.map(o=>({...o,contagem:linhas.filter(l=>aplica(l,grupo)&&pred(l,o.valor)).length}));
+  const carregando=mesa.isLoading||situacoesDim.isLoading||fasesDim.isLoading||camposDim.isLoading||regrasDim.isLoading;
+  const erro=mesa.error??situacoesDim.error??fasesDim.error??camposDim.error??regrasDim.error;
+  const cards=mesa.data?.cards??[];
+  const facetas=mesa.data?.facetas;
   const filtrosAtivos=(busca?1:0)+situacoes.length+fasesSel.length+colecoes.length+grupos.length+sistemas.length+(indicador?1:0);
   const colunasVisiveis=ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c&&visiveis.includes(c.key));
-  const paginas=Math.max(1,Math.ceil(recorte.length/tamanho)),paginaAtual=Math.min(pagina,paginas),paginaLinhas=recorte.slice((paginaAtual-1)*tamanho,paginaAtual*tamanho);
-  const estado=`${recorte.length} produtos`;
-  useFocoAoVoltar({pronto:!carregando,idsVisiveis:paginaLinhas.map(l=>l.cod_cadastro??l.sku).filter(Boolean).map(String)});
-  useRestaurarScroll(null,!carregando);
+  const total=mesa.data?.total??0;
+  const paginaAtual=mesa.data?.pagina??pagina;
+  const paginaLinhas=mesa.data?.linhas??[];
+  const estado=`${total} produtos`;
+  useFocoAoVoltar({pronto:!carregando&&!mesa.isPlaceholderData&&!mesa.isFetching,idsVisiveis:paginaLinhas.map(l=>l.cod_cadastro??l.sku).filter(Boolean).map(String)});
+  useRestaurarScroll(null,!carregando&&!mesa.isPlaceholderData&&!mesa.isFetching);
 
   function limpar(){setBusca("");setSituacoes([]);setFasesSel([]);setColecoes([]);setGrupos([]);setSistemas([]);setIndicador(null);}
   function ordenar(key:string){if(!ORDENAVEIS.has(key))return;setOrdem(o=>o.coluna===key?{coluna:key,dir:o.dir==="asc"?"desc":"asc"}:{coluna:key,dir:"asc"});}
@@ -251,24 +233,24 @@ export default function MesaProduto() {
   const chipDivergencia=(slug:string)=>{const r=regraPorSlug.get(slug);return <Tooltip key={slug}><TooltipTrigger asChild><Badge variant="outline" className="font-normal">{r?.nome??slug}</Badge></TooltipTrigger><TooltipContent className="max-w-xs space-y-1"><p>{r?.consequencia??slug}</p>{r?.onde_resolver&&<p className="text-muted-foreground">resolve-se no {r.onde_resolver}</p>}</TooltipContent></Tooltip>;};
   const chipsDivergencia=(itens:string[]|null|undefined)=><div className="flex flex-wrap gap-1">{!itens?.length?<span className="text-muted-foreground">—</span>:<>{itens.slice(0,3).map(slug=>chipDivergencia(slug))}{itens.length>3&&<Tooltip><TooltipTrigger asChild><Badge variant="outline" className="font-normal">+{itens.length-3}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{itens.slice(3).map(rotuloDoSlug).join(" · ")}</TooltipContent></Tooltip>}</>}</div>;
   const selos=(l:LinhaUnida)=><div className="flex gap-1">{[["B","Bling",temValor(l.cod_bling),false],["S","Shopify",temValor(l.cod_shopify),l.shopify_sku_diverge===true],["X","XPM",temValor(l.cod_xpm),false]].map(([letra,nome,ok,div])=><Tooltip key={String(letra)}><TooltipTrigger asChild><span className={cn("inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] font-medium",ok?(div?"border-warning/40 bg-warning/10 text-warning-strong":"border-success/40 bg-success/10 text-success-strong"):"border-destructive/40 bg-destructive/10 text-destructive-strong")}>{String(letra)}</span></TooltipTrigger><TooltipContent>{nome}: {ok?(div?"presente, mas com SKU diferente do nosso":letra==="S"?(new Map([["active","presente (ativo)"],["draft","presente (rascunho)"],["archived","presente (arquivado)"],["unlisted","presente (não listado)"]]).get(String(l.shopify_status??"").toLowerCase())??"presente"):"presente"):"não encontrado"}</TooltipContent></Tooltip>)}</div>;
-  function celula(l:LinhaUnida,c:ColDef){const v=l[c.key];if(c.tipo==="foto")return <MiniFoto url={l.foto_url??null} origem={l.foto_origem??null} nome={l.nome_comercial??l.sku} onAmpliar={(url,nome)=>setFotoAberta({url,nome})}/>;if(c.key==="foto_origem")return <span className={cn(!l.foto_origem&&"text-muted-foreground")}>{rotuloFotoOrigem(l.foto_origem)}</span>;if(c.tipo==="selos")return selos(l);if(c.tipo==="fase")return <Badge>{String(v??l.fase??"—")}</Badge>;if(c.tipo==="chips"){if(c.key==="falta_proxima_fase"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;const campoFaltante=c.key==="falta_proxima_fase"||c.key==="falta_separada";return chips(Array.isArray(v)?v.map(String):null,campoFaltante);}if(c.tipo==="divergencias")return chipsDivergencia(l.divergencias);if(c.tipo==="bool")return v==null?<span className="text-muted-foreground">—</span>:v?<Check className="h-4 w-4 text-success"/>:<X className="h-4 w-4 text-destructive"/>;if(c.tipo==="datahora")return <span className="text-muted-foreground">{fmtDataHora(typeof v==="string"?v:null)}</span>;if(c.key==="pendencias"){const p=l.cod_cadastro?pendenciaPorCod.get(l.cod_cadastro):undefined;if(!p||!p.pendencias)return <span className="text-muted-foreground">—</span>;return <Link to={`/vendas/produto/conciliacao?q=${l.cod_cadastro}`} className="tabular-nums text-muted-foreground hover:text-foreground hover:underline">{p.pendencias}{(p.sistemas??[]).length>0&&<span className="text-[11px] lowercase"> · {(p.sistemas??[]).join(", ").toLowerCase()}</span>}</Link>;}if(c.key==="sugestao"){if(!l.sugestao)return <span className="text-muted-foreground">—</span>;const s=situacaoPorSlug.get(l.sugestao);return <Badge variant="outline" className={cn("font-normal",s?.tom?TOM_SITUACAO[s.tom]:undefined)}>{rotuloSituacao(l.sugestao)}</Badge>;}if(c.tipo==="num"){if(c.key==="qtd_falta_proxima"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;return v==null?<span className="text-muted-foreground">—</span>:<span className={cn("tabular-nums",c.key==="qtd_falta_proxima"&&Number(v)===0&&"text-success-strong")}>{fmtNum(Number(v))}</span>;}if(!temValor(v)){const nome=c.key==="cod_bling"?"Bling":c.key==="cod_shopify"?"Shopify":c.key==="cod_xpm"?"XPM":null;return nome?<Tooltip><TooltipTrigger><span className="text-muted-foreground">—</span></TooltipTrigger><TooltipContent>não encontrado no {nome}</TooltipContent></Tooltip>:<span className="text-muted-foreground">—</span>;}const texto=String(v);if(c.key==="cod_cadastro")return <span className="inline-flex flex-col leading-tight"><Link to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`} state={{from:montarFrom(location.pathname,location.search,texto),fromLabel:"Central do Produto"}} className="font-mono font-medium hover:underline">{texto}</Link>{l.sku&&<span className="font-mono text-[11px] text-muted-foreground">{l.sku}</span>}</span>;if(c.key==="cod_bling")return <span className="block min-w-56 whitespace-normal">{texto}</span>;if(c.key==="cod_shopify"||c.key==="cod_xpm")return <span className={cn("block max-w-44 truncate",c.key==="cod_shopify"&&l.shopify_sku_diverge&&"text-warning-strong")}>{texto}</span>;return <span>{texto}</span>;}
+  function celula(l:LinhaUnida,c:ColDef){const v=l[c.key];if(c.tipo==="foto")return <MiniFoto url={l.foto_url??null} origem={l.foto_origem??null} nome={l.nome_comercial??l.sku} onAmpliar={(url,nome)=>setFotoAberta({url,nome})}/>;if(c.key==="foto_origem")return <span className={cn(!l.foto_origem&&"text-muted-foreground")}>{rotuloFotoOrigem(l.foto_origem)}</span>;if(c.tipo==="selos")return selos(l);if(c.tipo==="fase")return <Badge>{String(v??l.fase??"—")}</Badge>;if(c.tipo==="chips"){if(c.key==="falta_proxima_fase"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;const campoFaltante=c.key==="falta_proxima_fase"||c.key==="falta_separada";return chips(Array.isArray(v)?v.map(String):null,campoFaltante);}if(c.tipo==="divergencias")return chipsDivergencia(l.divergencias);if(c.tipo==="bool")return v==null?<span className="text-muted-foreground">—</span>:v?<Check className="h-4 w-4 text-success"/>:<X className="h-4 w-4 text-destructive"/>;if(c.tipo==="datahora")return <span className="text-muted-foreground">{fmtDataHora(typeof v==="string"?v:null)}</span>;if(c.key==="pendencias"){if(!l.pendencias)return <span className="text-muted-foreground">—</span>;return <Link to={`/vendas/produto/conciliacao?q=${l.cod_cadastro}`} className="tabular-nums text-muted-foreground hover:text-foreground hover:underline">{l.pendencias}{(l.sistemas_pendencia??[]).length>0&&<span className="text-[11px] lowercase"> · {(l.sistemas_pendencia??[]).join(", ").toLowerCase()}</span>}</Link>;}if(c.key==="sugestao"){if(!l.situacao)return <span className="text-muted-foreground">—</span>;const s=situacaoPorSlug.get(l.situacao);return <Badge variant="outline" className={cn("font-normal",s?.tom?TOM_SITUACAO[s.tom]:undefined)}>{rotuloSituacao(l.situacao)}</Badge>;}if(c.tipo==="num"){if(c.key==="qtd_falta_proxima"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;return v==null?<span className="text-muted-foreground">—</span>:<span className={cn("tabular-nums",c.key==="qtd_falta_proxima"&&Number(v)===0&&"text-success-strong")}>{fmtNum(Number(v))}</span>;}if(!temValor(v)){const nome=c.key==="cod_bling"?"Bling":c.key==="cod_shopify"?"Shopify":c.key==="cod_xpm"?"XPM":null;return nome?<Tooltip><TooltipTrigger><span className="text-muted-foreground">—</span></TooltipTrigger><TooltipContent>não encontrado no {nome}</TooltipContent></Tooltip>:<span className="text-muted-foreground">—</span>;}const texto=String(v);if(c.key==="cod_cadastro")return <span className="inline-flex flex-col leading-tight"><Link to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`} state={{from:montarFrom(location.pathname,location.search,texto),fromLabel:"Central do Produto"}} className="font-mono font-medium hover:underline">{texto}</Link>{l.sku&&<span className="font-mono text-[11px] text-muted-foreground">{l.sku}</span>}</span>;if(c.key==="cod_bling")return <span className="block min-w-56 whitespace-normal">{texto}</span>;if(c.key==="cod_shopify"||c.key==="cod_xpm")return <span className={cn("block max-w-44 truncate",c.key==="cod_shopify"&&l.shopify_sku_diverge&&"text-warning-strong")}>{texto}</span>;return <span>{texto}</span>;}
 
   const fixa=(key:string,cab=false)=>key==="foto_url"?cn("sticky left-0 w-14 bg-muted",cab?"z-50":"z-20"):key==="cod_cadastro"?cn("sticky left-14 w-28 border-r bg-muted",cab?"z-50":"z-20"):"";
-  return <TooltipProvider delayDuration={200}><PageShell><ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} inicialSoMedicao={exportSoMedicao} cods={exportCods}/><FormatoInvalidoDialog open={formatoAberto} onOpenChange={setFormatoAberto} alertas={formato.data??[]} erro={formato.error?(formato.error as Error).message:null} onExportar={(c)=>{setFormatoAberto(false);setExportSoMedicao(false);setExportCods(c);setExportCad(true);}}/><PageHeader titulo="Central do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><ExportarCamposPorSistemaButton /><Button size="sm" onClick={async()=>{await Promise.all([lista.refetch(),conc.refetch(),sugestoes.refetch(),regrasDim.refetch(),camposDim.refetch()]);}} disabled={lista.isFetching||conc.isFetching||sugestoes.isFetching||regrasDim.isFetching||camposDim.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(lista.isFetching||conc.isFetching||sugestoes.isFetching||regrasDim.isFetching||camposDim.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
+  return <TooltipProvider delayDuration={200}><PageShell><ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} inicialSoMedicao={exportSoMedicao} cods={exportCods}/><FormatoInvalidoDialog open={formatoAberto} onOpenChange={setFormatoAberto} alertas={formato.data??[]} erro={formato.error?(formato.error as Error).message:null} onExportar={(c)=>{setFormatoAberto(false);setExportSoMedicao(false);setExportCods(c);setExportCad(true);}}/><PageHeader titulo="Central do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><ExportarCamposPorSistemaButton /><Button size="sm" onClick={async()=>{await Promise.all([recarregarMesa(),regrasDim.refetch(),camposDim.refetch()]);}} disabled={mesa.isFetching||regrasDim.isFetching||camposDim.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(mesa.isFetching||regrasDim.isFetching||camposDim.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
   <ProdutoAbas />
   {erro&&<Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><AlertDescription>Não foi possível carregar os produtos. Atualize a página para tentar novamente. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
   {/* 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro */}
   {/* 20/10/2026: cards de fase saíram da Mesa; Mesa é área de trabalho */}
   {MOSTRAR_CARDS_FASE&&<section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores">{carregando?Array.from({length:4}).map((_,i)=><Skeleton key={i} className="h-20"/>):cards.map(c=>{const selecionado=indicador===c.id;const card=<Button key={c.label} variant="outline" className={cn("h-auto min-h-20 items-start justify-center border p-3 text-left",selecionado&&"ring-2 ring-primary ring-offset-2 ring-offset-background")} onClick={()=>setIndicador(selecionado?null:c.id)}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">{c.label}</span><span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span>{c.linha&&<span className="truncate text-[11px] font-normal text-muted-foreground">{c.linha}</span>}</span></Button>;return card;})}{!carregando&&(aguardandoMedicao.isLoading?<Skeleton className="h-20"/>:<Button variant="outline" className="h-auto min-h-20 items-start justify-center border p-3 text-left" title={aguardandoMedicao.error?(aguardandoMedicao.error as Error).message:"Abrir a lista para o showroom medir"} onClick={()=>{setExportSoMedicao(true);setExportCods(null);setExportCad(true);}}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">Aguardando medição</span><span className={cn("mt-1 text-[21px] font-medium tabular-nums",aguardandoMedicao.error?"text-destructive":"text-foreground")}>{aguardandoMedicao.error?"erro":aguardandoMedicao.data}</span><span className="truncate text-[11px] font-normal text-muted-foreground">{aguardandoMedicao.error?(aguardandoMedicao.error as Error).message:"lista para o showroom"}</span></span></Button>)}{!carregando&&(formato.isLoading?<Skeleton className="h-20"/>:<Button variant="outline" className="h-auto min-h-20 items-start justify-center border p-3 text-left" title={formato.error?(formato.error as Error).message:"Ver campos fora do formato da ficha"} onClick={()=>setFormatoAberto(true)}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">Formato inválido</span><span className={cn("mt-1 text-[21px] font-medium tabular-nums",formato.error?"text-destructive":"text-foreground")}>{formato.error?"erro":nFormato}</span><span className="truncate text-[11px] font-normal text-muted-foreground">{formato.error?(formato.error as Error).message:"produtos fora de inativo"}</span></span></Button>)}</section>}
   <section className="flex flex-wrap items-center gap-2 border-y py-3"><div className="relative min-w-64 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={busca} onChange={e=>setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU, nome ou EAN"/></div>
-  <FiltroFacetado label="Situação" selecionados={situacoes} onChange={setSituacoes} opcoes={facet("situacao",[...(situacoesDim.data??[]).map(s=>({valor:s.slug,rotulo:s.rotulo})),{valor:"__sem__",rotulo:"Sem situação"}],(l,v)=>(l.sugestao??"__sem__")===v)}/>
-  <FiltroFacetado label="Fase" selecionados={fasesSel} onChange={setFasesSel} opcoes={facet("fase",fases.map(({valor,rotulo})=>({valor,rotulo})),(l,v)=>(l.fase??"__sem__")===v)}/>
-  <FiltroFacetado label="Coleção" selecionados={colecoes} onChange={setColecoes} opcoes={facet("colecao",valores("colecao").map(v=>({valor:v,rotulo:v})),(l,v)=>l.colecao===v)}/>
-  <FiltroFacetado label="Grupo" selecionados={grupos} onChange={setGrupos} opcoes={facet("grupo",valores("grupo").map(v=>({valor:v,rotulo:v})),(l,v)=>l.grupo===v)}/>
-  <FiltroFacetado label="Sistemas" selecionados={sistemas} onChange={setSistemas} opcoes={facet("sistemas",[...SISTEMAS.map(([valor,rotulo])=>({valor,rotulo}))],predSistemaBase)}/>
+  <FiltroFacetado label="Situação" selecionados={situacoes} onChange={setSituacoes} opcoes={facetas?.situacao??[]}/>
+  <FiltroFacetado label="Fase" selecionados={fasesSel} onChange={setFasesSel} opcoes={facetas?.fase??[]}/>
+  <FiltroFacetado label="Coleção" selecionados={colecoes} onChange={setColecoes} opcoes={facetas?.colecao??[]}/>
+  <FiltroFacetado label="Grupo" selecionados={grupos} onChange={setGrupos} opcoes={facetas?.grupo??[]}/>
+  <FiltroFacetado label="Sistemas" selecionados={sistemas} onChange={setSistemas} opcoes={facetas?.sistemas??[]}/>
   <Popover><PopoverTrigger asChild><Button variant="outline" size="sm"><Columns3 className="mr-2 h-4 w-4"/>Colunas ({colunasVisiveis.length})</Button></PopoverTrigger><PopoverContent align="end" className="w-80 p-0"><div className="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground"><span>Arraste para reordenar</span><Button variant="ghost" size="sm" onClick={()=>{setVisiveis(COLUNAS_PADRAO);setOrdemColunas(COLUNAS.map(c=>c.key));}}>Padrão</Button></div><ScrollArea className="h-96"><div className="p-2">{ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c).map(c=>{const fixaId=["foto_url","cod_cadastro"].includes(c.key);return <div key={c.key} draggable={!fixaId} onDragStart={()=>setArrastando(c.key)} onDragOver={e=>e.preventDefault()} onDrop={()=>mover(c.key)} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted"><GripVertical className={cn("h-4 w-4 text-muted-foreground",fixaId&&"opacity-30")}/><Checkbox checked={visiveis.includes(c.key)} disabled={fixaId} onCheckedChange={()=>setVisiveis(v=>v.includes(c.key)?v.filter(x=>x!==c.key):[...v,c.key])}/><span className="truncate text-sm">{c.rotulo}</span></div>})}</div></ScrollArea></PopoverContent></Popover>
   {filtrosAtivos>0&&<Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros ({filtrosAtivos})</Button>}</section>
-  {carregando?<div className="space-y-2">{Array.from({length:8}).map((_,i)=><Skeleton key={i} className="h-11 w-full"/>)}</div>:recorte.length===0?<div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhum produto neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>:<div className="overflow-hidden rounded-md border bg-card"><Table className="text-xs" containerClassName="mesa-produto-scroll max-h-[calc(100vh-17rem)]"><TableHeader><TableRow>{colunasVisiveis.map(c=><TableHead key={c.key} className={cn("sticky top-0 z-40 whitespace-nowrap font-medium",c.direita&&"text-right",fixa(c.key,true))} aria-sort={ordem.coluna===c.key?(ordem.dir==="asc"?"ascending":"descending"):"none"}>{ORDENAVEIS.has(c.key)?<Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={()=>ordenar(c.key)}>{c.rotulo}{ordem.coluna!==c.key?<ArrowUpDown className="ml-1 h-3 w-3"/>:ordem.dir==="asc"?<ArrowUp className="ml-1 h-3 w-3"/>:<ArrowDown className="ml-1 h-3 w-3"/>}</Button>:c.rotulo}</TableHead>)}</TableRow></TableHeader><TableBody>{paginaLinhas.map(l=>{return <Fragment key={l.sku}><TableRow className="border-b" data-foco-id={String(l.cod_cadastro??l.sku)}>{colunasVisiveis.map(c=><TableCell key={c.key} className={cn("py-2.5 align-top",c.direita&&"text-right",fixa(c.key))}>{celula(l,c)}</TableCell>)}</TableRow></Fragment>;})}</TableBody></Table><RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="mesa_produto" onPagina={setPagina} onTamanhoPagina={setTamanho} /></div>}
+  {carregando?<div className="space-y-2">{Array.from({length:8}).map((_,i)=><Skeleton key={i} className="h-11 w-full"/>)}</div>:paginaLinhas.length===0?<div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhum produto neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>:<div className="overflow-hidden rounded-md border bg-card"><Table className="text-xs" containerClassName="mesa-produto-scroll max-h-[calc(100vh-17rem)]"><TableHeader><TableRow>{colunasVisiveis.map(c=><TableHead key={c.key} className={cn("sticky top-0 z-40 whitespace-nowrap font-medium",c.direita&&"text-right",fixa(c.key,true))} aria-sort={ordem.coluna===c.key?(ordem.dir==="asc"?"ascending":"descending"):"none"}>{ORDENAVEIS.has(c.key)?<Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={()=>ordenar(c.key)}>{c.rotulo}{ordem.coluna!==c.key?<ArrowUpDown className="ml-1 h-3 w-3"/>:ordem.dir==="asc"?<ArrowUp className="ml-1 h-3 w-3"/>:<ArrowDown className="ml-1 h-3 w-3"/>}</Button>:c.rotulo}</TableHead>)}</TableRow></TableHeader><TableBody>{paginaLinhas.map(l=>{return <Fragment key={l.sku}><TableRow className="border-b" data-foco-id={String(l.cod_cadastro??l.sku)}>{colunasVisiveis.map(c=><TableCell key={c.key} className={cn("py-2.5 align-top",c.direita&&"text-right",fixa(c.key))}>{celula(l,c)}</TableCell>)}</TableRow></Fragment>;})}</TableBody></Table><RodapePaginacao total={total} pagina={paginaAtual} tamanhoPagina={mesa.data?.tamanho??tamanho} tela="mesa_produto" onPagina={setPagina} onTamanhoPagina={setTamanho} /></div>}
   <Dialog open={!!fotoAberta} onOpenChange={o=>!o&&setFotoAberta(null)}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>{fotoAberta?.nome}</DialogTitle></DialogHeader>{fotoAberta&&<img src={fotoAberta.url} alt={fotoAberta.nome} className="max-h-[70vh] w-full rounded-md object-contain"/>}</DialogContent></Dialog>
   </PageShell></TooltipProvider>;
 }
