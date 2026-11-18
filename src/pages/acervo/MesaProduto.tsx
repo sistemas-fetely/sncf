@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { buscarTodos } from "@/lib/supabaseLotes";
 import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
 import { FormatoInvalidoDialog, type AlertaFormato } from "@/components/acervo/FormatoInvalidoDialog";
 // 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
@@ -153,7 +154,7 @@ export default function MesaProduto() {
   const [exportSoMedicao,setExportSoMedicao]=useState(false);
   const [exportCods,setExportCods]=useState<string[]|null>(null);
   const [formatoAberto,setFormatoAberto]=useState(false);
-  const formato=useQuery({queryKey:["mesa-formato-alerta"],staleTime:5*60_000,queryFn:async()=>{const{data,error}=await (supabase.from as any)("vw_produto_formato_alerta").select("cod_cadastro,sku,colecao,fase,campo,valor,regra,motivo");if(error)throw new Error(error.message);return (data??[]) as AlertaFormato[];}});
+  const formato=useQuery({queryKey:["mesa-formato-alerta"],staleTime:5*60_000,queryFn:()=>buscarTodos<AlertaFormato>(()=>(supabase.from as any)("vw_produto_formato_alerta").select("cod_cadastro,sku,colecao,fase,campo,valor,regra,motivo"),["cod_cadastro","campo","sku"])});
   const nFormato=new Set((formato.data??[]).filter(a=>a.fase!=="inativo").map(a=>a.cod_cadastro)).size;
   const aguardandoMedicao=useQuery({queryKey:["mesa-aguardando-medicao"],staleTime:5*60_000,queryFn:async()=>{
     const {data,error}=await supabase.functions.invoke("exportar-planilha-produto",{body:{so_contagem:true}});
@@ -199,20 +200,20 @@ export default function MesaProduto() {
   },[hidratado,visiveis,ordemColunas]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_mesa_lista" as never).select("*").order("cod_cadastro");if(error)throw error;return(data??[]) as Linha[];}});
+  const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:()=>buscarTodos<Linha>(()=>supabase.from("vw_produto_mesa_lista" as never).select("*"),["cod_cadastro","sku"])});
   const fasesDim=useQuery({queryKey:["produto-fase-dim"],queryFn:async()=>{const {data,error}=await supabase.from("produto_fase_dim").select("slug, nome, ordem").order("ordem");if(error)throw error;return(data??[]) as FaseProduto[];}});
   const camposDim=useQuery({queryKey:["produto-ficha-rotulos"],queryFn:async()=>{const {data,error}=await supabase.from("produto_ficha_nascimento").select("campo, rotulo");if(error)throw error;return(data??[]) as CampoFicha[];}});
-  const conc=useQuery({queryKey:["mesa-produto-conciliacao-360"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao_360" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
+  const conc=useQuery({queryKey:["mesa-produto-conciliacao-360"],queryFn:()=>buscarTodos<ConcLinha>(()=>supabase.from("vw_produto_conciliacao_360" as never).select("*"),["sku"])});
   const regrasDim=useQuery({queryKey:["divergencia-regra"],queryFn:async()=>{const {data,error}=await supabase.from("divergencia_regra" as never).select("slug, nome, sistema, consequencia, o_que_fazer, onde_resolver, ordem").order("ordem");if(error)throw error;return(data??[]) as RegraDiv[];}});
   const regraPorSlug=useMemo(()=>new Map((regrasDim.data??[]).map(r=>[r.slug,r])),[regrasDim.data]);
   const rotuloCampoPorSlug=useMemo(()=>new Map((camposDim.data??[]).map(c=>[c.campo,c.rotulo?.trim()||c.campo])),[camposDim.data]);
   const situacoesDim=useQuery({queryKey:["produto-mesa-situacao-dim"],staleTime:10*60*1000,queryFn:async()=>{const {data,error}=await (supabase as any).from("produto_mesa_situacao_dim").select("slug, rotulo, descricao, fase_slug, tom, ordem").eq("ativo",true).order("ordem");if(error)throw error;return(data??[]) as SituacaoDim[];}});
-  const pendenciasQ=useQuery({queryKey:["conciliacao-contagem-produto"],staleTime:10*60*1000,queryFn:async()=>{const {data,error}=await (supabase as any).from("vw_conciliacao_contagem_produto").select("cod_cadastro, pendencias, sistemas");if(error)throw error;return(data??[]) as Pendencia[];}});
+  const pendenciasQ=useQuery({queryKey:["conciliacao-contagem-produto"],staleTime:10*60*1000,queryFn:()=>buscarTodos<Pendencia>(()=>(supabase as any).from("vw_conciliacao_contagem_produto").select("cod_cadastro, pendencias, sistemas"),["cod_cadastro"])});
   const situacaoPorSlug=useMemo(()=>new Map((situacoesDim.data??[]).map(s=>[s.slug,s])),[situacoesDim.data]);
   const pendenciaPorCod=useMemo(()=>new Map((pendenciasQ.data??[]).map(p=>[p.cod_cadastro,p])),[pendenciasQ.data]);
   const rotuloSituacao=(slug:string|null|undefined)=>slug?(situacaoPorSlug.get(slug)?.rotulo??slug):"";
   const rotuloDoSlug=(slug:string)=>regraPorSlug.get(slug)?.nome??slug;
-  const sugestoes=useQuery({queryKey:["mesa-produto-sugestoes",(situacoesDim.data??[]).map(s=>s.slug).join(",")],enabled:!!situacoesDim.data,queryFn:async()=>{const slugs=(situacoesDim.data??[]).map(s=>s.slug);const respostas=await Promise.all(slugs.map(async slug=>{const {data,error}=await supabase.from("vw_produto_mesa_fase" as never).select("sku, sugestao").eq("sugestao",slug);if(error)throw error;return(data??[]) as {sku:string;sugestao:string|null}[];}));return respostas.flat();}});
+  const sugestoes=useQuery({queryKey:["mesa-produto-sugestoes",(situacoesDim.data??[]).map(s=>s.slug).join(",")],enabled:!!situacoesDim.data,queryFn:async()=>{const slugs=(situacoesDim.data??[]).map(s=>s.slug);const respostas=await Promise.all(slugs.map(slug=>buscarTodos<{sku:string;sugestao:string|null}>(()=>supabase.from("vw_produto_mesa_fase" as never).select("sku, sugestao").eq("sugestao",slug),["sku"])));return respostas.flat();}});
   const linhas=useMemo(()=>{const mapa=new Map((conc.data??[]).map(c=>[c.sku,c]));const sugestaoPorSku=new Map((sugestoes.data??[]).map(l=>[l.sku,l.sugestao]));return(lista.data??[]).map(l=>{const unida={...l,...(mapa.get(l.sku)??{}),pendencias:l.cod_cadastro?(pendenciaPorCod.get(l.cod_cadastro)?.pendencias??0):0} as LinhaUnida;const sugestaoRecebida=sugestaoPorSku.get(l.sku)??l.sugestao;if(unida.fase!=="ativo")return{...unida,sugestao:sugestaoRecebida};if(!temValor(unida.cod_bling))return{...unida,sugestao:"ativo_sem_bling"};if((unida.qtd_falta_atual??0)>0)return{...unida,sugestao:"ativo_com_furo"};return{...unida,sugestao:null};}) as LinhaUnida[];},[lista.data,conc.data,sugestoes.data,pendenciaPorCod]);
   const carregando=situacoesDim.isLoading||pendenciasQ.isLoading||lista.isLoading||conc.isLoading||sugestoes.isLoading||fasesDim.isLoading||camposDim.isLoading||regrasDim.isLoading; const erro=situacoesDim.error??pendenciasQ.error??lista.error??conc.error??sugestoes.error??fasesDim.error??camposDim.error??regrasDim.error;
   const fases=useMemo(()=>{const m=new Map<string,{valor:string;rotulo:string;ordem:number}>();for(const l of linhas){const v=l.fase??"__sem__";if(!m.has(v))m.set(v,{valor:v,rotulo:l.fase_nome??l.fase??"Sem fase",ordem:l.fase_ordem??999});}return[...m.values()].sort((a,b)=>a.ordem-b.ordem);},[linhas]);
