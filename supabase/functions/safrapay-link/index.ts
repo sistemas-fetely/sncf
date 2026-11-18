@@ -5,6 +5,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { registrarTrilhaSafra, substituirTrilhaSafra } from "../_shared/safrapay-trilha.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -332,12 +333,14 @@ Deno.serve(async (req) => {
     .eq("pedido_id", pedidoId).in("status", ["criando", "aberto"]);
   if (eV) return json({ ok: false, erro: `Ler links: ${eV.message}` }, 500);
   const agora = Date.now();
-  const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string; meio: string }[] = [];
+  const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string; meio: string; pedido_id: string; url: string | null; titulo_id: string | null }[] = [];
   for (const l of vig ?? []) {
     const mesmoPortao = l.provisao_id != null && l.provisao_id === prov.id;
     const mesmoValor = Math.round(Number(l.valor ?? 0) * 100) === Math.round(valor * 100);
     const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
     if (valido && !forcarNovo && mesmoPortao && mesmoValor) {
+      try { await registrarTrilhaSafra(sb, pedido, l, ehPix); }
+      catch (e) { return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500); }
       return json({ ok: true, url: l.url, expira_em: l.expira_em, max_parcelas: l.max_parcelas, pagamento_link_id: l.id, reaproveitado: true });
     }
     if (l.status === "criando" && !forcarNovo && mesmoPortao && mesmoValor && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
@@ -345,11 +348,13 @@ Deno.serve(async (req) => {
     }
     const novoStatus = valido || l.status === "criando" || !mesmoPortao ? "cancelado" : "expirado";
     if (l.status === "aberto" && l.gateway_link_id) {
-      cancelarNoSafra.push({ id: l.id, gateway_link_id: String(l.gateway_link_id), novoStatus, meio: String(l.meio ?? "cartao_link") });
+      cancelarNoSafra.push({ id: l.id, gateway_link_id: String(l.gateway_link_id), novoStatus, meio: String(l.meio ?? "cartao_link"), pedido_id: l.pedido_id, url: l.url, titulo_id: l.titulo_id });
       continue;
     }
     const { error } = await sb.from("pagamento_link").update({ status: novoStatus }).eq("id", l.id);
     if (error) return json({ ok: false, erro: `Encerrar link anterior: ${error.message}` }, 500);
+    try { await substituirTrilhaSafra(sb, l); }
+    catch (e) { return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500); }
   }
 
   const expira = new Date(agora + Number(cfg.validade_horas ?? 24) * 3600_000);
@@ -401,6 +406,7 @@ Deno.serve(async (req) => {
         }
         const { error } = await sb.from("pagamento_link").update({ status: statusAnt }).eq("id", ant.id);
         if (error) return await falhar(`Encerrar link anterior: ${error.message}`, 500);
+        await substituirTrilhaSafra(sb, ant);
       }
     }
 
@@ -503,24 +509,10 @@ Deno.serve(async (req) => {
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
-    // Cartão B2B: nasce só em pagamento_link — registrar também na trilha pedido_link_pagamento
-    // para o envio de e-mail de cobrança achar o link (VD e PIX ficam fora desta trilha).
-    if (!ehVD && !ehPix) {
-      const fmtSaoPaulo = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
-      });
-      const hojeBRT = fmtSaoPaulo.format(new Date());
-      const expiraBRT = fmtSaoPaulo.format(new Date(expiraFinal));
-      const { error: eTrilha } = await sb.rpc("registrar_link_pagamento", {
-        p_pedido_id: pedidoId,
-        p_link: urlFinal,
-        p_gerado_em: hojeBRT,
-        p_expira_em: expiraBRT,
-        p_tipo_pagamento: "cartao",
-        p_motivo: null,
-      });
-      if (eTrilha) return await falhar(`Link criado no Safrapay mas não registrado na trilha: ${eTrilha.message}`, 500);
-    }
+    // Cartão e PIX B2B alimentam a cobrança pela mesma trilha; VD continua fora.
+    // Se a trilha falhar, preservar o link aberto já criado para repará-lo no reaproveitamento.
+    try { await registrarTrilhaSafra(sb, pedido, { url: urlFinal, criado_em: new Date().toISOString(), expira_em: expiraFinal }, ehPix); }
+    catch (e) { return json({ ok: false, erro: e instanceof Error ? e.message : String(e), pagamento_link_id: linha?.id }, 500); }
 
     return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, parcelas_padrao: parcelasPadrao, meio: ehPix ? "pix" : "cartao", pagamento_link_id: linha!.id, avisos });
   } catch (e) {

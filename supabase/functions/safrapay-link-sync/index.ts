@@ -4,6 +4,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { substituirTrilhaSafra } from "../_shared/safrapay-trilha.ts";
 
 const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-cron-secret` };
 const json = (body: unknown, status = 200) =>
@@ -138,6 +139,17 @@ Deno.serve(async (req) => {
   if (eCfg || !cfg) return json({ ok: false, erro: `Ler configuração Safrapay: ${eCfg?.message ?? "ausente"}` }, 500);
   if (!cfg.ativo) return json({ ok: false, erro: "Integração Safrapay aguardando ativação (MerchantToken)." }, 409);
 
+  // Repara também uma trilha cuja escrita falhou depois de o link já ser encerrado.
+  // Não chama o Safra e não toca links pagos nem links novos do mesmo pedido.
+  let qEncerrados = sb.from("pagamento_link").select("pedido_id,url,titulo_id")
+    .eq("gateway", "safrapay").in("status", ["cancelado", "expirado"])
+    .order("ultimo_sync_em", { ascending: false, nullsFirst: false }).limit(1000);
+  if (pedidoId) qEncerrados = qEncerrados.eq("pedido_id", pedidoId);
+  const { data: encerrados, error: eEncerrados } = await qEncerrados;
+  if (eEncerrados) return json({ ok: false, erro: `Ler links encerrados: ${eEncerrados.message}` }, 500);
+  try { for (const l of encerrados ?? []) await substituirTrilhaSafra(sb, l); }
+  catch (e) { return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500); }
+
   let q = sb.from("pagamento_link").select("*").eq("gateway", "safrapay").eq("status", "aberto")
     .order("criado_em", { ascending: true }).limit(50);
   if (pedidoId) q = q.eq("pedido_id", pedidoId);
@@ -244,6 +256,7 @@ Deno.serve(async (req) => {
       if (!l.gateway_link_id) {
         const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: msgLink }).eq("id", l.id);
         if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+        await substituirTrilhaSafra(sb, l);
         resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: `cancelado (${motivo})` });
         continue;
       }
@@ -270,6 +283,7 @@ Deno.serve(async (req) => {
         if (!rDp.ok && !deleteToleravel(rDp.status, cDp)) throw new Error(`Cancelar PIX no Safra: ${msgApi(cDp, rDp.status)}`);
         const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: msgPix, resposta_ultimo_sync: cP }).eq("id", l.id);
         if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+        await substituirTrilhaSafra(sb, l);
         resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: `PIX cancelado (${motivo})` });
         continue;
       }
@@ -298,6 +312,7 @@ Deno.serve(async (req) => {
       if (!rD.ok && !deleteToleravel(rD.status, cD)) throw new Error(`Cancelar link no Safra: ${msgApi(cD, rD.status)}`);
       const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: msgLink }).eq("id", l.id);
       if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+      await substituirTrilhaSafra(sb, l);
       resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: `cancelado (${motivo})` });
     } catch (e) {
       const erro = e instanceof Error ? e.message : String(e);
@@ -348,7 +363,9 @@ Deno.serve(async (req) => {
           if (eUp) throw new Error(`Gravar pagamento: ${eUp.message}`);
           resumo.pagos++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX pago" });
         } else if (p.cancelado) {
-          await sb.from("pagamento_link").update({ ...base, status: "cancelado" }).eq("id", l.id);
+          const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado" }).eq("id", l.id);
+          if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+          await substituirTrilhaSafra(sb, l);
           resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX cancelado/expirado" });
         } else {
           const { error } = await sb.from("pagamento_link").update(base).eq("id", l.id);
@@ -448,10 +465,14 @@ Deno.serve(async (req) => {
         await sb.from("pagamento_link").update({ ...base, erro: "Pré-autorizada — capturar manualmente", charge_id: pre.id, nsu: pre.nsu }).eq("id", l.id);
         resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro: "Pré-autorizada — capturar manualmente" });
       } else if (scStatus === 101 || scStatus === 102 || scStatus === 100) {
-        await sb.from("pagamento_link").update({ ...base, status: "expirado" }).eq("id", l.id);
+        const { error } = await sb.from("pagamento_link").update({ ...base, status: "expirado" }).eq("id", l.id);
+        if (error) throw new Error(`Gravar expiração: ${error.message}`);
+        await substituirTrilhaSafra(sb, l);
         resumo.expirados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "expirado" });
       } else if (scStatus === 3) {
-        await sb.from("pagamento_link").update({ ...base, status: "cancelado" }).eq("id", l.id);
+        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado" }).eq("id", l.id);
+        if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+        await substituirTrilhaSafra(sb, l);
         resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "cancelado" });
       } else {
         const { error } = await sb.from("pagamento_link").update(base).eq("id", l.id);

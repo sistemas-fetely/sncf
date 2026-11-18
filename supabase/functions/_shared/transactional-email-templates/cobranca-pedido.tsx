@@ -3,6 +3,7 @@ import {
   Body, Button, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Link, Img,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
+import { ehLinkPix } from '../pix-cobranca.ts'
 
 type TipoPagamento = 'pix' | 'cartao' | 'cartao_credito' | 'cartao_debito' | 'boleto' | string
 
@@ -83,7 +84,10 @@ const CobrancaPedidoEmail = ({
   pix_txid,
   link_pagina_pagamento,
 }: CobrancaPedidoProps) => {
-  const { headline, subline, ctaLabel, ctaColor } = getConteudo(tipo_pagamento)
+  const pixPorLink = ehLinkPix(tipo_pagamento, link_pagamento)
+  const conteudo = getConteudo(tipo_pagamento)
+  const { headline, ctaLabel, ctaColor } = conteudo
+  const subline = pixPorLink ? 'Abra o link abaixo para concluir o pagamento por PIX no Safrapay.' : conteudo.subline
   const tipoPag = (tipo_pagamento ?? '').toLowerCase()
   const isBrCode  = ehBrCodePix(link_pagamento)
   const isPix     = tipoPag === 'pix' || isBrCode
@@ -207,7 +211,7 @@ const CobrancaPedidoEmail = ({
             )}
 
             {/* PIX: BR Code copia e cola (texto opaco, nunca link clicável) */}
-            {isPix && (
+            {isPix && !pixPorLink && (
               <Section style={{ textAlign: 'center', marginTop: '24px' }}>
                 {qr_code_pix && (
                   <Img src={qr_code_pix} alt="QR Code PIX" width="240" style={{ margin: '0 auto 16px', display: 'block', width: '240px' }} />
@@ -255,6 +259,15 @@ const CobrancaPedidoEmail = ({
                 <Text style={ctaNote}>
                   O PDF completo do pedido está em anexo neste email.
                 </Text>
+              </Section>
+            )}
+
+            {pixPorLink && link_pagamento && (
+              <Section style={{ textAlign: 'center', marginTop: '24px' }}>
+                <Button href={link_pagamento} style={{ ...ctaButton, backgroundColor: Verde }}>
+                  Pagar com PIX
+                </Button>
+                <Text style={ctaNote}>O PDF completo do pedido está em anexo neste email.</Text>
               </Section>
             )}
 

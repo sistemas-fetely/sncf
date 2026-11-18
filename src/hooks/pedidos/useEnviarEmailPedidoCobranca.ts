@@ -30,11 +30,13 @@ export function useEnviarEmailPedidoCobranca() {
       let pix_qr_url: string | null = null;
       let pix_token: string | null = null;
 
-      const { data: linkView } = await (supabase as any)
+      const { data: linkView, error: erroLink } = await (supabase as any)
         .from("vw_pedido_link_pagamento")
         .select("link, tipo_pagamento, situacao, expira_em")
         .eq("pedido_id", pedido_id)
         .maybeSingle();
+
+      if (erroLink) throw new Error(erroLink.message);
 
       if (linkView?.link) {
         link_pagamento = linkView.link;

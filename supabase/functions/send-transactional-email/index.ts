@@ -5,6 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import QRCode from 'npm:qrcode'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { RESEND_FROM_ADDRESS, sendResendEmail } from '../_shared/resend-send.ts'
+import { ehCodigoPix } from '../_shared/pix-cobranca.ts'
 
 
 const corsHeaders = {
@@ -213,7 +214,7 @@ Deno.serve(async (req) => {
 
   // Gera QR code PIX se aplicável
   const tipoPag = (templateData.tipo_pagamento ?? '').toString().toLowerCase()
-  if (tipoPag === 'pix' && templateData.link_pagamento) {
+  if (tipoPag === 'pix' && ehCodigoPix(templateData.link_pagamento)) {
     try {
       const qrDataUrl: string = await QRCode.toDataURL(templateData.link_pagamento, {
         margin: 2,
