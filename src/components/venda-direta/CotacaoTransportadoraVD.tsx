@@ -64,9 +64,9 @@ export function CartoesTransportadora({ cotacao, cotando, erro, valor, onChange,
             const sel = valor === o.transportadora_id;
             return (
               <button key={o.transportadora_id} type="button" role="radio" aria-checked={sel} onClick={() => onChange(o.transportadora_id)}
-                className={cn("flex items-center justify-between gap-3 rounded-md border p-3 text-left text-sm transition-colors",
+                className={cn("flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border p-3 text-left text-sm transition-colors",
                   sel ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/50")}>
-                <span className="flex items-center gap-2 font-medium"><Truck className="h-4 w-4" />{o.nome}
+                <span className="flex min-w-0 items-center gap-2 font-medium"><Truck className="h-4 w-4" />{o.nome}
                   {cotacao.recomendada?.transportadora_id === o.transportadora_id && <span className="text-xs font-normal text-muted-foreground">· recomendada</span>}
                 </span>
                 <span className="tabular-nums">{formatBRL(Number(o.valor ?? 0))}{o.prazo_dias != null && <span className="text-muted-foreground"> · {o.prazo_dias} dias</span>}</span>
