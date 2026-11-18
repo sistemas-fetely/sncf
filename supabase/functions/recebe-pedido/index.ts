@@ -128,6 +128,16 @@ Deno.serve(async (req) => {
         return jsonResponse(200, { ok: true, produtos: data ?? [] });
       }
 
+      if (body.tipo === "balcao_cotar_transportadora") {
+        const { data, error } = await supabase.rpc("fn_vd_cotar_transportadora", {
+          p_cep: String(body.cep ?? body.endereco?.cep ?? ""),
+          p_itens: Array.isArray(body.itens) ? body.itens : [],
+          p_valor: body.valor ?? null,
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ...(data ?? {}) });
+      }
+
       if (body.tipo === "balcao_calcular") {
         const itens = Array.isArray(body.itens) ? body.itens : [];
         const endereco = body.endereco ?? null;
@@ -142,12 +152,13 @@ Deno.serve(async (req) => {
         const [resModos, resModais, resCd] = await Promise.all([
           supabase.from("vd_modo_modal").select("modo, modal_codigo, centro_tipo_exigido"),
           supabase.from("b2c_modal_entrega").select("codigo, sem_despacho, ativo").eq("ativo", true),
-          supabase.from("centro_distribuicao").select("cep, tipo").eq("codigo", centroOrigem).maybeSingle(),
+          supabase.from("centro_distribuicao").select("cep, tipo, poder_de_terceiro").eq("codigo", centroOrigem).maybeSingle(),
         ]);
         if (resModos.error) return erroRpc(resModos.error);
         if (resModais.error) return erroRpc(resModais.error);
         if (resCd.error) return erroRpc(resCd.error);
         const cd = resCd.data;
+        const cdArmazemTerceiro = cd?.tipo === "armazem" && cd?.poder_de_terceiro === true;
         const modosDoTipo = (resModos.data ?? []).filter((m) =>
           m.centro_tipo_exigido != null && m.centro_tipo_exigido === cd?.tipo
         );
@@ -155,9 +166,11 @@ Deno.serve(async (req) => {
           ? modosDoTipo
           : (resModos.data ?? []).filter((m) => m.centro_tipo_exigido == null);
         const modais = new Map((resModais.data ?? []).map((m) => [m.codigo, m]));
-        const ordemAtual = ["retirada", "sedex", "pac", "frete_fetely"];
+        const ordemAtual = ["retirada", "sedex", "pac", "frete_fetely", "transportadora"];
         const modosValidos = modosDoCentro.filter((m) => {
           const modal = modais.get(m.modal_codigo);
+          if (cdArmazemTerceiro) return m.modo === "transportadora" && !!modal && cepValido;
+          if (m.modo === "transportadora") return false;
           return modal && (modal.sem_despacho === true || (modal.sem_despacho === false && cepValido));
         }).sort((a, b) => {
           const ordemA = ordemAtual.indexOf(a.modo);
@@ -166,7 +179,7 @@ Deno.serve(async (req) => {
             || a.modo.localeCompare(b.modo);
         });
 
-        if (modosValidos.some((m) => modais.get(m.modal_codigo)?.sem_despacho === false)) {
+        if (!cdArmazemTerceiro && modosValidos.some((m) => modais.get(m.modal_codigo)?.sem_despacho === false)) {
           const cepOrigem = String(cd?.cep ?? "").replace(/\D/g, "");
           if (cepOrigem.length !== 8) {
             correios_erro = `CEP de origem do ${centroOrigem} não cadastrado em centro_distribuicao.`;
@@ -188,7 +201,7 @@ Deno.serve(async (req) => {
           const { data, error } = await supabase.rpc("fn_vd_calcular", {
             p_cliente: body.cliente ?? {},
             p_itens: itens,
-            p_entrega: { modo, centro_codigo: centroOrigem, cotacao_id, endereco, beneficio: body.beneficio ?? null },
+            p_entrega: { modo, centro_codigo: centroOrigem, cotacao_id, endereco, beneficio: body.beneficio ?? null, transportadora_id: body.transportadora_id ?? null },
           });
           if (error) { opcoes.push({ modo, ok: false, erro: error.message }); continue; }
           const d: any = data ?? {};
@@ -198,6 +211,7 @@ Deno.serve(async (req) => {
             valor_itens: d.valor_itens, desconto_pedido: d.desconto_pedido,
             frete_cobrado: d.frete_cobrado, valor_total: d.valor_total,
             prazo_dias: frete?.prazo_dias ?? null, gratis: frete?.gratis ?? false,
+            transportadora_id: frete?.transportadora_id ?? null, transportadora_nome: frete?.transportadora_nome ?? null,
             fonte: frete?.fonte ?? null, avisos: d.avisos,
           });
         }

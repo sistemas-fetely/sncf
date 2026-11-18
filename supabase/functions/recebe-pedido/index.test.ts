@@ -8,12 +8,14 @@ const mappings = [
   { modo: "frete_fetely", modal_codigo: "FRETE_FETELY", centro_tipo_exigido: null },
   { modo: "sedex", modal_codigo: "CORREIOS", centro_tipo_exigido: null },
   { modo: "retirada", modal_codigo: "RETIRADA", centro_tipo_exigido: null },
+  { modo: "transportadora", modal_codigo: "TRANSPORTADORA", centro_tipo_exigido: null },
 ];
 const modals = [
   { codigo: "CORREIOS", sem_despacho: false, ativo: true },
   { codigo: "FRETE_FETELY", sem_despacho: false, ativo: true },
   { codigo: "RETIRADA", sem_despacho: true, ativo: true },
   { codigo: "BALCAO", sem_despacho: true, ativo: true },
+  { codigo: "TRANSPORTADORA", sem_despacho: false, ativo: true },
 ];
 
 export async function handlerFor(options: {
@@ -29,6 +31,7 @@ export async function handlerFor(options: {
       { codigo: "SITE-SP", tipo: "armazem", cep: "01139000" },
       { codigo: "FET-SP-SR", tipo: "showroom", cep: "01139000" },
       { codigo: "EVENTO-SP", tipo: "evento", cep: "01139000" },
+      { codigo: "XPM-SC", tipo: "armazem", poder_de_terceiro: true, cep: "89200000" },
     ],
   };
   const calls: { name: string; args: Row }[] = [];
@@ -213,4 +216,48 @@ test("declaração pix_safra propaga a recusa da regra persistida sem chamar Saf
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ ok: false, error: message });
   expect(quotes).toHaveLength(0);
+});
+
+test("armazém de terceiro só oferece transportadora com CEP válido e nunca Correios", async () => {
+  for (const cep of ["01310100", "1234567", ""]) {
+    const { invoke, calls, quotes } = await handlerFor();
+    const data = await (await invoke({ tipo: "balcao_calcular", centro_codigo: "XPM-SC", endereco: { cep } })).json();
+    expect(data.opcoes.map((o: { modo: string }) => o.modo)).toEqual(cep.length === 8 ? ["transportadora"] : []);
+    expect(calls.length).toBe(cep.length === 8 ? 1 : 0);
+    expect(quotes).toHaveLength(0);
+  }
+});
+
+test("cálculo passa transportadora escolhida ou null e devolve identificação do frete", async () => {
+  for (const transportadora of ["transportadora-teste", undefined]) {
+    const { invoke, calls } = await handlerFor({ rpc: async () => ({ data: {
+      endereco_entrega: { frete: { transportadora_id: "recomendada", transportadora_nome: "Nome do banco", prazo_dias: 3 } },
+      frete_cobrado: 33.31, valor_total: 48.31,
+    }, error: null }) });
+    const data = await (await invoke({ tipo: "balcao_calcular", centro_codigo: "XPM-SC", endereco: { cep: "01310100" }, transportadora_id: transportadora })).json();
+    expect((calls[0].args.p_entrega as Row).transportadora_id).toBe(transportadora ?? null);
+    expect(data.opcoes[0]).toMatchObject({ modo: "transportadora", transportadora_id: "recomendada", transportadora_nome: "Nome do banco", frete_cobrado: 33.31, valor_total: 48.31 });
+  }
+});
+
+test("cotação transportadora preserva retorno e argumentos da RPC", async () => {
+  const retorno = { ok: true, opcoes: [{ nome: "Ícaro", valor: 33.31 }], recomendada: { nome: "Ícaro" }, peso_usado: 1.5 };
+  const { invoke, calls, quotes } = await handlerFor({ rpc: async () => ({ data: retorno, error: null }) });
+  const itens = [{ sku: "produto", quantidade: 2 }];
+  expect(await (await invoke({ tipo: "balcao_cotar_transportadora", cep: "01310100", endereco: { cep: "outro" }, itens, valor: 100 })).json()).toEqual(retorno);
+  expect(calls[0]).toEqual({ name: "fn_vd_cotar_transportadora", args: { p_cep: "01310100", p_itens: itens, p_valor: 100 } });
+  await invoke({ tipo: "balcao_cotar_transportadora", endereco: { cep: "89200000" }, itens: {} });
+  expect(calls[1].args).toEqual({ p_cep: "89200000", p_itens: [], p_valor: null });
+  await invoke({ tipo: "balcao_cotar_transportadora" });
+  expect(calls[2].args.p_cep).toBe("");
+  expect(quotes).toHaveLength(0);
+});
+
+test("cotação preserva ok=false e erro literal da RPC", async () => {
+  for (const error of [null, { code: "P0001", message: "CEP não atendido" }]) {
+    const { invoke } = await handlerFor({ rpc: async () => ({ data: { ok: false, erro: "Sem opções" }, error }) });
+    const response = await invoke({ tipo: "balcao_cotar_transportadora" });
+    expect(response.status).toBe(error ? 400 : 200);
+    expect(await response.json()).toEqual(error ? { ok: false, error: "CEP não atendido" } : { ok: false, erro: "Sem opções" });
+  }
 });
