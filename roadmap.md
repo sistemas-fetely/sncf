@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Mesa SP A chegar: coluna somente leitura antes da Fila, filtros CD/canal, detalhe com retorno/foco e atualização conjunta; tipos regenerados, 20 testes e lint:gate OK. Preview real: 1 pedido SHP-1675, selo erro, B2B vazio e retorno destacado; desktop/celular/claro/escuro conferidos. Sem banco, etapas ou publicação.
 - [x] Onda 4 Finanças/Crédito: NF625, análises490 (decididas488), postagens669, B2C584/667 e Cobrança301 via RPC; NF/B2C página2 real, B2C bruto143086,93/líquido142256,82 iguais, Mesa14/15/4 e vencidos5. Duplicata #1196 preservada. Sem banco/publicação.
 - [x] Onda 4 exportação comercial: fn_lista via exportarLista, novembro46 antes/depois; log obrigatório preservado, arquivo baixado não exercitado.
 - [ ] Onda 4 fila Pedidos: fonte RPC integral sem corte, porém paginação/contadores locais preservados por PARE: risco_score/dias_na_fase, situação financeira/adiantamento, liberação, cobertura, lastro e entrega dependem de mapas ausentes em v_pedidos_fila. Risco limitado aos ids carregados em lotes200; não afirmar ids apenas da página visual enquanto ordenar depende dele.

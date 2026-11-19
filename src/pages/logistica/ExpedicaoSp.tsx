@@ -1,6 +1,8 @@
 import { SeloPostagem } from '@/components/logistica/SeloPostagem';
 import { avisoPostagem, ordenarDespacho } from '@/lib/logistica/agendamentoPostagem';
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { filtrarAChegar, type PedidoAChegar } from "./expedicao-sp/aChegar";
 import { AlertTriangle, Inbox, Loader2, PackageCheck, Undo2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -14,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { ehTransferenciaMesa } from "./expedicao-sp/transferenciaInterna";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEstadoTela } from "@/lib/navegacao";
+import { abrirDetalhe, useEstadoTela, useFocoAoVoltar } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -52,7 +54,7 @@ import {
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useAvisoTransportadoraNf, useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
+  useAChegarMesaSp, useAvisoTransportadoraNf, useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega, useTrocarModal,
   useEntregarTransferenciaMesa, useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
@@ -75,10 +77,15 @@ function modalDoEmbalado(eventos: EventoMesa[]): string | null {
 }
 
 export default function ExpedicaoSp() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const aChegarQ = useAChegarMesaSp();
   const pedidosQ = usePedidosMesaSp();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtro de CD na URL ("" = Todos; sem CD conta como Site SP).
   const [navMesa, setNavMesa] = useEstadoTela({ cd: "", canal: "", pedido: "" });
   const filtroCd = navMesa.cd;
+  const aChegar = useMemo(() => filtrarAChegar(aChegarQ.data ?? [], filtroCd, navMesa.canal), [aChegarQ.data, filtroCd, navMesa.canal]);
+  useFocoAoVoltar({ pronto: aChegarQ.isSuccess, idsVisiveis: aChegar.flatMap((p) => p.pedido_id ? [p.pedido_id] : []), focoParam: "a_chegar_foco" });
   // Opções: CDs habilitados em algum canal (centro_canal) do mesmo estabelecimento do Site SP + os que aparecem nos pedidos.
   const cdsMesaQ = useQuery({
     queryKey: ["mesa-sp", "cds-filtro"],
@@ -103,9 +110,10 @@ export default function ExpedicaoSp() {
     const m = new Map<string, string>();
     for (const c of cdsMesaQ.data ?? []) m.set(c.codigo, c.rotulo);
     for (const p of pedidosQ.data ?? []) if (p.cd_codigo) m.set(p.cd_codigo, p.cd_rotulo ?? p.cd_codigo);
+    for (const p of aChegarQ.data ?? []) if (p.cd_codigo) m.set(p.cd_codigo, p.cd_rotulo ?? p.cd_codigo);
     if (filtroCd && !m.has(filtroCd)) m.set(filtroCd, filtroCd);
     return [...m.entries()].map(([codigo, rotulo]) => ({ codigo, rotulo }));
-  }, [pedidosQ.data, filtroCd, cdsMesaQ.data]);
+  }, [pedidosQ.data, aChegarQ.data, filtroCd, cdsMesaQ.data]);
   const pedidos = useMemo(
     () => (pedidosQ.data ?? []).filter((p) => !filtroCd || (p.cd_codigo ?? CENTRO_SITE_SP) === filtroCd).filter((p) => !navMesa.canal || p.canal.toLowerCase() === navMesa.canal),
     [pedidosQ.data, filtroCd, navMesa.canal],
@@ -282,7 +290,7 @@ export default function ExpedicaoSp() {
     );
   }
 
-  const erro = pedidosQ.error ?? cdsMesaQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? etapasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
+  const erro = aChegarQ.error ?? pedidosQ.error ?? cdsMesaQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? etapasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
 
   return (
     <PageShell variant="dados">
@@ -290,9 +298,9 @@ export default function ExpedicaoSp() {
         icone={PackageCheck}
         titulo="Mesa de Expedição SP"
         estado={
-          pedidosQ.isLoading
+          pedidosQ.isLoading || aChegarQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa · ${pedidos.filter(p => p.etapa === 'aguardando_item').length} ${(colunas.find(c => c.codigo === 'aguardando_item')?.rotulo ?? 'aguardando_item').toLowerCase()} · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF · ${entregas.length} para entrega`
+            : `${aChegar.length} a chegar · ${fila.length} na fila · ${naMesa.length} na mesa · ${pedidos.filter(p => p.etapa === 'aguardando_item').length} ${(colunas.find(c => c.codigo === 'aguardando_item')?.rotulo ?? 'aguardando_item').toLowerCase()} · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF · ${entregas.length} para entrega`
         }
       />
 
@@ -313,6 +321,10 @@ export default function ExpedicaoSp() {
 
       {/* Quadro da bancada: uma coluna por etapa ativa de `mesa_sp_etapa`. */}
       <QuadroBancada
+        aChegar={aChegar}
+        aChegarCarregando={aChegarQ.isLoading}
+        aChegarErro={aChegarQ.error}
+        onAbrirAChegar={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { foco: id, focoParam: "a_chegar_foco", label: "Mesa de Expedição SP" })}
         colunas={colunas}
         pedidos={pedidos}
         cancelamentos={cancelamentos}
@@ -996,8 +1008,12 @@ function LinhaPedido({
 }
 
 function QuadroBancada({
-  colunas, pedidos, cancelamentos, selecionadoId, onSelecionar,
+  colunas, pedidos, cancelamentos, selecionadoId, onSelecionar, aChegar, aChegarCarregando, aChegarErro, onAbrirAChegar,
 }: {
+  aChegar: PedidoAChegar[];
+  aChegarCarregando: boolean;
+  aChegarErro: unknown;
+  onAbrirAChegar: (id: string) => void;
   colunas: ColunaQuadro[];
   pedidos: PedidoMesa[];
   cancelamentos: Map<string, CancelamentoMesa>;
@@ -1007,6 +1023,30 @@ function QuadroBancada({
   if (colunas.length === 0) return null;
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex min-w-[150px] flex-1 flex-col rounded-md border border-dashed bg-muted/20 p-1.5" aria-label="A chegar">
+        <p className="mb-1 flex shrink-0 items-center justify-between text-xs font-medium">
+          <span>A chegar</span><span>{aChegarCarregando || aChegarErro ? "—" : aChegar.length}</span>
+        </p>
+        <ul className="h-[180px] space-y-0.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+          {aChegarCarregando ? <li><Skeleton className="h-16 w-full" /></li> : aChegarErro ? <li className="text-xs text-destructive">{formatError(aChegarErro)}</li> : aChegar.length === 0 ? <li className="text-xs text-muted-foreground">Nada a chegar</li> : aChegar.map((p) => (
+            <li key={p.pedido_id} data-foco-id={p.pedido_id}>
+              <Button variant="ghost" disabled={!p.pedido_id} onClick={() => { if (p.pedido_id) onAbrirAChegar(p.pedido_id); }}
+                className="h-auto w-full flex-col items-stretch gap-0 rounded border bg-card px-1 py-0.5 text-left text-[11px] font-normal leading-tight whitespace-normal">
+                <span className="flex flex-wrap items-center gap-0.5">
+                  <span className="font-medium">{p.id_externo}</span>
+                  <Selo estado="info">{ehTransferenciaMesa(p.canal) ? "Transferência" : pedidoEhVendaDireta(p.id_externo ?? "") ? "VD" : p.canal?.toUpperCase()}</Selo>
+                  {p.com_erro && <Selo estado="warning">erro</Selo>}
+                </span>
+                <span className="block truncate text-muted-foreground">{p.cliente_nome ?? "cliente sem nome"}</span>
+                <span className="block text-muted-foreground">{p.estagio_rotulo}</span>
+                {p.motivo_liberado && <span className="block text-muted-foreground">{p.motivo_liberado}</span>}
+                {p.recebido_em && <span className="block text-muted-foreground">{esperaColeta(p.recebido_em)}</span>}
+                {p.proxima_acao && <span className="block text-muted-foreground">{p.proxima_acao}</span>}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </div>
       {colunas.map((c) => {
         const grupoBase = pedidos.filter((p) => c.etapas.includes(p.etapa));
         const ehDespacho = c.etapas.includes("despacho");

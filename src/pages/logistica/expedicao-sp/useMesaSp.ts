@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } from "@/lib/logistica/postagemAgencia";
 import { supabase } from "@/integrations/supabase/client";
+import type { PedidoAChegar } from "./aChegar";
 import { formatError } from "@/lib/format-error";
 import { executarInstrucaoRpc } from "@/lib/pedidos/instrucaoExpedicao";
 import { transportadoraNfDiverge } from "@/lib/logistica/trocaModalMesa";
@@ -39,6 +40,21 @@ export const CHAVE_MARCACOES_MESA = ["mesa-sp", "marcacoes-embalagem"] as const;
 export const CHAVE_CANCELAMENTOS_MESA = ["mesa-sp", "cancelamentos"] as const;
 export const CHAVE_DOCUMENTOS_MESA = ["mesa-sp", "documentos"] as const;
 export const CHAVE_AGUARDANDO_NF_MESA = ["mesa-sp", "aguardando-nf"] as const;
+export const CHAVE_A_CHEGAR_MESA = ["mesa-sp", "a-chegar"] as const;
+
+/** Pré-chegada somente leitura; usa o staleTime global e a rede de segurança da Mesa. */
+export function useAChegarMesaSp() {
+  return useQuery({
+    queryKey: CHAVE_A_CHEGAR_MESA,
+    refetchInterval: 30_000,
+    queryFn: async (): Promise<PedidoAChegar[]> => {
+      const { data, error } = await supabase.from("vw_mesa_sp_a_chegar")
+        .select("*").order("recebido_em", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
 
 /**
  * Mensagem de erro do Postgres/PostgREST sem engolir nada (FAIL-LOUD).
@@ -538,6 +554,7 @@ function useRpcMesa<TArgs extends Record<string, unknown>>(
       void qc.invalidateQueries({ queryKey: CHAVE_MARCACOES_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_DOCUMENTOS_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_AGUARDANDO_NF_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_A_CHEGAR_MESA });
     },
     onError: (e: unknown) => {
       toast.error(mensagemErro(e));
