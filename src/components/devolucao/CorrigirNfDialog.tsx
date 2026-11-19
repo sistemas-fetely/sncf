@@ -32,9 +32,9 @@ type Previa = {
 
 export function caminhoCorrecaoTexto(acao: string | undefined, prazo: string | null | undefined): string {
   if (acao === "cancelar_nf")
-    return `A NF ainda pode ser cancelada (até ${ddMMHHmm(prazo)}). O Fiscal cancela no Bling; o sistema reenvia o pedido e vincula a NF nova sozinho.`;
+    return `A NF ainda pode ser cancelada (até ${ddMMHHmm(prazo)}). O Fiscal cancela no Bling com o motivo abaixo; o sistema detecta o cancelamento, gera a NF nova em rascunho no Bling e vincula sozinho quando for transmitida.`;
   if (acao === "nf_devolucao")
-    return "Prazo de cancelamento vencido ou mercadoria já saiu. O sistema gera a NF de entrada (sem retorno físico) em Devoluções e Correções; o Fiscal autoriza no Bling; o sistema reenvia o pedido e vincula a NF nova sozinho.";
+    return "Prazo de cancelamento vencido ou mercadoria já saiu. O sistema gera a NF de entrada (sem retorno físico) em Devoluções e Correções; o Fiscal autoriza no Bling; o sistema gera a NF nova em rascunho no Bling e vincula sozinho quando for transmitida.";
   return "Caminho fiscal não informado pelo banco.";
 }
 
@@ -71,7 +71,7 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
     return () => { vivo = false; };
   }, [open, pedidoId]);
 
-  const motivoOk = motivo.trim().length >= 5;
+  const motivoOk = motivo.trim().length >= 15;
   // CORRIGIR-NF-CD (17/11/2026): a escolha do CD sai do dry-run; só aparece quando há 2+ emitentes.
   const centros = previa?.centros_emitentes ?? [];
   const podeTrocarCentro = centros.length >= 2;
@@ -157,8 +157,8 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
               )}
               <div className="space-y-1">
                 <Label htmlFor="corrigir-nf-motivo">Motivo *</Label>
-                <Textarea id="corrigir-nf-motivo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="O que saiu errado na NF" />
-                {motivo.length > 0 && !motivoOk && <p className="text-xs text-destructive">Mínimo de 5 caracteres.</p>}
+                <Textarea id="corrigir-nf-motivo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="O que saiu errado na NF (vira a justificativa do cancelamento no Bling)" />
+                {motivo.length > 0 && !motivoOk && <p className="text-xs text-destructive">Mínimo de 15 caracteres.</p>}
               </div>
             </>
           )}
