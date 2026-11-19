@@ -12,6 +12,13 @@ export const ROTULO_MEIO_VD: Record<MeioVD, string> = {
 /** Pagamento escolhido no Novo pedido: meio de cobrança ou bonificação (sem cobrança). */
 export type PagamentoVD = MeioVD | "bonificacao" | "conta_corrente_socio";
 
+/** Escolhas novas da VD; a leitura de pedidos antigos continua aceitando pix. */
+export const MEIOS_SELECIONAVEIS_VD: MeioVD[] = ["pix_safra", "cartao", "cartao_maquininha"];
+export function meioSelecionavelVD(p: string | null | undefined): MeioVD {
+  const meio = meioVD(p);
+  return meio === "pix" ? "pix_safra" : meio;
+}
+
 /** Bonificação (27/10/2026): pedido sem cobrança — não conta como aguardando pagamento. */
 export const ehBonificacao = (p: string | null | undefined) => p === "bonificacao";
 

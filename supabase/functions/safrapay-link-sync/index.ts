@@ -5,6 +5,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { substituirTrilhaSafra } from "../_shared/safrapay-trilha.ts";
+import { provaPixLink, alertaPreAutorizacao, estadoAguardandoLink } from "./pix-link.ts";
 
 const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-cron-secret` };
 const json = (body: unknown, status = 200) =>
@@ -393,7 +394,7 @@ Deno.serve(async (req) => {
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
         if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
         if (!l.provisao_id) throw new Error("Link PIX sem provisão de portão — confirmar manualmente.");
-        const ref = paga.pixRef ?? paga.nsu;
+        const ref = provaPixLink(Array.isArray(sc?.charges) ? sc.charges : []);
         if (!ref) throw new Error("PIX pago no link sem endToEndId/transactionId — confirmar manualmente.");
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
         const { error: eRpc } = await sb.rpc("confirmar_pagamento_linha", {
@@ -461,7 +462,7 @@ Deno.serve(async (req) => {
         }).eq("id", l.id);
         if (eUp) throw new Error(`Gravar pagamento: ${eUp.message}`);
         resumo.pagos++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "pago" });
-      } else if (pre) {
+      } else if (pre && alertaPreAutorizacao(linkPix, true)) {
         await sb.from("pagamento_link").update({ ...base, erro: "Pré-autorizada — capturar manualmente", charge_id: pre.id, nsu: pre.nsu }).eq("id", l.id);
         resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro: "Pré-autorizada — capturar manualmente" });
       } else if (scStatus === 101 || scStatus === 102 || scStatus === 100) {
@@ -475,7 +476,7 @@ Deno.serve(async (req) => {
         await substituirTrilhaSafra(sb, l);
         resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "cancelado" });
       } else {
-        const { error } = await sb.from("pagamento_link").update(base).eq("id", l.id);
+        const { error } = await sb.from("pagamento_link").update({ ...base, ...estadoAguardandoLink(linkPix) }).eq("id", l.id);
         if (error) throw new Error(`Gravar sync: ${error.message}`);
         resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "aguardando pagamento" });
       }

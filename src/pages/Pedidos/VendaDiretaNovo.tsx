@@ -40,7 +40,7 @@ import { fetchCep } from "@/lib/viacep";
 import { enderecoInicialCliente, enderecoParaCadastro } from "@/lib/pedidos/enderecoClienteVd";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
-import { meioVD, ROTULO_MEIO_VD, rotuloPagamentoVD, type PagamentoVD } from "@/lib/pedidos/meioVD";
+import { meioVD, meioSelecionavelVD, ROTULO_MEIO_VD, rotuloPagamentoVD, type PagamentoVD } from "@/lib/pedidos/meioVD";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
@@ -161,7 +161,7 @@ export default function VendaDiretaNovo() {
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
   const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
   const [anexarComprovante, setAnexarComprovante] = useState(false);
-  const [pagamento, setPagamento] = useState<PagamentoVD>("pix");
+  const [pagamento, setPagamento] = useState<PagamentoVD>("pix_safra");
   // Bonificação: quem autorizou, motivo (motivos_concessao) e observação.
   const [bonifAutorizado, setBonifAutorizado] = useState("");
   const [bonifMotivo, setBonifMotivo] = useState("brinde");
@@ -173,7 +173,7 @@ export default function VendaDiretaNovo() {
     if (error) throw error;
     return data.regime_socio === true;
   }});
-  useEffect(() => { if (socio && (!cliente || socioQ.data === false)) setPagamento("pix"); }, [cliente, socioQ.data, socio]);
+  useEffect(() => { if (socio && (!cliente || socioQ.data === false)) setPagamento("pix_safra"); }, [cliente, socioQ.data, socio]);
   const precoEfetivo = (i: Item) => socio ? precoItemSocio(i.preco, i.preco_promocional) : i.preco;
   const motivosBonifQ = useQuery({
     queryKey: ["motivos-concessao-ativos"],
@@ -280,7 +280,7 @@ export default function VendaDiretaNovo() {
     if (!d) return;
     if (inicializado.current) return;
     inicializado.current = true;
-    setPagamento(meioVD(d.linha.pagamento));
+    setPagamento(meioSelecionavelVD(d.linha.pagamento));
     setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setTransportadoraId(d.transportadoraId); setEndereco(d.endereco);
     setEnderecoEditado(true); setBeneficio(d.beneficio); setObservacao(d.observacao);
     setInstrucaoExpedicao(d.instrucaoExpedicao);
@@ -632,7 +632,7 @@ export default function VendaDiretaNovo() {
   const limparTudo = () => {
     setInstrucaoExpedicao(""); criadoAguardandoInstrucao.current = null;
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setTransportadoraId(null); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setBonifAutorizado(""); setBonifMotivo("brinde"); setBonifObs(""); setObservacao(""); setVendedorId(null);
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix_safra"); setBonifAutorizado(""); setBonifMotivo("brinde"); setBonifObs(""); setObservacao(""); setVendedorId(null);
     setCdCodigo("SITE-SP"); setResultado(null);
   };
 
@@ -1045,13 +1045,6 @@ export default function VendaDiretaNovo() {
           )}
           <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {!edicao && socioQ.data === true && <label className="flex items-start gap-2 text-sm"><RadioGroupItem value="conta_corrente_socio" /><span>Conta Corrente Sócio</span></label>}
-            <label className="flex items-start gap-2 text-sm">
-              <RadioGroupItem value="pix" className="mt-0.5" />
-              <span>
-                <span className="flex items-center gap-1"><QrCode className="h-3.5 w-3.5" />{rotPag.pix}</span>
-                <span className="block text-xs text-muted-foreground">{rotPag.pixLegenda}</span>
-              </span>
-            </label>
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix_safra" className="mt-0.5" />
               <span>

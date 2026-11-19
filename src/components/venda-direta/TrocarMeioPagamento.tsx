@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Loader2, QrCode, Smartphone, Zap } from "lucide-react";
-import { ROTULO_MEIO_VD, meioVD, type MeioVD } from "@/lib/pedidos/meioVD";
+import { ROTULO_MEIO_VD, meioVD, MEIOS_SELECIONAVEIS_VD, type MeioVD } from "@/lib/pedidos/meioVD";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
@@ -24,7 +24,7 @@ interface TrocaResultado {
 }
 
 const ROTULO = ROTULO_MEIO_VD;
-const MEIOS: MeioVD[] = ["pix", "pix_safra", "cartao", "cartao_maquininha"];
+const MEIOS = MEIOS_SELECIONAVEIS_VD;
 const ICONE: Record<MeioVD, typeof QrCode> = { pix: QrCode, pix_safra: Zap, cartao: CreditCard, cartao_maquininha: Smartphone };
 
 /** Troca o meio do pedido (PIX QR, PIX pelo Safra, cartão link, maquininha) via vd_trocar_meio_pagamento e mostra o pagamento novo. */
@@ -41,7 +41,7 @@ export function TrocarMeioPagamentoDialog({ linha, onClose }: { linha: LinhaVD |
 
   useEffect(() => {
     if (!linha) return;
-    setMeio(meioVD(linha.pagamento) === "pix" ? "cartao" : "pix");
+    setMeio(meioVD(linha.pagamento) === "pix_safra" ? "cartao" : "pix_safra");
     setMotivo(""); setRes(null); setOcupado(false);
   }, [linha?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
