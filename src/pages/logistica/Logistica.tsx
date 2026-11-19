@@ -18,15 +18,23 @@ import { parametrosEscopo } from "@/lib/logistica/escopo";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
+import { useAgenciasTransportadora } from "@/hooks/logistica/useAgenciasTransportadora";
+import { opcoesTransportadora, transportadoraExibida } from "@/lib/logistica/agenciaTransportadora";
 
 const CANAIS: CanalPainel[] = ["total", "b2b", "b2c"];
 const LEGADO_XPM: Record<string, string> = { "importar-fases": "importar-fases", "comparativo-fontes": "funil" };
 
 export default function Logistica() {
-  const { data: transportadoras = [], isLoading } = useTransportadorasLogistica();
+  const { data: todasTransportadoras = [], isLoading: carregandoTransp } = useTransportadorasLogistica();
+  const agenciasQ = useAgenciasTransportadora();
+  const agencias = agenciasQ.data ?? [];
+  // Agência (ex.: Beninca, Power Post) nunca é escopo próprio: conta como a transportadora-mãe.
+  const transportadoras = opcoesTransportadora(todasTransportadoras, agencias) as TransportadoraLogistica[];
+  const isLoading = carregandoTransp || agenciasQ.isLoading;
+  if (agenciasQ.error) throw agenciasQ.error;
   const [params, setParams] = useSearchParams();
   const abaUrl = params.get("aba") ?? "painel";
-  const transportadoraId = params.get("transportadora");
+  const transportadoraId = transportadoraExibida(params.get("transportadora"), agencias);
   const canalUrl = params.get("canal");
   const canal: CanalPainel = CANAIS.some((c) => c === canalUrl) ? (canalUrl as CanalPainel) : "total";
   const aba = ABAS_LOGISTICA.some((a) => a.value === abaUrl) ? abaUrl : "painel";
