@@ -14,9 +14,10 @@ export function BotaoEtiquetaCorreios({ pedidoId, disabled }: { pedidoId: string
   if (ppQ.error) return <span className="text-xs text-destructive">{(ppQ.error as Error).message}</span>;
   if (!pp) return null;
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
+    <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-2">
     <Button
       type="button" size="sm" variant="outline"
+      className="h-auto min-h-8 max-w-full whitespace-normal py-2 text-left"
       onClick={() => gerar.mutate({ pedidoId, prepostagemId: pp.id })}
       disabled={disabled || gerar.isPending}
     >
