@@ -371,8 +371,8 @@ export default function VendaDiretaNovo() {
       try {
         const [cad, peds] = await Promise.all([
           supabase.from("parceiros_comerciais").select("cep, logradouro, numero, endereco_complemento, bairro, cidade, uf").eq("id", c.id).maybeSingle(),
-          (supabase as any).from("pedidos").select("endereco_entrega, created_at").eq("parceiro_id", c.id)
-            .not("endereco_entrega->>cep", "is", null).order("created_at", { ascending: false }).limit(5),
+          (supabase as any).from("pedidos").select("endereco_entrega, recebido_em").eq("parceiro_id", c.id)
+            .not("endereco_entrega->>cep", "is", null).order("recebido_em", { ascending: false, nullsFirst: false }).limit(5),
         ]);
         if (cad.error) throw cad.error;
         if (peds.error) throw peds.error;
