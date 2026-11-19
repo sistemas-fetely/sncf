@@ -1,4 +1,6 @@
 import { createPortal } from "react-dom";
+import { useMemo } from "react";
+import { consolidarItensPorProduto } from "./consolidarItensPorProduto";
 import { ehTransferenciaMesa } from "./transferenciaInterna";
 import { bloqueiaAvancoInstrucao } from "@/lib/pedidos/instrucaoExpedicao";
 import { CodProduto } from "@/components/produto/CodProduto";
@@ -55,7 +57,8 @@ function hojePtBr(): string {
   }).format(new Date());
 }
 
-export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onConcluir, imagens, bloqueado = false }: Props) {
+export function EstacaoSeparacao({ itens: linhas, carregando, pedido, identidades, onConcluir, imagens, bloqueado = false }: Props) {
+  const itens = useMemo(() => consolidarItensPorProduto(linhas), [linhas]);
   const totalPecas = itens.reduce((s, i) => s + i.quantidade, 0);
   const identidadesPapel = [
     identidades?.bling_pedido_numero ? `Bling ${identidades.bling_pedido_numero}` : null,
@@ -84,7 +87,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
   }
 
   return (
-    <Card>
+    <Card className="min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-none">
       {/* Folha de impressão: escondida na tela, única coisa visível no papel. */}
       <style>{`
         .folha-separacao-print { display: none; }
@@ -198,7 +201,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
           <p className="text-sm font-medium">
             Picking list · {itens.length} {itens.length === 1 ? "linha" : "linhas"} · {totalPecas} peças
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => window.print()}>
               <Printer aria-hidden="true" />
               Imprimir folha

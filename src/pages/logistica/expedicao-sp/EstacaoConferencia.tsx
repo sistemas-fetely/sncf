@@ -1,4 +1,5 @@
 import { CodProduto } from "@/components/produto/CodProduto";
+import { consolidarItensPorProduto, itensConsolidadosParaConferencia } from "./consolidarItensPorProduto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, Package, ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -224,8 +225,9 @@ interface Props {
 }
 
 export function EstacaoConferencia({
-  pedidoId, itens, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao, bloqueado = false,
+  pedidoId, itens: linhas, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao, bloqueado = false,
 }: Props) {
+  const itens = useMemo(() => consolidarItensPorProduto(linhas), [linhas]);
   const barrasQ = useResolverCodigoBarras();
   const [caixaPendente, setCaixaPendente] = useState<CodigoBarrasResolvido | null>(null);
   const [unidadesCaixa, setUnidadesCaixa] = useState("");
@@ -289,12 +291,7 @@ export function EstacaoConferencia({
 
   const paraRpc = useCallback(
     (): ItemConferido[] =>
-      itens.map((i) => ({
-        sku: i.sku,
-        ean: i.ean,
-        esperado: i.quantidade,
-        bipado: bipados[i.id] ?? 0,
-      })),
+      itensConsolidadosParaConferencia(itens, bipados),
     [itens, bipados],
   );
 
@@ -321,14 +318,14 @@ export function EstacaoConferencia({
   }
 
   function contarProduto(resolvido: CodigoBarrasResolvido, unidades: number, codigo: string) {
-    const candidatos = itens.filter((i) => i.sku === resolvido.sku);
+    const candidatos = itens.filter((i) => i.sku === resolvido.sku || i.linhas_origem.some(l => linhas.find(origem => origem.id === l.id)?.sku === resolvido.sku));
     if (candidatos.length === 0) {
       tocarAlerta();
       setAlerta(`${codigo} não pertence a este pedido.`);
       return;
     }
 
-    // Vários itens com o mesmo código: enche o primeiro que ainda falta.
+    // O alvo é o produto consolidado, nunca uma linha de preço do pedido.
     const alvo = candidatos.find((i) => (bipados[i.id] ?? 0) < i.quantidade);
     if (!alvo) {
       tocarAlerta();
@@ -398,10 +395,10 @@ export function EstacaoConferencia({
   const pecasConferidas = conferidos.reduce((s, i) => s + (bipados[i.id] ?? 0), 0);
 
   return (
-    <Card onClick={focar}>
+    <Card onClick={focar} className="min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-none">
       <CardContent className="space-y-4 p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-[18rem] flex-1 space-y-1.5">
+          <div className="min-w-0 w-full flex-1 space-y-1.5 sm:min-w-[18rem]">
             <Label htmlFor="mesa-sp-bipagem">Bipe os itens</Label>
             <div className="relative">
               <ScanBarcode
@@ -459,7 +456,7 @@ export function EstacaoConferencia({
             a foto com a peça na mão. É reforço visual — quem valida é o EAN. */}
         {ultimoBipe && (
           <div
-            className="flex items-center gap-4 rounded-lg border border-success/40 bg-success/5 p-3"
+            className="flex flex-wrap items-center gap-4 rounded-lg border border-success/40 bg-success/5 p-3"
             aria-live="polite"
           >
             <FotoItem

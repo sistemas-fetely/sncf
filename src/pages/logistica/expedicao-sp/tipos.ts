@@ -229,6 +229,7 @@ export interface EventoMesa {
 
 export interface ItemPedidoMesa {
   id: string;
+  produto_id?: string | null;
   sku: string | null;
   descricao: string;
   quantidade: number;
@@ -383,6 +384,8 @@ export interface ModalRegra {
 
 /** Payload de `p_itens` da RPC de conferência — formato fechado no briefing. */
 export interface ItemConferido {
+  produto_id?: string | null;
+  linhas_origem?: { id: string; qtd: number }[];
   sku: string | null;
   ean: string | null;
   esperado: number;

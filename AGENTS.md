@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Mesa SP picking/print and scanning share a pure product consolidation selector; first-row identity preserves scan state while quantity and origin-line provenance are summed for both conference outcomes, without changing order or fiscal lines.
 - Mercado Pago collection carries the dimension account through every execution/import query and client; cron selects active accounts with isolated results, manual import defaults to Shopify, and config creation only copies documented fields into a missing target config.
 - Mercado Pago credentials render all dimension accounts, including inactive setup rows; connection testing resolves the Vault secret server-side by account code after the existing permission gate, never by a client-provided secret name.
 - Mesa SP pre-arrival reads its own view/query with global freshness and Mesa invalidation; it never enters stage selectors or actions, and detail navigation preserves CD/channel plus card focus.
