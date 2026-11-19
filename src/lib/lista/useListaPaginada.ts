@@ -5,13 +5,14 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type FiltroLista = {
-  c: string;
-  op: "eq" | "neq" | "in" | "nin" | "gt" | "gte" | "lt" | "lte" | "ilike" | "is_null" | "not_null" | "is_true" | "not_true" | "contains";
+  c?: string;
+  op: "eq" | "neq" | "in" | "nin" | "gt" | "gte" | "lt" | "lte" | "ilike" | "is_null" | "not_null" | "is_true" | "not_true" | "contains" | "or";
   v?: unknown;
 };
 
 export interface ParamsLista {
   relacao: string;
+  agrupar?: string;
   colunas?: string[];
   busca?: string;
   filtros?: FiltroLista[];
@@ -70,7 +71,13 @@ export function montarParamsLista(params: ParamsLista): Record<string, unknown> 
   const p: Record<string, unknown> = { ...resto };
   const b = busca?.trim();
   if (b) p.busca = b;
-  const filtros = [...(params.filtros ?? [])];
+  const filtros = [...(params.filtros ?? [])].map(f => {
+    // fn_lista compara eq como texto; preserve microssegundos e o fuso da foto.
+    if (params.relacao === "xpm_estoque_posicao" && f.c === "data_hora_posicao" && f.op === "eq" && typeof f.v === "string") {
+      return { ...f, v: f.v.replace("T", " ").replace(/([+-]\d{2}):00$/, "$1") };
+    }
+    return f;
+  });
   if (ids?.length) filtros.push({ c: "id", op: "in", v: ids });
   p.filtros = filtros;
   return p;
@@ -90,7 +97,7 @@ export async function exportarLista<T>(params: ParamsLista): Promise<T[]> {
   for (let pagina = 1; ; pagina += 1) {
     const resultado = await chamarLista<T>({ ...params, pagina, tamanho: 500 });
     linhas.push(...resultado.linhas);
-    if (linhas.length >= resultado.total) return linhas;
+    if (params.agrupar ? pagina * 500 >= resultado.total : linhas.length >= resultado.total) return linhas;
     if (!resultado.linhas.length) throw new Error(`fn_lista interrompeu a exportação de ${params.relacao} antes do total.`);
   }
 }

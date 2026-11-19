@@ -117,31 +117,16 @@ function fmtDuracao(v: number | null | undefined) {
 }
 
 
-function percentil(ordenado: number[], p: number) {
-  if (ordenado.length === 0) return null;
-  const idx = Math.min(ordenado.length - 1, Math.max(0, Math.ceil(p * ordenado.length) - 1));
-  return ordenado[idx];
-}
-
-function mediana(ordenado: number[]) {
-  if (ordenado.length === 0) return null;
-  const meio = Math.floor(ordenado.length / 2);
-  return ordenado.length % 2 === 1
-    ? ordenado[meio]
-    : (ordenado[meio - 1] + ordenado[meio]) / 2;
-}
-
-function estatisticas(valores: number[]) {
-  const ord = [...valores].sort((a, b) => a - b);
-  return {
-    n: ord.length,
-    media: ord.length ? ord.reduce((s, v) => s + v, 0) / ord.length : null,
-    mediana: mediana(ord),
-    p90: percentil(ord, 0.9),
-    melhor: ord.length ? ord[0] : null,
-    pior: ord.length ? ord[ord.length - 1] : null,
-  };
-}
+type Estatistica = { canal: string; n: number; media: number | null; mediana: number | null; p90: number | null; melhor: number | null; pior: number | null };
+type PainelDados = {
+  bloco1: Estatistica[]; pausas: { n: number; horas: number };
+  faixas: { label: string; series: { canal: string; n: number; pct: number }[] }[];
+  tendencia: (Estatistica & { mes: string })[];
+  farol_fila: { risco: number; atencao: number; noPrazo: number; pausadas: number };
+  aderencia: { canal: string; meta: number | null; n: number; pctCliente: number | null; okCliente: number; pctXpm: number | null; okXpm: number; excesso: number | null; soFimDeSemana: number }[];
+  volume: { expedicoes: number; volumes: number; peso: number };
+  em_curso: CicloXpm[]; pausadas: CicloXpm[]; precisam_atencao: CicloXpm[];
+};
 
 const OPACIDADE: Record<string, string> = {
   B2B: "opacity-100",
@@ -153,169 +138,25 @@ export default function PainelXpm() {
   const [periodo, setPeriodo] = useState("90");
 
   const cicloQ = useQuery({
-    queryKey: ["xpm-ciclo"],
+    queryKey: ["xpm-ciclo", periodo],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_xpm_risco_atraso")
-        .select("*")
-        .order("data_expedicao", { ascending: false });
+      const { data, error } = await supabase.rpc("fn_painel_xpm" as never, { p_dias: Number(periodo) } as never);
       if (error) throw error;
-      return (data ?? []) as CicloXpm[];
+      if (!data) throw new Error("Erro ao carregar o ciclo das expedições");
+      return data as unknown as PainelDados;
     },
   });
-
-  const rows = cicloQ.data ?? [];
-
-  const noPeriodo = useMemo(() => {
-    const dias = Number(periodo);
-    const corte = Date.now() - dias * 86400000;
-    return rows.filter((r) => {
-      if (!r.data_expedicao) return false;
-      const t = new Date(r.data_expedicao).getTime();
-      return !Number.isNaN(t) && t >= corte;
-    });
-  }, [rows, periodo]);
-
-  const concluidas = useMemo(
-    () => noPeriodo.filter((r) => r.concluida === true && r.horas_ciclo_liquido != null),
-    [noPeriodo],
-  );
-
-  const bloco1 = useMemo(() => {
-    const linhas = CANAIS.map((c) => ({
-      canal: c as string,
-      ...estatisticas(
-        concluidas.filter((r) => r.canal === c).map((r) => Number(r.horas_ciclo_liquido)),
-      ),
-    }));
-    linhas.push({
-      canal: "Total",
-      ...estatisticas(concluidas.map((r) => Number(r.horas_ciclo_liquido))),
-    });
-    return linhas;
-  }, [concluidas]);
-
-  const pausasResumo = useMemo(() => {
-    const comPausa = noPeriodo.filter((r) => Number(r.qtd_pausas ?? 0) > 0);
-    const horas = noPeriodo.reduce((s, r) => s + Number(r.horas_pausadas ?? 0), 0);
-    return { n: comPausa.length, horas };
-  }, [noPeriodo]);
-
-  const faixas = useMemo(() => {
-    const defs = [
-      { label: "até 24h", ok: (v: number) => v <= 24 },
-      { label: "24–48h", ok: (v: number) => v > 24 && v <= 48 },
-      { label: "48–72h", ok: (v: number) => v > 48 && v <= 72 },
-      { label: "acima de 72h", ok: (v: number) => v > 72 },
-    ];
-    return defs.map((d) => ({
-      label: d.label,
-      series: CANAIS.map((c) => {
-        const doCanal = concluidas.filter((r) => r.canal === c);
-        const n = doCanal.filter((r) => d.ok(Number(r.horas_ciclo_liquido))).length;
-        return {
-          canal: c as string,
-          n,
-          pct: doCanal.length ? (n / doCanal.length) * 100 : 0,
-        };
-      }),
-    }));
-  }, [concluidas]);
-
-  const maiorFaixa = useMemo(
-    () => Math.max(1, ...faixas.flatMap((f) => f.series.map((s) => s.n))),
-    [faixas],
-  );
-
-  const tendencia = useMemo(() => {
-    const mapa = new Map<string, number[]>();
-    for (const r of rows) {
-      if (r.concluida !== true || r.horas_ciclo_liquido == null || !r.t_expedido) continue;
-      const mes = String(r.t_expedido).slice(0, 7);
-      const arr = mapa.get(mes) ?? [];
-      arr.push(Number(r.horas_ciclo_liquido));
-      mapa.set(mes, arr);
-    }
-    return [...mapa.entries()]
-      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .slice(0, 6)
-      .map(([mes, valores]) => ({ mes, ...estatisticas(valores) }));
-  }, [rows]);
-
-  const emCurso = useMemo(
-    () =>
-      noPeriodo
-        .filter((r) => r.concluida === false)
-        .sort(
-          (a, b) => Number(b.horas_em_curso_liquido ?? 0) - Number(a.horas_em_curso_liquido ?? 0),
-        ),
-    [noPeriodo],
-  );
-
-  const pausadas = useMemo(() => noPeriodo.filter((r) => r.pausada_agora === true), [noPeriodo]);
-
-  const fila = useMemo(() => rows.filter((r) => r.concluida === false), [rows]);
-
-  const farolFila = useMemo(
-    () => ({
-      risco: fila.filter((r) => r.farol === "risco").length,
-      atencao: fila.filter((r) => r.farol === "atencao").length,
-      noPrazo: fila.filter((r) => r.farol === "no_prazo").length,
-      pausadas: fila.filter((r) => r.farol === "pausada").length,
-    }),
-    [fila],
-  );
-
-
-  const precisamAtencao = useMemo(
-    () =>
-      fila
-        .filter((r) => r.farol === "risco" || r.farol === "atencao")
-        .sort(
-          (a, b) => Number(b.horas_em_curso_liquido ?? 0) - Number(a.horas_em_curso_liquido ?? 0),
-        ),
-    [fila],
-  );
-
-  // Aderencia ao SLA: dois relogios sobre as expedicoes concluidas do periodo.
-  const aderencia = useMemo(() => {
-    const base = noPeriodo.filter((r) => r.concluida === true && r.horas_sla != null);
-    const canais = [...new Set(base.map((r) => r.canal as string))].sort();
-    const linha = (nome: string, arr: CicloXpm[]) => {
-      const n = arr.length;
-      const okCliente = arr.filter((r) => r.dentro_sla_cliente === true).length;
-      const okXpm = arr.filter((r) => r.dentro_sla_xpm === true).length;
-      const estouraramXpm = arr.filter((r) => r.dentro_sla_xpm === false);
-      const excesso = estouraramXpm.length
-        ? estouraramXpm.reduce((s, r) => s + Number(r.horas_excedidas_xpm ?? 0), 0) /
-          estouraramXpm.length
-        : null;
-      const metas = [...new Set(arr.map((r) => Number(r.horas_sla)))];
-      return {
-        canal: nome,
-        meta: metas.length === 1 ? metas[0] : null,
-        n,
-        pctCliente: n ? (okCliente / n) * 100 : null,
-        okCliente,
-        pctXpm: n ? (okXpm / n) * 100 : null,
-        okXpm,
-        excesso,
-        soFimDeSemana: arr.filter((r) => r.estouro_so_por_fim_de_semana === true).length,
-      };
-    };
-    const linhas = canais.map((c) => linha(c, base.filter((r) => r.canal === c)));
-    if (base.length) linhas.push(linha("Total", base));
-    return linhas;
-  }, [noPeriodo]);
-
-  const volume = useMemo(
-    () => ({
-      expedicoes: concluidas.length,
-      volumes: concluidas.reduce((s, r) => s + Number(r.quantidade_volumes ?? 0), 0),
-      peso: concluidas.reduce((s, r) => s + Number(r.peso_bruto ?? 0), 0),
-    }),
-    [concluidas],
-  );
+  const bloco1 = cicloQ.data?.bloco1 ?? [];
+  const pausasResumo = cicloQ.data?.pausas ?? { n: 0, horas: 0 };
+  const faixas = cicloQ.data?.faixas ?? [];
+  const maiorFaixa = useMemo(() => Math.max(1, ...faixas.flatMap(f => f.series.map(s => s.n))), [faixas]);
+  const tendencia = cicloQ.data?.tendencia ?? [];
+  const emCurso = cicloQ.data?.em_curso ?? [];
+  const pausadas = cicloQ.data?.pausadas ?? [];
+  const precisamAtencao = cicloQ.data?.precisam_atencao ?? [];
+  const farolFila = cicloQ.data?.farol_fila ?? { risco: 0, atencao: 0, noPrazo: 0, pausadas: 0 };
+  const aderencia = cicloQ.data?.aderencia ?? [];
+  const volume = cicloQ.data?.volume ?? { expedicoes: 0, volumes: 0, peso: 0 };
 
   if (cicloQ.isError) {
     return (
@@ -553,7 +394,7 @@ export default function PainelXpm() {
 
 
 
-      {noPeriodo.length === 0 ? (
+      {volume.expedicoes === 0 && emCurso.length === 0 && pausadas.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-sm text-muted-foreground">
             Nenhuma expedição no período escolhido.

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type SetStateAction } from "react";
+import { Fragment, useEffect, useMemo, useState, type SetStateAction } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,7 +47,12 @@ import { ChevronDown, ChevronRight, Loader2, RefreshCw, AlertTriangle } from "lu
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useListaPaginada, numeroAgregado, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+
 type ExpedicaoXpm = {
+  em_curso: boolean;
+  janela_5d: boolean;
   codigo: string;
   data_expedicao: string | null;
   situacao: string | null;
@@ -269,17 +274,8 @@ function fmtDataHora(v: string | null) {
   return d.toLocaleString("pt-BR");
 }
 
-const JANELA_POS_EMBARQUE_DIAS = 5;
-
-function dentroJanela(r: ExpedicaoXpm) {
-  const ref = r.t_expedido ?? r.data_expedicao;
-  if (!ref) return false;
-  const dias = (Date.now() - new Date(ref).getTime()) / 86_400_000;
-  return dias <= JANELA_POS_EMBARQUE_DIAS;
-}
-
 function recemExpedida(r: ExpedicaoXpm) {
-  return Number(r.estagio_seq) >= 6 && dentroJanela(r);
+  return !r.em_curso && r.janela_5d;
 }
 
 function desdeQuando(v: string | null) {
@@ -384,7 +380,7 @@ function BlocoPausa({ codigo }: { codigo: string }) {
   const encerradas = pausas.filter((p) => p.retomado_em != null);
 
   function invalidar() {
-    qc.invalidateQueries({ queryKey: ["xpm-expedicoes"] });
+    qc.invalidateQueries({ queryKey: ["lista", "vw_xpm_expedicao_lista"] });
     qc.invalidateQueries({ queryKey: ["xpm-pausas", codigo] });
   }
 
@@ -697,7 +693,7 @@ export default function ExpedicoesXpm() {
   const qc = useQueryClient();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da aba Expedições na URL (prefixo "exp").
   const [nav, setNav] = useEstadoTela(
-    { canal: "todos", estagio: "todos", situacao: "curso_5d", farol: "", sla: "todos", busca: "", aberto: "" },
+    { canal: "todos", estagio: "todos", situacao: "curso_5d", farol: "", sla: "todos", busca: "", aberto: "", pagina: 1 },
     { prefixo: "exp", replaceKeys: ["aberto"] },
   );
   const { canal, estagio, situacao, busca } = nav;
@@ -713,24 +709,25 @@ export default function ExpedicoesXpm() {
   const setAberto = (v: string | null) => setNav({ aberto: v ?? "" });
   const [sincronizando, setSincronizando] = useState(false);
 
-  const expedicoesQ = useQuery({
-    queryKey: ["xpm-expedicoes"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_xpm_risco_atraso")
-        .select("*")
-        .order("data_expedicao", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as ExpedicaoXpm[];
-    },
-    // Painel operacional: fica aberto o dia inteiro. Sem isto, o rotulo de
-    // "sincronizado ha X" media a idade da ABA, nao a saude da integracao.
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-  });
-
-
-
+  const [tamanhoPagina, setTamanhoPagina] = useState(50);
+  useEffect(() => { setNav({ pagina: 1 }); }, [canal, estagio, situacao, busca, farolFiltro, slaFiltro, tamanhoPagina]);
+  const filtros: FiltroLista[] = [];
+  if (canal !== "todos") filtros.push({ c: "canal", op: "eq", v: canal });
+  if (estagio !== "todos") filtros.push({ c: "estagio_codigo", op: "eq", v: estagio });
+  if (farolFiltro) filtros.push({ c: "farol", op: "eq", v: farolFiltro });
+  if (slaFiltro !== "todos") filtros.push({ c: "farol_sla", op: "eq", v: slaFiltro });
+  if (situacao === "em_curso") filtros.push({ c: "em_curso", op: "is_true" });
+  if (situacao === "expedidas") filtros.push({ c: "em_curso", op: "not_true" });
+  if (situacao === "curso_5d") filtros.push({ c: "janela_5d", op: "is_true" });
+  const expedicoesQ = useListaPaginada<ExpedicaoXpm>({ relacao: "vw_xpm_expedicao_lista", filtros, busca,
+    pagina: nav.pagina, tamanho: tamanhoPagina,
+    agregados: [
+      ...[["emCurso", "em_curso", "is_true", undefined], ["semNf", "sem_nf", "is_true", undefined],
+        ["atencao", "farol", "eq", "atencao"], ["risco", "farol", "eq", "risco"], ["corte", "tem_corte", "is_true", undefined]].map(([id, c, op, v]) =>
+        ({ id: String(id), fn: "count" as const, ignorar: ["*"], onde: [{ c: String(c), op: op as FiltroLista["op"], v }] })),
+      { id: "peso", fn: "sum", c: "peso_bruto", ignorar: ["*"], onde: [{ c: "em_curso", op: "is_true" }] },
+      { id: "sync", fn: "max", c: "sincronizado_em", ignorar: ["*"] },
+    ] }, { refetchInterval: 60_000 });
 
   const fasesQ = useQuery({
     queryKey: ["wns-fases-xpm"],
@@ -751,82 +748,12 @@ export default function ExpedicoesXpm() {
     return m;
   }, [fasesQ.data]);
 
-  const rows = expedicoesQ.data ?? [];
-
-  const kpis = useMemo(() => {
-    const emCurso = rows.filter((r) => Number(r.estagio_seq) < 6);
-    return {
-      emCurso: emCurso.length,
-      semNf: rows.filter((r) => Number(r.estagio_seq) >= 2 && Number(r.estagio_seq) < 4).length,
-      atencao: rows.filter((r) => r.farol === "atencao").length,
-      risco: rows.filter((r) => r.farol === "risco").length,
-      corte: rows.filter((r) => r.tem_corte === true).length,
-      peso: emCurso.reduce((s, r) => s + Number(r.peso_bruto ?? 0), 0),
-    };
-  }, [rows]);
-
-  const filtradas = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (canal !== "todos" && r.canal !== canal) return false;
-      if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
-      if (farolFiltro && r.farol !== farolFiltro) return false;
-      if (slaFiltro !== "todos" && r.farol_sla !== slaFiltro) return false;
-      // JANELA-POS-EMBARQUE: o momento de maior risco e logo depois do embarque,
-      // quando ainda da pra corrigir volume, transportadora ou NF divergente.
-      // Sumir com a expedicao nesse instante e o pior timing possivel.
-      const emCurso = Number(r.estagio_seq) < 6;
-      if (situacao === "em_curso" && !emCurso) return false;
-      if (situacao === "expedidas" && emCurso) return false;
-      if (situacao === "curso_5d" && !emCurso && !dentroJanela(r)) return false;
-      if (!q) return true;
-      return [
-        r.codigo,
-        r.nf_numero,
-        r.pedido_sncf,
-        r.pedido_display,
-        r.pedido_loja,
-        r.cidade_entrega,
-        r.cliente_sncf,
-        r.destinatario_nome,
-      ]
-
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [rows, canal, estagio, situacao, busca, farolFiltro, slaFiltro]);
-
-  // ORDEM-DA-MESA: abertas primeiro (estagio_seq < 6), expedidas depois.
-  // Dentro de cada grupo, do mais antigo para o mais novo pela entrada no
-  // armazem (t_solicitado). Pausada continua aberta: so esta parada.
-  // Nulos vao para o fim do proprio grupo, desempate estavel pelo codigo.
-  const ordenadas = useMemo(() => {
-    const instante = (r: ExpedicaoXpm) => {
-      const v = r.t_solicitado ?? r.data_expedicao ?? r.ultimo_evento_em;
-      if (!v) return null;
-      const t = new Date(v).getTime();
-      return Number.isNaN(t) ? null : t;
-    };
-    return [...filtradas].sort((a, b) => {
-      const grupoA = Number(a.estagio_seq) < 6 ? 0 : 1;
-      const grupoB = Number(b.estagio_seq) < 6 ? 0 : 1;
-      if (grupoA !== grupoB) return grupoA - grupoB;
-      const ta = instante(a);
-      const tb = instante(b);
-      if (ta == null && tb == null) return a.codigo.localeCompare(b.codigo);
-      if (ta == null) return 1;
-      if (tb == null) return -1;
-      return ta - tb;
-    });
-  }, [filtradas]);
-
-  const ultimoSync = useMemo(() => {
-    let melhor: string | null = null;
-    for (const r of rows) {
-      if (r.sincronizado_em && (!melhor || r.sincronizado_em > melhor)) melhor = r.sincronizado_em;
-    }
-    return melhor;
-  }, [rows]);
+  const ordenadas = expedicoesQ.data?.linhas ?? [];
+  const ag = expedicoesQ.data?.agregados;
+  const kpis = { emCurso: numeroAgregado(ag, "emCurso"), semNf: numeroAgregado(ag, "semNf"),
+    atencao: numeroAgregado(ag, "atencao"), risco: numeroAgregado(ag, "risco"), corte: numeroAgregado(ag, "corte"), peso: numeroAgregado(ag, "peso") };
+  const sync = ag?.sync as unknown;
+  const ultimoSync = typeof sync === "string" ? sync : null;
 
   async function sincronizar() {
     setSincronizando(true);
@@ -839,7 +766,7 @@ export default function ExpedicoesXpm() {
       if (error) throw error;
       if (data && (data as any).ok === false) throw new Error((data as any).erro ?? "Falha na sincronização");
       toast.success(`Sincronizado: ${(data as any)?.expedicoes ?? 0} expedições`);
-      qc.invalidateQueries({ queryKey: ["xpm-expedicoes"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_xpm_expedicao_lista"] });
       qc.invalidateQueries({ queryKey: ["xpm-expedicao-itens"] });
       qc.invalidateQueries({ queryKey: ["xpm-expedicao-eventos"] });
     } catch (e: any) {
@@ -1185,6 +1112,7 @@ export default function ExpedicoesXpm() {
                 </Table>
               </div>
             )}
+            <RodapePaginacao total={expedicoesQ.data?.total ?? 0} pagina={nav.pagina} tamanhoPagina={tamanhoPagina} onPagina={pagina => setNav({ pagina })} onTamanhoPagina={setTamanhoPagina} />
           </CardContent>
         </Card>
       </PageShell>

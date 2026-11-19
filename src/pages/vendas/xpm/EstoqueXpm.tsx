@@ -29,7 +29,7 @@ import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } fro
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useListaPaginada, numeroAgregado, gruposAgregado } from "@/lib/lista/useListaPaginada";
+import { exportarLista, useListaPaginada, numeroAgregado, gruposAgregado } from "@/lib/lista/useListaPaginada";
 import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { hojeISO } from "@/lib/data";
 type ConciliacaoApi = {
@@ -176,17 +176,9 @@ export default function EstoqueXpm() {
   const posicoesQ = useQuery({
     queryKey: ["xpm-estoque-posicoes"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("xpm_estoque_posicao")
-        .select("data_hora_posicao")
-        .order("data_hora_posicao", { ascending: false })
-        .limit(2000);
+      const { data, error } = await supabase.rpc("fn_xpm_posicoes_disponiveis" as never, { p_limite: 120 } as never);
       if (error) throw error;
-      const set = new Set<string>();
-      for (const r of (data ?? []) as { data_hora_posicao: string | null }[]) {
-        if (r.data_hora_posicao) set.add(r.data_hora_posicao);
-      }
-      return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+      return (data ?? []) as unknown as string[];
     },
   });
 
@@ -198,21 +190,9 @@ export default function EstoqueXpm() {
   const historicoQ = useQuery({
     queryKey: ["xpm-estoque-posicao-detalhe", posicaoAtiva],
     enabled: verHistorico,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("xpm_estoque_posicao")
-        .select("sku, descricao, quantidade, situacao_estoque, lote")
-        .eq("data_hora_posicao", posicaoAtiva)
-        .order("sku");
-      if (error) throw error;
-      return (data ?? []) as {
-        sku: string;
-        descricao: string | null;
-        quantidade: number | null;
-        situacao_estoque: string | null;
-        lote: string | null;
-      }[];
-    },
+    queryFn: () => exportarLista<{ sku: string; descricao: string | null; quantidade: number | null; situacao_estoque: string | null; lote: string | null }>({
+      relacao: "xpm_estoque_posicao", filtros: [{ c: "data_hora_posicao", op: "eq", v: posicaoAtiva }], ordem: [{ c: "sku", dir: "asc" }],
+    }),
   });
 
   const rowsFiltradas = conciliacaoQ.data?.linhas ?? [];

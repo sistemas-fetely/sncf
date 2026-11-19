@@ -34,6 +34,20 @@ describe("fn_lista agregados e exportação", () => {
     rpc.mockResolvedValueOnce({ data: null, error: erro });
     await expect(exportarLista({ relacao: "vw_preco_espelho" })).rejects.toBe(erro);
   });
+  it("repassa OR e paginação por grupo sem alterar o universo do agregado", () => {
+    const filtros = [{ op: "or" as const, v: [{ c: "nao_revisada", op: "is_true" }, { c: "id", op: "in", v: ["revisada-na-sessao"] }] }];
+    const agregados = [{ id: "universo", fn: "count" as const, por: ["grupo_chave"], ignorar: ["*"], onde: [{ c: "grupo_chave", op: "in" as const, v: ["p:PED-2417"] }] }];
+    expect(montarParamsLista({ relacao: "vw_recebivel_gestao_lista", agrupar: "grupo_chave", filtros, agregados })).toEqual({ relacao: "vw_recebivel_gestao_lista", agrupar: "grupo_chave", filtros, agregados });
+  });
+  it("preserva os microssegundos da foto ao comparar o timestamp textual", () => {
+    expect(montarParamsLista({ relacao: "xpm_estoque_posicao", filtros: [{ c: "data_hora_posicao", op: "eq", v: "2026-11-16T00:03:01.900217-03:00" }] })).toEqual({ relacao: "xpm_estoque_posicao", filtros: [{ c: "data_hora_posicao", op: "eq", v: "2026-11-16 00:03:01.900217-03" }] });
+  });
+  it("exporta grupos completos mesmo quando as linhas ultrapassam o número de grupos", async () => {
+    rpc.mockResolvedValueOnce({ error: null, data: { total: 501, linhas: Array.from({ length: 1146 }, (_, id) => ({ id })) } });
+    rpc.mockResolvedValueOnce({ error: null, data: { total: 501, linhas: [{ id: 1146 }] } });
+    expect(await exportarLista({ relacao: "vw_recebivel_gestao_lista", agrupar: "grupo_chave" })).toHaveLength(1147);
+    expect(rpc.mock.calls.map(([, { p }]) => p.pagina)).toEqual([1, 2]);
+  });
   it("recusa fim prematuro antes do total", async () => {
     rpc.mockResolvedValue({ data: { total: 1205, linhas: [] }, error: null });
     await expect(exportarLista({ relacao: "vw_preco_espelho" })).rejects.toThrow("antes do total");
