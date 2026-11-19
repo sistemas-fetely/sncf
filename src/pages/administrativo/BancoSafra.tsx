@@ -1,4 +1,5 @@
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { buscarTodos } from "@/lib/supabaseLotes";
 import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { BotaoBaixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
@@ -415,14 +416,18 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
         "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social, email, email_cobranca, cadastro_incompleto)), pedido:pedidos(id, id_externo, faturado_em, condicao_solicitada)";
-      const { data, error } = await supabase
-        .from("titulo_a_receber")
-        .select(SELECT_BOLETOS)
-        .not("boleto_status", "is", null)
-        .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)")
-        .order("data_vencimento_atual", { ascending: true });
-      if (error) throw error;
-      return (data as unknown as TitulosBoleto[]) ?? [];
+      // Fila de trabalho: precisa de todos os boletos em aberto — carga em lotes para não cortar em 1.000.
+      const data = await buscarTodos(
+        () =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any)
+            .from("titulo_a_receber")
+            .select(SELECT_BOLETOS)
+            .not("boleto_status", "is", null)
+            .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)"),
+        ["data_vencimento_atual", "id"],
+      );
+      return data as unknown as TitulosBoleto[];
     },
   });
 

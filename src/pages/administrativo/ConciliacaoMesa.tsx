@@ -1,4 +1,5 @@
 // Doutrina MESA-DE-CONCILIACAO (03/09/2026): o sistema propõe candidatos com
+import { buscarTodos } from "@/lib/supabaseLotes";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 // grau de certeza (fechamento exato, identidade direta, quase-fecha, mesmo
@@ -167,11 +168,12 @@ export function MesaConciliacaoConteudo({
     staleTime: 30_000,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_conciliacao_mesa")
-        .select("*");
-      if (error) throw error;
-      return (data || []) as ConciliacaoItem[];
+      // Não paginar: a view é lenta (~8 s). Carga em lotes só para não cortar em 1.000.
+      const data = await buscarTodos(
+        () => (supabase as any).from("vw_conciliacao_mesa").select("*"),
+        ["movimentacao_id"],
+      );
+      return data as ConciliacaoItem[];
     },
   });
 
