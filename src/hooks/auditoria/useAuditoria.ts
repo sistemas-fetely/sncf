@@ -7,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Achado, Execucao, RegraPainel } from "@/lib/auditoria/meta";
+import { useListaPaginada, type FiltroLista } from "@/lib/lista/useListaPaginada";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type FiltrosAchados = {
@@ -20,39 +21,30 @@ export type FiltrosAchados = {
 };
 
 export const CHAVES_AUDITORIA = {
-  achados: ["auditoria", "achados"] as const,
+  achados: ["lista", "vw_auditoria_achado"] as const,
   painel: ["auditoria", "painel"] as const,
   execucoes: ["auditoria", "execucoes"] as const,
   eventos: ["auditoria", "eventos"] as const,
   regras: ["auditoria", "regras"] as const,
 };
 
-export function useAchadosAuditoria(f: FiltrosAchados) {
-  return useQuery({
-    queryKey: [...CHAVES_AUDITORIA.achados, f],
-    queryFn: async (): Promise<Achado[]> => {
-      let q = supabase.from("vw_auditoria_achado").select("*");
-      if (!f.incluirTratadosESumidos) q = q.eq("esta_vivo", true);
-      if (f.modulo) q = q.eq("modulo_slug", f.modulo);
-      if (f.severidade) q = q.eq("severidade", f.severidade);
-      if (f.situacao) q = q.eq("situacao", f.situacao);
-      if (f.dono) q = q.eq("dono_user_id", f.dono);
-      if (f.regra) q = q.eq("regra_slug", f.regra);
-      const termo = f.busca.trim();
-      if (termo) {
-        const t = `%${termo}%`;
-        q = q.or(
-          `id_externo.ilike.${t},parceiro.ilike.${t},detalhe.ilike.${t},regra_titulo.ilike.${t}`,
-        );
-      }
-      const { data, error } = await q
-        .order("severidade_peso", { ascending: false, nullsFirst: false })
-        .order("valor", { ascending: false, nullsFirst: false })
-        .limit(2000);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+export function useAchadosAuditoria(f: FiltrosAchados, pagina = 1, tamanho = 50) {
+  const filtros: FiltroLista[] = [];
+  if (!f.incluirTratadosESumidos) filtros.push({ c: "esta_vivo", op: "eq", v: true });
+  for (const [c,v] of [["modulo_slug", f.modulo], ["severidade", f.severidade], ["situacao", f.situacao], ["dono_user_id", f.dono], ["regra_slug", f.regra]]) {
+    if (v) filtros.push({ c, op: "eq", v });
+  }
+  const vivos: FiltroLista[] = [{ c: "esta_vivo", op: "eq", v: true }];
+  return useListaPaginada<Achado>({ relacao: "vw_auditoria_achado", filtros, busca: f.busca, pagina, tamanho,
+    ordem: [{ c: "severidade_peso", dir: "desc" }, { c: "valor", dir: "desc" }, { c: "id", dir: "asc" }],
+    facetas: ["severidade", "situacao", "modulo_slug"],
+    agregados: [
+      { id: "vivos", fn: "count", onde: vivos },
+      { id: "bloqueantes", fn: "count", onde: [...vivos, { c: "severidade", op: "eq", v: "bloqueante" }] },
+      { id: "valor", fn: "sum", c: "valor", onde: vivos },
+      { id: "porRegraN", fn: "count", por: ["regra_slug"] },
+      { id: "porRegraValor", fn: "sum", c: "valor", por: ["regra_slug"], onde: vivos },
+    ] });
 }
 
 export function usePainelAuditoria() {

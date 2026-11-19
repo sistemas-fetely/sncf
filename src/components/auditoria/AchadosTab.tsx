@@ -2,7 +2,7 @@
  * Aba ACHADOS: lista de vw_auditoria_achado agrupada por regra.
  * Vivo por padrão; ordenação dinheiro-grande-primeiro (severidade, valor).
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { formatBRL } from "@/lib/format-currency";
@@ -46,6 +46,9 @@ import {
   type Achado,
 } from "@/lib/auditoria/meta";
 
+import { numeroAgregado, gruposAgregado } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+
 const TODOS = "__todos__";
 
 export default function AchadosTab({
@@ -61,7 +64,7 @@ export default function AchadosTab({
   const dims = useDimsAuditoria();
   const donos = useDonosAuditoria();
 
-  const [__nav, __setNav] = useEstadoTela({ modulo: TODOS, severidade: TODOS, busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "ach" });
+  const [__nav, __setNav] = useEstadoTela({ modulo: TODOS, severidade: TODOS, busca: "", pagina: 1 } as Record<string, string | number | boolean | null>, { prefixo: "ach" });
 
   const modulo = __nav.modulo as string;
 
@@ -85,17 +88,14 @@ export default function AchadosTab({
     incluirTratadosESumidos: incluir,
     busca,
   };
-  const { data, isLoading, isError, error } = useAchadosAuditoria(filtros);
-  const achados = data ?? [];
-
-  const kpis = useMemo(() => {
-    const vivos = achados.filter((a) => a.esta_vivo);
-    return {
-      vivos: vivos.length,
-      bloqueantes: vivos.filter((a) => a.severidade === "bloqueante").length,
-      valor: vivos.reduce((s, a) => s + Number(a.valor || 0), 0),
-    };
-  }, [achados]);
+  const pagina = Number(__nav.pagina ?? 1);
+  const [tamanho, setTamanho] = useState(50);
+  useEffect(() => { __setNav({ pagina: 1 }); }, [modulo, severidade, situacao, dono, incluir, busca, regraFiltro, tamanho]);
+  const { data, isLoading, isError, error } = useAchadosAuditoria(filtros, pagina, tamanho);
+  const achados = data?.linhas ?? [];
+  const kpis = { vivos: numeroAgregado(data?.agregados, "vivos"), bloqueantes: numeroAgregado(data?.agregados, "bloqueantes"), valor: numeroAgregado(data?.agregados, "valor") };
+  const valoresPorRegra = new Map(gruposAgregado(data?.agregados, "porRegraValor").map(g => [String(g.regra_slug ?? "—"), Number(g.valor ?? 0)]));
+  const quantidadesPorRegra = new Map(gruposAgregado(data?.agregados, "porRegraN").map(g => [String(g.regra_slug ?? "—"), Number(g.valor ?? 0)]));
 
   const grupos = useMemo(() => {
     const map = new Map<string, Achado[]>();
@@ -113,9 +113,10 @@ export default function AchadosTab({
       severidadeRotulo: lista[0].severidade_rotulo,
       oQueSignifica: lista[0].o_que_significa,
       modulo: lista[0].modulo_nome,
-      total: lista.reduce((s, a) => s + Number(a.valor || 0), 0),
+      total: valoresPorRegra.get(slug) ?? 0,
+      qtd: quantidadesPorRegra.get(slug) ?? 0,
     }));
-  }, [achados]);
+  }, [achados, data?.agregados]);
 
   return (
     <div className="space-y-4">
@@ -268,7 +269,7 @@ export default function AchadosTab({
                       {g.titulo}
                     </span>
                     <Badge variant="outline" className="shrink-0 text-[10px]">
-                      {g.lista.length}
+                      {g.qtd}
                     </Badge>
                     <Badge
                       variant="outline"
@@ -385,6 +386,7 @@ export default function AchadosTab({
         </div>
       )}
 
+      <RodapePaginacao total={data?.total ?? 0} pagina={pagina} tamanhoPagina={tamanho} onPagina={pagina => __setNav({ pagina })} onTamanhoPagina={setTamanho} />
       <AchadoDrawer achado={selecionado} onClose={() => setSelecionado(null)} />
     </div>
   );

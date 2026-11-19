@@ -6,22 +6,21 @@ import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
 import { useNivel } from "@/hooks/useNivel";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { exportarLista, type ParamsLista } from "@/lib/lista/useListaPaginada";
 import { hojeISO } from "@/lib/data";
 
 /**
- * Exporta exatamente as linhas que a Fila está mostrando — nada de segunda query.
+ * Exporta o recorte inteiro da Fila pela mesma RPC paginada.
  */
-export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
+export function ExportarB2cButton({ params }: { params: ParamsLista }) {
   const { temNivel } = useNivel();
   const [loading, setLoading] = useState(false);
 
   const exportar = async () => {
-    if (linhas.length === 0) {
-      toast.error("Nenhum pedido na fila para exportar.");
-      return;
-    }
     setLoading(true);
     try {
+      const linhas = await exportarLista<PedidoB2cRow>(params);
+      if (!linhas.length) { toast.error("Nenhum pedido na fila para exportar."); return; }
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("Loja B2C");
       ws.columns = [

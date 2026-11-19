@@ -48,7 +48,7 @@ export function PipelineB2c({
 
   return <PipelineFases
     fases={(data ?? []).filter(f => f.visivel_no_pipeline).map(f => {
-      const c = contagens?.[f.estagio];
+      const c = contagens ? contagens[f.estagio] ?? { qtd: 0, valor: 0, alerta: 0 } : undefined;
       return {
         codigo: f.estagio,
         rotulo: f.rotulo ?? f.estagio,

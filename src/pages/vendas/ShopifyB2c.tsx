@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useListaPaginada, useDebounceValor, numeroAgregado, gruposAgregado, type ParamsLista, type FiltroLista } from "@/lib/lista/useListaPaginada";
 import { formatError } from "@/lib/format-error";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { fmtDataHora } from "@/lib/data";
@@ -355,13 +356,41 @@ export default function ShopifyB2c() {
     return () => ro.disconnect();
   }, [abaEfetiva]);
 
-  const {
-    data: pedidos,
-    isLoading,
-    isError,
-    error,
-    dataUpdatedAt: pedidosAtualizadoEm,
-  } = usePedidosB2c();
+  const [tamanhoPagina, setTamanhoPagina] = useState(() => lerTamanhoPaginaSalvo(CHAVE_PAGINA_B2C));
+  const buscaEfetiva = useDebounceValor(busca);
+  const filtrosLista: FiltroLista[] = [];
+  if (!buscaEfetiva.trim() && estagioParam !== "cancelado") filtrosLista.push({ c: "estagio", op: "nin", v: ["cancelado", "aguardando_pagamento"] });
+  if (estagioParam) filtrosLista.push({ c: "estagio", op: "eq", v: estagioParam });
+  if (uf !== "todas") filtrosLista.push({ c: "shipping_province", op: "eq", v: uf });
+  if (alerta !== "todos") filtrosLista.push({ c: "alerta", op: "eq", v: alerta });
+  if (cdFiltro !== "todos") filtrosLista.push({ c: "cd_efetivo_codigo", op: "eq", v: cdFiltro });
+  const colunaOrdem: Record<ColunaB2c, string> = { pedido: "order_name", bling: "bling_pedido_numero", data: "created_at_shopify", cliente: "cliente", valor: "total", cd: "cd_efetivo_codigo", estagio: "estagio_ordem", dono: "area_responsavel", proxima_acao: "proxima_acao", financeiro: "tem_nf", rastreio: "tracking_number" };
+  const listaParams: ParamsLista = { relacao: "vw_gestao_b2c_pedido", busca: buscaEfetiva, filtros: filtrosLista, pagina, tamanho: tamanhoPagina,
+    ordem: ordenacao?.coluna === "financeiro"
+      ? [{ c: "tem_nf", dir: ordenacao.dir === "asc" ? "desc" : "asc" }, { c: "tem_recebimento", dir: ordenacao.dir === "asc" ? "desc" : "asc" }, { c: "shopify_id", dir: "asc" }]
+      : [{ c: ordenacao ? colunaOrdem[ordenacao.coluna] : "data_pedido", dir: ordenacao?.dir ?? "desc" }, { c: "shopify_id", dir: "asc" }],
+    facetas: ["estagio"] };
+  const { data: resultado, isLoading: listaLoading, isError: listaErro, error: listaError, dataUpdatedAt: pedidosAtualizadoEm } = usePedidosB2c(listaParams);
+  const pedidos = resultado?.linhas;
+  const resumoQ = useListaPaginada({ relacao: "vw_gestao_b2c_pedido", tamanho: 1,
+    filtros: [{ c: "estagio", op: "nin", v: ["cancelado", "aguardando_pagamento"] }], facetas: ["shipping_province", "alerta"],
+    agregados: [
+      { id: "estagios", fn: "count", por: ["estagio", "estagio_rotulo"] },
+      { id: "andamentoN", fn: "count", onde: [{ c: "na_carteira_ativa", op: "eq", v: true }] },
+      { id: "andamentoValor", fn: "sum", c: "total", onde: [{ c: "na_carteira_ativa", op: "eq", v: true }] },
+      { id: "suprimidos", fn: "count", por: ["estagio"], onde: [{ c: "alerta", op: "not_null" }, { c: "alerta", op: "neq", v: "" }, { c: "fila_status", op: "in", v: ["aguardando_destino", "enviado", "pendente", "processando", "pausado"] }] },
+    ] });
+  const pipelineQ = useListaPaginada({ relacao: "vw_gestao_b2c_pedido", tamanho: 1,
+    filtros: [{ c: "estagio", op: "neq", v: "aguardando_pagamento" }, ...(cdFiltro !== "todos" ? [{ c: "cd_efetivo_codigo", op: "eq" as const, v: cdFiltro }] : [])],
+    facetas: ["estagio"], agregados: [
+      { id: "valor", fn: "sum", c: "total", por: ["estagio"] },
+      { id: "alertas", fn: "count", por: ["estagio"], onde: [{ c: "alerta", op: "not_null" }, { c: "alerta", op: "neq", v: "" }] },
+      { id: "suprimidos", fn: "count", por: ["estagio"], onde: [{ c: "alerta", op: "not_null" }, { c: "alerta", op: "neq", v: "" }, { c: "fila_status", op: "in", v: ["aguardando_destino", "enviado", "pendente", "processando", "pausado"] }] },
+      { id: "semCd", fn: "count", onde: [{ c: "alerta_sem_cd", op: "eq", v: true }] },
+    ] });
+  const isLoading = listaLoading || resumoQ.isLoading || pipelineQ.isLoading;
+  const isError = listaErro || resumoQ.isError || pipelineQ.isError;
+  const error = listaError ?? resumoQ.error ?? pipelineQ.error;
   const {
     data: alertasDim,
     isError: alertasDimErro,
@@ -384,49 +413,10 @@ export default function ShopifyB2c() {
 
   const lista = useMemo(() => pedidos ?? [], [pedidos]);
 
-  // SÓ-VÁLIDO-NA-FILA: cancelado e não pago não são trabalho da mesa. O dado
-  // segue na view e na aba Dash; a fila operacional só mostra o que tem ação.
-  // 27/10/2026: cancelado aparece só via card Cancelado ou busca por texto; a
-  // fila padrão continua sem ele.
-  const listaValida = useMemo(
-    () => lista.filter((p) => p.estagio !== "cancelado" && p.estagio !== "aguardando_pagamento"),
-    [lista],
-  );
-
-  // Alertas do card do funil que deixam de contar: pedido com a descida em dia
-  // (aguardando destino, na fila ou já no Bling) não é problema — só erro.
-  const reducaoAlerta = useMemo(() => {
-    const m: Record<string, number> = {};
-    let qualquer = false;
-    listaValida.forEach((p) => {
-      if (p.alerta && alertaSuprimidoPorFila(p)) {
-        const estagio = p.estagio ?? "";
-        m[estagio] = (m[estagio] ?? 0) + 1;
-        qualquer = true;
-      }
-    });
-    return qualquer ? m : undefined;
-  }, [listaValida]);
-
-  const ufs = useMemo(() => {
-    const set = new Set<string>();
-    listaValida.forEach((p) => p.shipping_province && set.add(p.shipping_province));
-    return Array.from(set).sort();
-  }, [listaValida]);
-
-  const alertas = useMemo(() => {
-    const set = new Set<string>();
-    listaValida.forEach((p) => p.alerta && set.add(p.alerta));
-    return Array.from(set).sort();
-  }, [listaValida]);
-
-  const filaAtiva = useMemo(() => {
-    const ativos = listaValida.filter((p) => p.na_carteira_ativa);
-    return {
-      qtd: ativos.length,
-      valor: ativos.reduce((s, p) => s + Number(p.total ?? 0), 0),
-    };
-  }, [listaValida]);
+  const reducaoAlerta = Object.fromEntries(gruposAgregado(resumoQ.data?.agregados, "suprimidos").map(g => [String(g.estagio ?? ""), Number(g.valor ?? 0)]));
+  const ufs = (resumoQ.data?.facetas.shipping_province ?? []).filter(f => f.valor).map(f => String(f.valor)).sort();
+  const alertas = (resumoQ.data?.facetas.alerta ?? []).filter(f => f.valor).map(f => String(f.valor)).sort();
+  const filaAtiva = { qtd: numeroAgregado(resumoQ.data?.agregados, "andamentoN"), valor: numeroAgregado(resumoQ.data?.agregados, "andamentoValor") };
 
   const mapaAlerta = useMemo(() => {
     const m = new Map<string, AlertaDim>();
@@ -564,7 +554,7 @@ export default function ShopifyB2c() {
     fotoAntes.current = new Map(lista.map((p) => [chaveLinha(p), fotoLinha(p)]));
     try {
       // throwOnError: sem ele o invalidate resolve mesmo com o refetch falhando.
-      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] }, { throwOnError: true });
+      await qc.invalidateQueries({ queryKey: ["lista", "vw_gestao_b2c_pedido"] }, { throwOnError: true });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] }, { throwOnError: true });
       const novo = await refetchSinal({ throwOnError: true });
       if (novo.data) {
@@ -630,7 +620,7 @@ export default function ShopifyB2c() {
       }
     } finally {
       setGravandoCd(false);
-      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
+      await qc.invalidateQueries({ queryKey: ["lista", "vw_gestao_b2c_pedido"] });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
       await qc.invalidateQueries({ queryKey: ["b2c-sugestao-cd"] });
     }
@@ -685,7 +675,7 @@ export default function ShopifyB2c() {
       }
     } finally {
       setGravandoCd(false);
-      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
+      await qc.invalidateQueries({ queryKey: ["lista", "vw_gestao_b2c_pedido"] });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
       await qc.invalidateQueries({ queryKey: ["b2c-sugestao-cd"] });
     }
@@ -761,56 +751,16 @@ export default function ShopifyB2c() {
   }
 
 
-  const filtrados = useMemo(() => {
-    // Base: busca com texto acha o pedido em qualquer estágio (inclusive
-    // cancelado e aguardando_pagamento); o card Cancelado também puxa a lista
-    // inteira. Fora desses dois casos vale a fila padrão, sem cancelados.
-    let r = busca.trim() || estagioParam === "cancelado" ? lista : listaValida;
-    if (estagioParam) r = r.filter((p) => p.estagio === estagioParam);
-    if (uf !== "todas") r = r.filter((p) => p.shipping_province === uf);
-    if (alerta !== "todos") r = r.filter((p) => p.alerta === alerta);
-    // Toggle de CD: Total não filtra; pedido sem CD efetivo só aparece em Total.
-    if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
-    const q = busca.trim().toLowerCase();
-    if (q) {
-      r = r.filter(
-        (p) =>
-          (p.order_name ?? "").toLowerCase().includes(q) ||
-          (p.id_externo ?? "").toLowerCase().includes(q) ||
-          (p.cliente ?? "").toLowerCase().includes(q),
-      );
-    }
-    return r;
-  }, [lista, listaValida, estagioParam, uf, alerta, busca, cdFiltro]);
-
-  // Funil respeita o toggle de CD: com filtro ativo, conta a MESMA lista que a
-  // tabela mostra (ignorando só o filtro de fase); em Total, a view manda.
-  const listaDoCd = useMemo(() => {
-    // Com CD filtrado, o funil conta a lista inteira menos aguardando_pagamento
-    // (inclui cancelado), para o card Cancelado contar certo.
-    let r = lista.filter((p) => p.estagio !== "aguardando_pagamento");
-    if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
-    return r;
-  }, [lista, cdFiltro]);
-
+  const filtrados = lista;
+  const listaDoCd = lista;
   const contagensPorEstagio = useMemo(() => {
     if (cdFiltro === "todos") return null;
-    const m: Record<string, ContagemEstagio> = {};
-    listaDoCd.forEach((p) => {
-      const e = p.estagio ?? "";
-      const atual = m[e] ?? { qtd: 0, valor: 0, alerta: 0 };
-      atual.qtd += 1;
-      atual.valor += Number(p.total ?? 0);
-      if (p.alerta && !alertaSuprimidoPorFila(p)) atual.alerta += 1;
-      m[e] = atual;
-    });
-    return m;
-  }, [cdFiltro, listaDoCd]);
-
-  const alertaSemCd = useMemo(
-    () => listaDoCd.filter((p) => p.alerta_sem_cd).length,
-    [listaDoCd],
-  );
+    const valores = new Map(gruposAgregado(pipelineQ.data?.agregados, "valor").map(g => [String(g.estagio ?? ""), Number(g.valor ?? 0)]));
+    const suprimidos = new Map(gruposAgregado(pipelineQ.data?.agregados, "suprimidos").map(g => [String(g.estagio ?? ""), Number(g.valor ?? 0)]));
+    const alertas = new Map(gruposAgregado(pipelineQ.data?.agregados, "alertas").map(g => [String(g.estagio ?? ""), Number(g.valor ?? 0)]));
+    return Object.fromEntries((pipelineQ.data?.facetas.estagio ?? []).map(f => [String(f.valor ?? ""), { qtd: f.contagem, valor: valores.get(String(f.valor ?? "")) ?? 0, alerta: Math.max(0, (alertas.get(String(f.valor ?? "")) ?? 0) - (suprimidos.get(String(f.valor ?? "")) ?? 0)) }])) as Record<string, ContagemEstagio>;
+  }, [cdFiltro, pipelineQ.data]);
+  const alertaSemCd = numeroAgregado(pipelineQ.data?.agregados, "semCd");
 
   /**
    * Devolve os pedidos travados para `pendente` via fn_fila_b2c_reprocessar.
@@ -865,47 +815,6 @@ export default function ShopifyB2c() {
     [travadosNaFila, marcados],
   );
 
-  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
-  const ordenados = useMemo(() => {
-    if (!ordenacao) return filtrados;
-    const dir = ordenacao.dir === "asc" ? 1 : -1;
-    const valorDe = (p: PedidoB2cRow): string | number | null => {
-      switch (ordenacao.coluna) {
-        case "pedido": return p.order_name ?? null;
-        case "bling": return p.bling_pedido_numero ?? null;
-        case "data": {
-          const t = p.created_at_shopify ? Date.parse(p.created_at_shopify) : NaN;
-          return Number.isNaN(t) ? null : t;
-        }
-        case "cliente": return p.cliente ?? null;
-        case "cd": return p.cd_efetivo_codigo ?? null;
-        case "valor": return Number(p.total ?? 0);
-        case "estagio": return p.estagio_ordem ?? null;
-        case "dono": return p.area_responsavel ?? null;
-        case "proxima_acao": return p.proxima_acao ?? null;
-        // Quanto mais pendencia, maior o numero — decrescente traz o buraco pra cima.
-        case "financeiro": return (p.tem_nf ? 0 : 2) + (p.tem_recebimento ? 0 : 1);
-        case "rastreio": return p.tracking_number ?? null;
-        default: return null;
-      }
-    };
-    return [...filtrados].sort((a, b) => {
-      const va = valorDe(a);
-      const vb = valorDe(b);
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (typeof va === "string" || typeof vb === "string") {
-        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
-      }
-      return (Number(va) - Number(vb)) * dir;
-    });
-  }, [filtrados, ordenacao]);
-
-  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
-    lerTamanhoPaginaSalvo(CHAVE_PAGINA_B2C),
-  );
-
   // Trocar a seleção joga o operador de volta pra primeira página — senão ele
   // fica olhando uma página 7 que já não existe.
   // Não roda na montagem: a página que veio da URL (voltar do detalhe) fica.
@@ -918,12 +827,10 @@ export default function ShopifyB2c() {
     if (pagina !== 1) setPagina(1);
   }, [busca, uf, alerta, estagioParam, estadoTela.ordem, cdFiltro]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const totalPaginasB2c = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
+  const totalPaginasB2c = Math.max(1, Math.ceil((resultado?.total ?? 0) / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginasB2c);
-  const paginaItens = ordenados.slice(
-    (paginaAtual - 1) * tamanhoPagina,
-    paginaAtual * tamanhoPagina,
-  );
+  const paginaItens = lista;
+  useEffect(() => { setMarcados(new Set()); }, [pagina, buscaEfetiva, uf, alerta, estagioParam, cdFiltro]);
 
   useFocoAoVoltar({
     pronto: !isLoading,
@@ -949,7 +856,7 @@ export default function ShopifyB2c() {
         title="Loja · B2C"
         subtitle="Pedidos da loja Shopify. Pagamento vem resolvido na porta — o funil aqui é faturar, expedir, rastrear e entregar."
         // Exportação leva a base para fora: nível 3 (Coordenador) para cima — o componente se autoprotege.
-        actions={<ExportarB2cButton linhas={ordenados} />}
+        actions={<ExportarB2cButton params={listaParams} />}
       />
 
       {carregandoPermissoes ? (
@@ -1003,11 +910,9 @@ export default function ShopifyB2c() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Estágio: todos</SelectItem>
-                {Array.from(
-                  new Map(listaValida.filter((p) => p.estagio).map((p) => [p.estagio!, p.estagio_rotulo ?? p.estagio!])),
-                ).map(([codigo, rotulo]) => (
-                  <SelectItem key={codigo} value={codigo}>
-                    {rotulo}
+                {gruposAgregado(resumoQ.data?.agregados, "estagios").filter(g => g.estagio).map(g => (
+                  <SelectItem key={String(g.estagio)} value={String(g.estagio)}>
+                    {String(g.estagio_rotulo ?? g.estagio)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1039,7 +944,7 @@ export default function ShopifyB2c() {
               </SelectContent>
             </Select>
             <span className="text-xs text-muted-foreground">
-              {filtrados.length} pedido{filtrados.length !== 1 ? "s" : ""} · {filaAtiva.qtd} em
+              {resultado?.total ?? 0} pedido{resultado?.total !== 1 ? "s" : ""} · {filaAtiva.qtd} em
               andamento ({formatBRL(filaAtiva.valor)})
             </span>
             {ordenacao && (
@@ -1696,7 +1601,7 @@ export default function ShopifyB2c() {
                     </Table>
                 </TooltipProvider>
                 <RodapePaginacao
-                  total={ordenados.length}
+                  total={resultado?.total ?? 0}
                   pagina={paginaAtual}
                   tamanhoPagina={tamanhoPagina}
                   chavePreferencia={CHAVE_PAGINA_B2C}

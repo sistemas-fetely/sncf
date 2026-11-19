@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useListaPaginada, type ParamsLista } from "@/lib/lista/useListaPaginada";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -154,46 +155,27 @@ export interface PedidoB2cRow {
 const CAMPOS_PEDIDO =
   "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, rastreio_atualizado_em, rastreio_fonte, rastreio_confirmado_em, divergencia_entrega, rastreio_dias_sem_evento, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente, fila_status, fila_bling_pedido_id, fila_tentativas, fila_ultimo_erro, tag_shopify, cd_sugerido, cd_cep_codigo, cd_escolhido_codigo, cd_escolhido_nome, cd_cnpj_emitente, cd_escolhido_em, cd_escolhido_por, divergencia_tag, divergencia_cep_tag, divergencia_fiscal, horas_aguardando_cd, alerta_sem_cd, cd_efetivo_codigo, cd_efetivo_nome, cd_efetivo_fonte, etiqueta_gerada_em, rastreio_estado, fase_fisica_seq, estagio_fonte, reembolso_total, reembolso_pendente, reembolso_em, closed_at, encerrado_em, encerrado_motivo, entrega_fonte, entrega_declarada_em";
 
-export function usePedidosB2c() {
-  return useQuery({
-    queryKey: ["b2c-pedidos"],
-    meta: { pesada: true },
-    staleTime: 30 * 1000,
-    queryFn: async (): Promise<PedidoB2cRow[]> => {
-      const { data, error } = await supabase
-        .from("vw_gestao_b2c_pedido")
-        .select(CAMPOS_PEDIDO)
-        .order("data_pedido", { ascending: false });
+export function usePedidosB2c(params: ParamsLista) {
+  const lista = useListaPaginada<PedidoB2cRow>({ ...params, relacao: "vw_gestao_b2c_pedido", colunas: CAMPOS_PEDIDO.split(",").map(c => c.trim()) }, { debounceMs: 0 });
+  const ids = (lista.data?.linhas ?? []).map(r => r.shopify_id).filter((id): id is string => !!id);
+  const fila = useQuery({
+    queryKey: ["lista", "vw_gestao_b2c_pedido", "fila-pagina", ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("bling_pedido_fila_b2c")
+        .select("id, shopify_pedido_id, bling_pedido_numero, cd_sugerido").in("shopify_pedido_id", ids);
       if (error) throw error;
-      const rows = (data ?? []) as PedidoB2cRow[];
-      // NÚMERO-CURTO-DA-FILA: a view não expõe bling_pedido_numero da fila —
-      // consulta complementar por shopify_pedido_id e casamento em memória.
-      // FAIL-LOUD: erro na consulta complementar derruba a query como um todo.
-      const ids = rows
-        .map((r) => r.shopify_id)
-        .filter((x): x is string => !!x);
-      if (ids.length > 0) {
-        const { data: filaNumeros, error: erroFila } = await supabase
-          .from("bling_pedido_fila_b2c")
-          .select("id, shopify_pedido_id, bling_pedido_numero, cd_sugerido")
-          .in("shopify_pedido_id", ids);
-        if (erroFila) throw erroFila;
-        const mapa = new Map(
-          (filaNumeros ?? []).map((r) => [
-            r.shopify_pedido_id as string,
-            r as { id: string; bling_pedido_numero: string | null; cd_sugerido: string | null },
-          ]),
-        );
-        for (const r of rows) {
-          const linha = r.shopify_id ? mapa.get(r.shopify_id) : undefined;
-          r.fila_bling_pedido_numero = linha?.bling_pedido_numero ?? null;
-          r.fila_id = linha?.id ?? null;
-          if (linha) r.cd_sugerido = linha.cd_sugerido;
-        }
-      }
-      return rows;
+      return data ?? [];
     },
   });
+  const mapa = new Map((fila.data ?? []).map(r => [r.shopify_pedido_id, r]));
+  const data = lista.data ? { ...lista.data, linhas: lista.data.linhas.map(r => {
+    const f = r.shopify_id ? mapa.get(r.shopify_id) : undefined;
+    return { ...r, fila_bling_pedido_numero: f?.bling_pedido_numero ?? null, fila_id: f?.id ?? null,
+      cd_sugerido: f ? f.cd_sugerido : r.cd_sugerido };
+  }) } : undefined;
+  return { ...lista, data, isLoading: lista.isLoading || (ids.length > 0 && fila.isLoading),
+    isError: lista.isError || fila.isError, error: lista.error ?? fila.error };
 }
 
 export interface AlertaDim {

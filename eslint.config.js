@@ -360,21 +360,12 @@ export default tseslint.config(
     // Onda 1/3 (19/11/2026) retirou: TrocarCdVDDialog, GED, CadastroPedidoCompra, DeParaFornecedor,
     // MarcacaoPedido, BuscarDocumentoDialog, usePedidoRelogio, useLancamentos, useAcordosTitulos.
     files: [
-      "src/components/acervo/HistoricoPrecoTab.tsx",
-      "src/hooks/auditoria/useAuditoria.ts",
       "src/hooks/credito/useTitulosCobranca.ts",
-      "src/hooks/vendas/useB2c.ts",
-      "src/pages/acervo/TabelaPreco.tsx",
-      "src/pages/administrativo/AnaliseDespesas.tsx",
-      "src/pages/administrativo/CaixaBanco.tsx",
       "src/pages/administrativo/ContasReceber.tsx",
-      "src/pages/administrativo/Despesas.tsx",
       "src/pages/administrativo/NFsStage.tsx",
-      "src/pages/administrativo/PainelMargem.tsx",
       "src/pages/vendas/xpm/EstoqueXpm.tsx",
       "src/pages/vendas/xpm/ExpedicoesXpm.tsx",
       "src/pages/vendas/xpm/PainelXpm.tsx",
-      "src/pages/vendas/xpm/components/EntradaXpm.tsx",
     ],
     ignores: ["**/*.test.*"],
     rules: {
