@@ -10,13 +10,14 @@ export const ROTULO_MEIO_VD: Record<MeioVD, string> = {
 };
 
 /** Pagamento escolhido no Novo pedido: meio de cobrança ou bonificação (sem cobrança). */
-export type PagamentoVD = MeioVD | "bonificacao";
+export type PagamentoVD = MeioVD | "bonificacao" | "conta_corrente_socio";
 
 /** Bonificação (27/10/2026): pedido sem cobrança — não conta como aguardando pagamento. */
 export const ehBonificacao = (p: string | null | undefined) => p === "bonificacao";
 
 /** Rótulo para exibição de qualquer pagamento da VD, inclusive bonificação. */
 export function rotuloPagamentoVD(p: string | null | undefined): string {
+  if (p === "conta_corrente_socio") return "Conta corrente sócio";
   return ehBonificacao(p) ? "Bonificação" : ROTULO_MEIO_VD[meioVD(p)];
 }
 

@@ -171,6 +171,7 @@ const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancaria
 const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
+const ContaCorrenteSocios = lazy(() => import("@/pages/administrativo/ContaCorrenteSocios"));
 const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
 const Extrato = lazy(() => import("@/pages/administrativo/Extrato"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
@@ -902,6 +903,9 @@ const App = () => (
                   Pilar Administrativo (Financeiro, Contratos, Imóveis, Seguros, GED)
                   Acesso restrito a super_admin (Fase 1)
                   ═══════════════════════════════════════════════ */}
+              <Route path="/financeiro" element={<FinancasLayout />}>
+                <Route path="conta-corrente-socios" element={<RotaGate><ContaCorrenteSocios /></RotaGate>} />
+              </Route>
               <Route path="/administrativo" element={<FinancasLayout />}>
                 <Route index element={<DashboardFinanceiro />} />
                 <Route path="analise-despesas" element={<AnaliseDespesas />} />

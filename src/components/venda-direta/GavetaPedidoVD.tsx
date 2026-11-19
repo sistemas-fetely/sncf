@@ -30,7 +30,7 @@ export interface LinhaGaveta {
   modal: string | null;
   endereco_entrega?: Record<string, unknown> | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
+  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | "conta_corrente_socio" | null;
   pagamento_confirmado_em?: string | null;
   link_pagamento: string | null;
   nf_numero: string | number | null;
@@ -252,8 +252,8 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
             </Secao>
 
             <Secao titulo="Pagamento">
-              <Par k="Forma" v={l.pagamento === "bonificacao" ? "Bonificação" : l.pagamento === "cartao_maquininha" ? "Cartão maquininha" : rotuloFormaPagamento(l.pagamento)} />
-              <Par k="Status" v={l.pagamento === "bonificacao" ? "Sem cobrança" : l.pagamento_confirmado_em ? `Confirmado em ${dataHora(l.pagamento_confirmado_em)}` : "Aguardando"} />
+              <Par k="Forma" v={l.pagamento === "conta_corrente_socio" ? "Conta corrente sócio" : l.pagamento === "bonificacao" ? "Bonificação" : l.pagamento === "cartao_maquininha" ? "Cartão maquininha" : rotuloFormaPagamento(l.pagamento)} />
+              <Par k="Status" v={l.pagamento === "conta_corrente_socio" ? "Lançado na conta corrente" : l.pagamento === "bonificacao" ? "Sem cobrança" : l.pagamento_confirmado_em ? `Confirmado em ${dataHora(l.pagamento_confirmado_em)}` : "Aguardando"} />
               {(l.pagamento === "cartao" || l.pagamento === "pix_safra" || linkQ.data) && (
                 linkQ.isLoading ? <Skeleton className="h-10 w-full" /> : linkQ.isError ? <Erro e={linkQ.error} /> : !linkQ.data ? (
                   <Par k="Link" v="Nenhum link gerado" />

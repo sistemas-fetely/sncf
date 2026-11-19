@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Partner-account UI reads balances/statements only from dedicated views and sends settlements to existing RPCs; order previews share a pure partner-pricing helper, while canonical navigation and action census remain database-owned.
 - Mesa SP picking/print and scanning share a pure product consolidation selector; first-row identity preserves scan state while quantity and origin-line provenance are summed for both conference outcomes, without changing order or fiscal lines.
 - Mercado Pago collection carries the dimension account through every execution/import query and client; cron selects active accounts with isolated results, manual import defaults to Shopify, and config creation only copies documented fields into a missing target config.
 - Mercado Pago credentials render all dimension accounts, including inactive setup rows; connection testing resolves the Vault secret server-side by account code after the existing permission gate, never by a client-provided secret name.

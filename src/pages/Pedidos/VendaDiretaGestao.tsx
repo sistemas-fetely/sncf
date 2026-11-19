@@ -68,7 +68,7 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   estagio: string | null;
   modal: "retirada" | "balcao" | "transportadora" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; fonte?: string | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
+  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | "conta_corrente_socio" | null;
   cliente_telefone: string | null;
   cliente_cpf_mascarado: string | null;
   endereco_entrega: Record<string, unknown> | null;
@@ -264,7 +264,7 @@ export default function VendaDiretaGestao() {
       if (soAcaoEquipe && !l.acao_equipe) return false;
       // Bonificado não tem cobrança: não conta como aguardando pagamento.
       if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em && l.pagamento !== "bonificacao") return false;
-      if (filtroPagamento === "nao_pagos" && (l.pagamento_confirmado_em || l.pagamento === "bonificacao")) return false;
+      if (filtroPagamento === "nao_pagos" && (l.pagamento_confirmado_em || l.pagamento === "bonificacao" || l.pagamento === "conta_corrente_socio")) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
         (l.cliente_nome ?? "").toLowerCase().includes(t) ||
@@ -496,6 +496,8 @@ export default function VendaDiretaGestao() {
                               <div className="text-muted-foreground">Devolvido</div>
                               <div className="text-xs tabular-nums text-muted-foreground">{formatBRL(devolucao.valor)}</div>
                             </div>
+                          ) : l.pagamento === "conta_corrente_socio" ? (
+                            <Badge variant="outline">Conta corrente sócio</Badge>
                           ) : l.pagamento === "bonificacao" ? (
                             <div>
                               <Badge variant="outline" className="border-info/50 bg-info/10 text-foreground">Bonificação</Badge>

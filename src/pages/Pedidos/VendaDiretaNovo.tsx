@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { precoItemSocio } from "@/lib/pedidos/contaCorrenteSocio";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { AbasSiteSp } from "@/components/venda-direta/AbasSiteSp";
 import { useSaldoSiteSp } from "@/components/venda-direta/useEstoqueSiteSp";
@@ -85,7 +86,7 @@ interface ResultadoBusca {
   complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; inativo?: boolean | null;
 }
 interface NovoCliente extends Endereco { nome: string; cpf: string; telefone: string; email: string }
-interface Item { sku: string; nome: string | null; preco: number; quantidade: number }
+interface Item { sku: string; nome: string | null; preco: number; quantidade: number; preco_promocional?: number }
 interface Resultado {
   pedido_id: string; id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
@@ -165,6 +166,14 @@ export default function VendaDiretaNovo() {
   const [bonifMotivo, setBonifMotivo] = useState("brinde");
   const [bonifObs, setBonifObs] = useState("");
   const bonif = pagamento === "bonificacao";
+  const socio = pagamento === "conta_corrente_socio";
+  const socioQ = useQuery({ queryKey: ["vd-regime-socio", cliente?.id], enabled: Boolean(cliente?.id), queryFn: async () => {
+    const { data, error } = await supabase.from("parceiros_comerciais").select("regime_socio").eq("id", cliente?.id ?? "").single();
+    if (error) throw error;
+    return data.regime_socio === true;
+  }});
+  useEffect(() => { if (socio && (!cliente || socioQ.data === false)) setPagamento("pix"); }, [cliente, socioQ.data, socio]);
+  const precoEfetivo = (i: Item) => socio ? precoItemSocio(i.preco, i.preco_promocional) : i.preco;
   const motivosBonifQ = useQuery({
     queryKey: ["motivos-concessao-ativos"],
     enabled: bonif,
@@ -399,7 +408,7 @@ export default function VendaDiretaNovo() {
     });
   };
 
-  const valorItens = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
+  const valorItens = itens.reduce((s, i) => s + precoEfetivo(i) * i.quantidade, 0);
   const pecas = itens.reduce((s, i) => s + i.quantidade, 0);
   const frete = useFreteVendaDireta(soDigitos(endereco.cep), itens);
   // XPM SC (criação) ou pedido já por transportadora (edição): entrega só por transportadora.
@@ -419,7 +428,7 @@ export default function VendaDiretaNovo() {
   const transpSel = cotTransp.cotacao?.ok ? cotTransp.cotacao.opcoes.find((o) => o.transportadora_id === transportadoraId) ?? null : null;
   const opcaoSel = frete.opcoes.find((o) => o.modal === modo);
   const freteCotado = modo === "retirada" ? 0 : modo === "transportadora" ? Number(transpSel?.valor ?? 0) : (opcaoSel?.cobrado ?? 0);
-  const ben = calcularBeneficio(bonif ? BENEFICIO_VAZIO : beneficio, valorItens, freteCotado, modo !== "retirada");
+  const ben = calcularBeneficio(bonif || socio ? BENEFICIO_VAZIO : beneficio, valorItens, freteCotado, modo !== "retirada");
   const freteCobrado = ben.freteCobrado;
   // Opção escolhida ficou indisponível (CEP/itens mudaram) → volta para retirada.
   useEffect(() => {
@@ -445,7 +454,7 @@ export default function VendaDiretaNovo() {
   const haverSaldoTotal = haveres.reduce((a, h) => a + Number(h.saldo ?? 0), 0);
   const temHaver = haverSaldoTotal > 0;
   const [usarHaver, setUsarHaver] = useState(true);
-  const haverAtivo = temHaver && usarHaver;
+  const haverAtivo = temHaver && usarHaver && !socio;
   const haverAplicado = haverAtivo ? Math.min(haverSaldoTotal, total) : 0;
   const aPagarComHaver = Math.max(total - haverAplicado, 0);
   const haverCobreTudo = haverAtivo && aPagarComHaver <= 0.009;
@@ -478,6 +487,8 @@ export default function VendaDiretaNovo() {
     }
     if (itens.length === 0) return "Adicione ao menos um item.";
     if (itens.some((i) => !Number.isInteger(i.quantidade) || i.quantidade < 1)) return "Quantidade inválida.";
+    if (socio && socioQ.data !== true) return "Aguarde a confirmação do regime do sócio.";
+    if (socio && itens.some(i=>i.preco_promocional !== undefined && (!Number.isFinite(i.preco_promocional) || i.preco_promocional < 0))) return "Preço promocional inválido.";
     if (modo !== "retirada") {
       if (soDigitos(endereco.cep).length !== 8) return "CEP de entrega obrigatório.";
       if (!endereco.logradouro.trim() || !endereco.numero.trim() || !endereco.cidade.trim() || !endereco.uf.trim())
@@ -505,12 +516,14 @@ export default function VendaDiretaNovo() {
         criadoAguardandoInstrucao.current = null;
         return r;
       }
+      if (!cliente && !novo) throw new Error("Selecione o cliente.");
+      if (socio && socioQ.data !== true) throw new Error("Conta corrente disponível somente para sócio.");
       const p_cliente = cliente
         ? { parceiro_id: cliente.id }
         : {
-            nome: novo!.nome.trim(), cpf: soDigitos(novo!.cpf), telefone: soDigitos(novo!.telefone), email: novo!.email.trim() || null,
-            cep: soDigitos(novo!.cep) || null, logradouro: novo!.logradouro || null, numero: novo!.numero || null,
-            complemento: novo!.complemento || null, bairro: novo!.bairro || null, cidade: novo!.cidade || null, uf: novo!.uf || null,
+            nome: novo?.nome.trim(), cpf: soDigitos(novo?.cpf), telefone: soDigitos(novo?.telefone), email: novo?.email.trim() || null,
+            cep: soDigitos(novo?.cep) || null, logradouro: novo?.logradouro || null, numero: novo?.numero || null,
+            complemento: novo?.complemento || null, bairro: novo?.bairro || null, cidade: novo?.cidade || null, uf: novo?.uf || null,
           };
       let cotacao_id: string | null = null;
       if (modo === "sedex" || modo === "pac") {
@@ -522,7 +535,7 @@ export default function VendaDiretaNovo() {
         }
         if (modo === "pac" && !cotacao_id) throw new Error("PAC indisponível sem cotação dos Correios.");
       }
-      const beneficioPayload = payloadBeneficio(bonif ? BENEFICIO_VAZIO : beneficio, modo !== "retirada");
+      const beneficioPayload = payloadBeneficio(bonif || socio ? BENEFICIO_VAZIO : beneficio, modo !== "retirada");
       const p_entrega =
         modo === "retirada"
           ? { modo: "retirada", beneficio: beneficioPayload, ...(edicao ? {} : { centro_codigo: cdCodigo }) }
@@ -533,7 +546,7 @@ export default function VendaDiretaNovo() {
               endereco: { ...endereco, cep: soDigitos(endereco.cep) },
               beneficio: beneficioPayload,
             };
-      const p_itens = itens.map((i) => ({ sku: i.sku, quantidade: i.quantidade }));
+      const p_itens = itens.map((i) => ({ sku: i.sku, quantidade: i.quantidade, ...(socio && i.preco_promocional !== undefined ? { preco_promocional: i.preco_promocional } : {}) }));
       if (edicao) {
         const { data, error } = await (supabase as any).rpc("vd_editar_pedido", {
           p_pedido_id: editId, p_itens, p_entrega, p_observacao: observacao.trim() || null, p_motivo: motivo.trim(), p_meio: pagamento,
@@ -587,7 +600,7 @@ export default function VendaDiretaNovo() {
         return;
       }
       setResultado(r);
-      toast.success(`${r.id_externo} criado.`);
+      toast.success(r.pagamento === "conta_corrente_socio" ? `Pedido ${r.id_externo} enviado para faturamento — valor lançado na conta corrente do sócio.` : `${r.id_externo} criado.`);
     },
     onError: (e) => toast.error(rawMessage(e)),
   });
@@ -662,7 +675,7 @@ export default function VendaDiretaNovo() {
         {cabecalho}
         <Card>
           <CardHeader>
-            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — {r.pagamento === "bonificacao" ? "bonificado" : r.pagamento === "haver" ? "coberto pelo crédito do cliente" : "aguardando pagamento"}</CardTitle>
+            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — {r.pagamento === "conta_corrente_socio" ? "enviado para faturamento" : r.pagamento === "bonificacao" ? "bonificado" : r.pagamento === "haver" ? "coberto pelo crédito do cliente" : "aguardando pagamento"}</CardTitle>
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(r.valor_total)}</p>
             {Number(r.valor_haver ?? 0) > 0 && (
               <p className="text-sm text-muted-foreground">
@@ -689,7 +702,9 @@ export default function VendaDiretaNovo() {
                 {r.frete.motivo && <> · {r.frete.motivo}</>}
               </p>
             )}
-            {r.pagamento === "bonificacao" ? (
+            {r.pagamento === "conta_corrente_socio" ? (
+              <p className="text-sm">Pedido {r.id_externo} enviado para faturamento — valor lançado na conta corrente do sócio.</p>
+            ) : r.pagamento === "bonificacao" ? (
               <p className="rounded-md border bg-muted/40 p-3 text-sm font-medium">Pedido bonificado criado — segue para faturamento.</p>
             ) : r.pagamento === "haver" ? (
               <p className="rounded-md border bg-muted/40 p-3 text-sm">Pedido coberto pelo crédito — sem cobrança.</p>
@@ -762,8 +777,8 @@ export default function VendaDiretaNovo() {
       {cabecalho}
 
       {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-3">
+        <div className="min-w-0 max-w-[calc(100vw-3rem)] space-y-4 sm:max-w-none lg:col-span-2">
       {/* 0a. CD — de onde sai o pedido, só na criação */}
       {!edicao && (
         <Card className="bg-card">
@@ -890,7 +905,7 @@ export default function VendaDiretaNovo() {
       </Card>
 
       {/* 2. Itens — linha estilo PDV */}
-      <Card ref={entregaRef}>
+      <Card ref={entregaRef} className="min-w-0 max-w-full">
         <CardHeader><CardTitle className="text-base">Itens</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <ProdutoVarejoCombobox value="" onSelect={addItem} ariaLabel="Adicionar produto" />
@@ -907,9 +922,9 @@ export default function VendaDiretaNovo() {
                 const setQtd = (q: number) =>
                   setItens((arr) => arr.map((x) => (x.sku === i.sku ? { ...x, quantidade: Math.max(1, Math.floor(q) || 1) } : x)));
                 return (
-                  <li key={i.sku} className="flex items-center gap-4 py-3">
+                  <li key={i.sku} className="flex flex-wrap items-center gap-4 py-3">
                     <ProdutoMiniatura img={imgsQ.data?.get(i.sku)} tamanho={64} />
-                    <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="min-w-0 flex-1 basis-40 space-y-0.5 sm:basis-0">
                       <p className="line-clamp-2 text-base font-medium">{i.nome ?? i.sku}</p>
                       <CodProduto chave={i.sku} />
                       <p className="text-xs text-muted-foreground">Disponível no Site SP: {saldoSiteSp.isError ? rawMessage(saldoSiteSp.error) : saldoSiteSp.isPending ? "…" : (saldoSiteSp.data?.find((linha) => linha.sku === i.sku)?.disponivel ?? 0).toLocaleString("pt-BR")}</p>
@@ -936,8 +951,9 @@ export default function VendaDiretaNovo() {
                       </Button>
                     </div>
                     <div className="w-32 text-right">
-                      <p className="text-lg font-semibold tabular-nums">{formatBRL(i.preco * i.quantidade)}</p>
-                      <p className="text-sm tabular-nums text-muted-foreground">{formatBRL(i.preco)} cada</p>
+                      <p className="text-lg font-semibold tabular-nums">{formatBRL(precoEfetivo(i) * i.quantidade)}</p>
+                      <p className="text-sm tabular-nums text-muted-foreground">{formatBRL(precoEfetivo(i))} cada</p>
+                      {socio && <div className="mt-2 space-y-1"><Label htmlFor={`promo-${i.sku}`}>Preço promocional</Label><Input id={`promo-${i.sku}`} type="number" min={0} step="0.01" value={i.preco_promocional ?? ""} onChange={e => setItens(arr => arr.map(x => x.sku === i.sku ? { ...x, preco_promocional: e.target.value === "" ? undefined : Number(e.target.value) } : x))} /></div>}
                     </div>
                     <Button variant="ghost" size="icon" aria-label={`Remover ${i.sku}`} onClick={() => setItens((arr) => arr.filter((x) => x.sku !== i.sku))}>
                       <Trash2 className="h-4 w-4" />
@@ -971,7 +987,7 @@ export default function VendaDiretaNovo() {
       </Card>
 
       <div ref={beneficioRef}>
-        {!bonif && <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />}
+        {!bonif && !socio && <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />}
       </div>
 
       {/* 4. Pagamento */}
@@ -983,7 +999,7 @@ export default function VendaDiretaNovo() {
               <span className="font-medium">Crédito do cliente aplicado neste pedido · <span className="tabular-nums">{formatBRL(creditoEd)}</span></span>
             </div>
           )}
-          {temHaver && (
+          {temHaver && !socio && (
             <div className="space-y-2 rounded-md border bg-muted/40 p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">Crédito do cliente · <span className="tabular-nums">{formatBRL(haverSaldoTotal)}</span></span>
@@ -1004,6 +1020,7 @@ export default function VendaDiretaNovo() {
             </div>
           )}
           <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {!edicao && socioQ.data === true && <label className="flex items-start gap-2 text-sm"><RadioGroupItem value="conta_corrente_socio" /><span>Conta Corrente Sócio</span></label>}
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
@@ -1109,7 +1126,7 @@ export default function VendaDiretaNovo() {
                       <span className="min-w-0 flex-1 truncate">
                         <span className="tabular-nums text-muted-foreground">{i.quantidade}×</span> <CodProduto chave={i.sku} variant="compacto" /> {i.nome ?? i.sku}
                       </span>
-                      <span className="tabular-nums">{formatBRL(i.preco * i.quantidade)}</span>
+                      <span className="tabular-nums">{formatBRL(precoEfetivo(i) * i.quantidade)}</span>
                     </li>
                   ))}
                 </ul>
@@ -1157,7 +1174,7 @@ export default function VendaDiretaNovo() {
                 {bonif ? <Gift className="h-4 w-4" /> : pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "pix_safra" ? <Zap className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                 {haverAtivo && !bonif && haverCobreTudo
                   ? "Coberto pelo crédito · sem cobrança"
-                  : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? rotuloPagamentoVD("pix") : pagamento === "pix_safra" ? rotuloPagamentoVD("pix_safra") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
+                  : socio ? "Conta corrente sócio" : bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? rotuloPagamentoVD("pix") : pagamento === "pix_safra" ? rotuloPagamentoVD("pix_safra") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">

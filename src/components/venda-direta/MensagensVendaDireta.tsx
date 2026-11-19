@@ -60,13 +60,14 @@ export interface LinhaAviso {
   cliente_telefone?: string | null;
   situacao: string;
   modal: string | null;
-  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
+  pagamento: "pix" | "pix_safra" | "cartao" | "cartao_maquininha" | "bonificacao" | "conta_corrente_socio" | null;
   link_pagamento?: string | null;
   codigo_rastreio?: string | null;
   rastreio_servico?: string | null;
 }
 
 export function chaveDaLinha(l: LinhaAviso): ChaveMsg | null {
+  if (l.pagamento === "conta_corrente_socio" && ["aguardando_pagamento", "descendo_bling", "aguardando_nf", "separacao"].includes(l.situacao)) return null;
   switch (l.situacao) {
     case "descendo_bling": case "aguardando_nf": case "separacao": return "pagamento_confirmado";
     case "pronto_retirada": return "pronto_retirada";
