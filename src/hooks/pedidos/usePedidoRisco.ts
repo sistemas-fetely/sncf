@@ -21,18 +21,23 @@ export interface PedidoRisco {
 }
 
 /** Lê `vw_pedido_risco` e devolve um Map por pedido_id. FAIL-LOUD. */
-export function usePedidoRisco() {
+export function usePedidoRisco(pedidoIds: string[]) {
+  const ids = [...new Set(pedidoIds)].sort();
   return useQuery({
-    queryKey: ["pedido-risco"],
+    queryKey: ["pedido-risco", ids],
+    enabled: ids.length > 0,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Map<string, PedidoRisco>> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_pedido_risco")
-        .select(
-          "pedido_id, id_externo, estagio, parceiro_razao, valor_liquido, dias_na_fase, risco_score, risco_faixa, risco_cor, risco_motivos",
-        );
-      if (error) throw error;
+      const data: PedidoRisco[] = [];
+      for (let inicio = 0; inicio < ids.length; inicio += 200) {
+        const lote = ids.slice(inicio, inicio + 200);
+        const { data: linhas, error } = await supabase
+          .from("vw_pedido_risco")
+          .select("pedido_id,id_externo,estagio,parceiro_razao,valor_liquido,dias_na_fase,risco_score,risco_faixa,risco_cor,risco_motivos")
+          .in("pedido_id", lote);
+        if (error) throw error;
+        data.push(...(linhas ?? []) as unknown as PedidoRisco[]);
+      }
       const m = new Map<string, PedidoRisco>();
       ((data || []) as PedidoRisco[]).forEach((r) => {
         m.set(r.pedido_id, {

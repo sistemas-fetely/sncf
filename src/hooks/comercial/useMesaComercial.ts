@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useListaPaginada, chamarLista, type ParamsLista, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
+import { recortarSegmentos } from "@/lib/lista/segmentos";
 
 /**
  * FONTE-UNICA DA MESA COMERCIAL: tudo nesta tela le `vw_mesa_comercial`.
@@ -96,21 +98,46 @@ export interface MesaComercialRow {
 export const MESA_QUERY_KEY = ["mesa-comercial"] as const;
 
 /** Carteira B2B ativa completa (~215 pedidos). A view e lenta (~3s) por design atual. */
-export function useMesaComercial() {
-  return useQuery({
-    queryKey: MESA_QUERY_KEY,
-    staleTime: 60 * 1000,
-    queryFn: async (): Promise<MesaComercialRow[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_mesa_comercial")
-        .select("*")
-        .order("dias_desde_pedido", { ascending: false });
-      // FAIL-LOUD: a view e a fonte unica da mesa — qualquer erro sobe.
-      if (error) throw error;
-      return (data ?? []) as MesaComercialRow[];
+export function useMesaComercial(params: Omit<ParamsLista, "relacao">, enabled = true) {
+  const base: ParamsLista = { ...params, relacao: "vw_mesa_comercial" };
+  const temperaturas = ["quente", "morno", "frio", "nao_cobrar"];
+  const filtroTemperatura = (chave: string): FiltroLista => chave === "restantes"
+    ? { op: "or", v: [{ c: "temperatura_sistema", op: "nin", v: temperaturas }, { c: "temperatura_sistema", op: "is_null" }] }
+    : { c: "temperatura_sistema", op: "eq", v: chave };
+  const chaves = [...temperaturas, "restantes"];
+  const resumo = useListaPaginada<MesaComercialRow>({ ...base, tamanho: 1, pagina: 1,
+    agregados: [...(params.agregados ?? []), ...chaves.map((chave): AgregadoLista => ({ id: "ordem_" + chave, fn: "count", onde: [filtroTemperatura(chave)] }))],
+  }, { enabled });
+  const pagina = params.pagina ?? 1;
+  const tamanho = params.tamanho ?? 20;
+  const linhas = useQuery({
+    queryKey: ["lista", base.relacao, "pagina-temperatura", base, resumo.data?.agregados],
+    enabled: enabled && !!resumo.data,
+    queryFn: async () => {
+      const recortes = recortarSegmentos(chaves.map((chave) => ({ chave, total: Number(resumo.data?.agregados["ordem_" + chave] ?? 0) })), pagina, tamanho);
+      const resultado: MesaComercialRow[] = [];
+      for (const recorte of recortes) {
+        const filtros = [...(params.filtros ?? []), filtroTemperatura(recorte.chave)];
+        const primeiro = Math.floor(recorte.inicio / tamanho) + 1;
+        const deslocamento = recorte.inicio % tamanho;
+        const lista = await chamarLista<MesaComercialRow>({ ...base, agregados: [], facetas: [], filtros,
+          ordem: [{ c: "valor", dir: "desc" }, { c: "dias_desde_pedido", dir: "desc" }], pagina: primeiro, tamanho });
+        let itens = lista.linhas.slice(deslocamento, deslocamento + recorte.quantidade);
+        if (itens.length < recorte.quantidade) {
+          const proxima = await chamarLista<MesaComercialRow>({ ...base, agregados: [], facetas: [], filtros,
+            ordem: [{ c: "valor", dir: "desc" }, { c: "dias_desde_pedido", dir: "desc" }], pagina: primeiro + 1, tamanho });
+          itens = [...itens, ...proxima.linhas.slice(0, recorte.quantidade - itens.length)];
+        }
+        resultado.push(...itens);
+      }
+      return resultado;
     },
   });
+  return { ...linhas, total: resumo.data?.total ?? 0, agregados: resumo.data?.agregados,
+    isLoading: resumo.isLoading || (enabled && linhas.isLoading), isFetching: resumo.isFetching || linhas.isFetching,
+    error: resumo.error ?? linhas.error, isError: resumo.isError || linhas.isError,
+    refetch: async () => { const r = await resumo.refetch(); if (r.error) throw r.error; return linhas.refetch(); },
+  };
 }
 
 export interface StatusComercialOpcao {
@@ -281,8 +308,9 @@ export function useDefinirStatusComercial() {
       toast.success("Status comercial atualizado");
       qc.invalidateQueries({ queryKey: ["status-comercial-log", input.pedidoId] });
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: MESA_QUERY_KEY });
+    onSettled: async () => {
+      await qc.invalidateQueries({ queryKey: MESA_QUERY_KEY });
+      await qc.invalidateQueries({ queryKey: ["lista", "vw_mesa_comercial"] });
     },
   });
 }

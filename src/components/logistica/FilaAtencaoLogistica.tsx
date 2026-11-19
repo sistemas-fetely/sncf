@@ -52,6 +52,9 @@ import {
 import { cn } from "@/lib/utils";
 import { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 import { formatBRL } from "@/lib/format-currency";
+import { numeroAgregado, gruposAgregado, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { useEstadoTela } from "@/lib/navegacao";
 import {
   useLogisticaFilaAtencao,
   type FilaAtencaoRow,
@@ -224,43 +227,28 @@ function DialogNovaTarefa({
 }
 
 export function FilaAtencaoLogistica() {
-  const { data: linhas = [], isLoading } = useLogisticaFilaAtencao();
   const [motivosSel, setMotivosSel] = useState<Set<string>>(new Set());
   const [soAcaoNossa, setSoAcaoNossa] = useState(false);
   const [linhaTarefa, setLinhaTarefa] = useState<FilaAtencaoRow | null>(null);
-
-  const motivosDisponiveis = useMemo(
-    () => [...new Set(linhas.map((l) => l.motivo))].sort((a, b) => {
-      // ordena pela menor severidade em que cada motivo aparece (mais urgente primeiro)
-      const sev = (m: string) =>
-        Math.min(...linhas.filter((l) => l.motivo === m).map((l) => l.severidade));
-      return sev(a) - sev(b);
-    }),
-    [linhas],
-  );
-
-  const filtradas = useMemo(
-    () =>
-      linhas.filter(
-        (l) =>
-          (motivosSel.size === 0 || motivosSel.has(l.motivo)) &&
-          (!soAcaoNossa || l.exige_acao_nossa),
-      ),
-    [linhas, motivosSel, soAcaoNossa],
-  );
-
-  const contadores = useMemo(() => {
-    const c = { urgente: 0, atencao: 0, informativo: 0 };
-    for (const l of filtradas) {
-      if (l.severidade <= 2) c.urgente += 1;
-      else if (l.severidade === 3) c.atencao += 1;
-      else c.informativo += 1;
-    }
-    return c;
-  }, [filtradas]);
+  const [estado, setEstado] = useEstadoTela({ pagina: 1 }, { prefixo: "atencao" });
+  const [tamanho, setTamanho] = useState(20);
+  const filtros: FiltroLista[] = [];
+  if (motivosSel.size) filtros.push({ c: "motivo", op: "in", v: [...motivosSel] });
+  if (soAcaoNossa) filtros.push({ c: "exige_acao_nossa", op: "is_true" });
+  const { data, isLoading, error } = useLogisticaFilaAtencao({ filtros, pagina: estado.pagina, tamanho });
+  const filtradas = data?.linhas ?? [];
+  const universo = numeroAgregado(data?.agregados, "universo");
+  const motivosDisponiveis = gruposAgregado(data?.agregados, "motivos")
+    .slice().sort((a, b) => Number(a.valor) - Number(b.valor)).map((g) => String(g.motivo));
+  const contadores = {
+    urgente: numeroAgregado(data?.agregados, "urgente"),
+    atencao: numeroAgregado(data?.agregados, "atencao"),
+    informativo: numeroAgregado(data?.agregados, "informativo"),
+  };
 
   const toggleMotivo = (m: string) =>
     setMotivosSel((prev) => {
+      setEstado({ pagina: 1 });
       const next = new Set(prev);
       if (next.has(m)) next.delete(m);
       else next.add(m);
@@ -277,6 +265,7 @@ export function FilaAtencaoLogistica() {
 
   return (
     <div className="space-y-3">
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
       {/* Contadores por faixa de severidade */}
       <div className="flex flex-wrap items-center gap-2">
         {contadores.urgente > 0 && (
@@ -294,13 +283,13 @@ export function FilaAtencaoLogistica() {
             {contadores.informativo} informativo{contadores.informativo === 1 ? "" : "s"}
           </Selo>
         )}
-        {filtradas.length === 0 && linhas.length === 0 && (
+        {!error && universo === 0 && (
           <Selo estado="success">fila limpa</Selo>
         )}
       </div>
 
       {/* Filtros */}
-      {linhas.length > 0 && (
+      {universo > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -339,7 +328,7 @@ export function FilaAtencaoLogistica() {
           </DropdownMenu>
 
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-            <Switch checked={soAcaoNossa} onCheckedChange={setSoAcaoNossa} />
+            <Switch checked={soAcaoNossa} onCheckedChange={(v) => { setSoAcaoNossa(v); setEstado({ pagina: 1 }); }} />
             Só o que exige ação nossa
           </label>
         </div>
@@ -349,7 +338,7 @@ export function FilaAtencaoLogistica() {
         <div className="border border-dashed rounded-lg p-10 text-center">
           <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success" />
           <p className="text-sm text-muted-foreground">
-            {linhas.length === 0
+            {universo === 0
               ? "Nenhum pedido precisa de atenção agora."
               : "Nenhum pedido com os filtros atuais — limpe os filtros para ver a fila inteira."}
           </p>
@@ -460,6 +449,7 @@ export function FilaAtencaoLogistica() {
         </div>
       )}
 
+      <RodapePaginacao total={data?.total ?? 0} pagina={estado.pagina} tamanhoPagina={tamanho} onPagina={(pagina) => setEstado({ pagina })} onTamanhoPagina={setTamanho} />
       <DialogNovaTarefa
         linha={linhaTarefa}
         aberto={linhaTarefa !== null}

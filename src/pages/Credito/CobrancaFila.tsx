@@ -1,3 +1,4 @@
+import { useListaPaginada, numeroAgregado } from "@/lib/lista/useListaPaginada";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CabecalhoOrdenavel,
@@ -1510,21 +1511,24 @@ export default function CobrancaFila() {
   const totalBaixasPend = baixasPendentes?.countAcoesNossas ?? 0;
 
   // Contagem AGIR AGORA da Mesa — mesma queryKey da Mesa, sem requisição extra.
-  const mesaQ = useQuery({
-    queryKey: ["cobranca-mesa"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("vw_cobranca_mesa").select("*");
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
+  const mesaQ = useListaPaginada({
+    relacao: "vw_cobranca_mesa", tamanho: 1, facetas: ["fila"],
+    agregados: [
+      { id: "agir", fn: "count", onde: [
+        { c: "regua_elegivel", op: "not_true" },
+        { c: "fila", op: "in", v: FILAS_AGIR_AGORA },
+      ] },
+      { id: "problemas", fn: "count", onde: [
+        { c: "fila", op: "in", v: ["PAGO_SEM_PROVA", "A_REEMITIR_BOLETO", "A_EMITIR_BOLETO", "EMAIL_BLOQUEADO", "A_ENVIAR"] },
+        { op: "or", v: [{ c: "instrumento", op: "neq", v: "cartao" }, { c: "instrumento", op: "is_null" }] },
+      ] },
+    ],
   });
   const { data: reguaHoje = [] } = useReguaFilaHoje();
   const totalReguaHoje = reguaHoje.length;
   // Badge da Mesa: mesmo domínio da tela (`ehLinhaDaMesa`) — antes contava a
   // view crua e dizia "Mesa · 9" com 2 títulos visíveis.
-  const totalAgirAgora = (mesaQ.data ?? [])
-    .filter(ehLinhaDaMesa)
-    .filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
+  const totalAgirAgora = numeroAgregado(mesaQ.data?.agregados, "agir");
   // Aba "Sem prova": mesma leitura da view, sem requisição extra.
   // COBRANCA-SEPARA-CLIENTE-DE-DEFEITO (02/09/2026): a aba deixou de ser so
   // "sem prova". O contador soma tudo que impede receber e nao e divida do
@@ -1541,9 +1545,7 @@ export default function CobrancaFila() {
   // F3 conciliacao-recebiveis: cartao INTEIRO saiu desta aba — o pago sem
   // prova de cartao mora na Conciliacao -> Cartao, e o CONCILIAR/cartao
   // tambem. O contador nao conta mais nenhum titulo de instrumento cartao.
-  const totalSemProva = (mesaQ.data ?? []).filter(
-    (l) => FILAS_PROBLEMA_COBRANCA.includes(l.fila ?? "") && l.instrumento !== "cartao",
-  ).length;
+  const totalSemProva = numeroAgregado(mesaQ.data?.agregados, "problemas");
 
 
   const tabTriggerCls =

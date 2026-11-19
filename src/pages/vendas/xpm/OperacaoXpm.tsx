@@ -1,3 +1,4 @@
+import { exportarLista } from "@/lib/lista/useListaPaginada";
 import { Fragment, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,9 +55,9 @@ export default function OperacaoXpm() {
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<Pendencia[]> => {
-      const { data, error } = await (supabase as any).from("vw_xpm_pendencia").select("*");
-      if (error) throw new Error(rawMessage(error));
-      return (data ?? []) as Pendencia[];
+      // PARE: Δ absoluto é codificado em referencia, sem coluna agregável.
+      // Manter o resumo e a ordem de estoque intactos, lendo todas as páginas RPC.
+      return exportarLista<Pendencia>({ relacao: "vw_xpm_pendencia" });
     },
   });
   const tiposQ = useQuery({

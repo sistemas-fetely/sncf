@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada, type ParamsLista } from "@/lib/lista/useListaPaginada";
 
 export type MotivoAtencao =
   | "entregue_sem_lastro"
@@ -33,18 +32,17 @@ export interface FilaAtencaoRow {
 }
 
 /** Pedidos que precisam de olhar humano: view vw_logistica_fila_atencao. */
-export function useLogisticaFilaAtencao() {
-  return useQuery({
-    queryKey: ["logistica", "fila-atencao", "vw_logistica_fila_atencao"],
-    queryFn: async (): Promise<FilaAtencaoRow[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_logistica_fila_atencao")
-        .select("*")
-        .order("severidade", { ascending: true })
-        .order("dias_desde_faturamento", { ascending: false, nullsFirst: false });
-      if (error) throw error;
-      return (data ?? []) as FilaAtencaoRow[];
-    },
+export function useLogisticaFilaAtencao(params: Omit<ParamsLista, "relacao"> = {}) {
+  return useListaPaginada<FilaAtencaoRow>({
+    ...params,
+    relacao: "vw_logistica_fila_atencao",
+    ordem: [{ c: "severidade", dir: "asc" }, { c: "dias_desde_faturamento", dir: "desc" }],
+    agregados: [
+      { id: "universo", fn: "count", ignorar: ["*"] },
+      { id: "motivos", fn: "min", c: "severidade", por: ["motivo"], ignorar: ["*"] },
+      { id: "urgente", fn: "count", onde: [{ c: "severidade", op: "lte", v: 2 }] },
+      { id: "atencao", fn: "count", onde: [{ c: "severidade", op: "eq", v: 3 }] },
+      { id: "informativo", fn: "count", onde: [{ op: "or", v: [{ c: "severidade", op: "gt", v: 3 }, { c: "severidade", op: "is_null" }] }] },
+    ],
   });
 }

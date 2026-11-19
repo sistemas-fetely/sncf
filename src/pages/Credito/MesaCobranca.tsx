@@ -1,3 +1,5 @@
+import { useListaPaginada, numeroAgregado, gruposAgregado, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,11 +135,12 @@ function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
   for (const l of rows) {
     const k = l.pedido_id ?? `sem-pedido:${l.titulo_id}`;
     if (!map.has(k)) { map.set(k, []); ordem.push(k); }
-    map.get(k)!.push(l);
+    const existentes = map.get(k);
+    if (existentes) existentes.push(l);
   }
   const grupos = ordem.map((k) => {
     // Dentro do grupo: parcela mais atrasada primeiro.
-    const parcelas = [...map.get(k)!].sort(
+    const parcelas = [...(map.get(k) ?? [])].sort(
       (a, b) => Number(b.dias_atraso ?? 0) - Number(a.dias_atraso ?? 0),
     );
     const instrumentos = Array.from(new Set(parcelas.map((p) => p.instrumento ?? "—")));
@@ -194,7 +197,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const location = useLocation();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: aba "mesa" da Cobrança → prefixo mesa_.
   const [est, setEst] = useEstadoTela(
-    { busca: "", instrumento: "todos", fila: "todas", vencido: false, grupo: "" },
+    { busca: "", instrumento: "todos", fila: "todas", vencido: false, grupo: "", pagina: 1 },
     { replaceKeys: ["busca"], prefixo: "mesa" },
   );
   const busca = est.busca;
@@ -229,65 +232,44 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
 
 
   const qc = useQueryClient();
-  const q = useQuery({
-    queryKey: ["cobranca-mesa"],
-    ...OPCOES_QUERY_RECEBIVEL,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_cobranca_mesa")
-        .select("*");
-      if (error) throw error;
-      return (data ?? []) as LinhaMesa[];
-    },
-  });
-
-  /**
-   * A Mesa é a PRIMEIRA ENTREGA do pacote: só vive aqui o título que ainda não
-   * é elegível à régua (sem mercadoria entregue, sem instrumento ou sem prova
-   * de envio) e que não pertence à aba Sem prova. Um título nunca aparece em
-   * duas abas — ver `ehLinhaDaMesa`.
-   */
-  const linhas = useMemo(
-    () => (q.data ?? []).filter(ehLinhaDaMesa),
-    [q.data],
-  );
-
-  /**
-   * MESA-É-FILA-DE-AÇÃO: a lista mostra só título com ato a praticar. Cartão a
-   * vencer (cliente já autorizou) e "Em curso" (acompanhar não é ação) somem da
-   * lista — mas continuam nos cartões-resumo e reaparecem com um clique em
-   * VIGIAR / NÃO É COBRANÇA, ou pelo filtro de fila. Nada fica escondido; só
-   * deixa de sujar a mesa. Envio falhado não precisa de exceção: a precedência
-   * da fila joga o título em A_ENVIAR, que exige ação.
-   */
+  const [tamanho, setTamanho] = useState(20);
+  const dominio: FiltroLista[] = [
+    { c: "regua_elegivel", op: "not_true" },
+    { op: "or", v: [{ c: "fila", op: "neq", v: "PAGO_SEM_PROVA" }, { c: "fila", op: "is_null" }] },
+    { op: "or", v: [{ c: "fila", op: "neq", v: "CONCILIAR" }, { c: "fila", op: "is_null" }, { c: "instrumento", op: "neq", v: "cartao" }, { c: "instrumento", op: "is_null" }] },
+  ];
+  const vencidas: FiltroLista[] = [{ c: "dias_atraso", op: "gt", v: 0 }, { c: "cobra_pela_regua", op: "is_true" }];
   const revelandoSemAcao = grupoAtivo !== null || soVencido || filaF !== "todas";
-
-
-
-  const instrumentos = useMemo(
-    () => Array.from(new Set(linhas.map((l) => l.instrumento).filter(Boolean))) as string[],
-    [linhas],
-  );
-
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return linhas.filter((l) => {
-      if (!revelandoSemAcao && l.mesa_exige_acao !== true) return false;
-      if (soVencido) {
-        // Filtro transversal de vencidos: ignora o recorte por grupo de cartão.
-        // Não conta título não-cobrável pela régua (conta_corrente/consignado) — contradiz a própria fila NAO_COBRAVEL.
-        if (!((l.dias_atraso ?? 0) > 0 && l.cobra_pela_regua)) return false;
-      } else if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
-      if (filaF !== "todas" && l.fila !== filaF) return false;
-      if (instrumentoF !== "todos" && l.instrumento !== instrumentoF) return false;
-      if (termo) {
-        const alvo = [l.nome_exibicao, l.pedido, l.numero_titulo].join(" ").toLowerCase();
-        if (!alvo.includes(termo)) return false;
-      }
-      return true;
-    });
-  }, [linhas, busca, instrumentoF, filaF, soVencido, grupoAtivo, revelandoSemAcao]);
-
+  const filtros: FiltroLista[] = [...dominio];
+  if (!revelandoSemAcao) filtros.push({ c: "mesa_exige_acao", op: "is_true" });
+  if (soVencido) filtros.push(...vencidas);
+  else if (grupoAtivo) filtros.push({ c: "fila", op: "in", v: GRUPOS[grupoAtivo] });
+  if (filaF !== "todas") filtros.push({ c: "fila", op: "eq", v: filaF });
+  if (instrumentoF !== "todos") filtros.push({ c: "instrumento", op: "eq", v: instrumentoF });
+  const agregados: AgregadoLista[] = [
+    { id: "universo", fn: "count", ignorar: ["*"], onde: dominio },
+    { id: "instrumentos", fn: "count", por: ["instrumento"], ignorar: ["*"], onde: dominio },
+    ...Object.entries(GRUPOS).flatMap(([grupo, filas]): AgregadoLista[] => [
+      { id: grupo + "_qtd", fn: "count", ignorar: ["*"], onde: [...dominio, { c: "fila", op: "in", v: filas }] },
+      { id: grupo + "_soma", fn: "sum", c: "valor_atual", ignorar: ["*"], onde: [...dominio, { c: "fila", op: "in", v: filas }] },
+    ]),
+    { id: "vencido_qtd", fn: "count", ignorar: ["*"], onde: [...dominio, ...vencidas] },
+    { id: "vencido_soma", fn: "sum", c: "valor_atual", ignorar: ["*"], onde: [...dominio, ...vencidas] },
+    { id: "fila_n", fn: "count", por: ["fila"] },
+    { id: "fila_soma", fn: "sum", c: "valor_atual", por: ["fila"] },
+    { id: "fila_vencido_n", fn: "count", por: ["fila"], onde: vencidas },
+    { id: "fila_vencido_soma", fn: "sum", c: "valor_atual", por: ["fila"], onde: vencidas },
+    { id: "fila_atraso", fn: "max", c: "dias_atraso", por: ["fila"] },
+    { id: "pedido_soma", fn: "sum", c: "valor_atual", por: ["fila", "pedido_id"] },
+  ];
+  const q = useListaPaginada<LinhaMesa>({
+    relacao: "vw_cobranca_mesa", agrupar: "pedido_id", filtros, busca, agregados,
+    pagina: est.pagina, tamanho, ordem: [{ c: "dias_atraso", dir: "desc" }],
+  }, OPCOES_QUERY_RECEBIVEL);
+  const filtradas = q.data?.linhas ?? [];
+  const universo = numeroAgregado(q.data?.agregados, "universo");
+  const instrumentos = gruposAgregado(q.data?.agregados, "instrumentos").filter((g) => g.instrumento).map((g) => String(g.instrumento));
+  const valorFila = (id: string, fila: string) => Number(gruposAgregado(q.data?.agregados, id).find((g) => g.fila === fila)?.valor ?? 0);
 
   useFocoAoVoltar({
     pronto: !q.isLoading,
@@ -296,17 +278,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   });
   useRestaurarScroll(null, !q.isLoading);
 
-  const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
-    const alvo = linhas.filter((l) => GRUPOS[grupo].includes(l.fila ?? ""));
-    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
-  };
-
-  /** Vencidos: transversal a todas as filas. Não conta não-cobrável pela régua (ex: conta_corrente/consignado). */
-  const resumoVencido = useMemo(() => {
-    const alvo = linhas.filter((l) => (l.dias_atraso ?? 0) > 0 && l.cobra_pela_regua);
-    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
-  }, [linhas]);
-
+  const resumoGrupo = (grupo: keyof typeof GRUPOS) => ({ qtd: numeroAgregado(q.data?.agregados, grupo + "_qtd"), soma: numeroAgregado(q.data?.agregados, grupo + "_soma") });
+  const resumoVencido = { qtd: numeroAgregado(q.data?.agregados, "vencido_qtd"), soma: numeroAgregado(q.data?.agregados, "vencido_soma") };
 
   const porFila = useMemo(() => {
 
@@ -327,9 +300,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       return {
         ...f,
         rows,
-        qtdVencido: vencidas.length,
-        totalVencido: vencidas.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
-        maxAtraso: maiorAtraso(rows),
+        qtdVencido: valorFila("fila_vencido_n", f.chave),
+        totalVencido: valorFila("fila_vencido_soma", f.chave),
+        maxAtraso: Math.max(0, valorFila("fila_atraso", f.chave)),
         ordemBase: i,
       };
     }).sort((a, b) => {
@@ -340,7 +313,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       return a.ordemBase - b.ordemBase;
     });
 
-  }, [porFila]);
+  }, [porFila, q.data?.agregados]);
 
 
   const abrirEnviarPacote = (l: LinhaMesa, totalPedido: number) => {
@@ -500,9 +473,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           <div className="space-y-2">
             {filasOrdenadas.filter((f) => f.rows.length > 0).length === 0 ? (
               <div className="rounded-md border px-3 py-6 text-center text-sm text-muted-foreground">
-                {linhas.length > 0 && !revelandoSemAcao ? (
+                {universo > 0 && !revelandoSemAcao ? (
                   <>
-                    Nada a fazer agora. Os {linhas.length} títulos da mesa estão sem ação
+                    Nada a fazer agora. Os {universo} títulos da mesa estão sem ação
                     pendente — liquidam sozinhos ou só aguardam prazo.
                     <div className="mt-1 text-xs">
                       Clique em VIGIAR ou NÃO É COBRANÇA acima para vê-los.
@@ -517,7 +490,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             {filasOrdenadas.filter((f) => f.rows.length > 0).map((f) => {
               const rows = f.rows;
 
-              const soma = rows.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0);
+              const soma = valorFila("fila_soma", f.chave);
               const acao = rows.find((r) => r.acao_sugerida)?.acao_sugerida ?? null;
               const naoCobrar = NAO_COBRAR.has(f.chave);
               // Fila com vencido nasce expandida; depois respeita o clique do operador.
@@ -537,7 +510,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{f.label}</span>
-                        <Badge variant="secondary" className="tabular-nums">{rows.length}</Badge>
+                        <Badge variant="secondary" className="tabular-nums">{valorFila("fila_n", f.chave)}</Badge>
                         <span className="text-xs tabular-nums text-muted-foreground">{formatBRL(soma)}</span>
                         {f.qtdVencido > 0 && (
                           <Badge className="shrink-0 bg-destructive/10 text-destructive hover:bg-destructive/10 text-[10px]">
@@ -571,7 +544,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                       <div className="px-3 py-2 text-xs text-muted-foreground">Fila limpa.</div>
                     ) : (
                       <div className="space-y-1.5 p-2">
-                        {agruparPorPedidoMesa(rows).map((g) => {
+                        {agruparPorPedidoMesa(rows).map((grupo) => {
+                          const somaGrupo = gruposAgregado(q.data?.agregados, "pedido_soma").find((r) => r.fila === f.chave && r.pedido_id === grupo.urgente.pedido_id);
+                          const g = { ...grupo, total: Number(somaGrupo?.valor ?? 0) };
                           const chaveGrupo = `${f.chave}:${g.chave}`;
                           const aberto = gruposAbertos[chaveGrupo] ?? g.abrirPorPadrao;
                           const atrasoUrgente = Number(g.urgente.dias_atraso ?? 0);
@@ -766,7 +741,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         )}
 
         {/* Drawer somente-leitura */}
-        <Sheet open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
+        <RodapePaginacao total={q.data?.total ?? 0} pagina={est.pagina} tamanhoPagina={tamanho} onPagina={(pagina) => setEst({ pagina })} onTamanhoPagina={setTamanho} />
+      <Sheet open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
           <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
             {detalhe && (
               <>

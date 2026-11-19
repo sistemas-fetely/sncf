@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { formatError } from "@/lib/format-error";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
@@ -31,31 +34,32 @@ interface Props {
 }
 
 export function FilaPorEstagio({ estagio }: Props) {
-  const [est, setEst] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"], prefixo: "cr" });
+  const [est, setEst] = useEstadoTela({ busca: "", pagina: 1 }, { replaceKeys: ["busca"], prefixo: "cr" });
   const busca = est.busca;
-  const setBusca = (v: string) => setEst({ busca: v });
+  const setBusca = (v: string) => setEst({ busca: v, pagina: 1 });
+  const [tamanho, setTamanho] = useState(20);
   const navigate = useNavigate();
   const location = useLocation();
 
   const estagioParam = estagio === "decididas" ? undefined : (estagio as EstagioAnalise);
   const apenasAbertas = estagio !== "decididas";
 
-  const { data: analises, isLoading } = useAnalisesFila({
+  const { data: analises, isLoading, total, error } = useAnalisesFila({
     estagio: estagioParam,
     apenasAbertas,
     busca: busca || undefined,
+    pagina: est.pagina, tamanho,
+    decididas: estagio === "decididas",
   });
 
-  const filtradas =
-    estagio === "decididas"
-      ? (analises || []).filter((a) => a.status_final !== null)
-      : analises;
+  const filtradas = analises;
 
   useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (filtradas ?? []).map((a) => a.id), focoParam: "cr_foco" });
   useRestaurarScroll(null, !isLoading);
 
   return (
     <div className="space-y-3">
+      {error && <p className="text-sm text-destructive">{formatError(error)}</p>}
       <div className="relative max-w-sm">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -162,9 +166,10 @@ export function FilaPorEstagio({ estagio }: Props) {
 
       {filtradas && filtradas.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {filtradas.length} pedido{filtradas.length !== 1 ? "s" : ""}
+          {total} pedido{total !== 1 ? "s" : ""}
         </p>
       )}
+      <RodapePaginacao total={total} pagina={est.pagina} tamanhoPagina={tamanho} onPagina={(pagina) => setEst({ pagina })} onTamanhoPagina={setTamanho} />
     </div>
   );
 }

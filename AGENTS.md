@@ -1,6 +1,7 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
 - Paginated lists use fn_lista aggregates and 500-row RPC exports; grouped pages retain complete members and read hidden counts through page-key aggregates ignoring all filters. Dedicated XPM RPCs own cycle statistics and distinct stock photos; photo equality preserves timestamp microseconds and database text format because fn_lista eq compares text.
+- Credit analysis pages split preapproved and remaining segments using server counts before fetching page slices, preserving boolean priority without sorting UUIDs. Unsupported external-map formulas and timed-out aggregate queries stay explicitly blocked, never approximated by page totals.
 - Mesa missing-item waits are event-only RPCs with order locks; the DB derives the stage and all-items physical-stock hint, while the existing operation permission and awaited refresh own the UI actions, preserving reservations and requiring fresh conference after arrival.
 - The second accountant stock workbook reuses raw Bloco K rows once, resolves fiscal establishments from center metadata and consolidates by establishment/code/external holder; inventory and manifest share its summary without changing the original workbook.
 - Product Mesa reads only fn_mesa_produto for consolidated rows, counts, facets and cards, with URL parameters, 300ms search debounce and retained page data; format alerts keep their separate ordered batch query so diagnostics remain complete.

@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada, numeroAgregado } from "@/lib/lista/useListaPaginada";
+import { formatError } from "@/lib/format-error";
 
 export interface Lancamento {
   id: string;
@@ -19,44 +21,35 @@ export interface Lancamento {
   rastreio_entregue?: boolean | null;
 }
 
-export function useLancamentos() {
-  const [lista, setLista] = useState<Lancamento[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
+export function useLancamentos(opts: { empresa?: string; pagina?: number; tamanho?: number } = {}) {
+  const [sincronizando, setSincronizando] = useState(false);
+  const [erroSync, setErroSync] = useState<string | null>(null);
+  const query = useListaPaginada<Lancamento>({
+    relacao: "vw_correios_lancamento_rastreio", pagina: opts.pagina, tamanho: opts.tamanho ?? 20,
+    filtros: opts.empresa ? [{ c: "empresa_frete", op: "eq", v: opts.empresa }] : [],
+    ordem: [{ c: "data_postagem", dir: "desc" }],
+    agregados: [{ id: "totalPostado", fn: "sum", c: "valor_servico" }],
+  });
   const listar = useCallback(async () => {
-    setLoading(true);
-    setErro(null);
-    try {
-      // vw_correios_lancamento_rastreio já traz rastreio_status e rastreio_entregue (casados no banco).
-      const { data: lancs, error } = await (supabase as any)
-        .from("vw_correios_lancamento_rastreio")
-        .select("*")
-        .order("data_postagem", { ascending: false });
-      if (error) throw error;
-      setLista((lancs ?? []) as Lancamento[]);
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const resultado = await query.refetch();
+    if (resultado.error) throw resultado.error;
+  }, [query.refetch]);
 
   const sincronizar = useCallback(async () => {
-    setLoading(true);
-    setErro(null);
+    setSincronizando(true);
+    setErroSync(null);
     try {
       const { data, error } = await supabase.functions.invoke("correios-previa-sync", { body: {} });
       if (error) throw error;
       await listar();
       return data as any;
     } catch (e) {
-      setErro(e instanceof Error ? e.message : String(e));
+      setErroSync(formatError(e));
       return null;
     } finally {
-      setLoading(false);
+      setSincronizando(false);
     }
   }, [listar]);
 
-  return { lista, loading, erro, listar, sincronizar };
+  return { lista: query.data?.linhas ?? [], total: query.data?.total ?? 0, totalPostado: numeroAgregado(query.data?.agregados, "totalPostado"), loading: query.isLoading || sincronizando, erro: erroSync ?? (query.error ? formatError(query.error) : null), listar, sincronizar };
 }

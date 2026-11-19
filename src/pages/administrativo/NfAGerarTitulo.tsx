@@ -7,7 +7,7 @@
 // REGRA DURA: o lote NUNCA roda com p_dry_run=false sem antes ter passado pela
 // simulação. É dinheiro parado em fila; um clique errado gera títulos reais.
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FileCheck2, Info, Loader2, PlayCircle } from "lucide-react";
@@ -53,6 +53,9 @@ import { contarPrecisa } from "@/components/nf-titulo/perfilPagamento";
 import { useFilaSemTitulo } from "@/components/nf-titulo/usePerfilPagamento";
 import { AbaNotaCartao } from "@/components/nf-titulo/AbaNotaCartao";
 import { useNotaCartao } from "@/components/nf-titulo/useNotaCartao";
+import { useListaPaginada, numeroAgregado, gruposAgregado, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { useEstadoTela } from "@/lib/navegacao";
 
 const QK = ["nf-a-gerar-titulo"] as const;
 
@@ -125,59 +128,32 @@ export default function NfAGerarTitulo() {
   const [simulacao, setSimulacao] = useState<ResultadoLote | null>(null);
   const [resultado, setResultado] = useState<ResultadoLote | null>(null);
 
-  const fila = useQuery({
-    queryKey: [...QK, "lista"],
-    queryFn: async (): Promise<LinhaFila[]> => {
-      const { data, error } = await (supabase as any).from("vw_nf_a_gerar_titulo").select("*");
-      if (error) throw error;
-      return (data ?? []) as LinhaFila[];
-    },
+  const [estado, setEstado] = useEstadoTela({ pagina: 1 }, { prefixo: "nft" });
+  const [tamanho, setTamanho] = useState(20);
+  const filtros: FiltroLista[] = [];
+  if (fSituacao !== "todas") filtros.push({ c: "situacao", op: "eq", v: fSituacao });
+  if (fDestino !== "todos") filtros.push({ c: "destino_codigo", op: "eq", v: fDestino });
+  const agregados: AgregadoLista[] = [
+    ...["pronta", "sem_parceiro", "nao_gera"].flatMap((situacao): AgregadoLista[] => [
+      { id: situacao + "_qtd", fn: "count", ignorar: ["*"], onde: [{ c: "situacao", op: "eq", v: situacao }] },
+      { id: situacao + "_valor", fn: "sum", c: "valor", ignorar: ["*"], onde: [{ c: "situacao", op: "eq", v: situacao }] },
+    ]),
+    { id: "destinos", fn: "count", por: ["destino_codigo", "destino_rotulo"], ignorar: ["*"] },
+    { id: "selecionado", fn: "sum", c: "valor", ignorar: ["*"], onde: [{ c: "nf_id", op: "in", v: [...sel] }] },
+  ];
+  const fila = useListaPaginada<LinhaFila>({
+    relacao: "vw_nf_a_gerar_titulo", filtros, agregados, pagina: estado.pagina, tamanho,
+    ordem: [{ c: ordem.startsWith("emissao") ? "nf_data_emissao" : "valor", dir: ordem.endsWith("asc") ? "asc" : "desc" }],
   });
-
-  const linhas = fila.data ?? [];
-
-  const resumo = useMemo(() => {
-    const bloco = (situacao: string) => {
-      const ls = linhas.filter((l) => l.situacao === situacao);
-      return { qtd: ls.length, valor: ls.reduce((s, l) => s + Number(l.valor ?? 0), 0) };
-    };
-    return {
-      pronta: bloco("pronta"),
-      sem_parceiro: bloco("sem_parceiro"),
-      nao_gera: bloco("nao_gera"),
-    };
-  }, [linhas]);
-
-  const destinos = useMemo(() => {
-    const mapa = new Map<string, string>();
-    for (const l of linhas) {
-      if (l.destino_codigo) mapa.set(l.destino_codigo, l.destino_rotulo ?? l.destino_codigo);
-    }
-    return [...mapa.entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
-  }, [linhas]);
-
-  const visiveis = useMemo(() => {
-    const filtradas = linhas.filter(
-      (l) =>
-        (fSituacao === "todas" || l.situacao === fSituacao) &&
-        (fDestino === "todos" || l.destino_codigo === fDestino),
-    );
-    const cmpData = (a: LinhaFila, b: LinhaFila) =>
-      (a.nf_data_emissao ?? "").localeCompare(b.nf_data_emissao ?? "");
-    const cmpValor = (a: LinhaFila, b: LinhaFila) => Number(a.valor ?? 0) - Number(b.valor ?? 0);
-    const ordenada = [...filtradas];
-    if (ordem === "emissao_asc") ordenada.sort(cmpData);
-    else if (ordem === "emissao_desc") ordenada.sort((a, b) => cmpData(b, a));
-    else if (ordem === "valor_asc") ordenada.sort(cmpValor);
-    else ordenada.sort((a, b) => cmpValor(b, a));
-    return ordenada;
-  }, [linhas, fSituacao, fDestino, ordem]);
-
+  const visiveis = fila.data?.linhas ?? [];
+  const bloco = (situacao: string) => ({ qtd: numeroAgregado(fila.data?.agregados, situacao + "_qtd"), valor: numeroAgregado(fila.data?.agregados, situacao + "_valor") });
+  const resumo = { pronta: bloco("pronta"), sem_parceiro: bloco("sem_parceiro"), nao_gera: bloco("nao_gera") };
+  const destinos = gruposAgregado(fila.data?.agregados, "destinos")
+    .filter((g) => g.destino_codigo).map((g) => [String(g.destino_codigo), String(g.destino_rotulo ?? g.destino_codigo)])
+    .sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
   const prontasVisiveis = visiveis.filter((l) => l.situacao === "pronta");
   const selecionados = useMemo(() => [...sel], [sel]);
-  const valorSelecionado = linhas
-    .filter((l) => sel.has(l.nf_id))
-    .reduce((s, l) => s + Number(l.valor ?? 0), 0);
+  const valorSelecionado = numeroAgregado(fila.data?.agregados, "selecionado");
 
   const alternar = (id: string) =>
     setSel((atual) => {
@@ -344,7 +320,7 @@ export default function NfAGerarTitulo() {
 
         {/* FILTROS */}
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={fSituacao} onValueChange={setFSituacao}>
+          <Select value={fSituacao} onValueChange={(v) => { setFSituacao(v); setEstado({ pagina: 1 }); }}>
             <SelectTrigger className="w-[190px]">
               <SelectValue placeholder="Situação" />
             </SelectTrigger>
@@ -355,7 +331,7 @@ export default function NfAGerarTitulo() {
               <SelectItem value="nao_gera">Não geram título</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={fDestino} onValueChange={setFDestino}>
+          <Select value={fDestino} onValueChange={(v) => { setFDestino(v); setEstado({ pagina: 1 }); }}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Destino" />
             </SelectTrigger>
@@ -368,7 +344,7 @@ export default function NfAGerarTitulo() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={ordem} onValueChange={setOrdem}>
+          <Select value={ordem} onValueChange={(v) => { setOrdem(v); setEstado({ pagina: 1 }); }}>
             <SelectTrigger className="w-[210px]">
               <SelectValue placeholder="Ordenar" />
             </SelectTrigger>
@@ -538,6 +514,7 @@ export default function NfAGerarTitulo() {
         )}
       </TooltipProvider>
 
+      <RodapePaginacao total={fila.data?.total ?? 0} pagina={estado.pagina} tamanhoPagina={tamanho} onPagina={(pagina) => setEstado({ pagina })} onTamanhoPagina={setTamanho} />
       {/* DIALOG EM DOIS PASSOS: simulação → execução */}
       <Dialog open={dialogAberto} onOpenChange={(aberto) => !aberto && fecharDialog()}>
         <DialogContent>

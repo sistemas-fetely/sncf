@@ -573,7 +573,6 @@ export function FilaPedidosPorArea({
   });
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
-  const { data: riscoMap } = usePedidoRisco();
   const { data: faixas } = usePedidoRiscoFaixas();
   // Alerta operacional — fonte única: vw_pedido_alerta (achados vivos da auditoria).
   const { data: alertaMap } = usePedidoAlerta();
@@ -620,6 +619,7 @@ export function FilaPedidosPorArea({
     [data, pedidosPorApelido],
   );
   const { data: relogioMap } = usePedidoRelogio(pedidoIdsRelogio);
+  const { data: riscoMap } = usePedidoRisco(pedidoIdsRelogio);
 
   const parceiroIdsLista = useMemo(() => {
     const set = new Set<string>();

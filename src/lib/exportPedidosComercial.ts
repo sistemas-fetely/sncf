@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
+import { exportarLista } from "@/lib/lista/useListaPaginada";
 
 type Params = { de: string; ate: string };
 
@@ -18,18 +19,12 @@ function toDate(v: unknown): Date | null {
 
 export async function exportarPedidosComercial({ de, ate }: Params): Promise<number> {
   // a) leitura
-  const { data, error } = await supabase
-    .from("vw_pedidos_export_comercial")
-    .select(
-      "pedido, data_pedido, razao_social, apelido, valor, estagio, estagio_ordem, tag, pagamento, nf, transportadora, transportadora_origem, previsao_entrega, vendedor",
-    )
-    .gte("data_pedido", de)
-    .lte("data_pedido", ate)
-    .order("estagio_ordem", { ascending: true })
-    .order("data_pedido", { ascending: false });
-
-  if (error) throw new Error(`Falha ao consultar pedidos: ${error.message}${error.details ? ` — ${error.details}` : ""}`);
-  const linhas = data ?? [];
+  const linhas = await exportarLista<Record<string, unknown>>({
+    relacao: "vw_pedidos_export_comercial",
+    colunas: "pedido,data_pedido,razao_social,apelido,valor,estagio,estagio_ordem,tag,pagamento,nf,transportadora,transportadora_origem,previsao_entrega,vendedor".split(","),
+    filtros: [{ c: "data_pedido", op: "gte", v: de }, { c: "data_pedido", op: "lte", v: ate }],
+    ordem: [{ c: "estagio_ordem", dir: "asc" }, { c: "data_pedido", dir: "desc" }],
+  });
 
   // b) planilha
   const wb = new ExcelJS.Workbook();

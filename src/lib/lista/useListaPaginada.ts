@@ -83,7 +83,7 @@ export function montarParamsLista(params: ParamsLista): Record<string, unknown> 
   return p;
 }
 
-async function chamarLista<T>(params: ParamsLista): Promise<ResultadoLista<T>> {
+export async function chamarLista<T>(params: ParamsLista): Promise<ResultadoLista<T>> {
   const { data, error } = await supabase.rpc("fn_lista" as never, { p: montarParamsLista(params) } as never);
   if (error) throw error;
   const r = data as unknown as ResultadoLista<T> | null;

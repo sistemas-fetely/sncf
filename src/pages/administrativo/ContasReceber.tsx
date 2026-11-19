@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { PageShell } from "@/components/layout/PageShell";
 import { formatError } from "@/lib/format-error";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -2021,177 +2023,76 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const sort = lerOrdemKD(est.sort);
   const setSort = (v: React.SetStateAction<OrdemKD>) => setEst({ sort: escreverOrdemKD(resolverAcao(v, sort)) });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["recebivel-b2c-pedido"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_recebivel_b2c_pedido")
-        .select("*")
-        .order("data_transacao", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as RecebivelB2C[];
-    },
-  });
-
-  const { data: fvrData } = useQuery({
-    queryKey: ["b2c-faturado-vs-recebido"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_b2c_faturado_vs_recebido")
-        .select("*");
-      if (error) throw error;
-      return (data ?? []) as FatVsReceb[];
-    },
-  });
-
-  const base = useMemo(() => {
-    const buscaLc = busca.trim().toLowerCase();
-    const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
-    const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
-    return (data ?? []).filter((r) => {
-      if (buscaLc) {
-        const alvo = `${r.order_name ?? ""} ${r.shopify_id ?? ""} ${r.mp_payment_id ?? ""} ${r.shipping_city ?? ""}`.toLowerCase();
-        if (!alvo.includes(buscaLc)) return false;
-      }
-      if (!dDe && !dAte) return true;
-      if (!r.data_transacao) return false;
-      const d = new Date(String(r.data_transacao).slice(0, 10) + "T12:00:00");
-      if (dDe && d < dDe) return false;
-      if (dAte && d > dAte) return false;
-      return true;
-    });
-  }, [data, busca, dataDe, dataAte]);
-
-  const fvrBase = useMemo(() => {
-    const buscaLc = busca.trim().toLowerCase();
-    const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
-    const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
-    return (fvrData ?? []).filter((r) => {
-      if (buscaLc) {
-        const alvo = `${r.pedido_ref ?? ""} ${r.cliente ?? ""} ${r.nf_refs ?? ""} ${r.cidade ?? ""}`.toLowerCase();
-        if (!alvo.includes(buscaLc)) return false;
-      }
-      if (!dDe && !dAte) return true;
-      if (!r.data_emissao) return false;
-      const d = new Date(String(r.data_emissao).slice(0, 10) + "T12:00:00");
-      if (dDe && d < dDe) return false;
-      if (dAte && d > dAte) return false;
-      return true;
-    });
-  }, [fvrData, busca, dataDe, dataAte]);
-
-  const semRecebimento = useMemo(
-    () =>
-      fvrBase
-        .filter((r) => r.situacao === "faturado_sem_recebimento")
-        .sort((a, b) => (diasDesde(b.data_emissao) ?? 0) - (diasDesde(a.data_emissao) ?? 0)),
-    [fvrBase]
-  );
-  const recebidoSemNf = useMemo(() => {
-    const buscaLc = busca.trim().toLowerCase();
-    return (fvrData ?? []).filter((r) => {
-      if (r.situacao !== "recebido_sem_nf") return false;
-      if (!buscaLc) return true;
-      const alvo = `${r.pedido_ref ?? ""} ${r.cliente ?? ""} ${r.nf_refs ?? ""} ${r.cidade ?? ""}`.toLowerCase();
-      return alvo.includes(buscaLc);
-    });
-  }, [fvrData, busca]);
-  const conciliados = useMemo(
-    () =>
-      fvrBase
-        .filter((r) => r.situacao === "conciliado")
-        .sort(
-          (a, b) =>
-            Math.abs(Number(b.delta_bruto_vs_faturado ?? 0)) -
-            Math.abs(Number(a.delta_bruto_vs_faturado ?? 0))
-        ),
-    [fvrBase]
-  );
-
-  /**
-   * `vw_recebivel_b2c_pedido` não tem nome de cliente. Busca por cliente acha
-   * em Faturado x Recebido e volta vazia aqui. Sem este contador a tela
-   * mentiria por omissao, como a aba B2B ja mentiu uma vez.
-   */
-  const achadosFvr = useMemo(() => {
-    if (!busca.trim()) return 0;
-    return fvrBase.length + recebidoSemNf.length;
-  }, [busca, fvrBase, recebidoSemNf]);
-
-  const kpiFuro = useMemo(() => {
-    const total = semRecebimento.reduce((s, r) => s + Number(r.faturado ?? 0), 0);
-    const dias = semRecebimento
-      .map((r) => diasDesde(r.data_emissao))
-      .filter((d): d is number => d !== null);
-    return { total, n: semRecebimento.length, maisAntigo: dias.length ? Math.max(...dias) : null };
-  }, [semRecebimento]);
-
-  const kpis = useMemo(() => {
-    let bruto = 0;
-    let liquido = 0;
-    for (const r of base) {
-      bruto += Number(r.pedido_total_bruto ?? 0);
-      liquido += Number(r.valor_liquido_mp ?? 0);
-    }
-    const taxa = bruto - liquido;
-    return { bruto, liquido, taxa, pct: bruto > 0 ? (taxa / bruto) * 100 : 0 };
-  }, [base]);
-
-  const mensal = useMemo(() => {
-    const mapa = new Map<
-      string,
-      { mes: string; pedidos: number; bruto: number; liquido: number }
-    >();
-    for (const r of base) {
-      const key = mesKeyDe(r.data_transacao);
-      if (!key) continue;
-      const l = mapa.get(key) ?? { mes: key, pedidos: 0, bruto: 0, liquido: 0 };
-      l.pedidos += 1;
-      l.bruto += Number(r.pedido_total_bruto ?? 0);
-      l.liquido += Number(r.valor_liquido_mp ?? 0);
-      mapa.set(key, l);
-    }
-    return Array.from(mapa.values()).sort((a, b) => (a.mes < b.mes ? 1 : -1));
-  }, [base]);
-
-  /** Mesmos dados, ordem crescente (mais antigo à esquerda). */
-  const mensalAsc = useMemo(() => [...mensal].reverse(), [mensal]);
-
-  const totalMensalB2c = useMemo(
-    () =>
-      mensal.reduce(
-        (acc, l) => ({
-          pedidos: acc.pedidos + l.pedidos,
-          bruto: acc.bruto + l.bruto,
-          liquido: acc.liquido + l.liquido,
-        }),
-        { pedidos: 0, bruto: 0, liquido: 0 }
-      ),
-    [mensal]
-  );
-
-  const ordenados = useMemo(() => {
-    if (!sort) return base;
-    return [...base].sort((a, b) => {
-      const va = (a as any)[sort.key] ?? "";
-      const vb = (b as any)[sort.key] ?? "";
-      if (typeof va === "number" && typeof vb === "number") {
-        return sort.dir === "asc" ? va - vb : vb - va;
-      }
-      const sa = String(va);
-      const sb = String(vb);
-      return sort.dir === "asc" ? sa.localeCompare(sb) : sb.localeCompare(sa);
-    });
-  }, [base, sort]);
-
-  const totalPages = Math.max(1, Math.ceil(ordenados.length / PAGE_SIZE));
+  const filtrosData = (coluna: string): FiltroLista[] => [
+    ...(dataDe ? [{ c: coluna, op: "gte" as const, v: dataDe }] : []),
+    ...(dataAte ? [{ c: coluna, op: "lte" as const, v: dataAte }] : []),
+  ];
+  const paramsB2c: ParamsLista = {
+    relacao: "vw_recebivel_b2c_pedido", busca, filtros: filtrosData("data_transacao"),
+    pagina: page, tamanho: PAGE_SIZE,
+    ordem: [{ c: sort?.key ?? "data_transacao", dir: sort?.dir ?? "desc" }],
+    agregados: [
+      { id: "bruto", fn: "sum", c: "pedido_total_bruto" },
+      { id: "liquido", fn: "sum", c: "valor_liquido_mp" },
+      ...(["count", "sum", "sum"] as const).map((fn, i): AgregadoLista => ({
+        id: ["mensal_n", "mensal_bruto", "mensal_liquido"][i], fn,
+        ...(i ? { c: i === 1 ? "pedido_total_bruto" : "valor_liquido_mp" } : {}),
+        por: [{ c: "data_transacao", trunc: "month" }], onde: [{ c: "data_transacao", op: "not_null" }],
+      })),
+    ],
+  };
+  const b2cQ = useListaPaginada<RecebivelB2C>(paramsB2c);
+  const [fvrEst, setFvrEst] = useEstadoTela({ pagina: 1 }, { prefixo: "b2cfvr" });
+  const [tamanhoFvr, setTamanhoFvr] = useState(20);
+  const filtrosFvrData = filtrosData("data_emissao");
+  const ondeSituacao = (situacao: string): FiltroLista[] => [{ c: "situacao", op: "eq", v: situacao }];
+  const paramsFvr: ParamsLista = {
+    relacao: "vw_b2c_faturado_vs_recebido", busca,
+    filtros: [...(listaFvr === "recebido_sem_nf" ? [] : filtrosFvrData), ...ondeSituacao(listaFvr)],
+    pagina: fvrEst.pagina, tamanho: tamanhoFvr,
+    ordem: listaFvr === "conciliado" ? [{ c: "delta_bruto_vs_faturado", dir: "desc", abs: true }]
+      : listaFvr === "faturado_sem_recebimento" ? [{ c: "data_emissao", dir: "asc" }] : undefined,
+    agregados: [
+      ...["faturado_sem_recebimento", "recebido_sem_nf", "conciliado"].map((situacao): AgregadoLista => ({
+        id: situacao, fn: "count", ignorar: ["situacao", "data_emissao"],
+        onde: [...ondeSituacao(situacao), ...(situacao === "recebido_sem_nf" ? [] : filtrosFvrData)],
+      })),
+      { id: "furo_valor", fn: "sum", c: "faturado", ignorar: ["situacao", "data_emissao"], onde: [...ondeSituacao("faturado_sem_recebimento"), ...filtrosFvrData] },
+      { id: "furo_antigo", fn: "min", c: "data_emissao", ignorar: ["situacao", "data_emissao"], onde: [...ondeSituacao("faturado_sem_recebimento"), ...filtrosFvrData] },
+      { id: "achados", fn: "count", ignorar: ["situacao", "data_emissao"], onde: filtrosFvrData },
+      { id: "delta", fn: "sum", c: "delta_bruto_vs_faturado" },
+    ],
+  };
+  const fvrQ = useListaPaginada<FatVsReceb>(paramsFvr);
+  const isLoading = b2cQ.isLoading;
+  const base = b2cQ.data?.linhas ?? [];
+  const totalB2c = b2cQ.data?.total ?? 0;
+  const semRecebimento = listaFvr === "faturado_sem_recebimento" ? fvrQ.data?.linhas ?? [] : [];
+  const recebidoSemNf = listaFvr === "recebido_sem_nf" ? fvrQ.data?.linhas ?? [] : [];
+  const conciliados = listaFvr === "conciliado" ? fvrQ.data?.linhas ?? [] : [];
+  const contagemFvr = (situacao: string) => numeroAgregado(fvrQ.data?.agregados, situacao);
+  const achadosFvr = busca.trim() ? numeroAgregado(fvrQ.data?.agregados, "achados") + contagemFvr("recebido_sem_nf") : 0;
+  const dataAntiga = fvrQ.data?.agregados.furo_antigo;
+  const kpiFuro = { total: numeroAgregado(fvrQ.data?.agregados, "furo_valor"), n: contagemFvr("faturado_sem_recebimento"), maisAntigo: typeof dataAntiga === "string" ? diasDesde(dataAntiga) : null };
+  const bruto = numeroAgregado(b2cQ.data?.agregados, "bruto");
+  const liquido = numeroAgregado(b2cQ.data?.agregados, "liquido");
+  const kpis = { bruto, liquido, taxa: bruto - liquido, pct: bruto > 0 ? (bruto - liquido) / bruto * 100 : 0 };
+  const mensal = gruposAgregado(b2cQ.data?.agregados, "mensal_n").filter((g) => g.data_transacao).map((g) => {
+    const mes = String(g.data_transacao).slice(0, 7);
+    const valor = (id: string) => Number(gruposAgregado(b2cQ.data?.agregados, id).find((r) => String(r.data_transacao).slice(0, 7) === mes)?.valor ?? 0);
+    return { mes, pedidos: Number(g.valor ?? 0), bruto: valor("mensal_bruto"), liquido: valor("mensal_liquido") };
+  }).sort((a, b) => b.mes.localeCompare(a.mes));
+  const mensalAsc = [...mensal].reverse();
+  const totalMensalB2c = { pedidos: totalB2c, bruto, liquido };
+  const totalPages = Math.max(1, Math.ceil(totalB2c / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-  const paginados = ordenados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const paginados = base;
 
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
-  const handleExportXLSX = () => {
-    const linhas = ordenados.map((r) => ({
+  const handleExportXLSX = async () => {
+    const [exportB2c, exportFvr] = await Promise.all([exportarLista<RecebivelB2C>(paramsB2c), exportarLista<FatVsReceb>(paramsFvr)]);
+    const linhas = exportB2c.map((r) => ({
       Pedido: r.order_name ?? "",
       "Data recebimento": formatDateBR(String(r.data_transacao ?? "").slice(0, 10)),
       "Data pedido": formatDateBR(String(r.created_at_shopify ?? "").slice(0, 10)),
@@ -2211,12 +2112,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Recebíveis B2C");
 
-    const listaSel =
-      listaFvr === "faturado_sem_recebimento"
-        ? semRecebimento
-        : listaFvr === "recebido_sem_nf"
-          ? recebidoSemNf
-          : conciliados;
+    const listaSel = exportFvr;
     const linhasFvr = listaSel.map((r) => ({
       Situação: r.situacao ?? "",
       Pedido: r.pedido_ref ?? "",
@@ -2243,11 +2139,13 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   };
 
   useEffect(() => {
-    onRegistrarExport({ fn: handleExportXLSX, ativo: ordenados.length > 0 });
-  }, [ordenados]);
+    onRegistrarExport({ fn: () => { void handleExportXLSX().catch((e) => toast.error(formatError(e))); }, ativo: totalB2c > 0 });
+  }, [busca, dataDe, dataAte, est.sort, listaFvr, totalB2c]);
+  useEffect(() => { setFvrEst({ pagina: 1 }); }, [busca, dataDe, dataAte, listaFvr]);
 
   return (
     <div className="space-y-6">
+      {(b2cQ.error || fvrQ.error) && <p className="text-sm text-destructive">{formatError(b2cQ.error ?? fvrQ.error)}</p>}
       <GavetaFilaSemPedido />
       <div className="flex justify-end"><BotaoFilaSemPedido /></div>
 
@@ -2265,7 +2163,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-medium tabular-nums">{formatBRL(kpis.bruto)}</div>
-            <p className="text-xs text-muted-foreground">{base.length} pedidos</p>
+            <p className="text-xs text-muted-foreground">{totalB2c} pedidos</p>
           </CardContent>
         </Card>
         <Card>
@@ -2442,21 +2340,21 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 variant={listaFvr === "faturado_sem_recebimento" ? "default" : "outline"}
                 onClick={() => setListaFvr("faturado_sem_recebimento")}
               >
-                Faturado sem recebimento ({semRecebimento.length})
+                Faturado sem recebimento ({contagemFvr("faturado_sem_recebimento")})
               </Button>
               <Button
                 size="sm"
                 variant={listaFvr === "recebido_sem_nf" ? "default" : "outline"}
                 onClick={() => setListaFvr("recebido_sem_nf")}
               >
-                Recebido sem NF ({recebidoSemNf.length})
+                Recebido sem NF ({contagemFvr("recebido_sem_nf")})
               </Button>
               <Button
                 size="sm"
                 variant={listaFvr === "conciliado" ? "default" : "outline"}
                 onClick={() => setListaFvr("conciliado")}
               >
-                Conciliados ({conciliados.length})
+                Conciliados ({contagemFvr("conciliado")})
               </Button>
             </div>
 
@@ -2612,10 +2510,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                       <TableCell colSpan={6}>Total</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatBRL(
-                          conciliados.reduce(
-                            (s, r) => s + Number(r.delta_bruto_vs_faturado ?? 0),
-                            0
-                          )
+                          numeroAgregado(fvrQ.data?.agregados, "delta")
                         )}
                       </TableCell>
                       <TableCell colSpan={2} />
@@ -2624,6 +2519,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 </TableBody>
               </Table>
             )}
+            <RodapePaginacao total={fvrQ.data?.total ?? 0} pagina={fvrEst.pagina} tamanhoPagina={tamanhoFvr} onPagina={(pagina) => setFvrEst({ pagina })} onTamanhoPagina={setTamanhoFvr} />
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
@@ -2721,10 +2617,10 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         </CardContent>
       </Card>
 
-      {ordenados.length > PAGE_SIZE && (
+      {totalB2c > PAGE_SIZE && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Página {pageSafe} de {totalPages} · {ordenados.length} pedidos
+            Página {pageSafe} de {totalPages} · {totalB2c} pedidos
           </div>
           <div className="flex gap-2">
             <Button

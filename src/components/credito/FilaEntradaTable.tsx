@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { formatError } from "@/lib/format-error";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
@@ -24,15 +27,17 @@ function tempoNaFila(criadoEm: string): string {
 }
 
 export function FilaEntradaTable() {
-  const [est, setEst] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"], prefixo: "ent" });
+  const [est, setEst] = useEstadoTela({ busca: "", pagina: 1 }, { replaceKeys: ["busca"], prefixo: "ent" });
   const busca = est.busca;
-  const setBusca = (v: string) => setEst({ busca: v });
+  const setBusca = (v: string) => setEst({ busca: v, pagina: 1 });
+  const [tamanho, setTamanho] = useState(20);
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: analises, isLoading } = useAnalisesFila({
+  const { data: analises, isLoading, total, error } = useAnalisesFila({
     estagio: "entrada",
     apenasAbertas: true,
     busca: busca || undefined,
+    pagina: est.pagina, tamanho,
   });
 
   useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (analises ?? []).map((a) => a.id), focoParam: "ent_foco" });
@@ -40,6 +45,7 @@ export function FilaEntradaTable() {
 
   return (
     <div className="space-y-4">
+      {error && <p className="text-sm text-destructive">{formatError(error)}</p>}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -107,9 +113,10 @@ export function FilaEntradaTable() {
 
       {analises && analises.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {analises.length} pedido{analises.length !== 1 ? "s" : ""} na fila
+          {total} pedido{total !== 1 ? "s" : ""} na fila
         </p>
       )}
+      <RodapePaginacao total={total} pagina={est.pagina} tamanhoPagina={tamanho} onPagina={(pagina) => setEst({ pagina })} onTamanhoPagina={setTamanho} />
     </div>
   );
 }

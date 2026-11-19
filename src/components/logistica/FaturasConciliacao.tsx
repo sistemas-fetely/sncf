@@ -10,6 +10,8 @@ import { ChevronDown, FileText, Loader2, Upload, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useLancamentos } from "@/hooks/useLancamentos";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { useEstadoTela } from "@/lib/navegacao";
 import { TituloFaturaFrete } from "@/components/logistica/TituloFaturaFrete";
 import { resumirContestacao, temAlgoAContestar } from "@/lib/logistica/contestacaoFatura";
 import { Switch } from "@/components/ui/switch";
@@ -554,24 +556,12 @@ function dataCurta(iso: string | null): string {
 }
 
 function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
-  const { lista, loading, erro, listar, sincronizar } = useLancamentos();
+  const empresa = carrier === "Frenet" ? "frenet" : "correios";
+  const [estado, setEstado] = useEstadoTela({ pagina: 1 }, { prefixo: "postagens" });
+  const [tamanho, setTamanho] = useState(20);
+  const { lista: postagens, total, totalPostado, loading, erro, sincronizar } = useLancamentos({ empresa, pagina: estado.pagina, tamanho });
   const { data: ciclos = [], isLoading: loadingCiclos, error: erroCiclos } = useFaturasCiclo(carrier === "Correios");
   const qc = useQueryClient();
-  const empresa = carrier === "Frenet" ? "frenet" : "correios";
-
-  useEffect(() => {
-    listar();
-  }, [listar]);
-
-  const postagens = useMemo(
-    () => lista.filter((l) => l.empresa_frete === empresa),
-    [lista, empresa],
-  );
-
-  const totalPostado = useMemo(
-    () => postagens.reduce((s, l) => s + (l.valor_servico ?? 0), 0),
-    [postagens],
-  );
 
   async function onSync() {
     const res = await sincronizar();
@@ -654,7 +644,7 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard label="Postagens" value={String(postagens.length)} />
+          <KpiCard label="Postagens" value={String(total)} />
           <KpiCard label="Total em postagens" value={formatBRL(totalPostado)} />
         </div>
       )}
@@ -729,6 +719,7 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
           </table>
         </div>
       </div>
+      <RodapePaginacao total={total} pagina={estado.pagina} tamanhoPagina={tamanho} onPagina={(pagina) => setEstado({ pagina })} onTamanhoPagina={setTamanho} />
     </div>
   );
 }
