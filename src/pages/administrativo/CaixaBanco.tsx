@@ -16,6 +16,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery } from "@tanstack/react-query";
+import { useListaPaginada, gruposAgregado, numeroAgregado, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
@@ -50,6 +52,7 @@ import { getEstagioMeta } from "@/lib/despesas/estagios";
 
 type DespesaV2 = {
   id: string;
+  qtd: number;
   origem_porta: string | null;
   data_competencia: string | null;
   valor: number | null;
@@ -163,23 +166,17 @@ export default function CaixaBanco() {
     { chave: string; nome: string; competencia: string | null } | null
   >(null);
 
-  const { data: linhas = [], isLoading, error } = useQuery({
-    queryKey: ["gerencial", "vw_despesas_v2"],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_despesas_v2")
-        .select(
-          "id, origem_porta, data_competencia, valor, descricao, fornecedor_nome, " +
-            "plano_contas_id, plano_codigo, plano_nome, centro_custo_id, centro_codigo, " +
-            "centro_nome, natureza_investimento_id, natureza_codigo, natureza_nome, " +
-            "status_caixa, estagio, valor_alocado, saldo_a_pagar",
-        )
-        .order("data_competencia", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as DespesaV2[];
-    },
-  });
+  const por = [{ c: "data_competencia", trunc: "month" as const }, "plano_contas_id", "centro_custo_id", "natureza_investimento_id", "natureza_codigo", "natureza_nome", "plano_codigo", "plano_nome", "centro_codigo", "centro_nome", "estagio"];
+  const listaQ = useListaPaginada<DespesaV2>({ relacao: "vw_despesas_v2", tamanho: 1,
+    agregados: [{ id: "valores", fn: "sum", c: "valor", por }, { id: "contagens", fn: "count", por },
+      { id: "total", fn: "sum", c: "valor" }, { id: "n", fn: "count" },
+      { id: "completas", fn: "count", onde: ["plano_contas_id", "centro_custo_id", "natureza_investimento_id"].map(c => ({ c, op: "not_null" })) }] });
+  const { isLoading, error } = listaQ;
+  const linhas = useMemo(() => {
+    const chave = (g: Record<string, unknown>) => JSON.stringify(por.map(c => g[typeof c === "string" ? c : c.c]));
+    const contagens = new Map(gruposAgregado(listaQ.data?.agregados, "contagens").map(g => [chave(g), Number(g.valor ?? 0)]));
+    return gruposAgregado(listaQ.data?.agregados, "valores").map(g => ({ ...g, data_competencia: g.data_competencia ? `${g.data_competencia}-01` : null, valor: Number(g.valor ?? 0), qtd: contagens.get(chave(g)) ?? 0 })) as unknown as DespesaV2[];
+  }, [listaQ.data?.agregados]);
 
   /** Ordem das camadas vem da dimensão, não do código. */
   const { data: naturezas = [] } = useQuery({
@@ -269,7 +266,7 @@ export default function CaixaBanco() {
       const v = Number(l.valor || 0);
       row.porMes.set(c, (row.porMes.get(c) || 0) + v);
       row.total += v;
-      row.qtd += 1;
+      row.qtd += l.qtd;
     }
 
     const rows = Array.from(map.values());
@@ -300,19 +297,9 @@ export default function CaixaBanco() {
   }, [matriz, competencias]);
 
   /** KPIs do período todo — independentes do agrupamento escolhido. */
-  const kpis = useMemo(() => {
-    const total = linhas.reduce((s, l) => s + Number(l.valor || 0), 0);
-    const n = linhas.length;
-    const completas = linhas.filter(
-      (l) => l.plano_contas_id && l.centro_custo_id && l.natureza_investimento_id,
-    ).length;
-    return {
-      total,
-      n,
-      completas,
-      pctCompletas: n > 0 ? Math.round((completas / n) * 100) : 100,
-    };
-  }, [linhas]);
+  const n = numeroAgregado(listaQ.data?.agregados, "n");
+  const completas = numeroAgregado(listaQ.data?.agregados, "completas");
+  const kpis = { total: numeroAgregado(listaQ.data?.agregados, "total"), n, completas, pctCompletas: n ? Math.round(completas / n * 100) : 100 };
 
   /**
    * Grupos de DRE montados a partir de naturezas_investimento.grupo_dre.
@@ -371,23 +358,32 @@ export default function CaixaBanco() {
     const pendentes = doMes.filter(
       (l) => l.estagio === "sem_documento" || l.estagio === "a_classificar",
     );
-    return { n: doMes.length, pendentes: pendentes.length };
+    return { n: doMes.reduce((n,l) => n + l.qtd, 0), pendentes: pendentes.reduce((n,l) => n + l.qtd, 0) };
   }, [linhas, mesCorrente]);
 
-  // Drill-down
-  const drillItens = useMemo<DespesaV2[]>(() => {
-    if (!drill) return [];
-    return linhas.filter((l) => {
-      if (!l.data_competencia) return false;
-      if (bucketDe(l, agrupamento).chave !== drill.chave) return false;
-      if (drill.competencia && competenciaKey(l.data_competencia) !== drill.competencia) {
-        return false;
-      }
-      return true;
-    });
-  }, [drill, linhas, agrupamento]);
-
-  const drillTotal = drillItens.reduce((s, l) => s + Number(l.valor || 0), 0);
+  // Drill-down lê só o grupo aberto; seus totais vêm do mesmo recorte no banco.
+  const [drillPagina, setDrillPagina] = useState(1);
+  const [drillTamanho, setDrillTamanho] = useState(50);
+  const gruposDrill = linhas.filter(l => !!l.data_competencia && !!drill && bucketDe(l, agrupamento).chave === drill.chave && (!drill.competencia || competenciaKey(l.data_competencia) === drill.competencia));
+  const filtrosDrill: FiltroLista[] = [{ c: "data_competencia", op: "not_null" }];
+  if (drill?.competencia) {
+    const [ano, mes] = drill.competencia.split("-").map(Number);
+    const prox = new Date(ano, mes, 1);
+    filtrosDrill.push({ c: "data_competencia", op: "gte", v: drill.competencia }, { c: "data_competencia", op: "lt", v: `${prox.getFullYear()}-${String(prox.getMonth()+1).padStart(2,"0")}-01` });
+  }
+  // Buckets compostos são resolvidos por grupos de IDs completos, não por uma página de despesas.
+  const idsDrillQ = useListaPaginada({ relacao: "vw_despesas_v2", tamanho: 1,
+    agregados: [{ id: "ids", fn: "count", por: ["id", "plano_contas_id", "natureza_codigo", "plano_codigo", "centro_codigo", "data_competencia"] }] }, { enabled: !!drill });
+  const idsDrill = gruposAgregado(idsDrillQ.data?.agregados, "ids").filter(g => {
+    const l = g as unknown as DespesaV2;
+    return !!l.data_competencia && !!drill && bucketDe(l, agrupamento).chave === drill.chave && (!drill.competencia || competenciaKey(l.data_competencia) === drill.competencia);
+  }).map(g => String(g.id));
+  const drillQ = useListaPaginada<DespesaV2>({ relacao: "vw_despesas_v2", filtros: [...filtrosDrill, { c: "id", op: "in", v: idsDrill }],
+    pagina: drillPagina, tamanho: drillTamanho, ordem: [{ c: "data_competencia", dir: "asc" }, { c: "id", dir: "asc" }],
+    agregados: [{ id: "total", fn: "sum", c: "valor" }] }, { enabled: !!drill && idsDrillQ.isSuccess });
+  const drillItens = drillQ.data?.linhas ?? [];
+  const drillTotal = numeroAgregado(drillQ.data?.agregados, "total");
+  useEffect(() => setDrillPagina(1), [drill]);
 
   // Trocar de agrupamento invalida o drill aberto (a chave muda de significado)
   useEffect(() => {
@@ -649,10 +645,11 @@ export default function CaixaBanco() {
                 )}
               </SheetTitle>
               <SheetDescription>
-                {drillItens.length} despesa{drillItens.length === 1 ? "" : "s"} ·{" "}
+                {drillQ.data?.total ?? 0} despesa{drillQ.data?.total === 1 ? "" : "s"} ·{" "}
                 <span className="font-mono font-medium">{formatBRL(drillTotal)}</span>
               </SheetDescription>
             </SheetHeader>
+            {(drillQ.error || idsDrillQ.error) && <p className="text-sm text-destructive">{(drillQ.error ?? idsDrillQ.error)?.message}</p>}
             <div className="mt-4 border rounded-md">
               <Table>
                 <TableHeader className="bg-muted/60">
@@ -696,6 +693,7 @@ export default function CaixaBanco() {
                   ))}
                 </TableBody>
               </Table>
+              <RodapePaginacao total={drillQ.data?.total ?? 0} pagina={drillPagina} tamanhoPagina={drillTamanho} onPagina={setDrillPagina} onTamanhoPagina={setDrillTamanho} />
             </div>
           </SheetContent>
         </Sheet>

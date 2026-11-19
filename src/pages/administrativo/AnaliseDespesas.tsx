@@ -1,7 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState, useEffect, Fragment } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useListaPaginada, exportarLista, gruposAgregado } from "@/lib/lista/useListaPaginada";
 import { useNavigate, Link } from "react-router-dom";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -30,6 +30,7 @@ type Bloco = "operacional" | "capex" | "imposto" | "nao_classificado";
 
 interface Linha {
   id: string;
+  qtd: number;
   competencia: string;
   valor: number;
   descricao: string | null;
@@ -105,17 +106,16 @@ export default function AnaliseDespesas() {
   const [insightLoading, setInsightLoading] = useState(false);
   const [insightErro, setInsightErro] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["analise-despesas"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_analise_despesas")
-        .select("*")
-        .order("competencia", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as Linha[];
-    },
-  });
+  const por = [{ c: "competencia", trunc: "month" as const }, "bloco", "grupo_codigo", "grupo_nome", "plano_codigo", "plano_nome", "centro_nome", "fornecedor_cliente", "revisao_origem", "classificacao_completa", "conciliada"];
+  const listaQ = useListaPaginada<Linha>({ relacao: "vw_analise_despesas", tamanho: 1,
+    agregados: [{ id: "valores", fn: "sum", c: "valor", por }, { id: "contagens", fn: "count", por }] });
+  const { isLoading, error } = listaQ;
+  // Somente grupos completos devolvidos pela RPC; nenhuma linha da página participa dos indicadores.
+  const data = useMemo(() => {
+    const chave = (g: Record<string, unknown>) => JSON.stringify(por.map(c => g[typeof c === "string" ? c : c.c]));
+    const contagens = new Map(gruposAgregado(listaQ.data?.agregados, "contagens").map(g => [chave(g), Number(g.valor ?? 0)]));
+    return gruposAgregado(listaQ.data?.agregados, "valores").map(g => ({ ...g, valor: Number(g.valor ?? 0), qtd: contagens.get(chave(g)) ?? 0 })) as unknown as Linha[];
+  }, [listaQ.data?.agregados]);
 
   useEffect(() => {
     if (error) toast.error((error as Error).message ?? "Erro ao carregar análise");
@@ -168,8 +168,8 @@ export default function AnaliseDespesas() {
   }, [agregacoes, meses, mesSel]);
 
   const classifMes = useMemo(() => {
-    const total = linhasMes.length;
-    const naoClass = linhasMes.filter((r) => !r.classificacao_completa).length;
+    const total = linhasMes.reduce((n,r) => n + r.qtd, 0);
+    const naoClass = linhasMes.filter((r) => !r.classificacao_completa).reduce((n,r) => n + r.qtd, 0);
     const pct = total ? ((total - naoClass) / total) * 100 : 100;
     return { total, naoClass, pct };
   }, [linhasMes]);
@@ -390,9 +390,9 @@ export default function AnaliseDespesas() {
       const cur = map.get(nome) ?? { nome, valor: 0, count: 0, motor: 0, humano: 0 };
       const v = Number(r.valor ?? 0);
       cur.valor += v;
-      cur.count += 1;
-      if (r.revisao_origem === "motor") cur.motor += 1;
-      else if (r.revisao_origem === "humano") cur.humano += 1;
+      cur.count += r.qtd;
+      if (r.revisao_origem === "motor") cur.motor += r.qtd;
+      else if (r.revisao_origem === "humano") cur.humano += r.qtd;
       map.set(nome, cur);
       totalOp += v;
     }
@@ -404,9 +404,9 @@ export default function AnaliseDespesas() {
   const qualidadeMes = useMemo(() => {
     let motor = 0, humano = 0, semOrigem = 0;
     for (const r of linhasMes) {
-      if (r.revisao_origem === "motor") motor++;
-      else if (r.revisao_origem === "humano") humano++;
-      else semOrigem++;
+      if (r.revisao_origem === "motor") motor += r.qtd;
+      else if (r.revisao_origem === "humano") humano += r.qtd;
+      else semOrigem += r.qtd;
     }
     const total = motor + humano + semOrigem;
     return { motor, humano, semOrigem, total };
@@ -418,10 +418,10 @@ export default function AnaliseDespesas() {
     for (const r of linhasMes) {
       if (r.bloco !== "operacional" && r.bloco !== "capex") continue;
       const v = Number(r.valor ?? 0);
-      countTotal++;
+      countTotal += r.qtd;
       valorTotal += v;
       if (r.conciliada) {
-        countConc++;
+        countConc += r.qtd;
         valorConc += v;
       }
     }
@@ -436,7 +436,12 @@ export default function AnaliseDespesas() {
     if (!linhasMes.length) { toast.error("Sem linhas no mês selecionado"); return; }
     try {
       const XLSX = await import("xlsx");
-      const rows = linhasMes.map((r) => ({
+      const [ano, mes] = mesSel.split("-").map(Number);
+      const prox = new Date(ano, mes, 1);
+      const recorte = await exportarLista<Linha>({ relacao: "vw_analise_despesas",
+        filtros: [{ c: "competencia", op: "gte", v: `${mesSel}-01` }, { c: "competencia", op: "lt", v: `${prox.getFullYear()}-${String(prox.getMonth()+1).padStart(2,"0")}-01` }],
+        ordem: [{ c: "competencia", dir: "asc" }, { c: "id", dir: "asc" }] });
+      const rows = recorte.map((r) => ({
         competencia: r.competencia,
         fornecedor: r.fornecedor_cliente ?? "",
         plano_codigo: r.plano_codigo ?? "",

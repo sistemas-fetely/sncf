@@ -15,8 +15,7 @@ import { useRef as useRefNav } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada, numeroAgregado, gruposAgregado, type FiltroLista } from "@/lib/lista/useListaPaginada";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,117 +142,41 @@ export default function Despesas() {
   const [estagio, setEstagio] = useState<string>("todos");
   const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["vw_despesas_v2"],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_despesas_v2")
-        .select("*")
-        .order("data_competencia", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as DespesaV2[];
-    },
-  });
-
-  const rows = useMemo(() => data ?? [], [data]);
-
-  const origensDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of rows) if (r.origem_porta) set.add(r.origem_porta);
-    return Array.from(set).sort((a, b) =>
-      (ORIGEM_LABEL[a] ?? a).localeCompare(ORIGEM_LABEL[b] ?? b),
-    );
-  }, [rows]);
-
-  const mesesDisponiveis = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of rows) {
-      if (!r.data_competencia) continue;
-      const k = mesKey(r.data_competencia);
-      if (!map.has(k)) map.set(k, mesLabel(r.data_competencia));
-    }
-    return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  }, [rows]);
-
-  const planosDisponiveis = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of rows) {
-      if (!r.plano_codigo) continue;
-      if (!map.has(r.plano_codigo)) {
-        map.set(r.plano_codigo, `${r.plano_codigo} — ${r.plano_nome ?? ""}`);
-      }
-    }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [rows]);
-
-  /** Naturezas presentes nos dados + flag de existência de linhas sem natureza. */
-  const naturezasDisponiveis = useMemo(() => {
-    const map = new Map<string, string>();
-    let temSem = false;
-    for (const r of rows) {
-      if (!r.natureza_codigo) {
-        temSem = true;
-        continue;
-      }
-      if (!map.has(r.natureza_codigo)) {
-        map.set(r.natureza_codigo, r.natureza_nome ?? r.natureza_codigo);
-      }
-    }
-    return {
-      itens: Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1])),
-      temSem,
-    };
-  }, [rows]);
-
-  const filtradas = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (origem !== "todas" && r.origem_porta !== origem) return false;
-      if (mes !== "todos" && (!r.data_competencia || mesKey(r.data_competencia) !== mes)) {
-        return false;
-      }
-      if (plano !== "todos" && r.plano_codigo !== plano) return false;
-      if (natureza !== "todas") {
-        if (natureza === SEM_NATUREZA) {
-          if (r.natureza_codigo) return false;
-        } else if (r.natureza_codigo !== natureza) {
-          return false;
-        }
-      }
-      if (estagio !== "todos" && r.estagio !== estagio) return false;
-      if (q) {
-        const hay = [
-          r.fornecedor_nome ?? "",
-          r.descricao ?? "",
-          r.fornecedor_cnpj ?? "",
-        ].join(" ").toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [rows, busca, origem, mes, plano, natureza, estagio]);
-
-  /** KPIs sempre sobre o conjunto filtrado. */
-  const kpis = useMemo(() => {
-    const n = filtradas.length;
-    const total = filtradas.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const completas = filtradas.filter(
-      (r) => r.plano_contas_id && r.centro_custo_id && r.natureza_investimento_id,
-    ).length;
-    const pagas = filtradas.filter((r) => r.status_caixa === "pago").length;
-    const aClassificar = filtradas.filter((r) => r.estagio === "a_classificar");
-    return {
-      total,
-      n,
-      pctCompletas: n ? (completas / n) * 100 : 0,
-      completas,
-      pctPagas: n ? (pagas / n) * 100 : 0,
-      pagas,
-      aClassificarN: aClassificar.length,
-      aClassificarValor: aClassificar.reduce((s, r) => s + Number(r.valor || 0), 0),
-    };
-  }, [filtradas]);
+  const filtros: FiltroLista[] = [];
+  if (origem !== "todas") filtros.push({ c: "origem_porta", op: "eq", v: origem });
+  if (mes !== "todos") {
+    const [ano, m] = mes.split("-").map(Number);
+    const prox = new Date(ano, m, 1);
+    filtros.push({ c: "data_competencia", op: "gte", v: `${mes}-01` }, { c: "data_competencia", op: "lt", v: `${prox.getFullYear()}-${String(prox.getMonth()+1).padStart(2,"0")}-01` });
+  }
+  if (plano !== "todos") filtros.push({ c: "plano_codigo", op: "eq", v: plano });
+  if (natureza !== "todas") filtros.push(natureza === SEM_NATUREZA ? { c: "natureza_codigo", op: "is_null" } : { c: "natureza_codigo", op: "eq", v: natureza });
+  if (estagio !== "todos") filtros.push({ c: "estagio", op: "eq", v: estagio });
+  const listaQ = useListaPaginada<DespesaV2>({ relacao: "vw_despesas_v2", busca, filtros, pagina, tamanho: PAGE_SIZE,
+    ordem: [{ c: "data_competencia", dir: "desc" }, { c: "id", dir: "asc" }],
+    agregados: [
+      { id: "total", fn: "sum", c: "valor" }, { id: "n", fn: "count" },
+      { id: "completas", fn: "count", onde: ["plano_contas_id", "centro_custo_id", "natureza_investimento_id"].map(c => ({ c, op: "not_null" })) },
+      { id: "pagas", fn: "count", onde: [{ c: "status_caixa", op: "eq", v: "pago" }] },
+      { id: "aClassificarN", fn: "count", onde: [{ c: "estagio", op: "eq", v: "a_classificar" }] },
+      { id: "aClassificarValor", fn: "sum", c: "valor", onde: [{ c: "estagio", op: "eq", v: "a_classificar" }] },
+    ] });
+  const { isLoading, error } = listaQ;
+  const opcoesQ = useListaPaginada({ relacao: "vw_despesas_v2", tamanho: 1, agregados: [
+    { id: "origens", fn: "count", por: ["origem_porta"] },
+    { id: "meses", fn: "count", por: [{ c: "data_competencia", trunc: "month" }] },
+    { id: "planos", fn: "count", por: ["plano_codigo", "plano_nome"] },
+    { id: "naturezas", fn: "count", por: ["natureza_codigo", "natureza_nome"] },
+  ] });
+  const origensDisponiveis = gruposAgregado(opcoesQ.data?.agregados, "origens").filter(g => g.origem_porta).map(g => String(g.origem_porta)).sort((a,b) => (ORIGEM_LABEL[a] ?? a).localeCompare(ORIGEM_LABEL[b] ?? b));
+  const mesesDisponiveis = gruposAgregado(opcoesQ.data?.agregados, "meses").filter(g => g.data_competencia).map(g => [String(g.data_competencia), mesLabel(`${g.data_competencia}-01`)]).sort((a,b) => b[0].localeCompare(a[0]));
+  const planosDisponiveis = gruposAgregado(opcoesQ.data?.agregados, "planos").filter(g => g.plano_codigo).map(g => [String(g.plano_codigo), `${g.plano_codigo} — ${g.plano_nome ?? ""}`]).sort((a,b) => a[0].localeCompare(b[0]));
+  const ng = gruposAgregado(opcoesQ.data?.agregados, "naturezas");
+  const naturezasDisponiveis = { itens: ng.filter(g => g.natureza_codigo).map(g => [String(g.natureza_codigo), String(g.natureza_nome ?? g.natureza_codigo)]).sort((a,b) => a[1].localeCompare(b[1])), temSem: ng.some(g => !g.natureza_codigo) };
+  const ag = listaQ.data?.agregados;
+  const n = numeroAgregado(ag, "n"), completas = numeroAgregado(ag, "completas"), pagas = numeroAgregado(ag, "pagas");
+  const kpis = { total: numeroAgregado(ag, "total"), n, completas, pagas, pctCompletas: n ? completas / n * 100 : 0,
+    pctPagas: n ? pagas / n * 100 : 0, aClassificarN: numeroAgregado(ag, "aClassificarN"), aClassificarValor: numeroAgregado(ag, "aClassificarValor") };
 
   // Reset de página quando qualquer filtro muda
   const montouPag = useRefNav(false); // nav
@@ -262,12 +185,9 @@ export default function Despesas() {
     setPagina(1);
   }, [busca, origem, mes, plano, natureza, estagio]);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / PAGE_SIZE));
+  const totalPaginas = Math.max(1, Math.ceil((listaQ.data?.total ?? 0) / PAGE_SIZE));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const paginadas = filtradas.slice(
-    (paginaAtual - 1) * PAGE_SIZE,
-    paginaAtual * PAGE_SIZE,
-  );
+  const paginadas = listaQ.data?.linhas ?? [];
 
   const COLSPAN = 9;
 
@@ -289,13 +209,13 @@ export default function Despesas() {
         <TabsContent value="classificar" className="mt-4"><MesaClassificacao /></TabsContent>
         <TabsContent value="custo-obrigatorio" className="mt-4"><CustoObrigatorioTab /></TabsContent>
         <TabsContent value="lista" className="mt-4 space-y-4">
-      {error && (
+      {(error || opcoesQ.error) && (
         <Card className="border-destructive">
           <CardContent className="p-4 flex items-start gap-2 text-destructive">
             <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
             <div>
               <div className="font-medium">Erro ao carregar despesas</div>
-              <div className="text-sm opacity-90">{(error as Error).message}</div>
+              <div className="text-sm opacity-90">{(error ?? opcoesQ.error)?.message}</div>
             </div>
           </CardContent>
         </Card>
@@ -514,11 +434,11 @@ export default function Despesas() {
       </Card>
 
       {/* Paginação */}
-      {filtradas.length > PAGE_SIZE && (
+      {(listaQ.data?.total ?? 0) > PAGE_SIZE && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {(paginaAtual - 1) * PAGE_SIZE + 1}–
-            {Math.min(paginaAtual * PAGE_SIZE, filtradas.length)} de {filtradas.length}
+            {Math.min(paginaAtual * PAGE_SIZE, (listaQ.data?.total ?? 0))} de {(listaQ.data?.total ?? 0)}
           </div>
           <div className="flex items-center gap-2">
             <Button
