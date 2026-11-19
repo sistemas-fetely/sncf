@@ -34,6 +34,7 @@ import { MarketplaceDrawer } from './MarketplaceDrawer';
 import { TransporteDialog } from './TransporteDialog';
 import { DevolucaoMarketplaceDialog } from './DevolucaoMarketplaceDialog';
 import { PortadoresDialog } from './PortadoresDialog';
+import { useRecebiveisMarketplacePedidos } from '@/hooks/financeiro/useRecebivelMarketplace';
 
 type Coluna = 'id_externo' | 'bling_numero' | 'data_pedido' | 'cliente_nome' | 'cd_nome' | 'valor_liquido' | 'estagio_ordem' | 'area_responsavel' | 'proxima_acao' | 'rastreio_codigo';
 const colunas: [Coluna, string][] = [
@@ -89,10 +90,11 @@ export default function PedidosMarketplace() {
   const pagina = Math.min(Math.max(1, estado.pagina), Math.max(1, Math.ceil(filtrados.length / tamanho)));
   const visiveis = filtrados.slice((pagina - 1) * tamanho, pagina * tamanho);
   const selecionado = pedidos.data?.find(p => p.pedido_id === estado.detalhe);
+  const recebiveis = useRecebiveisMarketplacePedidos([...visiveis.map(p => p.pedido_id), ...(selecionado ? [selecionado.pedido_id] : [])]);
   const agendamento = pedidos.data?.find(p => p.pedido_id === pedidoAgendar);
   useFocoAoVoltar({ pronto: !pedidos.isPending, idsVisiveis: visiveis.map(p => p.pedido_id) });
   useRestaurarScroll(null, !pedidos.isPending);
-  const erro = pedidos.error ?? cadastro.error;
+  const erro = pedidos.error ?? cadastro.error ?? recebiveis.error;
   const ordenar = (coluna: Coluna) => {
     const inicial = descendentes.includes(coluna) ? 'desc' : 'asc';
     const proxima = sort?.column !== coluna ? { key: coluna, dir: inicial as 'asc' | 'desc' }
@@ -122,7 +124,7 @@ export default function PedidosMarketplace() {
         </Select>
         <span className="text-xs text-muted-foreground">{filtrados.length} pedido{filtrados.length !== 1 ? 's' : ''} · {emAndamento.length} em andamento ({formatBRL(emAndamento.reduce((v, p) => v + Number(p.valor_liquido ?? 0), 0))})</span>
       </div>
-      {erro ? <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{formatError(erro)} <Button variant="outline" size="sm" onClick={() => { void pedidos.refetch(); void cadastro.refetch(); }}>Tentar novamente</Button></div> : null}
+      {erro ? <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{formatError(erro)} <Button variant="outline" size="sm" onClick={() => { void pedidos.refetch(); void cadastro.refetch(); if (recebiveis.error) void recebiveis.refetch(); }}>Tentar novamente</Button></div> : null}
       <Card><CardContent className="p-0"><TooltipProvider><Table containerClassName="overflow-x-auto lg:overflow-visible" className="w-full min-w-[960px] table-fixed lg:min-w-0">
         <colgroup><col className="w-[15%]" /><col className="w-[5%]" /><col className="w-[10%]" /><col className="w-[12%]" /><col className="w-[8%]" /><col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[7%]" /><col className="w-[12%]" /><col className="w-[8%]" /><col className="w-[3%]" /></colgroup>
         <TableHeader><TableRow className={`${LINHA_CABECALHO_COLADO} max-lg:[&>th]:static`}>
@@ -145,7 +147,7 @@ export default function PedidosMarketplace() {
         </TableBody>
       </Table></TooltipProvider><RodapePaginacao total={filtrados.length} pagina={pagina} tamanhoPagina={tamanho as PageSizeOption} onPagina={p => setEstado({ pagina: p })} onTamanhoPagina={v => { salvar({ tamanho: v }); setEstado({ pagina: 1 }); }} /></CardContent></Card>
     </div>
-    {selecionado && <MarketplaceDrawer pedido={selecionado} onClose={() => setEstado({ detalhe: '' })} onTransporte={() => setAcao('transporte')} onDevolucao={() => setAcao('devolucao')} />}
+    {selecionado && <MarketplaceDrawer pedido={selecionado} recebivel={recebiveis.data?.get(selecionado.pedido_id)} onClose={() => setEstado({ detalhe: '' })} onTransporte={() => setAcao('transporte')} onDevolucao={() => setAcao('devolucao')} />}
     {selecionado && acao === 'transporte' && <TransporteDialog pedido={selecionado} portadores={cadastro.data?.portadores ?? []} onClose={() => setAcao(null)} />}
     {selecionado && acao === 'devolucao' && <DevolucaoMarketplaceDialog pedido={selecionado} onClose={() => setAcao(null)} />}
     {config && <PortadoresDialog onClose={() => setConfig(false)} />}

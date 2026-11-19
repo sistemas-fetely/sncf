@@ -213,3 +213,4 @@
 - [x] Mesa SP: trocar PAC↔SEDEX na etiqueta Correios (seletor, motivo, edge, evento, funções do banco).
 
 - [x] VD endereço do cadastro: preencher endereço ao selecionar cliente e gravar no cadastro vazio ao salvar
+- [x] MP F3: aba Marketplace de recebíveis e valores reais na gaveta dos pedidos; ML-0004, indicadores e filtro vazio conferidos no computador e celular; 48 testes aprovados, sem banco ou publicação.

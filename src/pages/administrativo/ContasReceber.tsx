@@ -44,6 +44,7 @@ import {
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight, Info, X, SearchX } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RecebiveisPorClienteTab } from "@/components/clientes/RecebiveisPorClienteTab";
+import { RecebiveisMarketplaceTab } from "@/components/financeiro/RecebiveisMarketplaceTab";
 import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -431,9 +432,10 @@ export default function ContasReceber() {
 
       <Tabs value={aba} onValueChange={setAba}>
         <div className="flex items-center justify-between gap-4">
-          <TabsList>
+          <TabsList className="h-auto flex-wrap">
             <TabsTrigger value="b2b">B2B</TabsTrigger>
             <TabsTrigger value="b2c">B2C</TabsTrigger>
+            <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             <AbaPermitida slug="tela.cliente_recebiveis">
               <TabsTrigger value="por-cliente">Por cliente</TabsTrigger>
             </AbaPermitida>
@@ -456,6 +458,9 @@ export default function ContasReceber() {
         </TabsContent>
         <TabsContent value="b2c" className="mt-4">
           <AbaB2C onRegistrarExport={setExportador} />
+        </TabsContent>
+        <TabsContent value="marketplace" className="mt-4">
+          <RecebiveisMarketplaceTab onRegistrarExport={setExportador} />
         </TabsContent>
         <TabsContent value="por-cliente" className="mt-4">
           <ConteudoAba slug="tela.cliente_recebiveis">
