@@ -13,6 +13,7 @@ import { pastaEntrada, pastaDocumento, resumoEntradas } from "../_shared/pacote-
 import { montarRetencoes, xlsxRetencoes } from "../_shared/pacote-contador/retencoes.ts";
 import { montarClientesAberto, xlsxClientesAberto, dataClientesAberto } from "../_shared/pacote-contador/clientes-aberto.ts";
 import { montarVendasPlataforma, xlsxVendasPlataforma } from "../_shared/pacote-contador/vendas-plataforma.ts";
+import { montarVendasMercadoLivre, xlsxVendasMercadoLivre } from "../_shared/pacote-contador/vendas-mercado-livre.ts";
 import { montarEstoqueEstabelecimento, xlsxEstoqueEstabelecimento } from "../_shared/pacote-contador/estoque-estabelecimento.ts";
 
 const ORCAMENTO_MS = 320_000; // abaixo do limite do runtime; acima disso, pausa e a tela retoma
@@ -49,8 +50,11 @@ Deno.serve(async (req) => {
     const comp = String(body.competencia ?? "");
     if (!/^\d{4}-\d{2}-01$/.test(comp)) return json({ok:false,erro:"Competência inválida"},400);
     const admin = createClient(url,service);
-    const {data:r,error:e} = await admin.from("remessas_contador").select("*").eq("competencia",comp).order("versao",{ascending:false}).limit(1).single();
+    const {data:existente,error:e} = await admin.from("remessas_contador").select("*").eq("competencia",comp).order("versao",{ascending:false}).limit(1).maybeSingle();
     if(e) return json({ok:false,erro:e.message},400);
+    // Competência aberta também pode ser conferida: contexto apenas em memória, sem criar remessa.
+    const [ano, mes] = comp.split("-").map(Number);
+    const r = existente ?? { competencia: comp, periodo_inicio: comp, periodo_fim: new Date(Date.UTC(ano, mes, 0)).toISOString().slice(0, 10), versao: 0, natureza: "simulacao", gerado_por: claims.claims.sub, progresso: {} };
     try {const inv=await inventario({admin,userDb},{...r,progresso:{...r.progresso,planilha_path:r.progresso?.planilha_path??`pacotes/${comp.slice(0,7)}/v${r.versao}/planilha.xlsx`}},true);return json({ok:true,simular:true,...inv});} catch(e){return json({ok:false,erro:msg(e)},500);}
   }
   const remessaId = String(body?.remessa_id ?? "");
@@ -231,8 +235,10 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
   const presumidas = pos.data.filter((p: any) => p.fonte === "presumido");
   // Prévia × definitiva: natureza nasce na RPC pelo status da competência.
   const previa = rem.natureza === "previa";
-  const { data: fech, error: fe } = await admin.from("contabil_fechamento").select("id,status,politica,valor_presumido").eq("competencia", rem.competencia).single();
+  const { data: fechamento, error: fe } = await admin.from("contabil_fechamento").select("id,status,politica,valor_presumido").eq("competencia", rem.competencia).maybeSingle();
   if (fe) throw fe;
+  if (!fechamento && !simular) throw new Error("Competência sem fechamento contábil.");
+  const fech = fechamento ?? { status: "aberto" };
   if (previa && fech.status !== "pre_fechado") throw new Error(`Remessa nasceu como prévia mas a competência está '${fech.status}' — gere uma nova versão.`);
   let presuncoes: any[] = [];
   if (previa) {
@@ -323,6 +329,16 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
     if (up.error) throw new Error(`Falha ao gravar Vendas por plataforma: ${up.error.message}`);
   }
   entradas.push({ zip: nomeUnico(`01_relatorios/Vendas_por_Plataforma_${ini.slice(5, 7)}-${ini.slice(0, 4)}.xlsx`), path: vpPath }); conta("01_relatorios");
+  const vml = await montarVendasMercadoLivre(userDb, rem.competencia);
+  if (vml.resumo.qtd > 0) {
+    const mes = String(rem.competencia).slice(0, 7);
+    const vmlPath = `pacotes/${mes}/v${rem.versao}/vendas_mercado_livre.xlsx`;
+    if (!simular) {
+      const up = await admin.storage.from(BUCKET).upload(vmlPath, xlsxVendasMercadoLivre(vml, `${mes.slice(5, 7)}/${mes.slice(0, 4)}`), { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", upsert: true });
+      if (up.error) throw new Error(`Falha ao gravar Vendas Mercado Livre: ${up.error.message}`);
+    }
+    entradas.push({ zip: nomeUnico(`01_relatorios/Vendas_Mercado_Livre_${mes.slice(5, 7)}-${mes.slice(0, 4)}.xlsx`), path: vmlPath }); conta("01_relatorios");
+  }
   const contas = await todas(admin.from("contas_bancarias").select("id,nome_exibicao,banco,numero_conta,ativo"));
   const nomeConta = new Map<string, string>(contas.map((k: any) => [k.id, seguro(k.nome_exibicao || `${k.banco} ${k.numero_conta ?? ""}`)]));
   const tiposDesp = await todas(admin.from("contabil_documento_despesa_tipo").select("id,nome,pasta,periodicidade,local,conta_bancaria_id,ativo"));
@@ -480,6 +496,7 @@ export async function inventario(c: { admin: any; userDb: any }, rem: any, simul
     estoque_por_estabelecimento: estoqueEstabelecimento.resumo,
     retencoes_nfse: retencoesManifesto, documentos_despesa: despesasManifesto,
     vendas_plataforma: { qtd: vp.qtd, total: vp.total, total_vendas: vp.total_vendas, por_canal: vp.por_canal },
+    vendas_mercado_livre: vml.resumo,
     clientes_em_aberto: { posicao: cab.fim, qtd: cab.qtd, total: cab.total, qtd_vencidos: cab.qtd_vencidos, total_vencido: cab.total_vencido, clientes: cab.clientes, recebidos_depois: cab.titulos.filter(t => t.recebido_depois).length },
   };
   return { entradas, manifesto };
@@ -587,6 +604,13 @@ export function pdfManifesto(m: any): Promise<Uint8Array> {
     L.push(`VENDAS POR PLATAFORMA: ${v.qtd} NFs, ${brl(v.total_vendas)} em vendas (sem transferências)`);
     for (const c of v.por_canal) L.push(`  ${c.canal}: ${c.qtd} NFs, ${brl(c.total)}`);
     L.push("");
+  }
+  if (m.vendas_mercado_livre) {
+    const v = m.vendas_mercado_livre;
+    const valor = (n: number) => brl(n).replace(/^R\$\s*/, "");
+    L.push("VENDAS MERCADO LIVRE (valores em R$)",
+      `  ${v.qtd} vendas; NF ${valor(v.total_nf)}; bruto ${valor(v.bruto)}; tarifas ${valor(v.tarifas)}; comissão ${valor(v.comissao)}; frete ${valor(v.frete)}; parc. ${valor(v.parcelamento)}`,
+      `  Líquido ${valor(v.liquido)}; liberado ${valor(v.liquido_liberado)}; a liberar ${valor(v.liquido_a_liberar)}; sem NF ${v.sem_nf}; sem pedido ${v.sem_pedido}`, "");
   }
   if (m.documentos_despesa) {
     const d = m.documentos_despesa;
