@@ -937,16 +937,29 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Valores: itens a preço de varejo; desconto do pedido à parte; frete = frete COBRADO.
-          const totalProdutosVd = arred2(itensVd.reduce((s, it) => s + it.unitario * it.qtd, 0));
+          // Valores: desconto do pedido RATEADO no preço unitário de cada item (regra Fetely,
+          // igual B2B e ramo Shopify): a NF sai com o preço realmente pago, sem desconto no
+          // cabeçalho, para Base ICMS/IBS/CBS incidir sobre o líquido. Frete = frete COBRADO.
           const freteVd = arred2(Math.max(0, Number(ped.valor_frete ?? 0)));
-          const descontoVd = arred2(Math.max(0, Number((ped.endereco_entrega as any)?.desconto?.valor ?? 0)));
-          const totalVd = arred2(totalProdutosVd - descontoVd + freteVd);
           const liquidoVd = arred2(Number(ped.valor_liquido ?? 0));
-          if (Math.abs(totalVd - liquidoVd) > 0.01) {
+          const baseItensVd = arred2(Math.max(0, liquidoVd - freteVd));
+          const somaBrutaVd = arred2(itensVd.reduce((s, it) => s + it.unitario * it.qtd, 0));
+          const descontoVd = arred2(Math.max(0, Number((ped.endereco_entrega as any)?.desconto?.valor ?? 0)));
+          const fatorVd = somaBrutaVd > 0 ? baseItensVd / somaBrutaVd : 1;
+          const linhasVd = itensVd.map((it) => arred2(it.unitario * it.qtd * fatorVd));
+          if (linhasVd.length > 0) {
+            const residuoVd = arred2(baseItensVd - linhasVd.reduce((s, v) => s + v, 0));
+            linhasVd[linhasVd.length - 1] = arred2(linhasVd[linhasVd.length - 1] + residuoVd);
+          }
+          const valoresUnitVd = itensVd.map((it, i) => parseFloat((linhasVd[i] / it.qtd).toFixed(4)));
+          const somaLinhasVd = arred2(itensVd.reduce((s, it, i) => s + arred2(valoresUnitVd[i] * it.qtd), 0));
+          const descontoRateadoVd = arred2(somaBrutaVd - baseItensVd);
+          const totalVd = arred2(baseItensVd + freteVd);
+          if (Math.abs(somaLinhasVd - baseItensVd) > 0.01 || Math.abs(descontoVd - descontoRateadoVd) > 0.02) {
             await falharVd(
-              `Total do pedido ${idExterno} não fecha: itens R$ ${totalProdutosVd} − desconto R$ ${descontoVd} + frete R$ ${freteVd} = R$ ${totalVd}, ` +
-                `mas valor_liquido = R$ ${liquidoVd}. Nada enviado ao Bling.`,
+              `Rateio do desconto de ${idExterno} não fecha: itens brutos R$ ${somaBrutaVd}, desconto declarado R$ ${descontoVd} ` +
+                `(rateado R$ ${descontoRateadoVd}), base itens R$ ${baseItensVd} (linhas somam R$ ${somaLinhasVd}), ` +
+                `frete R$ ${freteVd}, valor_liquido R$ ${liquidoVd}. Nada enviado ao Bling.`,
             );
             continue;
           }
@@ -957,13 +970,13 @@ Deno.serve(async (req) => {
             await falharVd(`Natureza B2C: ${(e as Error).message}`);
             continue;
           }
-          const blingItensVd = itensVd.map((it) => ({
+          const blingItensVd = itensVd.map((it, i) => ({
             codigo: codExtVd.get(it.sku)!,
             descricao: it.nome || it.sku,
             produto: { id: mapaVd[it.sku] },
             unidade: "UN",
             quantidade: it.qtd,
-            valor: parseFloat(it.unitario.toFixed(4)),
+            valor: valoresUnitVd[i],
           }));
           const hojeVd = new Date().toISOString().slice(0, 10);
           const obsVd = [
@@ -1001,9 +1014,8 @@ Deno.serve(async (req) => {
             itens: blingItensVd,
             // Já pago pelo portão — mesma premissa do ramo Shopify.
             parcelas: [],
-            totalProdutos: totalProdutosVd,
+            totalProdutos: baseItensVd,
             total: totalVd,
-            ...(descontoVd > 0 ? { desconto: { valor: descontoVd, unidade: "REAL" } } : {}),
             transporte: retirada
               ? { fretePorConta: fretePorContaVd }
               : freteFetely || viaTransportadora
