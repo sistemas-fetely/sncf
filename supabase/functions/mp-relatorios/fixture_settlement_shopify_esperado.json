@@ -1,0 +1,80 @@
+[
+ {
+  "data_aprovacao": "2026-11-18",
+  "data_liberacao": "2026-11-18",
+  "id_transacao_mp": "190445333184",
+  "tipo_meio_pagamento": "Transferência bancária",
+  "meio_pagamento": "Transferência bancária",
+  "valor_bruto": 123.51,
+  "tarifa": 1.22,
+  "valor_liquido": 122.29,
+  "codigo_referencia": "rOFw64UKqzQ1RU3JoS9IFn5Vd",
+  "parcelas": 1,
+  "origem": "mp_settlement"
+ },
+ {
+  "data_aprovacao": "2026-11-18",
+  "data_liberacao": "2026-12-02",
+  "id_transacao_mp": "190384395030",
+  "tipo_meio_pagamento": "Cartão de crédito",
+  "meio_pagamento": "Cartão de crédito",
+  "valor_bruto": 436.19,
+  "tarifa": 19.58,
+  "valor_liquido": 416.61,
+  "codigo_referencia": "ruL2KmsaU13PR4AttBoH4nbnK",
+  "parcelas": 1,
+  "origem": "mp_settlement"
+ },
+ {
+  "data_aprovacao": "2026-11-18",
+  "data_liberacao": "2026-11-18",
+  "id_transacao_mp": "190317227286",
+  "tipo_meio_pagamento": "Transferência bancária",
+  "meio_pagamento": "Transferência bancária",
+  "valor_bruto": 77.49,
+  "tarifa": 0.77,
+  "valor_liquido": 76.72,
+  "codigo_referencia": "rQLE0FZ4lUvp7HjnMTxQhfeBj",
+  "parcelas": 1,
+  "origem": "mp_settlement"
+ },
+ {
+  "data_aprovacao": "2026-11-18",
+  "data_liberacao": "2026-11-18",
+  "id_transacao_mp": "190312646688",
+  "tipo_meio_pagamento": "Transferência bancária",
+  "meio_pagamento": "Transferência bancária",
+  "valor_bruto": 258.16,
+  "tarifa": 2.56,
+  "valor_liquido": 255.6,
+  "codigo_referencia": "rDiWq0IRbWKMk5bm9xMY0Nqn7",
+  "parcelas": 1,
+  "origem": "mp_settlement"
+ },
+ {
+  "data_aprovacao": "2026-11-18",
+  "data_liberacao": "2026-12-02",
+  "id_transacao_mp": "189221367729",
+  "tipo_meio_pagamento": "Cartão de crédito",
+  "meio_pagamento": "Cartão de crédito",
+  "valor_bruto": 268.62,
+  "tarifa": 12.06,
+  "valor_liquido": 256.56,
+  "codigo_referencia": "rGxwcE22gqhLaNzgwZ7Lp56yZ",
+  "parcelas": 1,
+  "origem": "mp_settlement"
+ },
+ {
+  "data_aprovacao": "2026-11-18",
+  "data_liberacao": "2026-10-17",
+  "id_transacao_mp": "183602774701",
+  "tipo_meio_pagamento": "Transferência bancária",
+  "meio_pagamento": "Transferência bancária",
+  "valor_bruto": -138.39,
+  "tarifa": 1.37,
+  "valor_liquido": -137.02,
+  "codigo_referencia": "re6WA309D8aAspLKiMIALIfpo",
+  "parcelas": 1,
+  "origem": "mp_settlement"
+ }
+]

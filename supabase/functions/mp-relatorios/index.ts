@@ -14,7 +14,7 @@ import * as XLSX from "npm:xlsx@0.18.5";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { ContagemImportacao } from "../_shared/financeiro/contagem-importacao.ts";
 import { aplicarMpRelease, enriquecerReferencias, lerCsvMp, normalizarMpRelease } from "../_shared/financeiro/mp/release.ts";
-import { aplicarMpSettlement, normalizarMpSettlement } from "../_shared/financeiro/mp/settlement.ts";
+import { aplicarMpSettlement, linhasVendaMarketplace, normalizarMpSettlement } from "../_shared/financeiro/mp/settlement.ts";
 import {janelaMensal,lerReleaseMensal} from "./mensal.ts";
 import { selecionarContas, corpoConfiguracao, validarAlinhamento, configuracoesIguais, type ContaMp } from "./contas.ts";
 
@@ -301,6 +301,23 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
   const { data: ja, error: ej } = await db.from("extrato_importacoes").select("id,arquivo_storage_path,linhas_lidas,linhas_novas,linhas_duplicadas,linhas_enriquecidas,linhas_ignoradas")
     .eq("conta_bancaria_id",conta).eq("fonte_tipo", fonte).eq("nome_arquivo", fileName).eq("status", "concluida").not("arquivo_storage_path", "is", null).limit(1).maybeSingle();
   if (ej) throw ej;
+  // Vendas Marketplace: relê o arquivo já guardado e registra de novo (a RPC é idempotente),
+  // para recuperar vendas que um leitor antigo pulou.
+  if (ja && tipo === "settlement" && mp.conta.regra_atribuicao === "marketplace_ml") {
+    let bytesJa: Uint8Array;
+    const { data: blob, error: ed } = await db.storage.from("contabil").download(ja.arquivo_storage_path);
+    if (!ed && blob) bytesJa = new Uint8Array(await blob.arrayBuffer());
+    else bytesJa = await mp.baixar(tipo, fileName);
+    const contJa = new ContagemImportacao();
+    await registrarVendasMarketplace(db, mp, ja.id, lerLinhasArquivo(bytesJa, fileName), contJa);
+    if (!contJa.fecha()) throw new Error(contJa.erroContaAberta());
+    const { error: eu } = await db.from("extrato_importacoes").update({
+      linhas_lidas: contJa.lidas, linhas_novas: contJa.novas, linhas_duplicadas: contJa.duplicadas,
+      linhas_enriquecidas: 0, linhas_ignoradas: contJa.ignoradas, updated_at: new Date().toISOString(),
+    }).eq("id", ja.id);
+    if (eu) throw eu;
+    return { impId: ja.id, path: ja.arquivo_storage_path, lidas: contJa.lidas, novas: contJa.novas, duplicadas: contJa.duplicadas, enriquecidas: 0, ignoradas: contJa.ignoradas, reaproveitado: true };
+  }
   if (ja) return { impId: ja.id, path: ja.arquivo_storage_path, lidas: ja.linhas_lidas, novas: 0, duplicadas: Math.max(0, (ja.linhas_lidas ?? 0) - (ja.linhas_ignoradas ?? 0)), enriquecidas: 0, ignoradas: ja.linhas_ignoradas, reaproveitado: true };
 
   const bytes = await mp.baixar(tipo, fileName);
@@ -311,9 +328,7 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
   const cont = new ContagemImportacao();
   let periodoInicio: string | null = null, periodoFim: string | null = null;
   try {
-    const rows: unknown[][] = fileName.toLowerCase().endsWith(".csv")
-      ? lerCsvMp(new TextDecoder("utf-8").decode(bytes))
-      : XLSX.utils.sheet_to_json<unknown[]>((() => { const wb = XLSX.read(bytes, { type: "array" }); return wb.Sheets[wb.SheetNames[0]]; })(), { header: 1, defval: null }) as unknown[][];
+    const rows = lerLinhasArquivo(bytes, fileName);
     if (tipo === "release") {
       const libs = normalizarMpRelease(rows);
       cont.ler(libs.length);
@@ -322,6 +337,10 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
       const { data: unid, error: eu } = await db.from("unidades").select("cnpj").eq("ativa", true).not("cnpj", "is", null).limit(1).maybeSingle();
       if (eu) throw eu;
       await aplicarMpRelease(db, conta, impId, libs, cont, (unid?.cnpj ?? "").replace(/\D/g, "") || null, mp.conta);
+    } else if (mp.conta.regra_atribuicao === "marketplace_ml") {
+      // Vendas Marketplace nunca enriquecem o extrato: vão para mp_venda_marketplace.
+      const datas = await registrarVendasMarketplace(db, mp, impId, rows, cont);
+      periodoInicio = datas[0] ?? null; periodoFim = datas[datas.length - 1] ?? null;
     } else {
       const trs = normalizarMpSettlement(rows);
       cont.ler(trs.length);
@@ -352,6 +371,25 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
     }).eq("id", impId);
     throw e;
   }
+}
+
+function lerLinhasArquivo(bytes: Uint8Array, fileName: string): unknown[][] {
+  return fileName.toLowerCase().endsWith(".csv")
+    ? lerCsvMp(new TextDecoder("utf-8").decode(bytes))
+    : XLSX.utils.sheet_to_json<unknown[]>((() => { const wb = XLSX.read(bytes, { type: "array" }); return wb.Sheets[wb.SheetNames[0]]; })(), { header: 1, defval: null }) as unknown[][];
+}
+
+/** Registra as vendas Marketplace e fecha a conta (novas + atualizadas = lidas). Devolve as datas de liberação. */
+async function registrarVendasMarketplace(db: any, mp: ClienteMp, impId: string, rows: unknown[][], cont: ContagemImportacao): Promise<string[]> {
+  const linhas = linhasVendaMarketplace(rows);
+  cont.ler(linhas.length);
+  if (!linhas.length) return [];
+  const { data, error } = await db.rpc("fn_mp_venda_marketplace_registrar", { p_conta_codigo: mp.conta.codigo, p_importacao_id: impId, p_linhas: linhas });
+  if (error) throw error;
+  const novas = Number(data?.novas ?? 0), atualizadas = Number(data?.atualizadas ?? 0);
+  if (novas) cont.nova(novas);
+  if (atualizadas) cont.duplicada(atualizadas);
+  return linhas.map((l) => String(l.data_liberacao_prevista ?? "").slice(0, 10)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
 }
 
 /** Retroativo: cria as linhas dos dias faltantes. Vendas pelo agendamento do MP; liberações por
