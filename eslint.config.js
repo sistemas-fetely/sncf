@@ -355,21 +355,4 @@ export default tseslint.config(
       "react-hooks/rules-of-hooks": "warn",
     },
   },
-  {
-    // ===== RATCHET LEITURA-SEM-LIMITE — dívida legada, só pode encolher; arquivo migrado sai daqui =====
-    // Onda 1/3 (19/11/2026) retirou: TrocarCdVDDialog, GED, CadastroPedidoCompra, DeParaFornecedor,
-    // MarcacaoPedido, BuscarDocumentoDialog, usePedidoRelogio, useLancamentos, useAcordosTitulos.
-    files: [
-      "src/hooks/credito/useTitulosCobranca.ts",
-      "src/pages/administrativo/ContasReceber.tsx",
-      "src/pages/administrativo/NFsStage.tsx",
-      "src/pages/vendas/xpm/EstoqueXpm.tsx",
-      "src/pages/vendas/xpm/ExpedicoesXpm.tsx",
-      "src/pages/vendas/xpm/PainelXpm.tsx",
-    ],
-    ignores: ["**/*.test.*"],
-    rules: {
-      "fetely/leitura-sem-limite": "warn",
-    },
-  },
 );
