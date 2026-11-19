@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pedidosColetaMesa } from "./coletaMesa";
+import { modalDespachoMesa, pedidosColetaMesa } from "./coletaMesa";
 
 const modais = [
   { codigo: "POSTAL_DO_CADASTRO", exige_etiqueta_correios: true },
@@ -11,6 +11,17 @@ const b2c = { id: "b2c", canal: "B2C", etapa: "despacho" };
 const b2b = { id: "b2b", canal: "B2B", etapa: "nf_emitida" };
 
 describe("coleta conjunta da Mesa SP", () => {
+  it("PED-2418 usa Correios após embalagem Transportadora e entra na coleta", () => {
+    const pedido = { ...b2b, id: "PED-2418", modal_efetivo: "CORREIOS" };
+    const modal = modalDespachoMesa(pedido, "TRANSPORTADORA");
+    expect(modal).toBe("CORREIOS");
+    expect(pedidosColetaMesa([], [pedido], () => modal, [{ codigo: "CORREIOS", exige_etiqueta_correios: true }], new Set())).toEqual([pedido]);
+  });
+  it("só usa embalagem quando o modal efetivo é nulo", () => {
+    expect(modalDespachoMesa({ modal_efetivo: null }, "TRANSPORTADORA")).toBe("TRANSPORTADORA");
+    expect(modalDespachoMesa({ modal_efetivo: "RETIRADA" }, "CORREIOS")).toBe("RETIRADA");
+    expect(modalDespachoMesa({ modal_efetivo: null }, null)).toBeNull();
+  });
   it('bloqueia postagem nas duas fontes e mantém liberados no lote', () => {
     expect(pedidosColetaMesa([{ ...b2c, postagem_bloqueada: true }], [{ ...b2b, postagem_bloqueada: true }], () => 'POSTAL_DO_CADASTRO', modais, new Set())).toEqual([]);
     expect(pedidosColetaMesa([{ ...b2c, postagem_bloqueada: false }], [], () => 'POSTAL_DO_CADASTRO', modais, new Set())).toHaveLength(1);

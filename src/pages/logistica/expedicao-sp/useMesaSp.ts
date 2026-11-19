@@ -76,7 +76,7 @@ export function usePedidosMesaSp() {
       const { data, error } = await supabaseMesa
         .from("vw_mesa_sp_quadro")
         .select(
-          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente, ti_exige_nf, agendado_para, postagem_bloqueada, liberado_para_postar, itens_faltando, item_pode_ter_chegado",
+          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis, instrucao_expedicao, instrucao_expedicao_lida_em, instrucao_pendente, ti_exige_nf, agendado_para, postagem_bloqueada, liberado_para_postar, itens_faltando, item_pode_ter_chegado, modal_efetivo",
         )
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);
@@ -171,6 +171,25 @@ export function useIdentidadesMesaSp(pedidoIds: string[]) {
       const mapa = new Map<string, IdentidadesPedidoMesa>();
       for (const linha of (data ?? []) as IdentidadesPedidoMesa[]) {
         if (linha.pedido_id) mapa.set(linha.pedido_id, linha);
+      }
+      // The B2C identity view does not include B2B; keep its authorized NF visible.
+      const semNf = pedidoIds.filter((id) => !mapa.get(id)?.nf_refs);
+      if (semNf.length > 0) {
+        const { data: nfs, error: erroNfs } = await supabaseMesa.from("nfs_emitidas")
+          .select("pedido_venda_id, numero, serie").in("pedido_venda_id", semNf)
+          .eq("tipo", "saida").eq("situacao", "autorizada")
+          .is("substituida_por_nf_id", null).is("anulada_por_devolucao_em", null);
+        if (erroNfs) throw new Error(`ler NF dos pedidos da mesa: ${mensagemErro(erroNfs)}`);
+        for (const nf of nfs ?? []) {
+          if (!nf.pedido_venda_id || !nf.numero) continue;
+          const anterior = mapa.get(nf.pedido_venda_id);
+          mapa.set(nf.pedido_venda_id, {
+            pedido_id: nf.pedido_venda_id,
+            order_name: anterior?.order_name ?? null,
+            bling_pedido_numero: anterior?.bling_pedido_numero ?? null,
+            nf_refs: [anterior?.nf_refs, `${nf.serie ?? ""}-${nf.numero}`.replace(/^-/, "")].filter(Boolean).join(", "),
+          });
+        }
       }
       return mapa;
     },

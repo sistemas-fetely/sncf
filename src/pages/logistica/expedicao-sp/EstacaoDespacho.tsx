@@ -22,8 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
 /**
- * Estação 5 — Despacho. O modal já vem do evento `mesa_embalado` (é o que a
- * embalagem decidiu); trocar aqui é possível, mas é exceção, não fluxo.
+ * Estação 5 — Despacho. Modal vigente vem do quadro; embalagem é só fallback.
  *
  * REFERÊNCIA: obrigatória para modal SEM rastreio automático (Lalamove, Motoboy)
  * — é ela que vira o `trackingInfo` do fulfillment no Shopify. A RPC valida por
@@ -57,8 +56,9 @@ export interface GrupoColeta {
 interface Props {
   pedidoId: string;
   modais: ModalEntrega[];
-  /** Modal registrado na embalagem — `metadata->>'modal'` do evento mesa_embalado. */
+  /** Current board modal, with packaging fallback only when null. */
   modalEmbalado: string | null;
+  nfRotulo?: string | null;
   despachando: boolean;
   onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   gruposColeta: GrupoColeta[];
@@ -110,7 +110,7 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 export function EstacaoDespacho({
   pedidoId, modais, modalEmbalado, despachando, onDespachar,
   gruposColeta, despachandoLote, onDespacharLote, bloqueado = false, avisoPostagem,
-  idExterno = null, clienteNome = null, onRetiradaRegistrada, erroDespacho = null,
+  idExterno = null, clienteNome = null, onRetiradaRegistrada, erroDespacho = null, nfRotulo = null,
 }: Props) {
   const qc = useQueryClient();
   const execQ = useExecutoresMesa();
@@ -176,6 +176,7 @@ export function EstacaoDespacho({
 
   return (
     <div className="space-y-4">
+      {nfRotulo && <p className="text-sm font-medium">{nfRotulo}</p>}
       {gruposColeta.length > 0 && (
         <Card>
           <CardContent className="space-y-4 p-4">

@@ -64,7 +64,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
       return (data as string | null) ?? null;
     },
   });
-  const modalVigente = vigenteQ.data ?? modalEmbalagem;
+  const modalVigente = modalEmbalagem ?? vigenteQ.data;
   const [escolhido, setEscolhido] = useState("");
   useEffect(() => { setEscolhido(""); }, [pedidoId, modalVigente]);
   const modalCodigo = escolhido || modalVigente;

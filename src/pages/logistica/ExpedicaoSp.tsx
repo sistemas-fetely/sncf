@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
-import { pedidosColetaMesa } from "@/lib/logistica/coletaMesa";
+import { modalDespachoMesa, pedidosColetaMesa } from "@/lib/logistica/coletaMesa";
 import { EstacaoConferencia } from "./expedicao-sp/EstacaoConferencia";
 import { DespachoB2b } from "./expedicao-sp/DespachoB2b";
 import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
@@ -72,9 +72,9 @@ import {
  * até a entrada em conferência é transição gravada (`fn_mesa_sp_iniciar_conferencia`).
  */
 
-/** Qual modal a embalagem registrou — o despacho começa por ele. */
-function modalDoEmbalado(eventos: EventoMesa[]): string | null {
-  return embalagemDoPedido(eventos)?.modal ?? null;
+/** Current board modal; packaging keeps only the fallback and measurements. */
+function modalDoEmbalado(pedido: PedidoMesa, eventos: EventoMesa[]): string | null {
+  return modalDespachoMesa(pedido, embalagemDoPedido(eventos)?.modal ?? null);
 }
 
 export default function ExpedicaoSp() {
@@ -175,7 +175,7 @@ export default function ExpedicaoSp() {
   const aguardandoNf = pedidos.filter((p) => estacaoDe.get(p.id) === "aguardando_nf");
   const nfEmitida = pedidos.filter((p) => estacaoDe.get(p.id) === "nf_emitida");
   const aguardandoRetirada = prontos.filter((p) => {
-    const codigo = embalagemDoPedido(eventosPorPedido.get(p.id) ?? [])?.modal;
+    const codigo = modalDoEmbalado(p, eventosPorPedido.get(p.id) ?? []);
     return codigo ? modalPorCodigo.get(codigo)?.sem_despacho === true : false;
   });
   const prontosDespacho = prontos.filter((p) => !aguardandoRetirada.some((r) => r.id === p.id));
@@ -202,6 +202,10 @@ export default function ExpedicaoSp() {
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
   const selecionadoInterno = ehTransferenciaMesa(selecionado?.canal);
   const selecionadoEhB2B = selecionado ? pedidoEhB2B(selecionado.canal) : false;
+  const modalSelecionado = selecionado ? modalDoEmbalado(selecionado, eventosSelecionado) : null;
+  const selecionadoCorreios = modalSelecionado != null
+    ? modalPorCodigo.get(modalSelecionado)?.exige_etiqueta_correios === true
+    : !!selecionado?.servico_correios;
   const selecionadoEhVD = selecionado ? pedidoEhVendaDireta(selecionado.id_externo) : false;
   const modoEntregaSelecionado = selecionadoEhVD ? modoEntregaVendaDireta(selecionado?.endereco_entrega) : null;
   const modalVdSelecionado = modoEntregaSelecionado
@@ -249,16 +253,16 @@ export default function ExpedicaoSp() {
   const gruposColeta = useMemo<GrupoColeta[]>(() => {
     const porModal = new Map<string, GrupoColeta>();
     const coleta = pedidosColetaMesa(prontosDespacho, nfEmitida,
-      (id) => embalagemDoPedido(eventosPorPedido.get(id) ?? [])?.modal ?? null,
+      (id) => { const p = pedidos.find((pedido) => pedido.id === id); return p ? modalDoEmbalado(p, eventosPorPedido.get(id) ?? []) : null; },
       modaisQ.data ?? [], cancelamentos);
     for (const p of coleta) {
       const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
       if (!emb) continue;
-      const codigo = emb.modal ?? "SEM_MODAL";
+      const codigo = modalDoEmbalado(p, eventosPorPedido.get(p.id) ?? []) ?? "SEM_MODAL";
       const dim = (modaisQ.data ?? []).find((m) => m.codigo === codigo) ?? null;
       const grupo = porModal.get(codigo) ?? {
         modalCodigo: codigo,
-        modalNome: dim?.nome ?? (emb.modal ?? "Modal não registrado"),
+        modalNome: dim?.nome ?? (codigo === "SEM_MODAL" ? "Modal não registrado" : codigo),
         temRastreioAutomatico: dim?.tem_rastreio_automatico ?? false,
         semDespacho: dim?.sem_despacho ?? false,
         caixas: [],
@@ -278,7 +282,7 @@ export default function ExpedicaoSp() {
     const grupos = [...porModal.values()];
     for (const g of grupos) g.caixas.sort((a, b) => a.embaladoEm.localeCompare(b.embaladoEm));
     return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
-  }, [prontosDespacho, nfEmitida, eventosPorPedido, modaisQ.data, cancelamentos]);
+  }, [pedidos, prontosDespacho, nfEmitida, eventosPorPedido, modaisQ.data, cancelamentos]);
 
   const iniciarConferencia = useIniciarConferencia();
   const voltarSeparacao = useVoltarSeparacao();
@@ -342,7 +346,7 @@ export default function ExpedicaoSp() {
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* ── Coluna 1: fila de entrada e pedidos já na bancada ───────────── */}
-        <div className="space-y-4 lg:col-span-3">
+        <div className="min-w-0 space-y-4 lg:col-span-3">
           <Card>
             <CardContent className="space-y-3 p-4">
               <p className="text-sm font-medium">Fila · {fila.length}</p>
@@ -529,7 +533,7 @@ export default function ExpedicaoSp() {
         </div>
 
         {/* ── Coluna 2: a estação do pedido selecionado ───────────────────── */}
-        <div className="space-y-4 lg:col-span-6">
+        <div className="min-w-0 space-y-4 lg:col-span-6">
           {!selecionado ? (
             <EstadoVazio
               icone={Inbox}
@@ -563,11 +567,7 @@ export default function ExpedicaoSp() {
                      {avisoNfQ.data && <p className="flex items-start gap-2 whitespace-normal text-sm text-warning"><AlertTriangle className="size-4 shrink-0" aria-hidden="true" />NF com transportadora {avisoNfQ.data} — avaliar CC-e</p>}
                      {avisoNfQ.error && <p className="text-xs text-destructive">{formatError(avisoNfQ.error)}</p>}
                      {(() => {
-                       const embSel = embalagemDoPedido(eventosSelecionado);
-                       const correios = embSel?.modal
-                         ? modalPorCodigo.get(embSel.modal)?.exige_etiqueta_correios === true
-                         : !!selecionado.servico_correios;
-                       return !selecionadoInterno && correios ? (
+                       return !selecionadoInterno && selecionadoCorreios ? (
                          <SeloServicoCorreios
                            servico={selecionado.servico_correios}
                            freteValor={selecionado.frete_cliente_valor}
@@ -710,13 +710,13 @@ export default function ExpedicaoSp() {
                 </DialogContent>
               </Dialog>
 
-              {!selecionadoInterno && estacaoSelecionada === "nf_emitida" && (() => {
+              {!selecionadoInterno && estacaoSelecionada === "nf_emitida" && !selecionadoCorreios && (() => {
                 const emb = embalagemDoPedido(eventosSelecionado);
                 const nf = identidadesSelecionado?.nf_refs;
                 return (
                   <DespachoB2b
                     pedidoId={selecionado.id}
-                    modalCodigo={emb?.modal ?? null}
+                    modalCodigo={modalSelecionado}
                     modais={modaisQ.data ?? []}
                     medidas={`Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`}
                     nfRotulo={nf ? `NF ${nf}` : null}
@@ -877,11 +877,12 @@ export default function ExpedicaoSp() {
                 );
               })()}
 
-              {!selecionadoInterno && estacaoSelecionada === "despacho" && (
+              {!selecionadoInterno && (estacaoSelecionada === "despacho" || (selecionadoEhB2B && estacaoSelecionada === "nf_emitida" && selecionadoCorreios)) && (
                 <EstacaoDespacho
+                  nfRotulo={estacaoSelecionada === "nf_emitida" && identidadesSelecionado?.nf_refs ? `NF ${identidadesSelecionado.nf_refs}` : null}
                   pedidoId={selecionado.id}
                   modais={modaisQ.data ?? []}
-                  modalEmbalado={modalDoEmbalado(eventosSelecionado)}
+                  modalEmbalado={modalSelecionado}
                   despachando={despachar.isPending}
                   onDespachar={(modal, referencia, executor) =>
                     despachar.mutate({

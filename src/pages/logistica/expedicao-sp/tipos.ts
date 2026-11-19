@@ -114,6 +114,8 @@ export const ESTAGIO_FATURADO = "faturado";
 export const CENTRO_SITE_SP = "SITE-SP";
 
 export interface PedidoMesa {
+  /** Current modal from the board, including changes after packaging. */
+  modal_efetivo?: string | null;
   itens_faltando?: unknown;
   item_pode_ter_chegado?: boolean;
   instrucao_expedicao: string | null;

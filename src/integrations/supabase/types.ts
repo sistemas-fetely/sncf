@@ -147983,6 +147983,7 @@ export type Database = {
           liberado_para_postar: boolean | null
           limite_min: number | null
           minutos_parado: number | null
+          modal_efetivo: string | null
           pedido_id: string | null
           postagem_bloqueada: boolean | null
           puxado_em: string | null
