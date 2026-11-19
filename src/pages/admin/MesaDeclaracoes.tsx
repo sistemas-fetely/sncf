@@ -1,4 +1,6 @@
 // Mesa de Declarações — DECLARACAO-NAO-E-CORRECAO
+import { useAgenciasTransportadora } from "@/hooks/logistica/useAgenciasTransportadora";
+import { opcoesTransportadora } from "@/lib/logistica/agenciaTransportadora";
 // O operador declara um FATO FÍSICO que o sistema não consegue observar.
 // Cada declaração viva é uma DÍVIDA DE INTEGRAÇÃO em aberto.
 import { useMemo, useState } from "react";
@@ -554,7 +556,8 @@ function NovaDeclaracaoForm({
     },
   });
 
-  // Transportadoras
+  // Transportadoras (agências dos Correios por CD não são opção própria)
+  const { data: agencias = [] } = useAgenciasTransportadora();
   const { data: transportadoras } = useQuery({
     queryKey: ["declaracao-transportadoras"],
     enabled: pedeTransportadora,
@@ -806,7 +809,7 @@ function NovaDeclaracaoForm({
                     <SelectValue placeholder="Escolha a transportadora" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(transportadoras ?? []).map((t) => (
+                    {opcoesTransportadora((transportadoras ?? []) as any, agencias).map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>
                         {nomeExibicao(t.razao_social, t.nome_fantasia, t.id)}
                       </SelectItem>

@@ -129,6 +129,8 @@ import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
 import { formatError } from "@/lib/format-error";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
+import { useAgenciasTransportadora } from "@/hooks/logistica/useAgenciasTransportadora";
+import { agenciaDoCd, CD_PADRAO, nomeTransportadora, opcoesTransportadora, transportadoraExibida } from "@/lib/logistica/agenciaTransportadora";
 import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
@@ -1177,6 +1179,8 @@ export default function PedidoDetalhe() {
   const [confirmarFreteOpen, setConfirmarFreteOpen] = useState(false);
   
   const transportadoras = useTransportadoras();
+  const agenciasQ = useAgenciasTransportadora();
+  const agencias = agenciasQ.data ?? [];
   const { rotuloOrigem } = useTransportadoraOrigem();
   const recotar = useRecotarTransportadora();
   const salvarDadosEnvio = useSalvarDadosEnvio();
@@ -1390,7 +1394,7 @@ export default function PedidoDetalhe() {
   const cepDoCadastro = !data?.pedido?.endereco_entrega?.cep && !!data?.parceiro?.cep;
   const isApi = !!transportadoraId && (transpCotacaoApi.data ?? []).some((t) => t.transportadora_id === transportadoraId);
   const cotacaoApiAtual = cotacaoApiEscolhida && cotacaoApiEscolhida.transportadora_id === transportadoraId ? cotacaoApiEscolhida : null;
-  const nomeTranspSelecionada = (transportadoras.data ?? []).find((t) => t.id === transportadoraId)?.razao_social ?? "";
+  const nomeTranspSelecionada = (() => { const t = (transportadoras.data ?? []).find((x) => x.id === transportadoraExibida(transportadoraId, agencias)); return t ? nomeTransportadora(t, agencias) : ""; })();
   const freteEst = useFreteEstimado(
     isApi ? null : (transportadoraId || null),
     cepEstimativa,
@@ -2270,14 +2274,30 @@ export default function PedidoDetalhe() {
                         {freteTipoCliente && (
                           <SelectItem value="__cliente__">Definida pelo cliente (a confirmar)</SelectItem>
                         )}
-                        {(transportadoras.data ?? []).map((t) => (
+                        {(() => {
+                          // Pedido antigo gravado com a agência: continua selecionável, exibido como a transportadora-mãe.
+                          const mae = transportadoraExibida(transportadoraId, agencias);
+                          if (!transportadoraId || mae === transportadoraId) return null;
+                          const t = (transportadoras.data ?? []).find((x) => x.id === mae);
+                          return <SelectItem value={transportadoraId}>{t ? nomeTransportadora(t, agencias) : "Correios"}</SelectItem>;
+                        })()}
+                        {opcoesTransportadora(transportadoras.data ?? [], agencias).map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.razao_social}
+                            {nomeTransportadora(t, agencias)}
                             {t.cnpj && <span className="text-muted-foreground ml-2 text-xs">{t.cnpj}</span>}
                           </SelectItem>
                         ))}
                         </SelectContent>
                       </Select>
+                      {(() => {
+                        if (agenciasQ.isError) return <p className="text-xs text-destructive">Falha ao ler agências: {String((agenciasQ.error as Error)?.message ?? agenciasQ.error)}</p>;
+                        const cd = pedido.origem_centro_id ? centrosRotulos?.get(pedido.origem_centro_id) : undefined;
+                        const cdCodigo = cd?.codigo || CD_PADRAO;
+                        const cdRot = cd?.rotulo || [...(centrosRotulos?.values() ?? [])].find((c) => c.codigo === cdCodigo)?.rotulo || cdCodigo;
+                        const r = agenciaDoCd(transpCliente ? null : transportadoraId, cdCodigo, cdRot, agencias);
+                        if (!r) return null;
+                        return <p className={r.tipo === "agencia" ? "text-xs text-muted-foreground" : "text-xs text-warning"}>{r.texto}</p>;
+                      })()}
                       {pedido.transportadora_origem && (
                         <Badge variant="outline" className="text-[10px] w-fit">
                           {rotuloOrigem(pedido.transportadora_origem)}

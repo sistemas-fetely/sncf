@@ -799,6 +799,16 @@ async function handle(req: Request, sis: ModoSistema | null, reenvioAutorizado =
       transpCnpj = t?.cnpj ?? null;
       transpNome = t?.razao_social ?? null;
       transpEfetivaId = t?.id ?? null;
+      // CORREIOS-UMA-OPCAO (19/11/2026): transportadora que trabalha por agência e não tem
+      // agência para este CD nem bling_id próprio não desce por nome em silêncio — bloqueia.
+      if (!blingTransportadoraId && !t?.via_agencia) {
+        const { count: nAg, error: eAg } = await supabase.from("transportadora_agencia_cd")
+          .select("id", { count: "exact", head: true }).eq("transportadora_id", pedido.transportadora_id).eq("ativo", true);
+        if (eAg) return await falhaLimpando(`Falha ao ler agências da transportadora: ${eAg.message}`, 500);
+        if ((nAg ?? 0) > 0) {
+          return await falhaLimpando(`${t?.escolhida_nome ?? "Transportadora"} sem agência cadastrada para o CD ${t?.centro_codigo ?? "?"} e sem contato no Bling. Cadastre a agência desse CD antes de enviar.`, 409);
+        }
+      }
     }
 
     // 3. Forma de pagamento
