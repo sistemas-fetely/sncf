@@ -122,7 +122,24 @@ export async function saqueJaRegistrado(sb: Client, conta: string, idOperacao: s
 }
 
 /** O laço da importação: hash `mp_rr|<id>`, duplicidade, inserção. Igual no manual e no automático. */
-export async function aplicarMpRelease(sb: Client, conta: string, impId: string, liberacoes: MpLiberacao[], cont: ContagemImportacao, cnpjProprio: string | null): Promise<void> {
+export interface RegraContaMp { regra_atribuicao: "shopify" | "marketplace_ml"; classe_recebivel: "recebivel_b2c" | "recebivel_marketplace" }
+export const REGRA_SHOPIFY: RegraContaMp = { regra_atribuicao: "shopify", classe_recebivel: "recebivel_b2c" };
+export function classificarRelease(l: MpLiberacao, regra: RegraContaMp = REGRA_SHOPIFY) {
+  const desc = normMp(l.descricao_mp), meio = l.meio_pagamento.toUpperCase();
+  const ehSaque = desc.startsWith("saque"), ehDevolucao = desc.startsWith("devolucao");
+  const ehPagamento = regra.regra_atribuicao === "shopify" ? !ehSaque && !ehDevolucao : desc === "pagamento" && l.valor_liquido > 0;
+  let descricao: string, tipo_meio: string;
+  if (ehSaque) { descricao = `MP SAQUE PARA CONTA ${l.conta_destino}`.trim(); tipo_meio = "transferencia"; }
+  else if (ehDevolucao) { descricao = `MP DEVOLUCAO ${meio}`.trim(); tipo_meio = "outro"; }
+  else if (regra.regra_atribuicao === "marketplace_ml" && !ehPagamento) { descricao = `MP ${l.descricao_mp.toUpperCase()}`; tipo_meio = "outro"; }
+  else {
+    const m = normMp(l.meio_pagamento);
+    descricao = `MP PAGAMENTO ${meio}`.trim();
+    tipo_meio = m.includes("saldo disponivel") ? "outro" : (m.includes("pix") || m.includes("transferencia bancaria")) ? "pix" : "cartao";
+  }
+  return { descricao, tipo_meio, classe: ehPagamento ? (regra.regra_atribuicao === "shopify" ? "recebivel_b2c" : regra.classe_recebivel) : null, classe_definida_por: ehPagamento ? "regra_p1" : null, ehSaque };
+}
+export async function aplicarMpRelease(sb: Client, conta: string, impId: string, liberacoes: MpLiberacao[], cont: ContagemImportacao, cnpjProprio: string | null, regra: RegraContaMp = REGRA_SHOPIFY): Promise<void> {
   for (const l of liberacoes) {
     if (!l.id_operacao) { cont.ignorar("sem_identificador"); continue; }
     const hash = await gerarHashMov(conta, l.data_liberacao, l.valor_liquido, `mp_rr|${l.id_operacao}`);
@@ -130,25 +147,13 @@ export async function aplicarMpRelease(sb: Client, conta: string, impId: string,
     if (errEx) throw errEx;
     if (exist) { cont.duplicada(); continue; }
 
-    const desc = normMp(l.descricao_mp);
-    const ehSaque = desc.startsWith("saque");
-    const ehDevolucao = desc.startsWith("devolucao");
+    const { descricao, tipo_meio: tipoMeio, classe, classe_definida_por, ehSaque } = classificarRelease(l, regra);
     if (ehSaque && await saqueJaRegistrado(sb, conta, l.id_operacao, l.valor_liquido, "mp_withdraw")) { cont.duplicada(); continue; }
-    const meio = l.meio_pagamento.toUpperCase();
-    let descricao: string; let tipoMeio: string;
-    if (ehSaque) { descricao = `MP SAQUE PARA CONTA ${l.conta_destino}`.trim(); tipoMeio = "transferencia"; }
-    else if (ehDevolucao) { descricao = `MP DEVOLUCAO ${meio}`.trim(); tipoMeio = "outro"; }
-    else {
-      const m = normMp(l.meio_pagamento);
-      descricao = `MP PAGAMENTO ${meio}`.trim();
-      tipoMeio = m.includes("saldo disponivel") ? "outro" : (m.includes("pix") || m.includes("transferencia bancaria")) ? "pix" : "cartao";
-    }
-    const ehPagamento = !ehSaque && !ehDevolucao;
     await inserirMovimentacao(sb, {
       conta_bancaria_id: conta, data_transacao: l.data_liberacao, descricao, valor: l.valor_liquido,
       tipo: l.valor_liquido < 0 ? "debito" : "credito", id_transacao_banco: l.id_operacao, hash_unico: hash,
       origem: "mp_release", tipo_meio: tipoMeio, referencia_pedido: l.codigo_referencia || null,
-      classe: ehPagamento ? "recebivel_b2c" : null, classe_definida_por: ehPagamento ? "regra_p1" : null,
+      classe, classe_definida_por,
       contraparte_nome: ehSaque ? "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA" : null,
       contraparte_documento: ehSaque ? cnpjProprio : null, fonte_importacao_id: impId,
     }, cont);

@@ -16,12 +16,13 @@ import { ContagemImportacao } from "../_shared/financeiro/contagem-importacao.ts
 import { aplicarMpRelease, enriquecerReferencias, lerCsvMp, normalizarMpRelease } from "../_shared/financeiro/mp/release.ts";
 import { aplicarMpSettlement, normalizarMpSettlement } from "../_shared/financeiro/mp/settlement.ts";
 import {janelaMensal,lerReleaseMensal} from "./mensal.ts";
+import { selecionarContas, corpoConfiguracao, type ContaMp } from "./contas.ts";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const msg = (e: unknown) => e instanceof Error ? e.message : (e && typeof e === "object" && "message" in e ? String((e as any).message) : String(e));
 const MP = "https://api.mercadopago.com/v1/account";
 const FONTE: Record<string, string> = { release: "mp_release", settlement: "mp_settlement" };
-const INICIO_BACKFILL = "2026-09-15";
+
 const MAX_TENTATIVAS = 12;
 
 type Tipo = "release" | "settlement";
@@ -34,7 +35,9 @@ const diaBrt = (iso: string) => new Date(Date.parse(iso) - 3 * 3600_000).toISOSt
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return json({ok:false,erro:"Serviço não configurado"},500);
+  const db = createClient(url,key);
   const negado = await gateCronOuSessao(req, db, corsHeaders);
   if (negado) return negado;
   const body = await req.json().catch(() => ({}));
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
 
   // Ações manuais exigem a ação do catálogo (cron passa só pelo segredo).
   if (!req.headers.get("x-cron-secret")) {
-    if (!["dia", "retroativo", "coletar", "status", "enriquecer", "mensal"].includes(acao)) return json({ ok: false, erro: "ação inválida" }, 400);
+    if (!["pedir", "dia", "retroativo", "coletar", "status", "enriquecer", "mensal", "configurar"].includes(acao)) return json({ ok: false, erro: "ação inválida" }, 400);
     const { data: u } = await db.auth.getUser((req.headers.get("Authorization") ?? "").slice(7));
     body.__user = u?.user?.id ?? null;
     const slug=acao==="mensal"?"acao.contabil_extrato_mensal.gerar":"acao.mp_relatorio.reprocessar";
@@ -51,51 +54,90 @@ Deno.serve(async (req) => {
     if (!pode) return json({ ok: false, erro: `Sem permissão (${slug})` }, 403);
   }
 
-  const { data: token, error: te } = await db.rpc("get_vault_secret", { p_name: "mp_access_token" });
-  if (te || !token) return json({ ok: false, erro: te?.message ?? "mp_access_token não cadastrado no cofre" }, 500);
-  const mp = new ClienteMp(String(token));
-
   try {
+    if (body.conta !== undefined && (typeof body.conta !== "string" || !body.conta.trim())) throw new Error("Conta inválida");
+    if (acao === "configurar" && (!body.conta || req.headers.get("x-cron-secret"))) throw new Error("Configurar exige conta e sessão manual");
+    const {data: contas, error} = await db.from("mp_conta_dim").select("*").order("ordem");
+    if (error) throw error;
+    const selecionadas = selecionarContas(contas ?? [], Boolean(req.headers.get("x-cron-secret")), body.conta);
+    const executar = async (conta: ContaMp) => {
+      let mp: ClienteMp | null = null;
+      try {
+        mp = await clienteDaConta(db, conta);
+        return {conta_codigo:conta.codigo,conta_rotulo:conta.rotulo,...await executarAcao(db,mp,acao,body,contas ?? [])};
+      } catch(e) { return {conta_codigo:conta.codigo,conta_rotulo:conta.rotulo,ok:false,erro:mp ? mp.mascarar(msg(e)) : msg(e)}; }
+    };
+    if (req.headers.get("x-cron-secret") && body.conta === undefined) {
+      const resultados=[];
+      for (const conta of selecionadas) resultados.push(await executar(conta));
+      return json({ok:resultados.every(r=>r.ok),resultados});
+    }
+    const resultado=await executar(selecionadas[0]);
+    return json(resultado,resultado.ok ? 200 : 400);
+  } catch(e) { return json({ok:false,erro:msg(e)},400); }
+});
+
+async function clienteDaConta(db:any,conta:ContaMp) {
+  const {data:token,error}=await db.rpc("get_vault_secret",{p_name:conta.segredo_cofre});
+  if(error || !token) throw new Error(error?.message ?? `${conta.segredo_cofre} não cadastrado no cofre`);
+  return new ClienteMp(String(token),conta);
+}
+async function executarAcao(db:any,mp:ClienteMp,acao:string,body:any,contas:ContaMp[]) {
+  if(acao==="configurar") {
+    const resultados:Record<string,unknown>={};
+    for(const tipo of ["release","settlement"] as Tipo[]) {
+      const atual=await mp.config(tipo);
+      if(atual) {resultados[tipo]={criada:false,configuracao:atual};continue;}
+      if(mp.conta.codigo==="MP-SHOPIFY") throw new Error("Nunca alterar configuração MP-SHOPIFY");
+      const origem=contas.find(c=>c.codigo==="MP-SHOPIFY");
+      if(!origem) throw new Error("MP-SHOPIFY não cadastrada");
+      const modelo=await (await clienteDaConta(db,origem)).config(tipo);
+      if(!modelo) throw new Error("Configuração MP-SHOPIFY não encontrada");
+      resultados[tipo]={criada:true,configuracao:await mp.criarConfig(tipo,corpoConfiguracao(modelo))};
+    }
+    return {ok:true,configuracoes:resultados};
+  }
     if(acao==="mensal") {
       const hoje=hojeBrt(), anterior=new Date(Date.UTC(Number(hoje.slice(0,4)),Number(hoje.slice(5,7))-2,1)).toISOString().slice(0,10);
       const comp=body.competencia??anterior;
       janelaMensal(comp);
-      if(comp>=`${hoje.slice(0,7)}-01`) return json({ok:false,erro:"Selecione um mês encerrado"},400);
-      return json({ok:true,...await mensal(db,mp,comp,body.__user??null)});
+      if(comp>=`${hoje.slice(0,7)}-01`) return ({ok:false,erro:"Selecione um mês encerrado"});
+      return ({ok:true,...await mensal(db,mp,comp,body.__user??null)});
     }
     if (acao === "pedir") {
+      await mp.exigirConfiguracao();
       const dia = validarDia(body.dia) ?? somaDia(hojeBrt(), -1);
-      return json({ ok: true, pedido: await pedir(db, mp, dia) });
+      return ({ ok: true, pedido: await pedir(db, mp, dia) });
     }
     if (acao === "coletar") {
-      const {data:pend,error:ep}=await db.from("mp_extrato_mensal_execucao").select("competencia").eq("status","aguardando");if(ep)throw ep;
+      const {data:pend,error:ep}=await db.from("mp_extrato_mensal_execucao").select("competencia").eq("status","aguardando").eq("conta_codigo",mp.conta.codigo);if(ep)throw ep;
       const mensais=[];for(const p of pend??[])mensais.push(await mensal(db,mp,p.competencia,null,false));
-      return json({ ok: true, ...(await coletar(db, mp)),mensais });
+      return ({ ok: true, ...(await coletar(db, mp)),mensais });
     }
     if (acao === "dia") {
+      await mp.exigirConfiguracao();
       const dia = validarDia(body.dia);
-      if (!dia || dia >= hojeBrt()) return json({ ok: false, erro: "Informe um dia passado (AAAA-MM-DD)" }, 400);
+      if (!dia || dia >= hojeBrt()) return ({ ok: false, erro: "Informe um dia passado (AAAA-MM-DD)" });
       const pedido = await pedir(db, mp, dia, true);
       // O release pedido leva ~1 min no MP: espera até 2 min para fechar o dia numa chamada só.
       let r = await coletar(db, mp, dia);
       for (let i = 0; i < 6 && r.aguardando > 0; i++) { await new Promise((s) => setTimeout(s, 20_000)); r = await coletar(db, mp, dia); }
-      const { data: linhas } = await db.from("mp_relatorio_execucao").select("*").eq("dia", dia);
-      return json({ ok: true, pedido, ...r, linhas });
+      const { data: linhas, error: el } = await db.from("mp_relatorio_execucao").select("*").eq("dia", dia).eq("conta_codigo",mp.conta.codigo);
+      if (el) throw el;
+      return ({ ok: true, pedido, ...r, linhas });
     }
     if (acao === "retroativo") {
-      const desde = validarDia(body.desde) ?? INICIO_BACKFILL;
-      return json({ ok: true, ...(await retroativo(db, mp, desde)) });
+      await mp.exigirConfiguracao();
+      const desde = validarDia(body.desde) ?? mp.conta.inicio_coleta;
+      return ({ ok: true, ...(await retroativo(db, mp, desde)) });
     }
     if (acao === "enriquecer") {
       // Fase 2: { inicio, fim } (≤ 60 dias) pede o release_report; ou { id } retoma a execução.
-      return json({ ok: true, ...(await enriquecer(db, mp, body)) });
+      return ({ ok: true, ...(await enriquecer(db, mp, body)) });
     }
-    return json({ ok: false, erro: "ação inválida" }, 400);
-  } catch (e) {
-    console.error("mp-relatorios", acao, msg(e));
-    return json({ ok: false, erro: msg(e) }, 500);
-  }
-});
+    return ({ ok: false, erro: "ação inválida" });
+
+}
 
 function validarDia(v: unknown): string | null {
   return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
@@ -103,7 +145,22 @@ function validarDia(v: unknown): string | null {
 
 class ClienteMp {
   private listas: Record<string, any[]> = {};
-  constructor(private token: string) {}
+  constructor(private token: string, public conta: ContaMp) {}
+  mascarar(t:string) {return t.replaceAll(this.token,"***");}
+  async config(tipo:Tipo):Promise<Record<string,unknown>|null> {
+    const r=await fetch(`${MP}/${tipo}_report/config`,{headers:this.h()});
+    const t=await r.text();
+    if(r.status===404)return null;
+    if(!r.ok)throw new Error(`MP config HTTP ${r.status}: ${this.limpar(t)}`);
+    return JSON.parse(this.mascarar(t));
+  }
+  async exigirConfiguracao() {for(const tipo of ["release","settlement"] as Tipo[])if(!await this.config(tipo))throw new Error(`${this.conta.rotulo}: rode configurar antes de pedir relatórios (${tipo})`);}
+  async criarConfig(tipo:Tipo,body:Record<string,unknown>) {
+    const r=await fetch(`${MP}/${tipo}_report/config`,{method:"POST",headers:{...this.h(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const t=await r.text();
+    if(!r.ok)throw new Error(`MP criar config HTTP ${r.status}: ${this.limpar(t)}`);
+    return JSON.parse(this.mascarar(t));
+  }
   private h() { return { Authorization: `Bearer ${this.token}` }; }
   private limpar(t: string) { return t.replaceAll(this.token, "***").slice(0, 300); }
   async lista(tipo: Tipo, fresca = false): Promise<any[]> {
@@ -145,7 +202,8 @@ function arquivoDoDia(lista: any[], dia: string, preferirAgendado: boolean): any
 async function pedir(db: any, mp: ClienteMp, dia: string, refazer = false) {
   const out: Record<string, string> = {};
   for (const tipo of ["release", "settlement"] as Tipo[]) {
-    const { data: atual } = await db.from("mp_relatorio_execucao").select("id,status").eq("tipo", tipo).eq("dia", dia).maybeSingle();
+    const { data: atual, error: ea } = await db.from("mp_relatorio_execucao").select("id,status").eq("conta_codigo",mp.conta.codigo).eq("tipo", tipo).eq("dia", dia).maybeSingle();
+    if (ea) throw ea;
     if (atual && !refazer && atual.status !== "erro") { out[tipo] = `já existe (${atual.status})`; continue; }
     if (atual && refazer && ["importado", "sem_movimento"].includes(atual.status)) { out[tipo] = `já ${atual.status} — reimporta pelo mesmo arquivo`; }
     let reportId: number | null = null; let origem = "schedule_mp";
@@ -155,8 +213,8 @@ async function pedir(db: any, mp: ClienteMp, dia: string, refazer = false) {
       if (existente && diaBrt(existente.begin_date) === dia && diaBrt(existente.end_date) === dia) origem = "arquivo_mp_existente";
       else { reportId = await mp.pedir(tipo, dia); origem = "sncf_pedido"; }
     }
-    const linha = { tipo, dia, origem, status: "aguardando", mp_report_id: reportId, erro: null, tentativas: 0, solicitado_em: new Date().toISOString(), updated_at: new Date().toISOString() };
-    const { error } = await db.from("mp_relatorio_execucao").upsert(linha, { onConflict: "tipo,dia" });
+    const linha = { conta_codigo:mp.conta.codigo, tipo, dia, origem, status: "aguardando", mp_report_id: reportId, erro: null, tentativas: 0, solicitado_em: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const { error } = await db.from("mp_relatorio_execucao").upsert(linha, { onConflict: "conta_codigo,tipo,dia" });
     if (error) throw error;
     out[tipo] ??= origem;
   }
@@ -164,7 +222,7 @@ async function pedir(db: any, mp: ClienteMp, dia: string, refazer = false) {
 }
 
 async function coletar(db: any, mp: ClienteMp, soDia?: string) {
-  let q = db.from("mp_relatorio_execucao").select("*").eq("status", "aguardando").order("dia").order("tipo").limit(40);
+  let q = db.from("mp_relatorio_execucao").select("*").eq("conta_codigo",mp.conta.codigo).eq("status", "aguardando").order("dia").order("tipo").limit(40);
   if (soDia) q = q.eq("dia", soDia);
   const { data: pend, error } = await q;
   if (error) throw error;
@@ -179,10 +237,10 @@ async function coletar(db: any, mp: ClienteMp, soDia?: string) {
         // Vendas: se o agendamento do MP não gerou o dia até a 4ª conferida, SNCF pede.
         if (p.tipo === "settlement" && tent === 4 && !p.mp_report_id) {
           const id = await mp.pedir("settlement", p.dia);
-          await atualizar(db, p.id, { tentativas: tent, mp_report_id: id, origem: "sncf_pedido" });
+          await atualizar(db, mp.conta.codigo, p.id, { tentativas: tent, mp_report_id: id, origem: "sncf_pedido" });
         } else if (tent >= MAX_TENTATIVAS) {
-          await atualizar(db, p.id, { tentativas: tent, status: "erro", erro: "Mercado Pago não entregou o arquivo do dia" });
-        } else await atualizar(db, p.id, { tentativas: tent });
+          await atualizar(db, mp.conta.codigo, p.id, { tentativas: tent, status: "erro", erro: "Mercado Pago não entregou o arquivo do dia" });
+        } else await atualizar(db, mp.conta.codigo, p.id, { tentativas: tent });
         aguardando++; res.push({ tipo: p.tipo, dia: p.dia, resultado: "aguardando" }); continue;
       }
       const chave = `${p.tipo}|${arq.file_name}`;
@@ -191,7 +249,7 @@ async function coletar(db: any, mp: ClienteMp, soDia?: string) {
         imp = await importarArquivo(db, mp, p.tipo, arq.file_name);
         importadosPorArquivo.set(chave, imp);
       }
-      await atualizar(db, p.id, {
+      await atualizar(db, mp.conta.codigo, p.id, {
         status: imp.lidas === 0 ? "sem_movimento" : "importado", erro: null, file_name: arq.file_name,
         extrato_importacao_id: imp.impId, arquivo_storage_path: imp.path, tentativas: p.tentativas + 1,
         linhas_lidas: imp.lidas, linhas_novas: imp.novas, linhas_duplicadas: imp.duplicadas,
@@ -200,20 +258,20 @@ async function coletar(db: any, mp: ClienteMp, soDia?: string) {
       res.push({ tipo: p.tipo, dia: p.dia, resultado: "importado", file_name: arq.file_name, ...imp });
     } catch (e) {
       const tent = p.tentativas + 1;
-      await atualizar(db, p.id, { tentativas: tent, erro: msg(e), status: tent >= 5 ? "erro" : "aguardando" });
-      res.push({ tipo: p.tipo, dia: p.dia, resultado: "erro", erro: msg(e) });
+      await atualizar(db, mp.conta.codigo, p.id, { tentativas: tent, erro: mp.mascarar(msg(e)), status: tent >= 5 ? "erro" : "aguardando" });
+      res.push({ tipo: p.tipo, dia: p.dia, resultado: "erro", erro: mp.mascarar(msg(e)) });
     }
   }
   return { processados: res.length, aguardando, resultados: res };
 }
 
-async function atualizar(db: any, id: string, patch: Record<string, unknown>) {
-  const { error } = await db.from("mp_relatorio_execucao").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+async function atualizar(db: any, contaCodigo: string, id: string, patch: Record<string, unknown>) {
+  const { error } = await db.from("mp_relatorio_execucao").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).eq("conta_codigo",contaCodigo);
   if (error) throw error;
 }
 
 async function sha256Hex(b: Uint8Array) {
-  const h = await crypto.subtle.digest("SHA-256", b);
+  const h = await crypto.subtle.digest("SHA-256", new Uint8Array(b));
   return Array.from(new Uint8Array(h)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 const nomeSeguro = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\\/]+/g, "_").replace(/\s+/g, "_").replace(/[^A-Za-z0-9._-]/g, "") || "arquivo";
@@ -221,15 +279,14 @@ const nomeSeguro = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g,
 /** Mesmo caminho da importação manual: linha em extrato_importacoes, original no bucket, regra compartilhada, conta fechada. */
 async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: string) {
   const fonte = FONTE[tipo];
-  const { data: mapa, error: em } = await db.from("importacao_fonte_conta").select("conta_bancaria_id").eq("fonte", fonte).maybeSingle();
-  if (em) throw em;
-  const conta = mapa?.conta_bancaria_id;
-  if (!conta) throw new Error(`Fonte ${fonte} sem conta mapeada em importacao_fonte_conta`);
+  const conta = mp.conta.conta_bancaria_id;
+  if (!conta) throw new Error("Conta bancária não cadastrada");
 
   // Arquivo já importado com sucesso (mesmo nome e fonte): não reimporta — reusa a linha.
-  const { data: ja } = await db.from("extrato_importacoes").select("id,arquivo_storage_path,linhas_lidas,linhas_novas,linhas_duplicadas,linhas_enriquecidas,linhas_ignoradas")
-    .eq("fonte_tipo", fonte).eq("nome_arquivo", fileName).eq("status", "concluida").not("arquivo_storage_path", "is", null).limit(1).maybeSingle();
-  if (ja) return { impId: ja.id, path: ja.arquivo_storage_path, lidas: ja.linhas_lidas, novas: ja.linhas_novas, duplicadas: ja.linhas_duplicadas, enriquecidas: ja.linhas_enriquecidas, ignoradas: ja.linhas_ignoradas, reaproveitado: true };
+  const { data: ja, error: ej } = await db.from("extrato_importacoes").select("id,arquivo_storage_path,linhas_lidas,linhas_novas,linhas_duplicadas,linhas_enriquecidas,linhas_ignoradas")
+    .eq("conta_bancaria_id",conta).eq("fonte_tipo", fonte).eq("nome_arquivo", fileName).eq("status", "concluida").not("arquivo_storage_path", "is", null).limit(1).maybeSingle();
+  if (ej) throw ej;
+  if (ja) return { impId: ja.id, path: ja.arquivo_storage_path, lidas: ja.linhas_lidas, novas: 0, duplicadas: Math.max(0, (ja.linhas_lidas ?? 0) - (ja.linhas_ignoradas ?? 0)), enriquecidas: 0, ignoradas: ja.linhas_ignoradas, reaproveitado: true };
 
   const bytes = await mp.baixar(tipo, fileName);
   const { data: imp, error: ei } = await db.from("extrato_importacoes")
@@ -249,7 +306,7 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
       periodoInicio = datas[0] ?? null; periodoFim = datas[datas.length - 1] ?? null;
       const { data: unid, error: eu } = await db.from("unidades").select("cnpj").eq("ativa", true).not("cnpj", "is", null).limit(1).maybeSingle();
       if (eu) throw eu;
-      await aplicarMpRelease(db, conta, impId, libs, cont, (unid?.cnpj ?? "").replace(/\D/g, "") || null);
+      await aplicarMpRelease(db, conta, impId, libs, cont, (unid?.cnpj ?? "").replace(/\D/g, "") || null, mp.conta);
     } else {
       const trs = normalizarMpSettlement(rows);
       cont.ler(trs.length);
@@ -263,7 +320,7 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
     const comp = (periodoFim ?? hojeBrt()).slice(0, 7);
     const path = `bancos/${comp}/${impId}/${nomeSeguro(fileName)}`;
     const tipoMime = fileName.endsWith(".csv") ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    const { error: eup } = await db.storage.from("contabil").upload(path, new Blob([bytes], { type: tipoMime }), { upsert: false, contentType: tipoMime });
+    const { error: eup } = await db.storage.from("contabil").upload(path, new Blob([new Uint8Array(bytes)], { type: tipoMime }), { upsert: false, contentType: tipoMime });
     if (eup) throw new Error(`Não foi possível guardar o arquivo original: ${eup.message}`);
     const { error: ef } = await db.from("extrato_importacoes").update({
       status: "concluida", erro_detalhe: null, linhas_lidas: cont.lidas, linhas_novas: cont.novas, linhas_enriquecidas: cont.enriquecidas,
@@ -275,7 +332,7 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
     return { impId, path, lidas: cont.lidas, novas: cont.novas, duplicadas: cont.duplicadas, enriquecidas: cont.enriquecidas, ignoradas: cont.ignoradas };
   } catch (e) {
     await db.from("extrato_importacoes").update({
-      status: "erro", erro_detalhe: msg(e), linhas_lidas: cont.lidas, linhas_novas: cont.novas, linhas_duplicadas: cont.duplicadas,
+      status: "erro", erro_detalhe: mp.mascarar(msg(e)), linhas_lidas: cont.lidas, linhas_novas: cont.novas, linhas_duplicadas: cont.duplicadas,
       linhas_enriquecidas: cont.enriquecidas, linhas_ignoradas: cont.ignoradas, periodo_inicio: periodoInicio, periodo_fim: periodoFim,
     }).eq("id", impId);
     throw e;
@@ -286,7 +343,8 @@ async function importarArquivo(db: any, mp: ClienteMp, tipo: Tipo, fileName: str
  *  arquivo já existente no MP (ex.: mensais manuais) e, onde não houver, pedido do SNCF. Coletar importa. */
 async function retroativo(db: any, mp: ClienteMp, desde: string) {
   const ontem = somaDia(hojeBrt(), -1);
-  const { data: feitos } = await db.from("mp_relatorio_execucao").select("tipo,dia,status").gte("dia", desde);
+  const { data: feitos, error: ef } = await db.from("mp_relatorio_execucao").select("tipo,dia,status").eq("conta_codigo",mp.conta.codigo).gte("dia", desde);
+  if (ef) throw ef;
   const tem = new Set((feitos ?? []).filter((f: any) => f.status !== "erro").map((f: any) => `${f.tipo}|${f.dia}`));
   let criadas = 0, pedidos = 0;
   for (let d = desde; d <= ontem; d = somaDia(d, 1)) {
@@ -295,7 +353,7 @@ async function retroativo(db: any, mp: ClienteMp, desde: string) {
       const arq = arquivoDoDia(await mp.lista(tipo), d, tipo === "settlement");
       let origem = tipo === "settlement" ? "schedule_mp" : "arquivo_mp_existente"; let id: number | null = null;
       if (!arq && tipo === "release") { id = await mp.pedir("release", d); origem = "sncf_pedido"; pedidos++; }
-      const { error } = await db.from("mp_relatorio_execucao").upsert({ tipo, dia: d, origem, status: "aguardando", mp_report_id: id, tentativas: 0, erro: null, updated_at: new Date().toISOString() }, { onConflict: "tipo,dia" });
+      const { error } = await db.from("mp_relatorio_execucao").upsert({ conta_codigo:mp.conta.codigo, tipo, dia: d, origem, status: "aguardando", mp_report_id: id, tentativas: 0, erro: null, updated_at: new Date().toISOString() }, { onConflict: "conta_codigo,tipo,dia" });
       if (error) throw error;
       criadas++;
     }
@@ -304,8 +362,8 @@ async function retroativo(db: any, mp: ClienteMp, desde: string) {
 }
 
 // ── Fase 2: enriquecer liberações antigas com EXTERNAL_REFERENCE (nunca insere) ──────────
-async function contarMovs(db: any): Promise<number> {
-  const { count, error } = await db.from("movimentacoes_bancarias").select("id", { count: "exact", head: true });
+async function contarMovs(db: any, conta:string): Promise<number> {
+  const { count, error } = await db.from("movimentacoes_bancarias").select("id", { count: "exact", head: true }).eq("conta_bancaria_id",conta);
   if (error) throw error;
   return count ?? 0;
 }
@@ -313,7 +371,7 @@ async function contarMovs(db: any): Promise<number> {
 async function enriquecer(db: any, mp: ClienteMp, body: any) {
   let ex: any;
   if (body.id) {
-    const { data, error } = await db.from("mp_relatorio_enriquecimento").select("*").eq("id", body.id).single();
+    const { data, error } = await db.from("mp_relatorio_enriquecimento").select("*").eq("conta_codigo",mp.conta.codigo).eq("id", body.id).single();
     if (error) throw error; ex = data;
   } else {
     const ini = validarDia(body.inicio), fim = validarDia(body.fim);
@@ -321,7 +379,7 @@ async function enriquecer(db: any, mp: ClienteMp, body: any) {
     if ((Date.parse(fim) - Date.parse(ini)) / 86400_000 > 60) throw new Error("Janela máxima de 60 dias");
     await mp.pedirJanela("release", ini, fim);
     const { data, error } = await db.from("mp_relatorio_enriquecimento").insert({
-      periodo_inicio: ini, periodo_fim: fim, solicitado_por: body.__user ?? null,
+      conta_codigo:mp.conta.codigo, periodo_inicio: ini, periodo_fim: fim, solicitado_por: body.__user ?? null,
     }).select("*").single();
     if (error) throw error; ex = data;
   }
@@ -344,9 +402,7 @@ async function enriquecer(db: any, mp: ClienteMp, body: any) {
     const colunas = ((rows[0] ?? []) as unknown[]).map((c) => String(c).trim());
     const up = colunas.map((c) => c.toUpperCase());
     const libs = normalizarMpRelease(rows);
-    const { data: mapa } = await db.from("importacao_fonte_conta").select("conta_bancaria_id").eq("fonte", "mp_release").maybeSingle();
-    const conta = mapa?.conta_bancaria_id;
-    if (!conta) throw new Error("mp_release sem conta mapeada");
+    const conta = mp.conta.conta_bancaria_id;
     const ids = [...new Set(libs.map((l) => l.id_operacao).filter(Boolean))];
     const existentes: any[] = [];
     for (let i = 0; i < ids.length; i += 200) {
@@ -356,16 +412,16 @@ async function enriquecer(db: any, mp: ClienteMp, body: any) {
       existentes.push(...(data ?? []));
     }
     const plano = enriquecerReferencias(libs, existentes);
-    const antes = await contarMovs(db);
+    const antes = await contarMovs(db,mp.conta.conta_bancaria_id);
     for (const u of plano.atualizar) {
       const { error } = await db.from("movimentacoes_bancarias").update({ referencia_pedido: u.referencia_pedido })
         .eq("id", u.id).is("referencia_pedido", null);
       if (error) throw error;
     }
-    const depois = await contarMovs(db);
+    const depois = await contarMovs(db,mp.conta.conta_bancaria_id);
     // Evidência no bucket, FORA de bancos/ e de extrato_importacoes (não entra no pacote do contador).
     const path = `evidencias/mp-enriquecimento/${ex.periodo_inicio.slice(0, 7)}/${ex.id}/${nomeSeguro(arq.file_name)}`;
-    const { error: eup } = await db.storage.from("contabil").upload(path, new Blob([bytes], { type: "text/csv" }), { upsert: true, contentType: "text/csv" });
+    const { error: eup } = await db.storage.from("contabil").upload(path, new Blob([new Uint8Array(bytes)], { type: "text/csv" }), { upsert: true, contentType: "text/csv" });
     if (eup) throw new Error(`Não foi possível guardar o CSV: ${eup.message}`);
     const patch = {
       status: "processado", file_name: arq.file_name, mp_report_id: arq.id ?? null, arquivo_storage_path: path,
@@ -376,11 +432,11 @@ async function enriquecer(db: any, mp: ClienteMp, body: any) {
       sem_par_detalhe: plano.sem_par, conflitos_detalhe: plano.conflitos, movs_antes: antes, movs_depois: depois,
       erro: null, updated_at: new Date().toISOString(),
     };
-    const { data: fim, error: ef } = await db.from("mp_relatorio_enriquecimento").update(patch).eq("id", ex.id).select("*").single();
+    const { data: fim, error: ef } = await db.from("mp_relatorio_enriquecimento").update(patch).eq("conta_codigo",mp.conta.codigo).eq("id", ex.id).select("*").single();
     if (ef) throw ef;
     return { execucao: fim };
   } catch (e) {
-    await db.from("mp_relatorio_enriquecimento").update({ status: "erro", erro: msg(e), updated_at: new Date().toISOString() }).eq("id", ex.id);
+    await db.from("mp_relatorio_enriquecimento").update({ status: "erro", erro: mp.mascarar(msg(e)), updated_at: new Date().toISOString() }).eq("conta_codigo",mp.conta.codigo).eq("id", ex.id);
     throw e;
   }
 }
@@ -388,11 +444,11 @@ async function enriquecer(db: any, mp: ClienteMp, body: any) {
 // Fluxo mensal separado: somente arquivo e conferência; nunca importa movimentações.
 async function mensal(db:any,mp:ClienteMp,competencia:string,user:string|null,esperar=true) {
  const janela=janelaMensal(competencia);
- let {data:ex,error}=await db.from("mp_extrato_mensal_execucao").select("*").eq("competencia",competencia).maybeSingle();if(error)throw error;
+ let {data:ex,error}=await db.from("mp_extrato_mensal_execucao").select("*").eq("conta_codigo",mp.conta.codigo).eq("competencia",competencia).maybeSingle();if(error)throw error;
  if(ex?.status==="guardado")return {execucao:ex,ja_guardado:true};
  if(!ex||ex.status==="erro") {
   const id=await mp.pedirJanela("release",janela.inicio,janela.fim);
-  const r=await db.from("mp_extrato_mensal_execucao").upsert({competencia,mp_report_id:id,status:"aguardando",solicitado_por:user,solicitado_em:new Date().toISOString(),erro:null},{onConflict:"competencia"}).select("*").single();if(r.error)throw r.error;ex=r.data;
+  const r=await db.from("mp_extrato_mensal_execucao").upsert({conta_codigo:mp.conta.codigo,competencia,mp_report_id:id,status:"aguardando",solicitado_por:user,solicitado_em:new Date().toISOString(),erro:null},{onConflict:"conta_codigo,competencia"}).select("*").single();if(r.error)throw r.error;ex=r.data;
  }
  try {
   let arq:any=null;
@@ -404,12 +460,11 @@ async function mensal(db:any,mp:ClienteMp,competencia:string,user:string|null,es
   if(!arq)return {execucao:ex,aguardando:true};
   const bytes=await mp.baixar("release",arq.file_name);
   const leitura=lerReleaseMensal(new TextDecoder().decode(bytes),diaBrt(arq.begin_date),diaBrt(arq.end_date));
-  const {data:fonte,error:ef}=await db.from("extrato_fontes").select("conta_bancaria_id").eq("fonte_codigo","mp_account_statement").eq("ativo",true).single();if(ef)throw ef;
-  const conta=fonte.conta_bancaria_id;if(!conta)throw new Error("Mercado Pago sem conta mapeada");
+  const conta=mp.conta.conta_bancaria_id;
   const path=`bancos/${competencia.slice(0,7)}/extrato_mensal/${conta}/${ex.mp_report_id??crypto.randomUUID()}-${nomeSeguro(arq.file_name)}`;
   const up=await db.storage.from("contabil").upload(path,bytes,{contentType:"text/csv",upsert:true});if(up.error)throw up.error;
   const r=await db.rpc("fn_contabil_extrato_mensal_auto_guardar",{p_competencia:competencia,p_conta:conta,p_storage_path:path,p_nome:arq.file_name,p_formato:"csv",p_sha256:await sha256Hex(bytes),p_bytes:bytes.length,p_periodo_inicio:leitura.periodo_inicio,p_periodo_fim:leitura.periodo_fim,p_saldo_inicial:leitura.saldo_inicial,p_saldo_final:leitura.saldo_final});if(r.error)throw r.error;
-  const fim=await db.from("mp_extrato_mensal_execucao").update({status:"guardado",extrato_id:r.data.id,updated_at:new Date().toISOString(),erro:null}).eq("competencia",competencia).select("*").single();if(fim.error)throw fim.error;
+  const fim=await db.from("mp_extrato_mensal_execucao").update({status:"guardado",extrato_id:r.data.id,updated_at:new Date().toISOString(),erro:null}).eq("conta_codigo",mp.conta.codigo).eq("competencia",competencia).select("*").single();if(fim.error)throw fim.error;
   return {execucao:fim.data,leitura,...r.data};
- }catch(e){const r=await db.from("mp_extrato_mensal_execucao").update({status:"erro",erro:msg(e),updated_at:new Date().toISOString()}).eq("competencia",competencia);if(r.error)throw r.error;throw e;}
+ }catch(e){const r=await db.from("mp_extrato_mensal_execucao").update({status:"erro",erro:mp.mascarar(msg(e)),updated_at:new Date().toISOString()}).eq("conta_codigo",mp.conta.codigo).eq("competencia",competencia);if(r.error)throw r.error;throw e;}
 }
