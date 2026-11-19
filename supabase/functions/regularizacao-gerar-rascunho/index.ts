@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { digitos, divergenciaNfeRetorno, semZeros } from "../_shared/bling/conferir-nfe-retorno.ts";
+import { origensFiscaisCadastro } from "../_shared/bling/origem-fiscal.ts";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const mensagem = (e: unknown) => e instanceof Error ? e.message : String(e);
@@ -52,6 +53,14 @@ serve(async (req) => {
     ]);
     if (itensError) throw itensError; if (loteError) throw loteError; if (cfgError) throw cfgError;
     if (!itens?.length) throw new Error("Retorno sem itens para gerar.");
+    const { data: produtos, error: origemErro } = await db.from("sncf_produtos").select("sku,origem_fisc").in("sku", [...new Set(itens.map(i => i.sku))]);
+    if (origemErro) throw origemErro;
+    const origens = origensFiscaisCadastro(itens.map(i => i.sku), produtos ?? []);
+    const itensFiscais = itens.map(i => {
+      const origem = origens.get(i.sku);
+      if (origem == null) throw new Error(`SKU(s) sem origem fiscal no cadastro: ${i.sku} — nada foi criado.`);
+      return { codigo: i.sku, descricao: i.descricao_origem, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor_unit_origem, tipo: "P", classificacaoFiscal: i.ncm, origem };
+    });
     if (!lote.natureza_retorno_bling_id) throw new Error("Lote sem natureza de retorno configurada.");
     if (!lote.destinatario_retorno) throw new Error("Lote sem destinatário de retorno configurado.");
     if (!cfg?.access_token) throw new Error("Bling não conectado.");
@@ -64,7 +73,7 @@ serve(async (req) => {
       tipo: 1, dataOperacao: agora, contato: lote.destinatario_retorno,
       naturezaOperacao: { id: lote.natureza_retorno_bling_id }, finalidade: 1,
       documentoReferenciado: { modelo: "55", chaveAcesso: retorno.nf_origem_chave },
-      itens: itens.map((i) => ({ codigo: i.sku, descricao: i.descricao_origem, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor_unit_origem, tipo: "P", classificacaoFiscal: i.ncm, origem: 2 })),
+      itens: itensFiscais,
       parcelas: [], transporte: { fretePorConta: 9 },
       observacoes: `Retorno simbólico de simples remessa referente à NF ${retorno.nf_origem_numero} (chave ${retorno.nf_origem_chave}). Mercadoria permanece fisicamente em ${centro.rotulo_curto ?? centro.nome}. Lote ${lote.codigo} — SNCF.${Number(retorno.partes ?? 1) > 1 ? ` Parte ${retorno.parte}/${retorno.partes}.` : ""}`,
     };

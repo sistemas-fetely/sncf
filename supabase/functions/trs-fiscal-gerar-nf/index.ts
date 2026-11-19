@@ -3,6 +3,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
+import { origensFiscaisCadastro } from "../_shared/bling/origem-fiscal.ts";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
 import { CNPJ_MATRIZ, gerarTrs, recusaTrs, transporteTi, type DadosTrs, type Registro } from "./gerar.ts";
 import { transmitirTrs } from "./transmitir.ts";
@@ -123,11 +124,16 @@ Deno.serve(async req => {
       if (!parceiro?.bling_id || String(parceiro.cnpj).replace(/\D/g, "") !== CNPJ_MATRIZ) throw new Error("Destinatário da TRS não é a matriz Fetely ou não possui contato no Bling.");
       if (!sc?.loja_bling_id || !cfg?.access_token) throw new Error(ti ? "CD de origem sem loja configurada ou Bling não conectado." : "Filial SC sem loja configurada ou Bling não conectado.");
       if (!nat || !itens?.length) throw new Error("Transferência sem natureza ou itens.");
+      const { data: produtos, error: origemErro } = await db.from("sncf_produtos").select("sku,origem_fisc").in("sku", [...new Set(itens.map(i => i.sku))]);
+      if (origemErro) throw origemErro;
+      const origens = origensFiscaisCadastro(itens.map(i => i.sku), produtos ?? []);
       const resolvidos = [];
       for (const item of itens) {
+        const origem = origens.get(item.sku);
+        if (origem == null) throw new Error(`SKU(s) sem origem fiscal no cadastro: ${item.sku} — nada foi criado.`);
         const produto = await resolverProdutoBling(db, item.sku);
         if (!produto.ok || !produto.bling_id) throw new Error(`Produto ${item.sku}: ${produto.motivo ?? "sem vínculo ativo no Bling"}`);
-        resolvidos.push({ sku: produto.sku ?? item.sku, descricao: item.descricao ?? item.sku, quantidade: Number(item.quantidade), valor: Number(item.valor_unitario), produtoId: Number(produto.bling_id) });
+        resolvidos.push({ sku: produto.sku ?? item.sku, descricao: item.descricao ?? item.sku, quantidade: Number(item.quantidade), valor: Number(item.valor_unitario), produtoId: Number(produto.bling_id), origem });
       }
       const bling = makeBlingClient(db, cfg, await ensureFreshToken(db, cfg));
       const rascunho = await gerarTrs({ codigo: pedido.id_externo, naturezaId: Number(nat.bling_natureza_id), lojaId: Number(sc.loja_bling_id), contato: { id: Number(parceiro.bling_id), numeroDocumento: CNPJ_MATRIZ }, itens: resolvidos, ...(ti ? { transporte, observacao: `Remessa para venda fora do estabelecimento ${pedido.id_externo} via SNCF — transmitir no Bling após conferência.` } : {}) }, anterior?.status === "erro" || anterior?.status === "gerando", { bling, registrar, evento, criadoEm: anterior?.criado_em ?? lease });

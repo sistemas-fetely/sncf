@@ -14,7 +14,7 @@ export function recusaTrs(natureza: NaturezaFiscal | null, direta: boolean, blin
 export type DadosTrs = {
   codigo: string; naturezaId: number; lojaId: number;
   contato: { id: number; numeroDocumento: string };
-  itens: Array<{ sku: string; descricao: string; quantidade: number; valor: number; produtoId: number }>;
+  itens: Array<{ sku: string; descricao: string; quantidade: number; valor: number; produtoId: number; origem: number }>;
   transporte?: { fretePorConta: number; quantidadeVolumes: number; pesoBruto: number };
   observacao?: string;
 };
@@ -27,12 +27,14 @@ export function transporteTi(metadata: unknown): NonNullable<DadosTrs["transport
 export function payloadTrs(d: DadosTrs, agora = new Date()) {
   if (!d.codigo.trim() || !d.naturezaId || !d.lojaId || !d.contato.id || d.contato.numeroDocumento.replace(/\D/g, "") !== CNPJ_MATRIZ) throw new Error("NF de transferência sem código, natureza, filial SC ou destinatário matriz válido.");
   if (!d.itens.length || d.itens.some(i => !i.sku || !Number.isSafeInteger(i.produtoId) || i.produtoId <= 0 || !Number.isFinite(i.quantidade) || i.quantidade <= 0 || !Number.isFinite(i.valor) || i.valor < 0)) throw new Error("Itens da transferência com produto, quantidade ou custo inválidos.");
+  const semOrigem = d.itens.filter(i => !Number.isInteger(i.origem) || i.origem < 0 || i.origem > 8);
+  if (semOrigem.length) throw new Error(`SKU(s) sem origem fiscal no cadastro: ${[...new Set(semOrigem.map(i => i.sku))].join(", ")} — nada foi criado.`);
   return {
     tipo: 1, finalidade: 1,
     dataOperacao: new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(agora).replace(",", ""),
     naturezaOperacao: { id: d.naturezaId }, loja: { id: d.lojaId }, contato: d.contato,
     numeroPedidoLoja: d.codigo,
-    itens: d.itens.map(i => ({ codigo: i.sku, produto: { id: i.produtoId }, descricao: i.descricao, unidade: "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P" })),
+    itens: d.itens.map(i => ({ codigo: i.sku, produto: { id: i.produtoId }, descricao: i.descricao, unidade: "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P", origem: i.origem })),
     parcelas: [], transporte: d.transporte ?? { fretePorConta: 9 }, observacoes: d.observacao ?? `Transferência fiscal ${d.codigo} via SNCF — somente rascunho; transmitir no Bling após conferência.`,
   };
 }

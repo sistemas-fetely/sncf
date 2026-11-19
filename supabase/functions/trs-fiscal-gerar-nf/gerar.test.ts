@@ -1,7 +1,21 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { CNPJ_MATRIZ, desdeRecuperacao, gerarTrs, payloadTrs, recuperarNfDireta, recusaTrs, transporteTi, valorTrs, type DadosTrs, type Registro } from "./gerar.ts";
 import { assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-const d: DadosTrs = { codigo: "TRS-0020", naturezaId: 15110073811, lojaId: 206045757, contato: { id: 18041940230, numeroDocumento: CNPJ_MATRIZ }, itens: [{ sku: "CL-EH-SAC-15-HAL", descricao: "Item", produtoId: 123, quantidade: 3, valor: 12.5 }] };
+const d: DadosTrs = { codigo: "TRS-0020", naturezaId: 15110073811, lojaId: 206045757, contato: { id: 18041940230, numeroDocumento: CNPJ_MATRIZ }, itens: [{ sku: "CL-EH-SAC-15-HAL", descricao: "Item", produtoId: 123, quantidade: 3, valor: 12.5, origem: 2 }] };
+for (let origem = 0; origem <= 8; origem++) {
+  Deno.test(`payload envia origem fiscal ${origem} do item`, () => assertEquals(payloadTrs({ ...d, itens: [{ ...d.itens[0], origem }] }).itens[0].origem, origem));
+}
+for (const origem of [NaN, Infinity, -1, 9, 1.5, undefined, null, "2"]) {
+  Deno.test(`origem inválida ${String(origem)} recusa antes de POST e registra erro`, async () => {
+    let posts = 0;
+    const registros: Registro[] = [];
+    await assertRejects(() => gerarTrs({ ...d, itens: [{ ...d.itens[0], origem: origem as number }] }, false, {
+      bling: { get: async () => ({}), post: async () => { posts++; return {}; } },
+      registrar: async r => { registros.push(r); }, evento: async () => {},
+    }), Error, "SKU(s) sem origem fiscal no cadastro: CL-EH-SAC-15-HAL — nada foi criado.");
+    assertEquals(posts, 0); assertEquals(registros.at(-1)?.status, "erro");
+  });
+}
 const nat = { familia_processo: "transferencia", exige_expedicao: false, bling_natureza_id: d.naturezaId };
 const nfValida = (dados = d) => ({ numeroPedidoLoja: "", numero: "000141", naturezaOperacao: { id: dados.naturezaId }, loja: { id: dados.lojaId }, contato: { numeroDocumento: CNPJ_MATRIZ }, observacoes: `Transferência ${dados.codigo} via SNCF`, valorNota: valorTrs(dados) });
 const criterio = { codigo: d.codigo, naturezaId: d.naturezaId, lojaId: d.lojaId, valorEsperado: 37.5, desde: "2026-11-15" };
