@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Selo } from "@/components/ui/selo";
 import { formatBRL } from "@/lib/format-currency";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
-import { hojeISO } from "@/lib/data";
+import { rawMessage } from "@/lib/format-error";
 
 function Kpi({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
@@ -21,73 +20,47 @@ function Kpi({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: st
   );
 }
 
-function useTopSkusB2c() {
-  return useQuery({
-    queryKey: ["b2c-top-skus"],
-    staleTime: 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("shopify_itens").select("sku, product_name, quantity");
-      if (error) throw error;
-      const agg = new Map<string, { sku: string; nome: string | null; qtd: number }>();
-      (data ?? []).forEach((it) => {
-        const key = it.sku ?? it.product_name ?? "—";
-        const atual = agg.get(key);
-        if (atual) atual.qtd += Number(it.quantity ?? 0);
-        else agg.set(key, { sku: key, nome: it.product_name, qtd: Number(it.quantity ?? 0) });
-      });
-      return Array.from(agg.values())
-        .sort((a, b) => b.qtd - a.qtd)
-        .slice(0, 10);
-    },
-  });
+interface DashB2cDados {
+  receita_mes: number;
+  pedidos_mes: number;
+  ticket: number;
+  taxa_mp: number;
+  liquido_mp: number;
+  ufs: { uf: string; qtd: number; valor: number }[];
+  farol: { no_prazo: number; atencao: number; estourado: number };
+  top_skus: { sku: string; nome: string | null; qtd: number }[];
 }
 
+// KPI-NO-BANCO: soma, contagem e top-N vêm prontos de fn_dash_b2c; a prop `pedidos` não entra no número.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function DashB2c({ pedidos, isLoading }: { pedidos: PedidoB2cRow[]; isLoading: boolean }) {
-  const { data: topSkus } = useTopSkusB2c();
+  const dashQ = useQuery({
+    queryKey: ["b2c-dash"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<DashB2cDados> => {
+      const { data, error } = await supabase.rpc("fn_dash_b2c" as never);
+      if (error) throw error;
+      if (!data) throw new Error("fn_dash_b2c não devolveu resultado.");
+      return data as unknown as DashB2cDados;
+    },
+  });
+  const d = dashQ.data;
+  const kpis = {
+    receitaMes: Number(d?.receita_mes ?? 0),
+    pedidosMes: Number(d?.pedidos_mes ?? 0),
+    ticket: Number(d?.ticket ?? 0),
+    taxaMp: Number(d?.taxa_mp ?? 0),
+    liquidoMp: Number(d?.liquido_mp ?? 0),
+    ufs: d?.ufs ?? [],
+    farol: d?.farol ?? { no_prazo: 0, atencao: 0, estourado: 0 },
+  };
+  const topSkus = d?.top_skus;
 
-  const kpis = useMemo(() => {
-    const mesAtual = hojeISO().slice(0, 7);
-    const doMes = pedidos.filter((p) => {
-      if (!p.data_pedido || p.estagio === "cancelado") return false;
-      return p.data_pedido.slice(0, 7) === mesAtual;
-    });
-    const receitaMes = doMes.reduce((s, p) => s + Number(p.total ?? 0), 0);
-    const validos = pedidos.filter((p) => p.estagio !== "cancelado");
-    const ticket = validos.length > 0 ? validos.reduce((s, p) => s + Number(p.total ?? 0), 0) / validos.length : 0;
-    const taxaMp = pedidos.reduce((s, p) => s + Number(p.taxa_mp ?? 0), 0);
-    const liquidoMp = pedidos.reduce((s, p) => s + Number(p.liquido_mp ?? 0), 0);
+  if (dashQ.isError) {
+    return <p className="text-sm text-destructive">{rawMessage(dashQ.error)}</p>;
+  }
 
-    const porUf = new Map<string, { qtd: number; valor: number }>();
-    validos.forEach((p) => {
-      const uf = p.shipping_province ?? "—";
-      const atual = porUf.get(uf) ?? { qtd: 0, valor: 0 };
-      atual.qtd += 1;
-      atual.valor += Number(p.total ?? 0);
-      porUf.set(uf, atual);
-    });
-
-    const farol = { no_prazo: 0, atencao: 0, estourado: 0 };
-    pedidos.forEach((p) => {
-      if (p.xpm_farol_sla === "no_prazo") farol.no_prazo += 1;
-      else if (p.xpm_farol_sla === "atencao") farol.atencao += 1;
-      else if (p.xpm_farol_sla === "estourado") farol.estourado += 1;
-    });
-
-    return {
-      receitaMes,
-      pedidosMes: doMes.length,
-      ticket,
-      taxaMp,
-      liquidoMp,
-      ufs: Array.from(porUf.entries())
-        .map(([uf, v]) => ({ uf, ...v }))
-        .sort((a, b) => b.valor - a.valor)
-        .slice(0, 10),
-      farol,
-    };
-  }, [pedidos]);
-
-  if (isLoading) {
+  if (isLoading || dashQ.isLoading) {
     return (
       <div className="grid gap-3 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (

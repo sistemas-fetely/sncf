@@ -39,7 +39,7 @@ import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { useFluxoCompetencia, type CicloTituloRow } from "@/hooks/financas/useFluxoCompetencia";
+import { useFluxoCompetencia, useFluxoCompetenciaOpcoes, type CicloTituloRow } from "@/hooks/financas/useFluxoCompetencia";
 import { useNivel } from "@/hooks/useNivel";
 
 const fmtBRL = (v: number | null | undefined) =>
@@ -197,7 +197,6 @@ function QuebraTipos({ linhas }: { linhas: CicloTituloRow[] }) {
 export default function FluxoCompetencia() {
   const navigate = useNavigate();
   const { temNivel } = useNivel();
-  const { data = [], isLoading, isError, error } = useFluxoCompetencia();
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ mes: "", tipo: "todos", busca: "" }, { replaceKeys: ["busca"] });
@@ -214,27 +213,20 @@ export default function FluxoCompetencia() {
 
   const hoje = hojeLocalISO();
 
-  const meses = useMemo(
-    () =>
-      Array.from(new Set(data.map((r) => r.mes_pedido).filter(Boolean) as string[])).sort(
-        (a, b) => b.localeCompare(a),
-      ),
-    [data],
-  );
+  const opcoesQ = useFluxoCompetenciaOpcoes();
+  const meses = opcoesQ.data?.meses ?? [];
+  const tipos = opcoesQ.data?.tipos ?? [];
+  const elos = opcoesQ.data?.elos ?? [];
+  const dadosQ = useFluxoCompetencia(mes);
+  const data = dadosQ.data ?? [];
+  const isLoading = opcoesQ.isLoading || (mes !== "" && dadosQ.isLoading);
+  const isError = opcoesQ.isError || dadosQ.isError;
+  const error = opcoesQ.error ?? dadosQ.error;
 
   // Default: mês mais recente com título.
   useEffect(() => {
     if (mes === "" && meses.length > 0) setMes(meses[0]);
   }, [mes, meses]);
-
-  const tipos = useMemo(
-    () => Array.from(new Set(data.map((r) => r.tipo_pagamento).filter(Boolean) as string[])).sort(),
-    [data],
-  );
-  const elos = useMemo(
-    () => Array.from(new Set(data.map((r) => r.elo_caixa).filter(Boolean) as string[])).sort(),
-    [data],
-  );
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();

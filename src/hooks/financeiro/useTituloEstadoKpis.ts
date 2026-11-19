@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { buscarTodos } from "@/lib/supabaseLotes";
 
 /**
  * VERDADE-UNICA-DO-VENCIDO (08/09/2026) — `vw_titulo_estado` é a ÚNICA fonte de
@@ -92,27 +93,71 @@ export function useTituloEstado() {
   return useQuery({
     queryKey: ["vw-titulo-estado"],
     queryFn: async (): Promise<TituloEstadoLinha[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_titulo_estado")
-        .select(
-          "titulo_id,numero_titulo,parceiro_id,pedido_id,status,valor,vencimento,vencimento_efetivo,vencido_contabil,dias_atraso_contabil,faixa_aging,cobravel_hoje,dias_atraso_efetivo,em_carencia_bancaria,liquidacao_informada,coberto_pela_conta,coberto_integralmente,instrumento,nivel_prova",
-        );
+      // Provisório até a Onda 3: carga em lotes para não cortar em 1.000 linhas.
       // FAIL-LOUD: sem a fonte única, a tela não inventa número.
-      if (error) throw new Error(`vw_titulo_estado: ${error.message}`);
-      return (data ?? []) as TituloEstadoLinha[];
+      try {
+        return (await buscarTodos(
+          () => (supabase as any)
+            .from("vw_titulo_estado")
+            .select(
+              "titulo_id,numero_titulo,parceiro_id,pedido_id,status,valor,vencimento,vencimento_efetivo,vencido_contabil,dias_atraso_contabil,faixa_aging,cobravel_hoje,dias_atraso_efetivo,em_carencia_bancaria,liquidacao_informada,coberto_pela_conta,coberto_integralmente,instrumento,nivel_prova",
+            ),
+          ["titulo_id"],
+        )) as TituloEstadoLinha[];
+      } catch (e) {
+        throw new Error(`vw_titulo_estado: ${(e as { message?: string })?.message ?? "falha na leitura"}`);
+      }
     },
     staleTime: 30_000,
     refetchOnMount: "always",
   });
 }
 
-/** KPIs agregados da fonte única — carteira inteira, sem filtro de tela. */
-export function useTituloEstadoKpis() {
-  const q = useTituloEstado();
+async function kpisDoBanco(pLista?: Record<string, unknown>): Promise<TituloEstadoKpis> {
+  const { data, error } = await supabase.rpc(
+    "fn_titulo_estado_kpis" as never,
+    (pLista ? { p_lista: pLista } : {}) as never,
+  );
+  if (error) throw new Error(`fn_titulo_estado_kpis: ${error.message}`);
+  if (!data) throw new Error("fn_titulo_estado_kpis não devolveu resultado.");
+  const k = data as unknown as TituloEstadoKpis;
+  const num = (b: Bloco | undefined): Bloco => ({ qtd: Number(b?.qtd ?? 0), valor: Number(b?.valor ?? 0) });
+  const faixa = (f: Record<string, number> | undefined) => ({
+    "1-7": Number(f?.["1-7"] ?? 0), "8-30": Number(f?.["8-30"] ?? 0),
+    "31-60": Number(f?.["31-60"] ?? 0), "60+": Number(f?.["60+"] ?? 0),
+  });
   return {
-    ...q,
-    kpis: q.data ? agregar(q.data) : undefined,
+    vencidoContabil: num(k.vencidoContabil),
+    cobravelHoje: num(k.cobravelHoje),
+    emCarenciaBancaria: num(k.emCarenciaBancaria),
+    faixas: faixa(k.faixas),
+    faixasQtd: faixa(k.faixasQtd),
   };
+}
+
+/** KPIs agregados no banco (fn_titulo_estado_kpis) — carteira inteira, sem filtro de tela. */
+export function useTituloEstadoKpis() {
+  const q = useQuery({
+    queryKey: ["vw-titulo-estado", "kpis"],
+    queryFn: () => kpisDoBanco(),
+    staleTime: 30_000,
+    refetchOnMount: "always",
+  });
+  return { ...q, kpis: q.data };
+}
+
+/**
+ * KPIs no banco com o MESMO filtro passado ao fn_lista da tela (relacao + filtros + busca),
+ * para card e lista nunca divergirem.
+ */
+export function useTituloEstadoKpisFiltro(pLista: Record<string, unknown> | null | undefined) {
+  const q = useQuery({
+    queryKey: ["vw-titulo-estado", "kpis-filtro", pLista ?? null],
+    queryFn: () => kpisDoBanco(pLista as Record<string, unknown>),
+    enabled: !!pLista,
+    staleTime: 30_000,
+  });
+  return { ...q, kpis: q.data };
 }
 
 /**

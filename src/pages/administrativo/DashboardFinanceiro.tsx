@@ -317,87 +317,58 @@ export default function DashboardFinanceiro() {
     }));
   }, [serie, idx]);
 
-  // ─── Top categorias da competência (vw_despesas, sem mercadoria) ──
-  const { data: topCategorias = [] } = useQuery({
-    queryKey: ["fin-top-categorias", comp],
+  // ─── KPI-NO-BANCO: top categorias/fornecedores, formas, CPR, pipeline, recebíveis e DSO ──
+  type DashFin = {
+    top_categorias: { nome: string; valor: number }[];
+    top_fornecedores: { nome: string; valor: number; qtd: number }[];
+    formas: { total: number; a_vista: number; a_prazo: number; formas: { forma: string; valor: number; pct: number }[] };
+    cpr: {
+      a_vencer_valor: number; a_vencer_count: number; atrasadas_valor: number; atrasadas_count: number;
+      a_vencer_lista: { id: string; descricao: string | null; valor: number; data_vencimento: string; razao_social: string | null }[];
+    };
+    pipeline: { count: number; valor: number };
+    recebiveis: { a_vencer: number; em_atraso: number; total: number; bandeira_amarela: number };
+    dso: { dias: number | null; amostra: number };
+  };
+  const { data: dashFin } = useQuery({
+    queryKey: ["fin-dashboard", comp],
     enabled: !!comp,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_despesas")
-        .select("plano_nome, plano_codigo, valor")
-        .gte("competencia", primeiroDia(comp!))
-        .lte("competencia", ultimoDia(comp!));
+    queryFn: async (): Promise<DashFin> => {
+      const { data, error } = await supabase.rpc("fn_dashboard_financeiro" as never, { p_comp: comp } as never);
       if (error) throw error;
-      const map = new Map<string, { nome: string; valor: number }>();
-      for (const d of data ?? []) {
-        const cod = String(d.plano_codigo ?? "");
-        // exclui compra de mercadoria (estoque, não resultado)
-        if (/^02\.0[1-5]/.test(cod)) continue;
-        const nome = d.plano_nome || "Sem categoria";
-        const cur = map.get(nome) ?? { nome, valor: 0 };
-        cur.valor += num(d.valor);
-        map.set(nome, cur);
-      }
-      return Array.from(map.values())
-        .filter((c) => c.valor > 0)
-        .sort((a, b) => b.valor - a.valor)
-        .slice(0, 5);
+      if (!data) throw new Error("fn_dashboard_financeiro não devolveu resultado.");
+      return data as unknown as DashFin;
     },
   });
-
-  // ─── Top fornecedores (3 meses terminando na competência) ─────────
-  const { data: topFornecedores = [] } = useQuery({
-    queryKey: ["fin-top-fornecedores", comp],
-    enabled: !!comp,
-    queryFn: async () => {
-      const ini = primeiroDia(somarMeses(comp!, -2));
-      const { data, error } = await (supabase as any)
-        .from("vw_despesas")
-        .select("fornecedor_nome, valor")
-        .gte("competencia", ini)
-        .lte("competencia", ultimoDia(comp!));
-      if (error) throw error;
-      const map = new Map<string, { nome: string; valor: number; qtd: number }>();
-      for (const d of data ?? []) {
-        const nome = d.fornecedor_nome || "Sem fornecedor";
-        const cur = map.get(nome) ?? { nome, valor: 0, qtd: 0 };
-        cur.valor += num(d.valor);
-        cur.qtd += 1;
-        map.set(nome, cur);
+  const topCategorias = (dashFin?.top_categorias ?? []).map((c) => ({ nome: c.nome, valor: num(c.valor) }));
+  const topFornecedores = (dashFin?.top_fornecedores ?? []).map((f) => ({ nome: f.nome, valor: num(f.valor), qtd: num(f.qtd) }));
+  const formasData = dashFin
+    ? {
+        formas: (dashFin.formas?.formas ?? []).map((f) => ({ forma: f.forma, valor: num(f.valor), pct: num(f.pct) })),
+        total: num(dashFin.formas?.total),
+        aVista: num(dashFin.formas?.a_vista),
+        aPrazo: num(dashFin.formas?.a_prazo),
       }
-      return Array.from(map.values())
-        .filter((f) => f.valor > 0)
-        .sort((a, b) => b.valor - a.valor)
-        .slice(0, 5);
-    },
-  });
-
-  // ─── Vendas por forma / à vista x a prazo (âncora faturado_em) ────
-  const { data: formasData } = useQuery({
-    queryKey: ["dashboard-formas-fetely", comp],
-    enabled: !!comp,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("pedidos")
-        .select("forma_solicitada, valor_liquido, tipo_pagamento")
-        .gte("faturado_em", `${primeiroDia(comp!)}T00:00:00`)
-        .lte("faturado_em", `${ultimoDia(comp!)}T23:59:59`);
-      const rows = data ?? [];
-      const total = rows.reduce((s: number, p: any) => s + num(p.valor_liquido), 0);
-      const porForma = new Map<string, number>();
-      let aVista = 0, aPrazo = 0;
-      for (const p of rows) {
-        const f = p.forma_solicitada ?? "outro";
-        porForma.set(f, (porForma.get(f) ?? 0) + num(p.valor_liquido));
-        if (p.tipo_pagamento === "a_vista") aVista += num(p.valor_liquido);
-        else if (p.tipo_pagamento === "a_prazo") aPrazo += num(p.valor_liquido);
-      }
-      const formas = Array.from(porForma.entries())
-        .map(([forma, valor]) => ({ forma, valor, pct: total > 0 ? (valor / total) * 100 : 0 }))
-        .sort((a, b) => b.valor - a.valor);
-      return { formas, total, aVista, aPrazo };
-    },
-  });
+    : undefined;
+  const cprData = dashFin?.cpr;
+  const pipelineData = dashFin
+    ? { pipelineCount: num(dashFin.pipeline?.count), pipelineValor: num(dashFin.pipeline?.valor) }
+    : undefined;
+  const recebiveisData = dashFin
+    ? (() => {
+        const r = dashFin.recebiveis;
+        const total = num(r?.total);
+        const valorEmAtraso = num(r?.em_atraso);
+        return {
+          valorAReceberAVencer: num(r?.a_vencer),
+          valorEmAtraso,
+          totalEmAberto: total,
+          inadimplenciaPct: total > 0 ? (valorEmAtraso / total) * 100 : 0,
+          qtdBandeiraAmarela: num(r?.bandeira_amarela),
+        };
+      })()
+    : undefined;
+  const dsoData = dashFin?.dso;
 
   // ═══ POSIÇÃO DE HOJE (não obedece o seletor) ═══════════════════════
   const { data: saldoBancario = 0 } = useQuery({
@@ -411,97 +382,12 @@ export default function DashboardFinanceiro() {
     },
   });
 
-  const { data: cprData } = useQuery({
-    queryKey: ["dashboard-cpr-posicao"],
-    queryFn: async () => {
-      const hoje = new Date().toISOString().split("T")[0];
-      const em30dias = new Date(Date.now() + 30 * 86_400_000).toISOString().split("T")[0];
-
-      const { data: aVencer } = await (supabase as any)
-        .from("contas_pagar_receber")
-        .select("id, tipo, valor, data_vencimento, status, parceiro_id, descricao, parceiros_comerciais(razao_social)")
-        .is("data_pagamento", null)
-        .neq("status", "cancelada")
-        .gte("data_vencimento", hoje)
-        .lte("data_vencimento", em30dias)
-        .order("data_vencimento", { ascending: true });
-
-      const { data: atrasadas } = await (supabase as any)
-        .from("contas_pagar_receber")
-        .select("id, tipo, valor, data_vencimento, descricao, parceiros_comerciais(razao_social)")
-        .is("data_pagamento", null)
-        .neq("status", "cancelada")
-        .lt("data_vencimento", hoje);
-
-      return { aVencer: aVencer ?? [], atrasadas: atrasadas ?? [] };
-    },
-  });
-
-  const { data: pipelineData } = useQuery({
-    queryKey: ["dashboard-pipeline-aberto"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("pedidos")
-        .select("valor_liquido")
-        .is("faturado_em", null)
-        .not("estagio", "in", "(faturado,entregue,cancelado)");
-      const rows = data ?? [];
-      return {
-        pipelineCount: rows.length,
-        pipelineValor: rows.reduce((s: number, p: any) => s + num(p.valor_liquido), 0),
-      };
-    },
-  });
-
-  const { data: recebiveisData } = useQuery({
-    queryKey: ["dashboard-recebiveis-fetely"],
-    queryFn: async () => {
-      const hoje = new Date().toISOString().split("T")[0];
-      const { data: abertos } = await (supabase as any)
-        .from("titulo_a_receber")
-        .select("valor_atual, valor_bruto, data_vencimento_atual, flag_bandeira_amarela")
-        .in("status", ["aguardando_pagamento", "aberto", "aguardando_emissao_nf", "vigente", "vigente_parcial", "vencido", "vencido_suspenso", "em_juridico"]);
-
-      let valorAReceberAVencer = 0;
-      let valorEmAtraso = 0;
-      let qtdBandeiraAmarela = 0;
-      for (const t of abertos ?? []) {
-        const v = Number(t.valor_atual ?? t.valor_bruto ?? 0);
-        if (t.data_vencimento_atual && t.data_vencimento_atual < hoje) valorEmAtraso += v;
-        else valorAReceberAVencer += v;
-        if (t.flag_bandeira_amarela) qtdBandeiraAmarela += 1;
-      }
-      const totalEmAberto = valorAReceberAVencer + valorEmAtraso;
-      const inadimplenciaPct = totalEmAberto > 0 ? (valorEmAtraso / totalEmAberto) * 100 : 0;
-
-      return { valorAReceberAVencer, valorEmAtraso, totalEmAberto, inadimplenciaPct, qtdBandeiraAmarela };
-    },
-  });
-
-  const { data: dsoData } = useQuery({
-    queryKey: ["dashboard-dso-fetely"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("titulo_a_receber")
-        .select("data_emissao_nf, data_pagamento")
-        .in("status", ["pago", "pago_com_atraso", "pago_judicial"])
-        .not("data_pagamento", "is", null)
-        .not("data_emissao_nf", "is", null);
-      const rows = data ?? [];
-      if (rows.length === 0) return { dias: null as number | null, amostra: 0 };
-      const soma = rows.reduce((s: number, t: any) => {
-        const d = (new Date(t.data_pagamento).getTime() - new Date(t.data_emissao_nf).getTime()) / 86_400_000;
-        return s + Math.max(0, d);
-      }, 0);
-      return { dias: Math.round(soma / rows.length), amostra: rows.length };
-    },
-  });
-
   const posicao = useMemo(() => {
-    const aVencerPagar = (cprData?.aVencer ?? []).filter((c: any) => c.tipo === "pagar");
-    const atrasadasPagar = (cprData?.atrasadas ?? []).filter((c: any) => c.tipo === "pagar");
-    const aVencerValor = aVencerPagar.reduce((s: number, c: any) => s + num(c.valor), 0);
-    const atrasadasValor = atrasadasPagar.reduce((s: number, c: any) => s + num(c.valor), 0);
+    const aVencerPagar = (cprData?.a_vencer_lista ?? []).map((c) => ({
+      ...c, parceiros_comerciais: { razao_social: c.razao_social },
+    }));
+    const aVencerValor = num(cprData?.a_vencer_valor);
+    const atrasadasValor = num(cprData?.atrasadas_valor);
 
     // Fôlego de caixa: saldo / despesa operacional média dos últimos 3 meses da view
     const ultimos3 = serie.slice(-3);
@@ -512,8 +398,8 @@ export default function DashboardFinanceiro() {
     const runway = burnMedio > 0 ? saldoBancario / burnMedio : null;
 
     return {
-      aVencerValor, aVencerCount: aVencerPagar.length,
-      atrasadasValor, atrasadasCount: atrasadasPagar.length,
+      aVencerValor, aVencerCount: num(cprData?.a_vencer_count),
+      atrasadasValor, atrasadasCount: num(cprData?.atrasadas_count),
       burnMedio, runway, aVencerPagar,
     };
   }, [cprData, saldoBancario, serie]);
