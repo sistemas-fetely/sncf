@@ -37,6 +37,7 @@ import { BeneficioCard, BENEFICIO_VAZIO, calcularBeneficio, payloadBeneficio, ty
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
+import { enderecoInicialCliente, enderecoParaCadastro } from "@/lib/pedidos/enderecoClienteVd";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { meioVD, ROTULO_MEIO_VD, rotuloPagamentoVD, type PagamentoVD } from "@/lib/pedidos/meioVD";
@@ -364,10 +365,24 @@ export default function VendaDiretaNovo() {
   const selecionarCliente = (c: ClienteBusca) => {
     setCliente(c);
     setTermo("");
-    setEndereco({
-      cep: soDigitos(c.cep), logradouro: c.logradouro ?? "", numero: c.numero ?? "", complemento: c.endereco_complemento ?? "",
-      bairro: c.bairro ?? "", cidade: c.cidade ?? "", uf: c.uf ?? "",
-    });
+    setEndereco(ENDERECO_VAZIO);
+    // Endereço: cadastro → último pedido com CEP → vazio. A cotação de frete reage ao CEP.
+    void (async () => {
+      try {
+        const [cad, peds] = await Promise.all([
+          supabase.from("parceiros_comerciais").select("cep, logradouro, numero, endereco_complemento, bairro, cidade, uf").eq("id", c.id).maybeSingle(),
+          (supabase as any).from("pedidos").select("endereco_entrega, created_at").eq("parceiro_id", c.id)
+            .not("endereco_entrega->>cep", "is", null).order("created_at", { ascending: false }).limit(5),
+        ]);
+        if (cad.error) throw cad.error;
+        if (peds.error) throw peds.error;
+        if (cad.data) setCliente((atual) => (atual?.id === c.id ? { ...atual, ...cad.data } : atual));
+        const r = enderecoInicialCliente(cad.data ?? c, (peds.data ?? []).map((x: any) => x.endereco_entrega));
+        if (r) setEndereco((atual) => (soDigitos(atual.cep).length === 0 ? r.endereco : atual));
+      } catch (e) {
+        toast.error(`Não foi possível carregar o endereço do cliente: ${rawMessage(e)}`);
+      }
+    })();
   };
   const abrirNovo = () => {
     setCliente(null);
@@ -574,6 +589,15 @@ export default function VendaDiretaNovo() {
       });
       if (error) throw error;
       if (!data) throw new Error("A criação do pedido não devolveu resultado.");
+      // Cadastro sem endereço recebe o endereço deste pedido (nunca sobrescreve); falha não bloqueia o pedido.
+      if (cliente && modo !== "retirada") {
+        const patch = enderecoParaCadastro(cliente.cep, endereco);
+        if (patch) {
+          const { error: eCad } = await supabase.from("parceiros_comerciais").update(patch)
+            .eq("id", cliente.id).or("cep.is.null,cep.eq.").select("id");
+          if (eCad) { console.warn("Endereço não gravado no cadastro", eCad); toast.message(`Pedido salvo; endereço não gravado no cadastro: ${rawMessage(eCad)}`); }
+        }
+      }
       if (instrucaoMudou(null, instrucaoExpedicao)) {
         const r = data as Resultado;
         criadoAguardandoInstrucao.current = r;
@@ -854,7 +878,7 @@ export default function VendaDiretaNovo() {
                 <p className="text-muted-foreground">{cpfOculto(cliente.cpf)} · {cliente.telefone ?? "sem telefone"}{cliente.email ? ` · ${cliente.email}` : ""}</p>
                 {soDigitos(cliente.cpf).length !== 11 && <p className="mt-1 text-destructive">CPF obrigatório para a NF</p>}
               </div>
-              {!edicao && <Button variant="ghost" size="icon" aria-label="Trocar cliente" onClick={() => setCliente(null)}><X className="h-4 w-4" /></Button>}
+              {!edicao && <Button variant="ghost" size="icon" aria-label="Trocar cliente" onClick={() => { setCliente(null); setEndereco(ENDERECO_VAZIO); }}><X className="h-4 w-4" /></Button>}
             </div>
           ) : edicao ? (
             <p className="text-sm text-destructive">Pedido sem cliente vinculado.</p>

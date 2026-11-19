@@ -211,3 +211,5 @@
 - [x] DEV-NF-VERIFICA-AUTO: regra única, botão com resultado fixo, cron 15 min, 1ª rodada
 - [x] Pacote do Contador v2 Fase 2 (blocos 3 e 4)
 - [x] Mesa SP: trocar PAC↔SEDEX na etiqueta Correios (seletor, motivo, edge, evento, funções do banco).
+
+- [x] VD endereço do cadastro: preencher endereço ao selecionar cliente e gravar no cadastro vazio ao salvar
