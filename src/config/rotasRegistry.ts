@@ -10,7 +10,7 @@ export interface RegraRota {
 // mude o status desta lista: "pronta" = aparece, "em_construcao" = escondido.
 // Para controlar quem acessa, gerencie os grupos no banco ou na tela de admin (Fase 2).
 export const ROTAS: RegraRota[] = [
-  { prefixo: "/financeiro/conta-corrente-socios", status: "em_construcao", tela_slug: "tela.conta_corrente_socios" },
+  { prefixo: "/financeiro/conta-corrente-socios", status: "pronta", tela_slug: "tela.conta_corrente_socios" },
   // Sempre acessíveis (TELAS_PUBLICAS no RotaGate)
   { prefixo: "/",              status: "pronta",        tela_slug: "tela.home"        },
   { prefixo: "/meus-dados",    status: "pronta",        tela_slug: "tela.self"        },
