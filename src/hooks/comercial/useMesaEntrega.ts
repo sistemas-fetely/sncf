@@ -36,22 +36,26 @@ export interface MesaEntregaResultado {
   porPedido: Map<string, MesaEntregaRow>;
 }
 
-export function useMesaEntrega() {
+// LEITURA-SEM-LIMITE: lê só os pedidos exibidos, em lotes de 200 ids.
+export function useMesaEntrega(pedidoIds: string[]) {
+  const ids = [...new Set(pedidoIds)].sort();
   return useQuery({
-    queryKey: ["mesa-entrega"],
+    queryKey: ["mesa-entrega", ids],
     staleTime: 60_000,
+    enabled: ids.length > 0,
     queryFn: async (): Promise<MesaEntregaResultado> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_mesa_entrega")
-        .select("*");
-      // FAIL-LOUD: erro sobe; a mesa nunca finge que não há fase/entrega.
-      if (error) throw new Error(error.message);
-      const linhas = (data ?? []) as MesaEntregaRow[];
-      return {
-        linhas,
-        porPedido: new Map(linhas.map((l) => [l.pedido_id, l])),
-      };
+      const linhas: MesaEntregaRow[] = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from("vw_mesa_entrega")
+          .select("*")
+          .in("pedido_id", ids.slice(i, i + 200));
+        // FAIL-LOUD: erro sobe; a mesa nunca finge que não há fase/entrega.
+        if (error) throw new Error(error.message);
+        linhas.push(...((data ?? []) as MesaEntregaRow[]));
+      }
+      return { linhas, porPedido: new Map(linhas.map((l) => [l.pedido_id, l])) };
     },
   });
 }

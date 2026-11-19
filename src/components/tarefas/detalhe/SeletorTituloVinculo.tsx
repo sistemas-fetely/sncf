@@ -30,7 +30,7 @@ function fmt(d: string | null) {
 export function SeletorTituloVinculo({ tituloId, onChange, disabled }: Props) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
-  const { data: titulos, isLoading } = useTitulosParaVinculo(busca);
+  const { data: titulos, isLoading, isError, error } = useTitulosParaVinculo(busca);
   const { data: atual } = useTituloVinculado(tituloId);
 
   return (
@@ -56,7 +56,11 @@ export function SeletorTituloVinculo({ tituloId, onChange, disabled }: Props) {
             onValueChange={setBusca}
           />
           <CommandList>
-            {isLoading ? (
+            {isError ? (
+                <div className="px-3 py-4 text-sm text-destructive">{(error as Error)?.message ?? "Falha na busca"}</div>
+              ) : busca.trim().length < 2 ? (
+                <div className="px-3 py-4 text-sm text-muted-foreground">Digite ao menos 2 caracteres</div>
+              ) : isLoading ? (
               <div className="px-3 py-4 text-sm text-muted-foreground">Buscando…</div>
             ) : (
               <CommandEmpty>Nenhum título encontrado</CommandEmpty>

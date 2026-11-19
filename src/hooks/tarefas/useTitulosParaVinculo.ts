@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useListaBusca } from "@/lib/lista/useListaPaginada";
 
 /**
  * Títulos a receber disponíveis para vincular a uma tarefa manual.
@@ -21,13 +22,6 @@ export interface TituloParaVinculo {
 const CAMPOS =
   "id,codigo,cliente,status,valor_atual,vencimento,encerrado,vencido,pedido_codigo" as const;
 
-/** Encerrado vai para o fim; o resto por vencimento mais próximo primeiro. */
-function ordenar(linhas: TituloParaVinculo[]): TituloParaVinculo[] {
-  return [...linhas].sort((a, b) => {
-    if (a.encerrado !== b.encerrado) return a.encerrado ? 1 : -1;
-    return (a.vencimento ?? "9999-12-31").localeCompare(b.vencimento ?? "9999-12-31");
-  });
-}
 
 /** Rota real do detalhe do título: drawer da aba Títulos da tela de Cobrança. */
 export function urlTitulo(id: string): string {
@@ -41,23 +35,17 @@ export function tituloIdDaUrl(url: string | null | undefined): string | null {
   return m ? m[1] : null;
 }
 
+// LEITURA-SEM-LIMITE: busca no banco (fn_lista), 20 itens, só com 2+ caracteres.
 export function useTitulosParaVinculo(busca: string) {
-  const termo = busca.trim();
-  return useQuery({
-    queryKey: ["titulos", "para-vinculo", termo],
-    queryFn: async (): Promise<TituloParaVinculo[]> => {
-      let q = supabase.from("vw_titulo_para_vinculo").select(CAMPOS);
-      if (termo) {
-        const t = termo.replace(/[%,]/g, " ");
-        q = q.or(`codigo.ilike.%${t}%,cliente.ilike.%${t}%`);
-      }
-      const { data, error } = await q
-        .order("vencimento", { ascending: true })
-        .limit(50);
-      if (error) throw error;
-      return ordenar((data ?? []) as TituloParaVinculo[]);
-    },
+  const query = useListaBusca<TituloParaVinculo>({
+    relacao: "vw_titulo_para_vinculo",
+    colunas: CAMPOS.split(","),
+    busca,
+    tamanho: 20,
+    pagina: 1,
+    ordem: [{ c: "encerrado", dir: "asc" }, { c: "vencimento", dir: "asc" }],
   });
+  return { ...query, data: busca.trim().length >= 2 ? query.data?.linhas : undefined };
 }
 
 /** Um título pelo id — usado para mostrar o código no selo e no detalhe. */

@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
+import { buscarTodos } from "@/lib/supabaseLotes";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -54,34 +55,24 @@ export function XpmCadastroPainel() {
     ? "Verificando permissão…"
     : "Requer a permissão “Cadastrar produto no XPM” (acao.cadastrar_produto_xpm)";
 
-  const { data: linhas, isLoading, isError, error } = useQuery({
-    queryKey: ["xpm-cadastro-divergencia"],
-    queryFn: async (): Promise<LinhaDivergencia[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_xpm_cadastro_divergencia")
-        .select("cod_cadastro, sku, fase, nome_comercial, grupo, xpm_produto_id, codigo_xpm, classe, ncm_sncf, ncm_xpm, ean_sncf, ean_xpm, peso_kg_sncf, peso_kg_xpm, categoria_xpm, chegada_prevista, pedido_importacao, colecao")
-        .order("cod_cadastro", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as LinhaDivergencia[];
-    },
-  });
-
   // Filtro por coleção (?colecao=) — escolhido na fila de cadastro; também filtra a saúde do cadastro.
   const [colecaoUrl] = useAbaUrl("", undefined, "colecao");
   const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
 
-  const porColecao = useMemo(
-    () =>
-      colecaoFiltro.length
-        ? (linhas ?? []).filter((l) => colecaoFiltro.includes((l.colecao ?? "").trim()))
-        : linhas ?? [],
-    [linhas, colecaoFiltro],
-  );
-
-  const saude = useMemo(
-    () => porColecao.filter((l) => l.classe === "PESO_DIVERGE" || l.classe === "NCM_DIVERGE"),
-    [porColecao],
-  );
+  // LEITURA-SEM-LIMITE: só as divergências de dado (e coleção) vêm do banco, em lotes.
+  const { data: saudeDados, isLoading, isError, error } = useQuery({
+    queryKey: ["xpm-cadastro-divergencia", colecaoFiltro],
+    queryFn: async (): Promise<LinhaDivergencia[]> =>
+      buscarTodos<LinhaDivergencia>(() => {
+        let q = (supabase as any)
+          .from("vw_xpm_cadastro_divergencia")
+          .select("cod_cadastro, sku, fase, nome_comercial, grupo, xpm_produto_id, codigo_xpm, classe, ncm_sncf, ncm_xpm, ean_sncf, ean_xpm, peso_kg_sncf, peso_kg_xpm, categoria_xpm, chegada_prevista, pedido_importacao, colecao")
+          .in("classe", ["PESO_DIVERGE", "NCM_DIVERGE"]);
+        if (colecaoFiltro.length) q = q.in("colecao", colecaoFiltro);
+        return q;
+      }, ["cod_cadastro", "sku"]),
+  });
+  const saude = saudeDados ?? [];
 
   const corrigirCategoria = useMutation({
     mutationFn: async (sku: string) => {

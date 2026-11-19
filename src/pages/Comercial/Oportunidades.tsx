@@ -140,11 +140,6 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
   /** Fase & entrega só interessa em "Em andamento" — em Oportunidades o eixo é comercial. */
   const mostrarFaseEntrega = grupo === "em_andamento";
-  const {
-    data: entrega,
-    isError: isErroEntrega,
-    error: erroEntrega,
-  } = useMesaEntrega();
 
 
   /**
@@ -252,6 +247,11 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     isError: isErroLinks,
     error: erroLinks,
   } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
+  const {
+    data: entrega,
+    isError: isErroEntrega,
+    error: erroEntrega,
+  } = useMesaEntrega(filtradas.map((r) => r.pedido_id));
 
   /** KPIs fixos em Oportunidades: os cards são o painel de estado da mesa,
    *  não um resumo do filtro atual. Continuam respeitando o escopo do vendedor. */

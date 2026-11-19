@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useListaBusca } from "@/lib/lista/useListaPaginada";
 
 /**
  * Pedidos disponíveis para vincular a uma tarefa manual.
@@ -17,31 +18,18 @@ export interface PedidoParaVinculo {
 
 const CAMPOS = "id,codigo,cliente,estagio,data_pedido,encerrado" as const;
 
-/** Encerrado vai para o fim da lista, o resto por data desc. */
-function ordenar(linhas: PedidoParaVinculo[]): PedidoParaVinculo[] {
-  return [...linhas].sort((a, b) => {
-    if (a.encerrado !== b.encerrado) return a.encerrado ? 1 : -1;
-    return (b.data_pedido ?? "").localeCompare(a.data_pedido ?? "");
-  });
-}
 
+// LEITURA-SEM-LIMITE: busca no banco (fn_lista), 20 itens, só com 2+ caracteres.
 export function usePedidosParaVinculo(busca: string) {
-  const termo = busca.trim();
-  return useQuery({
-    queryKey: ["pedidos", "para-vinculo", termo],
-    queryFn: async (): Promise<PedidoParaVinculo[]> => {
-      let q = supabase.from("vw_pedido_para_vinculo").select(CAMPOS);
-      if (termo) {
-        const t = termo.replace(/[%,]/g, " ");
-        q = q.or(`codigo.ilike.%${t}%,cliente.ilike.%${t}%`);
-      }
-      const { data, error } = await q
-        .order("data_pedido", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return ordenar((data ?? []) as PedidoParaVinculo[]);
-    },
+  const query = useListaBusca<PedidoParaVinculo>({
+    relacao: "vw_pedido_para_vinculo",
+    colunas: CAMPOS.split(","),
+    busca,
+    tamanho: 20,
+    pagina: 1,
+    ordem: [{ c: "encerrado", dir: "asc" }, { c: "data_pedido", dir: "desc" }],
   });
+  return { ...query, data: busca.trim().length >= 2 ? query.data?.linhas : undefined };
 }
 
 /** Um pedido pelo id — usado para mostrar o código no card e no detalhe. */

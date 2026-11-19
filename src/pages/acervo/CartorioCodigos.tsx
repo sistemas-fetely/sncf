@@ -6,6 +6,7 @@ import { useEstadoTela } from "@/lib/navegacao";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada } from "@/lib/lista/useListaPaginada";
 import { toast } from "sonner";
 import { Loader2, Search, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,16 +105,20 @@ export default function CartorioCodigos() {
   const pagina = nav.pagina;
   const setPagina = (v: number) => setNav({ pagina: v });
 
-  const linhas = useQuery({
-    queryKey: ["cartorio-situacao"],
-    queryFn: async (): Promise<LinhaCartorio[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_cartorio_situacao")
-        .select("*")
-        .order("cod_cadastro", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as LinhaCartorio[];
-    },
+  // LEITURA-SEM-LIMITE: busca, filtro, contagem e página no banco (fn_lista).
+  const linhas = useListaPaginada<LinhaCartorio>({
+    relacao: "vw_cartorio_situacao",
+    busca,
+    filtros: filtroSituacao === "todas" ? [] : [{ c: "situacao", op: "eq", v: filtroSituacao }],
+    ordem: [{ c: "cod_cadastro", dir: "asc" }],
+    pagina: pagina + 1,
+    tamanho: POR_PAGINA,
+  });
+  // Cards de resumo contam a base inteira (sem busca), como antes.
+  const resumo = useListaPaginada<LinhaCartorio>({
+    relacao: "vw_cartorio_situacao",
+    tamanho: 1,
+    facetas: ["situacao"],
   });
 
   const bancos = useQuery({
@@ -130,26 +135,14 @@ export default function CartorioCodigos() {
 
   const contagem = useMemo(() => {
     const mapa: Record<string, number> = {};
-    for (const l of linhas.data ?? []) {
-      const s = l.situacao ?? "sem_situacao";
-      mapa[s] = (mapa[s] ?? 0) + 1;
-    }
+    for (const f of resumo.data?.facetas?.situacao ?? []) mapa[f.valor ?? "sem_situacao"] = f.contagem;
     return mapa;
-  }, [linhas.data]);
+  }, [resumo.data]);
 
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return (linhas.data ?? []).filter((l) => {
-      if (filtroSituacao !== "todas" && l.situacao !== filtroSituacao) return false;
-      if (!termo) return true;
-      return [l.cod_cadastro, l.ean, l.dun, l.sku_cartorio, l.sku_cadastro]
-        .some((v) => (v ?? "").toLowerCase().includes(termo));
-    });
-  }, [linhas.data, filtroSituacao, busca]);
-
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const total = linhas.data?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas - 1);
-  const visiveis = filtradas.slice(paginaAtual * POR_PAGINA, paginaAtual * POR_PAGINA + POR_PAGINA);
+  const visiveis = linhas.data?.linhas ?? [];
 
   async function chamarRpc(dryRun: boolean): Promise<RespostaAlocacao> {
     const nQtd = Number(qtd);
@@ -195,7 +188,7 @@ export default function CartorioCodigos() {
       setQtd("");
       setInner("");
       setMotivo("");
-      await qc.invalidateQueries({ queryKey: ["cartorio-situacao"] });
+      await qc.invalidateQueries({ queryKey: ["lista", "vw_cartorio_situacao"] });
       await qc.invalidateQueries({ queryKey: ["cartorio-banco-ean"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao confirmar a alocação.");
@@ -235,7 +228,7 @@ export default function CartorioCodigos() {
               <CardHeader className="pb-2">
                 <CardDescription>{rotulo}</CardDescription>
                 <CardTitle className="text-2xl">
-                  {linhas.isLoading ? "…" : (contagem[id] ?? 0).toLocaleString("pt-BR")}
+                  {resumo.isLoading ? "…" : resumo.isError ? "!" : (contagem[id] ?? 0).toLocaleString("pt-BR")}
                 </CardTitle>
               </CardHeader>
               {destaque ? (
@@ -404,7 +397,7 @@ export default function CartorioCodigos() {
         <CardHeader>
           <CardTitle className="text-base">Consulta</CardTitle>
           <CardDescription>
-            {linhas.isLoading ? "Carregando…" : `${filtradas.length.toLocaleString("pt-BR")} linha(s)`}
+            {linhas.isLoading ? "Carregando…" : `${total.toLocaleString("pt-BR")} linha(s)`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

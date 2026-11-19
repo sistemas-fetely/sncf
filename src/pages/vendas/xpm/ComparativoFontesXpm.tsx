@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
 import { useEstadoTela } from "@/lib/navegacao";
-import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { Input } from "@/components/ui/input";
 import { Selo } from "@/components/ui/selo";
 import { Switch } from "@/components/ui/switch";
@@ -48,65 +48,47 @@ function diasAtras(iso: string | null, diasParado: number | null): string {
 }
 
 export function ComparativoFontesXpm() {
-  const [linhas, setLinhas] = useState<LinhaComparativo[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  // Filtros da aba Comparativo na URL (prefixo "cmp").
-  const [nav, setNav] = useEstadoTela({ busca: "", soApi: false, soArquivo: false }, { prefixo: "cmp" });
+  // LEITURA-SEM-LIMITE: busca, filtros e página no banco (fn_lista).
+  const [nav, setNav] = useEstadoTela(
+    { busca: "", soApi: false, soArquivo: false, pagina: 1, tamanho: 50 },
+    { prefixo: "cmp" },
+  );
   const { busca, soApi: mostrarSoApi, soArquivo: mostrarSoArquivo } = nav;
-  const setBusca = (v: string) => setNav({ busca: v });
-  const setMostrarSoApi = (v: boolean) => setNav({ soApi: v });
-  const setMostrarSoArquivo = (v: boolean) => setNav({ soArquivo: v });
+  const setBusca = (v: string) => setNav({ busca: v, pagina: 1 });
+  const setMostrarSoApi = (v: boolean) => setNav({ soApi: v, pagina: 1 });
+  const setMostrarSoArquivo = (v: boolean) => setNav({ soArquivo: v, pagina: 1 });
 
-  useEffect(() => {
-    let cancelado = false;
-    async function carregar() {
-      setCarregando(true);
-      setErro(null);
-      try {
-        const { data, error } = await supabase
-          .from("vw_xpm_comparativo_fontes")
-          .select(
-            "expedicao_codigo,pedido_sncf,cliente_sncf,situacao,api_fase_codigo,api_fase_rotulo,api_fase_seq,api_atualizado_em,api_dias_parado,arquivo_fase_codigo,arquivo_fase_rotulo,arquivo_fase_ordem,arquivo_atualizado_em,arquivo_faturadoem,so_na_api,so_no_arquivo"
-          )
-          .order("api_dias_parado", { ascending: false });
-        if (error) throw error;
-        if (!cancelado) setLinhas((data as LinhaComparativo[]) ?? []);
-      } catch (e) {
-        if (!cancelado) setErro(formatError(e));
-      } finally {
-        if (!cancelado) setCarregando(false);
-      }
-    }
-    carregar();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
+  const filtros: FiltroLista[] = [];
+  if (!mostrarSoApi) filtros.push({ c: "so_na_api", op: "not_true" });
+  if (!mostrarSoArquivo) filtros.push({ c: "so_no_arquivo", op: "not_true" });
 
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return linhas.filter((l) => {
-      const matchBusca =
-        !termo ||
-        l.expedicao_codigo.toLowerCase().includes(termo) ||
-        (l.pedido_sncf?.toLowerCase().includes(termo) ?? false) ||
-        (l.cliente_sncf?.toLowerCase().includes(termo) ?? false);
+  const listaQ = useListaPaginada<LinhaComparativo>({
+    relacao: "vw_xpm_comparativo_fontes",
+    busca,
+    filtros,
+    ordem: [{ c: "api_dias_parado", dir: "desc" }],
+    pagina: nav.pagina,
+    tamanho: nav.tamanho,
+  });
+  // Contagens da base inteira, independentes da busca e da página.
+  const resumoQ = useListaPaginada<LinhaComparativo>({
+    relacao: "vw_xpm_comparativo_fontes",
+    colunas: ["expedicao_codigo"],
+    tamanho: 1,
+    facetas: ["so_na_api", "so_no_arquivo"],
+  });
+  const contarVerdadeiros = (coluna: string) =>
+    (resumoQ.data?.facetas[coluna] ?? [])
+      .filter((f) => String(f.valor) === "true")
+      .reduce((s, f) => s + f.contagem, 0);
+  const soApiN = contarVerdadeiros("so_na_api");
+  const soArquivoN = contarVerdadeiros("so_no_arquivo");
+  const contagem = { ambas: (resumoQ.data?.total ?? 0) - soApiN - soArquivoN, soApi: soApiN, soArquivo: soArquivoN };
 
-      const temAmbas = !l.so_na_api && !l.so_no_arquivo;
-      if (temAmbas) return matchBusca;
-      if (l.so_na_api && mostrarSoApi) return matchBusca;
-      if (l.so_no_arquivo && mostrarSoArquivo) return matchBusca;
-      return false;
-    });
-  }, [linhas, busca, mostrarSoApi, mostrarSoArquivo]);
-
-  const contagem = useMemo(() => {
-    const ambas = linhas.filter((l) => !l.so_na_api && !l.so_no_arquivo).length;
-    const soApi = linhas.filter((l) => l.so_na_api).length;
-    const soArquivo = linhas.filter((l) => l.so_no_arquivo).length;
-    return { ambas, soApi, soArquivo };
-  }, [linhas]);
+  const erroConsulta = listaQ.error ?? resumoQ.error;
+  const erro = erroConsulta ? formatError(erroConsulta) : null;
+  const carregando = listaQ.isPending || resumoQ.isPending;
+  const filtradas = erro ? [] : (listaQ.data?.linhas ?? []);
 
   return (
     <div className="space-y-4">
@@ -156,7 +138,7 @@ export function ComparativoFontesXpm() {
 
         <div className="flex flex-wrap gap-2">
           <Selo estado="success">{contagem.ambas} com ambas as fontes</Selo>
-          <Selo estado="muted">{linhas.length} total</Selo>
+          <Selo estado="muted">{resumoQ.data?.total ?? 0} total</Selo>
           {!mostrarSoApi && !mostrarSoArquivo && (
             <Selo estado="info">filtro padrão: ambas as fontes</Selo>
           )}
@@ -253,6 +235,13 @@ export function ComparativoFontesXpm() {
               )}
             </tbody>
           </table>
+          <RodapePaginacao
+            total={listaQ.data?.total ?? 0}
+            pagina={nav.pagina}
+            tamanhoPagina={nav.tamanho}
+            onPagina={(pagina) => setNav({ pagina })}
+            onTamanhoPagina={(tamanho) => setNav({ tamanho, pagina: 1 })}
+          />
         </div>
       </div>
     </div>

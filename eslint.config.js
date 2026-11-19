@@ -361,14 +361,9 @@ export default tseslint.config(
     // MarcacaoPedido, BuscarDocumentoDialog, usePedidoRelogio, useLancamentos, useAcordosTitulos.
     files: [
       "src/components/acervo/HistoricoPrecoTab.tsx",
-      "src/components/acervo/XpmCadastroPainel.tsx",
       "src/hooks/auditoria/useAuditoria.ts",
-      "src/hooks/comercial/useMesaEntrega.ts",
       "src/hooks/credito/useTitulosCobranca.ts",
-      "src/hooks/tarefas/usePedidosParaVinculo.ts",
-      "src/hooks/tarefas/useTitulosParaVinculo.ts",
       "src/hooks/vendas/useB2c.ts",
-      "src/pages/acervo/CartorioCodigos.tsx",
       "src/pages/acervo/TabelaPreco.tsx",
       "src/pages/administrativo/AnaliseDespesas.tsx",
       "src/pages/administrativo/CaixaBanco.tsx",
@@ -376,7 +371,6 @@ export default tseslint.config(
       "src/pages/administrativo/Despesas.tsx",
       "src/pages/administrativo/NFsStage.tsx",
       "src/pages/administrativo/PainelMargem.tsx",
-      "src/pages/vendas/xpm/ComparativoFontesXpm.tsx",
       "src/pages/vendas/xpm/EstoqueXpm.tsx",
       "src/pages/vendas/xpm/ExpedicoesXpm.tsx",
       "src/pages/vendas/xpm/PainelXpm.tsx",
