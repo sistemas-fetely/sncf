@@ -1,4 +1,4 @@
-import { selecionarContas, corpoConfiguracao, type ContaMp } from "./contas.ts";
+import { selecionarContas, corpoConfiguracao, validarAlinhamento, configuracoesIguais, type ContaMp } from "./contas.ts";
 import { classificarRelease, normalizarMpRelease, type MpLiberacao } from "../_shared/financeiro/mp/release.ts";
 const check=(x:boolean)=>{if(!x)throw new Error("Resultado divergente");};
 const regra={regra_atribuicao:"marketplace_ml",classe_recebivel:"recebivel_marketplace"} as const;
@@ -13,8 +13,18 @@ Deno.test("marketplace pagamento negativo não é recebível",()=>check(classifi
 Deno.test("Shopify mantém comportamento anterior inclusive descrições não saque",()=>{const r=classificarRelease(linha("shipping_fee",-5));check(r.classe==="recebivel_b2c"&&r.descricao==="MP PAGAMENTO PIX"&&r.tipo_meio==="pix");});
 Deno.test("cron sem conta exclui Meli inativa e manual default é Shopify",()=>{const contas=[{codigo:"MP-SHOPIFY",ativo:true},{codigo:"MP-MELI",ativo:false}] as ContaMp[];check(selecionarContas(contas,true).length===1&&selecionarContas(contas,true)[0].codigo==="MP-SHOPIFY");check(selecionarContas(contas,false)[0].codigo==="MP-SHOPIFY");check(selecionarContas(contas,false,"MP-MELI")[0].codigo==="MP-MELI");});
 Deno.test("config copia somente campos documentados, timezone e scheduled",()=>{const r=corpoConfiguracao({columns:[{key:"SOURCE_ID"}],file_name_prefix:"report",scheduled:true,separator:";",display_timezone:"GMT-04",sftp_info:{password:"não copiar"}});check(r.display_timezone==="GMT-03"&&r.scheduled===true&&r.separator===";"&&r.sftp_info===undefined);});
-Deno.test("config daily remove value/format legado e alias vazio, preserva idioma",()=>{
+Deno.test("config daily remove value legado e alias vazio, preserva idioma e formato",()=>{
  const r=corpoConfiguracao({columns:[{key:"SOURCE_ID",alias:""}],file_name_prefix:"report",frequency:{hour:0,type:"daily",value:"0",format:"XLSX"},report_language:"pt"});
- const f=r.frequency as Record<string,unknown>;check(f.type==="daily"&&f.hour===0&&f.value===undefined&&f.format===undefined&&r.report_translation==="pt");
+ const f=r.frequency as Record<string,unknown>;check(f.type==="daily"&&f.hour===0&&f.value===undefined&&f.format==="XLSX"&&r.report_translation==="pt");
  check((r.columns as Record<string,unknown>[])[0].alias===undefined&&r.execute_after_withdrawal===false);
+});
+Deno.test("alinhar true é recusado na MP-SHOPIFY antes de qualquer alteração",()=>{
+ let erro="";try{validarAlinhamento("MP-SHOPIFY",true);}catch(e){erro=(e as Error).message;}
+ check(erro==="Nunca alinhar ou alterar configuração MP-SHOPIFY");
+ validarAlinhamento("MP-SHOPIFY",undefined);validarAlinhamento("MP-MELI",true);
+});
+Deno.test("comparação detecta colunas, timezone, formato e scheduled sem alias/value legado",()=>{
+ const modelo={columns:[{key:"SOURCE_ID",alias:""}],separator:";",display_timezone:"GMT-03",frequency:{type:"daily",hour:0,value:"0",format:"XLSX"},scheduled:true};
+ check(configuracoesIguais({...modelo,columns:[{key:"SOURCE_ID"}]},modelo));
+ for(const patch of [{columns:[{key:"OUTRO"}]},{display_timezone:"GMT-04"},{scheduled:false},{frequency:{type:"daily",hour:0,format:"CSV"}}])check(!configuracoesIguais({...modelo,...patch},modelo));
 });

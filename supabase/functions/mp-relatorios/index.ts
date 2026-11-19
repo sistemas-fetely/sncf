@@ -16,7 +16,7 @@ import { ContagemImportacao } from "../_shared/financeiro/contagem-importacao.ts
 import { aplicarMpRelease, enriquecerReferencias, lerCsvMp, normalizarMpRelease } from "../_shared/financeiro/mp/release.ts";
 import { aplicarMpSettlement, normalizarMpSettlement } from "../_shared/financeiro/mp/settlement.ts";
 import {janelaMensal,lerReleaseMensal} from "./mensal.ts";
-import { selecionarContas, corpoConfiguracao, type ContaMp } from "./contas.ts";
+import { selecionarContas, corpoConfiguracao, validarAlinhamento, configuracoesIguais, type ContaMp } from "./contas.ts";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const msg = (e: unknown) => e instanceof Error ? e.message : (e && typeof e === "object" && "message" in e ? String((e as any).message) : String(e));
@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
   try {
     if (body.conta !== undefined && (typeof body.conta !== "string" || !body.conta.trim())) throw new Error("Conta inválida");
     if (acao === "configurar" && (!body.conta || req.headers.get("x-cron-secret"))) throw new Error("Configurar exige conta e sessão manual");
+    if (acao === "configurar") validarAlinhamento(body.conta, body.alinhar);
     const {data: contas, error} = await db.from("mp_conta_dim").select("*").order("ordem");
     if (error) throw error;
     const selecionadas = selecionarContas(contas ?? [], Boolean(req.headers.get("x-cron-secret")), body.conta);
@@ -84,16 +85,24 @@ async function clienteDaConta(db:any,conta:ContaMp) {
 }
 async function executarAcao(db:any,mp:ClienteMp,acao:string,body:any,contas:ContaMp[]) {
   if(acao==="configurar") {
+    validarAlinhamento(mp.conta.codigo,body.alinhar);
     const resultados:Record<string,unknown>={};
     for(const tipo of ["release","settlement"] as Tipo[]) {
       const atual=await mp.config(tipo);
-      if(atual) {resultados[tipo]={criada:false,configuracao:atual};continue;}
+      if(atual && !body.alinhar) {resultados[tipo]={criada:false,alinhada:false,status:"preservada",configuracao:atual};continue;}
       if(mp.conta.codigo==="MP-SHOPIFY") throw new Error("Nunca alterar configuração MP-SHOPIFY");
       const origem=contas.find(c=>c.codigo==="MP-SHOPIFY");
       if(!origem) throw new Error("MP-SHOPIFY não cadastrada");
       const modelo=await (await clienteDaConta(db,origem)).config(tipo);
       if(!modelo) throw new Error("Configuração MP-SHOPIFY não encontrada");
-      resultados[tipo]={criada:true,configuracao:await mp.criarConfig(tipo,corpoConfiguracao(modelo))};
+      let status = "já igual";
+      if (!atual) { await mp.criarConfig(tipo,corpoConfiguracao(modelo)); status="criada"; }
+      else if (!configuracoesIguais(atual,modelo)) { await mp.atualizarConfig(tipo,corpoConfiguracao(modelo)); status="alinhada"; }
+      const final=await mp.config(tipo);
+      if(!final) throw new Error(`Configuração final ${tipo} não encontrada após alteração`);
+      const igual = !body.alinhar || configuracoesIguais(final,modelo);
+      resultados[tipo]={criada:status==="criada",alinhada:status==="alinhada" && igual,ja_igual:status==="já igual",status:igual ? status : "alinhamento parcial",configuracao:final,
+        ...(!igual ? {aviso:"Mercado Pago manteve campos diferentes após PUT; confira formato e scheduled na configuração final. Nenhum agendamento foi ativado por esta ação."} : {})};
     }
     return {ok:true,configuracoes:resultados};
   }
@@ -160,6 +169,12 @@ class ClienteMp {
     const t=await r.text();
     if(!r.ok)throw new Error(`MP criar config HTTP ${r.status}: ${this.limpar(t)}`);
     return JSON.parse(this.mascarar(t));
+  }
+  async atualizarConfig(tipo:Tipo,body:Record<string,unknown>) {
+    validarAlinhamento(this.conta.codigo,true);
+    const r=await fetch(`${MP}/${tipo}_report/config`,{method:"PUT",headers:{...this.h(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const t=await r.text();
+    if(!r.ok)throw new Error(`MP alinhar config HTTP ${r.status}: ${this.limpar(t)}`);
   }
   private h() { return { Authorization: `Bearer ${this.token}` }; }
   private limpar(t: string) { return t.replaceAll(this.token, "***").slice(0, 300); }

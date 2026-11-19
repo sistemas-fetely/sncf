@@ -10,6 +10,27 @@ export function selecionarContas(contas: ContaMp[], cron: boolean, codigo?: stri
   if (!escolhida) throw new Error("Conta Mercado Pago não cadastrada");
   return [escolhida];
 }
+export function validarAlinhamento(codigo: string, alinhar: unknown): void {
+  if (alinhar !== undefined && typeof alinhar !== "boolean") throw new Error("alinhar deve ser booleano");
+  if (alinhar === true && codigo === "MP-SHOPIFY") throw new Error("Nunca alinhar ou alterar configuração MP-SHOPIFY");
+}
+
+/** Compare semantic config fields, ignoring legacy daily value/empty aliases and GET-only metadata. */
+export function configuracoesIguais(atual: Record<string, unknown>, modelo: Record<string, unknown>): boolean {
+  const selecionar = (c: Record<string, unknown>) => {
+    const f = c.frequency as Record<string, unknown> | undefined;
+    return {
+      columns: Array.isArray(c.columns) ? c.columns.map((v: Record<string, unknown>) => ({ key: v.key, alias: v.alias || "" })) : [],
+      separator: c.separator,
+      idioma: c.report_translation ?? c.report_language ?? "pt",
+      header_language: c.header_language ?? null,
+      display_timezone: c.display_timezone ?? "GMT-04",
+      frequency: f ? { type: f.type, hour: Number(f.hour) || 0, value: f.type === "daily" ? null : Number(f.value), format: f.format ?? "CSV" } : null,
+      scheduled: c.scheduled === true,
+    };
+  };
+  return JSON.stringify(selecionar(atual)) === JSON.stringify(selecionar({ ...modelo, display_timezone: "GMT-03" }));
+}
 /** POST config fields documented by Mercado Pago; never copy SFTP credentials or account identifiers. */
 export function corpoConfiguracao(origem: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
@@ -25,6 +46,7 @@ export function corpoConfiguracao(origem: Record<string, unknown>) {
   if (frequency) out.frequency = frequency.type === "daily"
     ? { hour: Number(frequency.hour) || 0, type: "daily" }
     : { hour: Number(frequency.hour) || 0, type: frequency.type, value: Number(frequency.value) };
+  if (frequency?.format) (out.frequency as Record<string, unknown>).format = frequency.format;
   if (!Array.isArray(out.columns) || !out.columns.length || !out.file_name_prefix) throw new Error("Configuração Shopify incompleta");
   out.columns = out.columns.map((column: Record<string, unknown>) => column.alias
     ? { key: column.key, alias: column.alias } : { key: column.key });
