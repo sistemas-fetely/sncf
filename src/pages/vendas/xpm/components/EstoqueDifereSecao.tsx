@@ -33,11 +33,11 @@ export function resumoEstoqueDifere(linhas: LinhaEstoqueDifere[]) {
 const ROTA_CONCILIACAO = "/vendas/produto/estoque/conciliacao";
 const fmt = (n: number) => (Number.isFinite(n) ? n.toLocaleString("pt-BR") : "—");
 
-export function EstoqueDifereSecao({ rotulo, linhas, onFeito }: { rotulo: string; linhas: LinhaEstoqueDifere[]; onFeito: () => Promise<void> }) {
+export function EstoqueDifereSecao({ rotulo, linhas, onFeito, resumo }: { rotulo: string; linhas: LinhaEstoqueDifere[]; resumo?: { produtos: number; unidades: number }; onFeito: () => Promise<void> }) {
   const [aberto, setAberto] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [dlg, setDlg] = useState<{ acao: "cobrar" | "fechar"; refs: string[] } | null>(null);
-  const r = resumoEstoqueDifere(linhas);
+  const r = resumo ?? resumoEstoqueDifere(linhas);
   const ordenadas = useMemo(() => [...linhas].sort((a, b) => Math.abs(parseEstoqueDifere(b).delta) - Math.abs(parseEstoqueDifere(a).delta)), [linhas]);
   const todasSel = ordenadas.length > 0 && ordenadas.every((l) => sel.has(l.referencia));
 

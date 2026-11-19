@@ -18,17 +18,20 @@ export interface PedidoAlerta {
 }
 
 /** Lê `vw_pedido_alerta` e devolve um Map por pedido_id. FAIL-LOUD. */
-export function usePedidoAlerta() {
+export function usePedidoAlerta(ids?: string[]) {
   return useQuery({
-    queryKey: ["pedido-alerta"],
+    queryKey: ["pedido-alerta", ids],
+    enabled: ids === undefined || ids.length > 0,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Map<string, PedidoAlerta>> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from("vw_pedido_alerta")
         .select(
           "pedido_id, severidade, severidade_peso, achados, bloqueantes, atencoes, informativos, tem_reincidente, desde, idade_dias, titulo_principal, detalhe_principal, regras",
         );
+      if (ids) q = q.in("pedido_id", ids);
+      const { data, error } = await q;
       if (error) throw error;
       const m = new Map<string, PedidoAlerta>();
       ((data || []) as PedidoAlerta[]).forEach((r) => {

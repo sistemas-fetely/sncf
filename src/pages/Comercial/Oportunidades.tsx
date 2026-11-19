@@ -1,3 +1,5 @@
+import { numeroAgregado, gruposAgregado, type FiltroLista, type ParamsLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -56,14 +58,6 @@ const AVISO_EXCECAO_SITUACAO: Record<string, string> = {
   parcial_pago: "JÁ ADIANTOU · cobrar só o saldo",
 };
 
-/** Ordem das faixas de temperatura na mesa — peso por map, nunca if encadeado. */
-const TEMPERATURA_PESO: Record<string, number> = {
-  quente: 0,
-  morno: 1,
-  frio: 2,
-  nao_cobrar: 3,
-};
-
 type FiltroGrupo = GrupoMesa | "todas";
 
 const GRUPOS: { valor: FiltroGrupo; rotulo: string }[] = [
@@ -90,7 +84,7 @@ function pareceTimeout(m: string): boolean {
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros sempre na URL; embutida na Casa, com
   // prefixo "mc_" para não colidir com as chaves da tela hospedeira.
-  const DEFAULTS_MESA = { busca: "", status: "todos", pagamento: "todos", grupo: "em_andamento", meus: true };
+  const DEFAULTS_MESA = { busca: "", status: "todos", pagamento: "todos", grupo: "em_andamento", meus: true, pagina: 1 };
   const [estadoMesa, setEstadoMesa] = useEstadoTela(DEFAULTS_MESA, {
     replaceKeys: ["busca"],
     prefixo: embutido ? "mc" : undefined,
@@ -100,10 +94,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const grupo: FiltroGrupo = GRUPOS.some((g) => g.valor === estadoMesa.grupo)
     ? (estadoMesa.grupo as FiltroGrupo)
     : "em_andamento";
-  const setBusca = (v: string) => setEstadoMesa({ busca: v });
-  const setStatusFiltro = (v: string) => setEstadoMesa({ status: v });
-  const setPagamentoFiltro = (v: string) => setEstadoMesa({ pagamento: v });
-  const setMeus = (v: boolean) => setEstadoMesa({ meus: v });
+  const setBusca = (v: string) => setEstadoMesa({ busca: v, pagina: 1 });
+  const setStatusFiltro = (v: string) => setEstadoMesa({ status: v, pagina: 1 });
+  const setPagamentoFiltro = (v: string) => setEstadoMesa({ pagamento: v, pagina: 1 });
+  const setMeus = (v: boolean) => setEstadoMesa({ meus: v, pagina: 1 });
   const location = useLocation();
   // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
 
@@ -113,14 +107,6 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     useState<"itens" | "obs" | "pagamento" | "entrega">("itens");
   const navigate = useNavigate();
 
-  const {
-    data = [],
-    isLoading,
-    isFetching,
-    isError: isErroMesa,
-    error: erroMesa,
-    refetch: refetchMesa,
-  } = useMesaComercial();
   const {
     data: vendedorAtual,
     isLoading: carregandoVendedor,
@@ -157,90 +143,45 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     !carregandoVendedor &&
     !vendedorAtual;
 
-  /** Escopo do vendedor aplicado antes de tudo — KPIs e contadores herdam dele. */
-  const escopoCarteira = useMemo(() => {
-    if (semVendedorVinculado) return [];
-    if (!filtrarMeus) return data;
-    if (!vendedorAtual) return [];
-    return data.filter((r) => r.vendedor_id === vendedorAtual.id);
-  }, [data, filtrarMeus, vendedorAtual, semVendedorVinculado]);
-
-  /** Base do grupo + escopo do vendedor: os contadores dos filtros nascem daqui. */
-  const baseFase = useMemo(
-    () =>
-      grupo === "todas"
-        ? escopoCarteira
-        : escopoCarteira.filter((r) => r.grupo_mesa === grupo),
-    [escopoCarteira, grupo],
-  );
-
-  const contagensGrupo = useMemo(() => {
-    const c: Record<FiltroGrupo, number> = {
-      oportunidade: 0,
-      em_andamento: 0,
-      todas: 0,
-    };
-    for (const r of escopoCarteira) {
-      c.todas++;
-      if (r.grupo_mesa && r.grupo_mesa in c) c[r.grupo_mesa]++;
-    }
-    return c;
-  }, [escopoCarteira]);
+  const [tamanho, setTamanho] = useState(20);
+  const filtros: FiltroLista[] = [];
+  if (filtrarMeus) filtros.push({ c: "vendedor_id", op: "eq", v: vendedorAtual?.id ?? "00000000-0000-0000-0000-000000000000" });
+  if (grupo !== "todas") filtros.push({ c: "grupo_mesa", op: "eq", v: grupo });
+  if (statusFiltro !== "todos") filtros.push(statusFiltro === "__sem__" ? { c: "status_comercial_slug", op: "is_null" } : { c: "status_comercial_slug", op: "eq", v: statusFiltro });
+  if (pagamentoFiltro !== "todos") filtros.push({ c: "pagamento_estado_slug", op: "eq", v: pagamentoFiltro });
+  if (busca.trim()) filtros.push({ op: "or", v: ["id_externo", "cliente", "apelido", "cnpj", "vendedor_nome"].map(c => ({ c, op: "ilike", v: `%${busca.trim()}%` })) });
+  const ignorarTabela = ["grupo_mesa", "status_comercial_slug", "pagamento_estado_slug", "__or__"];
+  const oportunidade: FiltroLista[] = [{ c: "grupo_mesa", op: "eq", v: "oportunidade" }];
+  const acao: FiltroLista[] = [...oportunidade, { c: "pagamento_estado_slug", op: "in", v: [...PAGAMENTO_ESTADO_TAREFA] }];
+  const params: ParamsLista = { relacao: "vw_mesa_comercial", filtros, pagina: estadoMesa.pagina, tamanho,
+    facetas: ["grupo_mesa", "status_comercial_slug", "pagamento_estado_slug", "temperatura_sistema", "vendedor_id"],
+    agregados: [
+      { id: "grupos", fn: "count", por: ["grupo_mesa"], ignorar: ignorarTabela },
+      { id: "status", fn: "count", por: ["status_comercial_slug"], ignorar: ["status_comercial_slug", "pagamento_estado_slug", "__or__"] },
+      { id: "pagamentos", fn: "count", por: ["pagamento_estado_slug"], ignorar: ["status_comercial_slug", "pagamento_estado_slug", "__or__"] },
+      { id: "oportunidades", fn: "count", onde: oportunidade, ignorar: ignorarTabela },
+      { id: "valor", fn: "sum", c: "valor", onde: oportunidade, ignorar: ignorarTabela },
+      { id: "media", fn: "avg", c: "dias_desde_pedido", onde: oportunidade, ignorar: ignorarTabela },
+      { id: "acaoQtd", fn: "count", onde: acao, ignorar: ignorarTabela },
+      { id: "acaoValor", fn: "sum", c: "valor", onde: acao, ignorar: ignorarTabela },
+    ] };
+  const mesa = useMesaComercial(params, !carregandoPerms && !carregandoVendedor && !semVendedorVinculado);
+  const { isLoading, isFetching, isError: isErroMesa, error: erroMesa, refetch: refetchMesa } = mesa;
+  const filtradas = mesa.data?.linhas ?? [];
+  const contagensGrupo = { oportunidade: 0, em_andamento: 0, todas: 0 };
+  for (const r of gruposAgregado(mesa.data?.agregados, "grupos")) {
+    contagensGrupo.todas += Number(r.valor ?? 0);
+    if (r.grupo_mesa === "oportunidade" || r.grupo_mesa === "em_andamento") contagensGrupo[r.grupo_mesa] = Number(r.valor ?? 0);
+  }
+  const contagensStatus = new Map(gruposAgregado(mesa.data?.agregados, "status").map(r => [String(r.status_comercial_slug ?? "__sem__"), Number(r.valor ?? 0)]));
+  const contagensPagamento = new Map(gruposAgregado(mesa.data?.agregados, "pagamentos").map(r => [String(r.pagamento_estado_slug ?? ""), Number(r.valor ?? 0)]));
+  const totalBaseFase = [...contagensStatus.values()].reduce((s, n) => s + n, 0);
 
   /** DIMENSAO-VIA-TABELA: rótulo/cor do eixo 2 sempre de pagamento_estado_dim. */
   const pagamentoDim = useMemo(
     () => new Map(pagamentoOpcoes.map((o) => [o.slug, o])),
     [pagamentoOpcoes],
   );
-
-  const contagensPagamento = useMemo(() => {
-    const c = new Map<string, number>();
-    for (const r of baseFase) {
-      const s = r.pagamento_estado_slug;
-      if (s) c.set(s, (c.get(s) ?? 0) + 1);
-    }
-    return c;
-  }, [baseFase]);
-
-  const contagensStatus = useMemo(() => {
-    const c = new Map<string, number>();
-    for (const r of baseFase) {
-      const s = r.status_comercial_slug ?? "__sem__";
-      c.set(s, (c.get(s) ?? 0) + 1);
-    }
-    return c;
-  }, [baseFase]);
-
-  const filtradas = useMemo(() => {
-
-    const q = busca.trim().toLowerCase();
-    let base = baseFase;
-    if (pagamentoFiltro !== "todos") {
-      base = base.filter((r) => r.pagamento_estado_slug === pagamentoFiltro);
-    }
-    if (statusFiltro !== "todos") {
-
-      base = base.filter((r) =>
-        statusFiltro === "__sem__"
-          ? !r.status_comercial_slug
-          : r.status_comercial_slug === statusFiltro,
-      );
-    }
-    if (q) {
-      base = base.filter((r) =>
-        [r.id_externo, r.cliente, r.apelido, r.cnpj, r.vendedor_nome]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q)),
-      );
-    }
-    // TEMPERATURA-MANDA-NA-ORDEM: faixa primeiro, valor decrescente dentro dela.
-    return [...base].sort((a, b) => {
-      const pa = TEMPERATURA_PESO[a.temperatura_sistema ?? ""] ?? 99;
-      const pb = TEMPERATURA_PESO[b.temperatura_sistema ?? ""] ?? 99;
-      if (pa !== pb) return pa - pb;
-      return Number(b.valor || 0) - Number(a.valor || 0);
-    });
-  }, [baseFase, busca, pagamentoFiltro, statusFiltro]);
 
   const {
     data: linksFila,
@@ -253,27 +194,13 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     error: erroEntrega,
   } = useMesaEntrega(filtradas.map((r) => r.pedido_id));
 
-  /** KPIs fixos em Oportunidades: os cards são o painel de estado da mesa,
-   *  não um resumo do filtro atual. Continuam respeitando o escopo do vendedor. */
-  const baseKpis = useMemo(
-    () => escopoCarteira.filter((r) => r.grupo_mesa === "oportunidade"),
-    [escopoCarteira],
-  );
-
-  const kpis = useMemo(() => {
-    const qtd = baseKpis.length;
-    const valor = baseKpis.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const media =
-      qtd > 0
-        ? baseKpis.reduce((s, r) => s + Number(r.dias_desde_pedido || 0), 0) / qtd
-        : 0;
-    const precisamAcao = baseKpis.filter((r) =>
-      PAGAMENTO_ESTADO_TAREFA.has(r.pagamento_estado_slug ?? ""),
-    );
-    const precisamAcaoQtd = precisamAcao.length;
-    const precisamAcaoValor = precisamAcao.reduce((s, r) => s + Number(r.valor || 0), 0);
-    return { qtd, valor, media, precisamAcaoQtd, precisamAcaoValor };
-  }, [baseKpis]);
+  const kpis = {
+    qtd: numeroAgregado(mesa.data?.agregados, "oportunidades"),
+    valor: numeroAgregado(mesa.data?.agregados, "valor"),
+    media: numeroAgregado(mesa.data?.agregados, "media"),
+    precisamAcaoQtd: numeroAgregado(mesa.data?.agregados, "acaoQtd"),
+    precisamAcaoValor: numeroAgregado(mesa.data?.agregados, "acaoValor"),
+  };
 
   const abrirDetalhe = (r: MesaComercialRow, aba: typeof abaDetalhe = "itens") => {
     setAbaDetalhe(aba);
@@ -295,7 +222,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   useRestaurarScroll(null, !isLoading);
 
   const mudarGrupo = (novo: FiltroGrupo) => {
-    setEstadoMesa(novo !== "oportunidade" ? { grupo: novo, pagamento: "todos" } : { grupo: novo });
+    setEstadoMesa(novo !== "oportunidade" ? { grupo: novo, pagamento: "todos", pagina: 1 } : { grupo: novo, pagina: 1 });
   };
 
   return (
@@ -385,7 +312,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           <div className="inline-flex rounded-md border overflow-hidden">
             <FiltroBtn ativo={statusFiltro === "todos"} onClick={() => setStatusFiltro("todos")}>
               Todas
-              {!isErroMesa && ` (${baseFase.length})`}
+              {!isErroMesa && ` (${totalBaseFase})`}
             </FiltroBtn>
             {statusOpcoes.map((o) => (
               <FiltroBtn
@@ -416,7 +343,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 title="Estado do pagamento — calculado pelo sistema"
               >
                 Todos
-                {!isErroMesa && ` (${baseFase.length})`}
+                {!isErroMesa && ` (${totalBaseFase})`}
               </FiltroBtn>
               {pagamentoOpcoes.map((o) => (
                 <FiltroBtn
@@ -692,6 +619,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             )}
           </CardContent>
         </Card>
+
+        <RodapePaginacao total={mesa.data?.total ?? 0} pagina={estadoMesa.pagina} tamanhoPagina={tamanho} onPagina={pagina => setEstadoMesa({ pagina })} onTamanhoPagina={n => { setTamanho(n); setEstadoMesa({ pagina: 1 }); }} />
 
         {detalhe && (
           <PedidoOportunidadeDialog

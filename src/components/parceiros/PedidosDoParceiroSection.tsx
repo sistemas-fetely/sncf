@@ -1,5 +1,7 @@
+import { gruposAgregado } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { abrirDetalhe as __abrir } from "@/lib/navegacao";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package, FileText, Code, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -36,12 +38,15 @@ function formatarData(dataPedido?: string | null, recebidoEm?: string | null) {
 
 export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string }) {
   const navigate = useNavigate();
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState(20);
   const { data, isLoading, isError, error } = usePedidosFila({
-    parceiroId,
+    parceiroId, pagina, tamanho,
     apenasAtivos: false,
   });
 
-  const pedidos = data || [];
+  const pedidos = data?.linhas ?? [];
+  const total = data?.total ?? 0;
   const {
     data: nfsPorPedido,
     isLoading: nfsCarregando,
@@ -63,10 +68,11 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
 
 
 
-  const entregues = pedidos.filter((p) => p.estagio === "entregue").length;
-  const cancelados = pedidos.filter((p) => p.estagio === "cancelado").length;
-  const recuperacao = pedidos.filter((p) => p.estagio === "recuperacao_venda").length;
-  const andamento = pedidos.length - entregues - cancelados - recuperacao;
+  const contagens = new Map(gruposAgregado(data?.agregados, "estagios").map(r => [r.estagio, Number(r.valor ?? 0)]));
+  const entregues = contagens.get("entregue") ?? 0;
+  const cancelados = contagens.get("cancelado") ?? 0;
+  const recuperacao = contagens.get("recuperacao_venda") ?? 0;
+  const andamento = total - entregues - cancelados - recuperacao;
 
   const partes: string[] = [];
   if (andamento > 0) partes.push(`${andamento} em andamento`);
@@ -82,7 +88,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
             <Package className="h-4 w-4" />
             Pedidos
           </span>
-          <Badge variant="secondary">{pedidos.length}</Badge>
+          <Badge variant="secondary">{total}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -237,6 +243,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                 ))}
               </TableBody>
             </Table>
+            <RodapePaginacao total={total} pagina={pagina} tamanhoPagina={tamanho} onPagina={setPagina} onTamanhoPagina={n => { setTamanho(n); setPagina(1); }} />
           </div>
         )}
       </CardContent>

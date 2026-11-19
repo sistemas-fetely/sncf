@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { gruposAgregado, numeroAgregado, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
@@ -7,6 +12,7 @@ import {
   ListTodo,
   Loader2,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -224,40 +230,40 @@ function DialogNovaTarefa({
 }
 
 export function FilaAtencaoLogistica() {
-  const { data: linhas = [], isLoading } = useLogisticaFilaAtencao();
+  const qc = useQueryClient();
   const [motivosSel, setMotivosSel] = useState<Set<string>>(new Set());
   const [soAcaoNossa, setSoAcaoNossa] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState(20);
+  const [atualizando, setAtualizando] = useState(false);
   const [linhaTarefa, setLinhaTarefa] = useState<FilaAtencaoRow | null>(null);
-
-  const motivosDisponiveis = useMemo(
-    () => [...new Set(linhas.map((l) => l.motivo))].sort((a, b) => {
-      // ordena pela menor severidade em que cada motivo aparece (mais urgente primeiro)
-      const sev = (m: string) =>
-        Math.min(...linhas.filter((l) => l.motivo === m).map((l) => l.severidade));
-      return sev(a) - sev(b);
-    }),
-    [linhas],
-  );
-
-  const filtradas = useMemo(
-    () =>
-      linhas.filter(
-        (l) =>
-          (motivosSel.size === 0 || motivosSel.has(l.motivo)) &&
-          (!soAcaoNossa || l.exige_acao_nossa),
-      ),
-    [linhas, motivosSel, soAcaoNossa],
-  );
-
-  const contadores = useMemo(() => {
-    const c = { urgente: 0, atencao: 0, informativo: 0 };
-    for (const l of filtradas) {
-      if (l.severidade <= 2) c.urgente += 1;
-      else if (l.severidade === 3) c.atencao += 1;
-      else c.informativo += 1;
-    }
-    return c;
-  }, [filtradas]);
+  const filtros: FiltroLista[] = [];
+  if (motivosSel.size) filtros.push({ c: "motivo", op: "in", v: [...motivosSel] });
+  if (soAcaoNossa) filtros.push({ c: "exige_acao_nossa", op: "is_true" });
+  const lista = useLogisticaFilaAtencao(filtros, pagina, tamanho);
+  const linhas = lista.data?.linhas ?? [];
+  const filtradas = linhas;
+  const isLoading = lista.isLoading;
+  const total = lista.data?.total ?? 0;
+  const totalGeral = numeroAgregado(lista.data?.agregados, "total");
+  const motivosDisponiveis = gruposAgregado(lista.data?.agregados, "motivos")
+    .sort((a, b) => Number(a.valor) - Number(b.valor)).map(r => String(r.motivo));
+  const contadores = {
+    urgente: numeroAgregado(lista.data?.agregados, "urgente"),
+    atencao: numeroAgregado(lista.data?.agregados, "atencao"),
+    informativo: numeroAgregado(lista.data?.agregados, "informativo"),
+  };
+  const atualizado = lista.data?.agregados.atualizado as unknown;
+  const atualizar = async () => {
+    setAtualizando(true);
+    try {
+      const { error } = await supabase.rpc("fn_logistica_fila_atualizar" as never);
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["lista", "mv_logistica_fila_atencao"] });
+    } catch (e) { toast.error("Não foi possível atualizar a fila", { description: (e as Error).message }); }
+    finally { setAtualizando(false); }
+  };
+  useEffect(() => setPagina(1), [motivosSel, soAcaoNossa, tamanho]);
 
   const toggleMotivo = (m: string) =>
     setMotivosSel((prev) => {
@@ -275,8 +281,13 @@ export function FilaAtencaoLogistica() {
     );
   }
 
+  if (lista.error) throw lista.error;
   return (
     <div className="space-y-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Button variant="outline" size="icon" title="Atualizar" aria-label="Atualizar fila de atenção" disabled={atualizando} onClick={atualizar}><RefreshCw className={cn("h-4 w-4", atualizando && "animate-spin")} /></Button>
+        {typeof atualizado === "string" && <span>atualizado às {new Date(atualizado).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+      </div>
       {/* Contadores por faixa de severidade */}
       <div className="flex flex-wrap items-center gap-2">
         {contadores.urgente > 0 && (
@@ -294,13 +305,13 @@ export function FilaAtencaoLogistica() {
             {contadores.informativo} informativo{contadores.informativo === 1 ? "" : "s"}
           </Selo>
         )}
-        {filtradas.length === 0 && linhas.length === 0 && (
+        {total === 0 && totalGeral === 0 && (
           <Selo estado="success">fila limpa</Selo>
         )}
       </div>
 
       {/* Filtros */}
-      {linhas.length > 0 && (
+      {totalGeral > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -349,7 +360,7 @@ export function FilaAtencaoLogistica() {
         <div className="border border-dashed rounded-lg p-10 text-center">
           <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success" />
           <p className="text-sm text-muted-foreground">
-            {linhas.length === 0
+            {totalGeral === 0
               ? "Nenhum pedido precisa de atenção agora."
               : "Nenhum pedido com os filtros atuais — limpe os filtros para ver a fila inteira."}
           </p>
@@ -460,6 +471,7 @@ export function FilaAtencaoLogistica() {
         </div>
       )}
 
+      <RodapePaginacao total={total} pagina={pagina} tamanhoPagina={tamanho} onPagina={setPagina} onTamanhoPagina={setTamanho} />
       <DialogNovaTarefa
         linha={linhaTarefa}
         aberto={linhaTarefa !== null}

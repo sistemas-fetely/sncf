@@ -1,3 +1,4 @@
+import { useListaPaginada } from "@/lib/lista/useListaPaginada";
 import { useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Truck, Loader2, ChevronDown, ChevronRight } from "lucide-react";
@@ -39,6 +40,7 @@ export default function Logistica() {
   const canal: CanalPainel = CANAIS.some((c) => c === canalUrl) ? (canalUrl as CanalPainel) : "total";
   const aba = ABAS_LOGISTICA.some((a) => a.value === abaUrl) ? abaUrl : "painel";
   const { data: resumo } = useLogisticaPainel({ canal: "total" });
+  const filaContagem = useListaPaginada({ relacao: "mv_logistica_fila_atencao", tamanho: 1, colunas: ["pedido_id"] });
   const exigeAcao = resumo?.fila_atencao.exige_acao_nossa ?? 0;
 
   const setParam = (mut: (p: URLSearchParams) => void) =>
@@ -97,7 +99,7 @@ export default function Logistica() {
               aba={aba}
               canal={canal}
               transportadoras={transportadoras}
-              filaTotal={resumo?.fila_atencao.total ?? null}
+              filaTotal={filaContagem.data?.total ?? null}
             />
           )}
         </>

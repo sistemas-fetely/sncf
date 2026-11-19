@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { exportarLista } from "@/lib/lista/useListaPaginada";
+import { chamarLista, useListaPaginada, type FiltroLista, type ParamsLista } from "@/lib/lista/useListaPaginada";
 
 /**
  * FONTE-UNICA DA MESA COMERCIAL: tudo nesta tela le `vw_mesa_comercial`.
@@ -96,17 +96,46 @@ export interface MesaComercialRow {
 
 export const MESA_QUERY_KEY = ["mesa-comercial"] as const;
 
-/** Carteira B2B ativa completa (~215 pedidos). A view e lenta (~3s) por design atual. */
-export function useMesaComercial() {
-  return useQuery({
-    queryKey: MESA_QUERY_KEY,
-    staleTime: 60 * 1000,
-    queryFn: async (): Promise<MesaComercialRow[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // PARE: a leitura multiagregada excede o tempo; preservar a mesa anterior.
-      return exportarLista<MesaComercialRow>({ relacao: "vw_mesa_comercial", ordem: [{ c: "dias_desde_pedido", dir: "desc" }] });
+/** Contadores sobre o escopo inteiro; linhas paginadas sem alterar a ordem de temperatura. */
+export function useMesaComercial(params: ParamsLista, enabled = true) {
+  const resumo = useListaPaginada<MesaComercialRow>({ ...params, tamanho: 1, pagina: 1 }, { enabled });
+  const linhas = useQuery({
+    queryKey: [...MESA_QUERY_KEY, "pagina", params],
+    enabled: enabled && !!resumo.data && !resumo.isPlaceholderData,
+    queryFn: async () => {
+      const tamanho = params.tamanho ?? 20;
+      let inicio = ((params.pagina ?? 1) - 1) * tamanho;
+      let faltam = tamanho;
+      const resultado: MesaComercialRow[] = [];
+      // A ordem de negócio anterior é quente → morno → frio → não cobrar → sem faixa.
+      const faixas = resumo.data?.facetas.temperatura_sistema ?? [];
+      for (const faixa of ["quente", "morno", "frio", "nao_cobrar", null]) {
+        const qtd = faixas.filter(f => faixa === null ? !["quente", "morno", "frio", "nao_cobrar"].includes(f.valor ?? "") : f.valor === faixa)
+          .reduce((s, f) => s + f.contagem, 0);
+        if (inicio >= qtd) { inicio -= qtd; continue; }
+        const pegar = Math.min(faltam, qtd - inicio);
+        const filtro: FiltroLista = faixa === null
+          ? { op: "or", v: [{ c: "temperatura_sistema", op: "is_null" }, { c: "temperatura_sistema", op: "nin", v: ["quente", "morno", "frio", "nao_cobrar"] }] }
+          : { c: "temperatura_sistema", op: "eq", v: faixa };
+        const primeira = Math.floor(inicio / tamanho) + 1;
+        const ultima = Math.floor((inicio + pegar - 1) / tamanho) + 1;
+        const partes: MesaComercialRow[] = [];
+        for (let pagina = primeira; pagina <= ultima; pagina++) {
+          const r = await chamarLista<MesaComercialRow>({ relacao: "vw_mesa_comercial", filtros: [...(params.filtros ?? []), filtro],
+            pagina, tamanho, ordem: [{ c: "valor", dir: "desc" }] });
+          partes.push(...r.linhas);
+        }
+        resultado.push(...partes.slice(inicio % tamanho, inicio % tamanho + pegar));
+        faltam -= pegar; inicio = 0;
+        if (!faltam) break;
+      }
+      return resultado;
     },
   });
+  return { ...resumo, data: resumo.data ? { ...resumo.data, linhas: linhas.data ?? [] } : undefined,
+    isLoading: resumo.isLoading || (enabled && linhas.isPending), isFetching: resumo.isFetching || linhas.isFetching,
+    isError: resumo.isError || linhas.isError, error: resumo.error ?? linhas.error,
+    refetch: async () => { await resumo.refetch(); return linhas.refetch(); } };
 }
 
 export interface StatusComercialOpcao {

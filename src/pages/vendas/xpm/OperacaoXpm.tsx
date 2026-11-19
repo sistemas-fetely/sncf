@@ -1,4 +1,5 @@
-import { exportarLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { useListaPaginada, numeroAgregado, type FiltroLista } from "@/lib/lista/useListaPaginada";
 import { Fragment, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -46,20 +47,22 @@ export default function OperacaoXpm() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const [estado, setEstado] = useEstadoTela({ tipo: "", busca: "" }, { prefixo: "op", replaceKeys: ["busca"] });
+  const [estado, setEstado] = useEstadoTela({ tipo: "", busca: "", pagina: 1 }, { prefixo: "op", replaceKeys: ["busca"] });
   const [expandido, setExpandido] = useState<string | null>(null);
   const [dlg, setDlg] = useState<{ acao: AcaoDialog; p: Pendencia } | null>(null);
 
-  const pendQ = useQuery({
-    queryKey: ["xpm-pendencias"],
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-    queryFn: async (): Promise<Pendencia[]> => {
-      // PARE: Δ absoluto é codificado em referencia, sem coluna agregável.
-      // Manter o resumo e a ordem de estoque intactos, lendo todas as páginas RPC.
-      return exportarLista<Pendencia>({ relacao: "vw_xpm_pendencia" });
-    },
-  });
+  const [tamanho, setTamanho] = useState(20);
+  const filtros: FiltroLista[] = estado.tipo ? [{ c: "tipo", op: "eq", v: estado.tipo }] : [];
+  const pendQ = useListaPaginada<Pendencia>({
+    relacao: "vw_xpm_pendencia_lista", filtros, busca: estado.busca,
+    pagina: estado.pagina, tamanho,
+    ordem: [{ c: "delta_abs", dir: "desc" }, { c: "dias", dir: "desc" }],
+    facetas: ["tipo"],
+    agregados: [
+      { id: "unidades", fn: "sum", c: "delta_abs", onde: [{ c: "tipo", op: "eq", v: TIPO_DIFERE }] },
+      { id: "produtos", fn: "count", onde: [{ c: "tipo", op: "eq", v: TIPO_DIFERE }] },
+    ],
+  }, { refetchInterval: 60_000 });
   const tiposQ = useQuery({
     queryKey: ["xpm-pendencia-tipos"],
     queryFn: async (): Promise<TipoPend[]> => {
@@ -69,19 +72,11 @@ export default function OperacaoXpm() {
     },
   });
 
-  const todas = pendQ.data ?? [];
+  const todas = pendQ.data?.linhas ?? [];
   const tipos = tiposQ.data ?? [];
-  const contagem = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of todas) m.set(p.tipo, p.tipo === TIPO_DIFERE ? 1 : (m.get(p.tipo) ?? 0) + 1);
-    return m;
-  }, [todas]);
-  const totalItens = useMemo(() => [...contagem.values()].reduce((a, b) => a + b, 0), [contagem]);
-  const filtradas = useMemo(() => {
-    const t = estado.busca.trim().toLowerCase();
-    return todas.filter((p) => (!estado.tipo || p.tipo === estado.tipo) && (!t ||
-      [p.pedido_sncf, p.referencia, p.codigo, p.cliente, p.nf_numero, p.estagio_codigo].some((v) => v?.toLowerCase().includes(t))));
-  }, [todas, estado.tipo, estado.busca]);
+  const contagem = new Map((pendQ.data?.facetas.tipo ?? []).map(r => [r.valor ?? "", r.valor === TIPO_DIFERE ? 1 : r.contagem]));
+  const totalItens = [...contagem.values()].reduce((a, b) => a + b, 0);
+  const filtradas = todas;
   const grupos = useMemo(() => {
     const ordem = new Map(tipos.map((t, i) => [t.chave, i]));
     const m = new Map<string, Pendencia[]>();
@@ -140,21 +135,21 @@ export default function OperacaoXpm() {
         <CardHeader className="space-y-3 pb-3">
           <CardTitle className="text-base">O que precisa de ação na XPM</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant={!estado.tipo ? "default" : "outline"} className="h-7" onClick={() => setEstado({ tipo: "" })}>Todas · {totalItens}</Button>
+            <Button size="sm" variant={!estado.tipo ? "default" : "outline"} className="h-7" onClick={() => setEstado({ tipo: "", pagina: 1 })}>Todas · {totalItens}</Button>
             {tipos.map((t) => {
               const n = contagem.get(t.chave) ?? 0;
               return (
                 <Button key={t.chave} size="sm" variant={estado.tipo === t.chave ? "default" : "outline"}
                   className={cn("h-7", n === 0 && estado.tipo !== t.chave && "text-muted-foreground")}
-                  onClick={() => setEstado({ tipo: estado.tipo === t.chave ? "" : t.chave })}>
+                  onClick={() => setEstado({ tipo: estado.tipo === t.chave ? "" : t.chave, pagina: 1 })}>
                   {t.rotulo} · <span className="tabular-nums">{n}</span>
                 </Button>
               );
             })}
             <div className="relative ml-auto w-full sm:w-64">
               <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
-              <Input value={estado.busca} onChange={(e) => setEstado({ busca: e.target.value })} placeholder="Pedido, XPM, cliente, NF" className="h-8 pl-8" />
-              {estado.busca && <button type="button" className="absolute right-2 top-2" onClick={() => setEstado({ busca: "" })}><X className="h-4 w-4 text-muted-foreground" /></button>}
+              <Input value={estado.busca} onChange={(e) => setEstado({ busca: e.target.value, pagina: 1 })} placeholder="Pedido, XPM, cliente, NF" className="h-8 pl-8" />
+              {estado.busca && <button type="button" className="absolute right-2 top-2" onClick={() => setEstado({ busca: "", pagina: 1 })}><X className="h-4 w-4 text-muted-foreground" /></button>}
             </div>
           </div>
         </CardHeader>
@@ -166,8 +161,8 @@ export default function OperacaoXpm() {
           ) : grupos.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Nada pendente na XPM agora.</p>
           ) : grupos.map((g) => g.tipo === TIPO_DIFERE ? (
-            <EstoqueDifereSecao key={g.tipo} rotulo={g.rotulo} linhas={g.linhas}
-              onFeito={async () => { await qc.invalidateQueries({ queryKey: ["xpm-pendencias"] }); }} />
+            <EstoqueDifereSecao key={g.tipo} rotulo={g.rotulo} linhas={g.linhas} resumo={{ produtos: numeroAgregado(pendQ.data?.agregados, "produtos"), unidades: numeroAgregado(pendQ.data?.agregados, "unidades") }}
+              onFeito={async () => { await qc.invalidateQueries({ queryKey: ["lista", "vw_xpm_pendencia_lista"] }); }} />
           ) : (
             <section key={g.tipo} className="space-y-2">
               <div>
@@ -220,6 +215,7 @@ export default function OperacaoXpm() {
               </div>
             </section>
           ))}
+          <RodapePaginacao total={pendQ.data?.total ?? 0} pagina={estado.pagina} tamanhoPagina={tamanho} onPagina={pagina => setEstado({ pagina })} onTamanhoPagina={n => { setTamanho(n); setEstado({ pagina: 1 }); }} />
         </CardContent>
       </Card>
 
@@ -232,7 +228,7 @@ export default function OperacaoXpm() {
       </section>
 
       {dlg && <DialogAcao acao={dlg.acao} p={dlg.p} onClose={() => setDlg(null)} onFeito={async () => {
-        await Promise.all(["xpm-pendencias", "xpm-expedicoes", "xpm-pausas"].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+        await Promise.all([qc.invalidateQueries({ queryKey: ["lista", "vw_xpm_pendencia_lista"] }), ...["xpm-expedicoes", "xpm-pausas"].map((k) => qc.invalidateQueries({ queryKey: [k] }))]);
       }} />}
     </div>
   );

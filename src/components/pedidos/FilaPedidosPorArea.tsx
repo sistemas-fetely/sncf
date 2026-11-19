@@ -1,3 +1,5 @@
+import { filtrosOrdemFila } from "@/lib/pedidos/filaLista";
+import { gruposAgregado } from "@/lib/lista/useListaPaginada";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -71,7 +73,7 @@ import {
 import { MarcacaoPedido } from "./MarcacaoPedido";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useNivel } from "@/hooks/useNivel";
-import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem, PIPELINE_PRINCIPAL } from "@/types/pedido";
+import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
 
 
 
@@ -84,11 +86,6 @@ const COLUNA_ROTULO: Record<ColunaOrdenavel, string> = {
 const COLUNA_DIR_INICIAL: Record<ColunaOrdenavel, "asc" | "desc"> = {
   risco: "desc", pedido: "asc", valor: "desc", estoque: "desc",
   cobranca: "desc", estagio: "asc", entrega: "asc", na_fase: "desc",
-};
-
-/** Gravidade do lastro — mesma leitura que a coluna Cobranca ja comunica. */
-const COBRANCA_GRAVIDADE: Record<string, number> = {
-  sem_instrumento: 4, boleto_sem_registro: 3, em_remessa: 2, registrado: 1, nao_aplica: 0,
 };
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -547,7 +544,7 @@ export function FilaPedidosPorArea({
       return;
     }
     if (pagina !== 1) setPagina(1);
-  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo, somenteTravados]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo, somenteTravados, somenteComAlerta, somenteRiscoAlto, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
@@ -561,72 +558,30 @@ export function FilaPedidosPorArea({
     (usarEstagiosMultiplos && estagios && estagios.length > 0) ||
     (!usarEstagiosMultiplos && !!estagioFilter && estagioFilter !== "todos");
 
-  const { data, isLoading, isError, error } = usePedidosFila({
-    comPagamentoSemVinculo,
-    area,
-    estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
-    estagios: usarEstagiosMultiplos ? estagios : undefined,
-    busca: buscaDebounced || undefined,
-    apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
-    incluirCancelados,
-    somenteTravados,
-  });
+  const { filtrosLista, ordemLista } = filtrosOrdemFila({ marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, liberacaoFilter, cdFilter, ordenacao });
+  const fila = usePedidosFila({ comPagamentoSemVinculo, area,
+    estagio: usarEstagiosMultiplos ? undefined : estagioFilter, estagios: usarEstagiosMultiplos ? estagios : undefined,
+    busca: buscaDebounced || undefined, apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
+    incluirCancelados, somenteTravados, pagina, tamanho: pageSize, filtros: filtrosLista, ordem: ordemLista });
+  const { isLoading, isError, error } = fila;
+  const data = fila.data?.linhas ?? [];
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
   const { data: faixas } = usePedidoRiscoFaixas();
   // Alerta operacional — fonte única: vw_pedido_alerta (achados vivos da auditoria).
-  const { data: alertaMap } = usePedidoAlerta();
+  const { data: alertaMap } = usePedidoAlerta(data.map(p => p.id));
 
   const termoBusca = buscaDebounced.trim();
 
-  // Busca por nome fantasia: a busca da fila é server-side em razão social/CNPJ/nº,
-  // então quem digita o apelido precisa desta perna extra — resolve os parceiros
-  // pelo apelido em vw_parceiro_nome e traz os pedidos deles para o mesmo conjunto.
-  const { data: pedidosPorApelido } = useQuery({
-    queryKey: ["fila-por-apelido", termoBusca],
-    enabled: termoBusca.length >= 2 && !comPagamentoSemVinculo,
-    staleTime: 30 * 1000,
-    queryFn: async (): Promise<PedidoFilaItem[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = supabase as any;
-      const t = termoBusca.replace(/[,()%]/g, " ").trim();
-      const { data: nomes, error: nErr } = await sb
-        .from("vw_parceiro_nome")
-        .select("parceiro_id, apelido")
-        .ilike("apelido", `%${t}%`)
-        .limit(100);
-      if (nErr) throw nErr;
-      const ids = (nomes || [])
-        .map((r: { parceiro_id: string }) => r.parceiro_id)
-        .filter(Boolean);
-      if (ids.length === 0) return [];
-      const { data: rows, error } = await sb
-        .from("v_pedidos_fila")
-        .select("*")
-        .in("parceiro_id", ids)
-        .order("recebido_em", { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      return (rows || []) as PedidoFilaItem[];
-    },
-  });
-
-  // NOME-CANONICO-COM-APELIDO: v_pedidos_fila não traz apelido. Uma consulta
-  // batelada em vw_parceiro_nome cobre a lista inteira (nunca por linha).
-  // Relógio lido por chave: só os pedidos que a fila tem na tela (lista + perna do apelido).
-  const pedidoIdsRelogio = useMemo(
-    () => [...(data || []), ...(pedidosPorApelido || [])].map((p) => p.id),
-    [data, pedidosPorApelido],
-  );
+  const pedidoIdsRelogio = data.map(p => p.id);
   const { data: relogioMap } = usePedidoRelogio(pedidoIdsRelogio);
   const { data: riscoMap } = usePedidoRisco(pedidoIdsRelogio);
 
   const parceiroIdsLista = useMemo(() => {
     const set = new Set<string>();
     (data || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
-    (pedidosPorApelido || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });
     return Array.from(set).sort();
-  }, [data, pedidosPorApelido]);
+  }, [data]);
 
   const { data: apelidoMap } = useQuery({
     queryKey: ["fila-apelidos", parceiroIdsLista],
@@ -648,93 +603,10 @@ export function FilaPedidosPorArea({
   });
 
 
-  const linhas = useMemo(() => {
-    let base: PedidoFilaItem[] = data || [];
-    if (!comPagamentoSemVinculo && termoBusca.length >= 2 && pedidosPorApelido && pedidosPorApelido.length > 0) {
-      const vistos = new Set(base.map((p) => p.id));
-      base = [...base, ...pedidosPorApelido.filter((p) => !vistos.has(p.id))];
-    }
-    // FILA-MOSTRA-O-QUE-EXISTE (02/09/2026): aguardando_pagamento VOLTA para a lista.
-    // Ele nao tem card no funil, mas some-lo da tabela criava pedido invisivel —
-    // fora da fila e fora do card da Mesa. O selo "Mesa Comercial" na coluna Estagio
-    // continua dizendo quem trabalha. Recuperacao (desvio) segue fora: é outra sala.
-    const foraDaFila = comPagamentoSemVinculo ? [] : ["recuperacao_venda"] as const;
-    foraDaFila.forEach((est) => {
-      const pedidoExplicitamente = !!estagios?.some((e) => e === est);
-      if (!pedidoExplicitamente) {
-        base = base.filter((p) => p.estagio !== est);
-      }
-    });
-    // CARD-TRAVADO: a perna extra da busca por apelido não sabe recortar travados —
-    // o guard no cliente mantém card e tabela contando a mesma coisa.
-    if (somenteTravados) base = base.filter((p) => !!p.travado);
-    if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
-    else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
-    else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
-    if (formaPgtoFilter !== "todas") {
-      base = base.filter((p) => (p.forma_solicitada || "").toLowerCase() === formaPgtoFilter);
-    }
-    if (situacaoFilter !== "todas") {
-      base = base.filter((p) => {
-        const s = p.situacao_financeira;
-        // Ortogonal às demais: descreve dinheiro que já entrou, não o que falta cobrar.
-        if (situacaoFilter === "com_entrada_paga") return Number(p.adiantado_vivo || 0) > 0;
-        if (situacaoFilter === "em_aberto") return s === "em_aberto" || s === "parcial_pago";
-        return s === situacaoFilter;
-      });
-    }
-    if (somenteRiscoAlto) {
-      base = base.filter((p) => riscoMap?.get(p.id)?.risco_cor === "destructive");
-    }
-    if (somenteComAlerta) {
-      base = base.filter((p) => !!alertaMap?.get(p.id)?.severidade);
-    }
-    // Ordenacao por coluna acontece DEPOIS (linhasOrdenadas), porque depende de
-    // mapas que so existem a partir dos ids desta lista.
-    if (ordenacao.tipo === "coluna") return base;
-    if (ordenacao.preset === "entrada_paga") {
-      // Quem já pôs dinheiro fura a fila; empate volta ao critério cronológico.
-      return [...base].sort((a, b) => {
-        const va = Number(a.adiantado_vivo || 0);
-        const vb = Number(b.adiantado_vivo || 0);
-        if (vb !== va) return vb - va;
-        return new Date(b.recebido_em).getTime() - new Date(a.recebido_em).getTime();
-      });
-    }
-    if (ordenacao.preset !== "risco") return base;
-    return [...base].sort((a, b) => {
-      const ra = riscoMap?.get(a.id);
-      const rb = riscoMap?.get(b.id);
-      const sa = ra?.risco_score ?? -1;
-      const sb = rb?.risco_score ?? -1;
-      if (sb !== sa) return sb - sa;
-      const da = ra?.dias_na_fase ?? -1;
-      const db = rb?.dias_na_fase ?? -1;
-      if (db !== da) return db - da;
-      return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
-    });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios, comPagamentoSemVinculo, somenteTravados]);
-
+  const linhas = data;
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
-
-
-
-
-
-
-
-
-  const formasPgtoDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    (data || []).forEach((p) => { if (p.forma_solicitada) set.add(p.forma_solicitada.toLowerCase()); });
-    return Array.from(set).sort();
-  }, [data]);
-
-  const marcacoesDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    (data || []).forEach((p) => { if (p.marcacao) set.add(p.marcacao); });
-    return Array.from(set).sort();
-  }, [data]);
+  const formasPgtoDisponiveis = (fila.data?.facetas.forma_solicitada ?? []).map(r => r.valor).filter((v): v is string => !!v).sort();
+  const marcacoesDisponiveis = (fila.data?.facetas.marcacao ?? []).map(r => r.valor).filter((v): v is string => !!v).sort();
 
   // Estágio da análise de crédito por pedido (somente para pedidos em em_analise_credito)
   const pedidoIdsEmAnalise = useMemo(
@@ -812,13 +684,14 @@ export function FilaPedidosPorArea({
 
   // Coluna Cobrança: instrumento de cobrança do dinheiro em aberto (view pronta, poucas linhas).
   const { data: cobrancaMap } = useQuery({
-    queryKey: ["pedido-lastro-cobranca"],
+    queryKey: ["pedido-lastro-cobranca", pedidoIdsSaida],
+    enabled: pedidoIdsSaida.length > 0,
     staleTime: 30 * 1000,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_pedido_lastro_cobranca")
-        .select("*");
+        .select("*").in("pedido_id", pedidoIdsSaida);
       if (error) throw error;
       const m = new Map<string, LastroCobranca>();
       (data || []).forEach((r: LastroCobranca) => m.set(r.pedido_id, r));
@@ -827,90 +700,21 @@ export function FilaPedidosPorArea({
   });
 
 
-  // Liberação: filtro aplicado depois que o mapa existe (hook acima depende dos ids).
-  // CD de expedição: opções e rótulos vêm dos próprios dados (cd_expedicao_nome).
-  const opcoesCd = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const p of data ?? []) {
-      if (p.cd_expedicao_codigo && !m.has(p.cd_expedicao_codigo))
-        m.set(p.cd_expedicao_codigo, p.cd_expedicao_nome ?? p.cd_expedicao_codigo);
-    }
-    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [data]);
-
-  const linhasFiltradas = useMemo(() => {
-    const porCd = cdFilter === "todos" ? linhas : linhas.filter((p) => p.cd_expedicao_codigo === cdFilter);
-    if (liberacaoFilter === "todas") return porCd;
-    return porCd.filter((p) => {
-      const lib = liberacaoMap?.get(p.id);
-      if (!lib) return false;
-      return liberacaoFilter === "liberado" ? lib.liberado : !lib.liberado;
-    });
-  }, [linhas, liberacaoMap, liberacaoFilter, cdFilter]);
-
-  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
-  const linhasOrdenadas = useMemo(() => {
-    if (ordenacao.tipo !== "coluna") return linhasFiltradas;
-    const dir = ordenacao.dir === "asc" ? 1 : -1;
-    const valorDe = (p: PedidoFilaItem): string | number | null => {
-      switch (ordenacao.coluna) {
-        case "risco": return riscoMap?.get(p.id)?.risco_score ?? null;
-        case "pedido": return p.id_externo ?? null;
-        case "valor": return Number(p.valor_liquido ?? 0);
-        case "estoque": return coberturaMap?.get(p.id)?.pct_coberto ?? null;
-        case "cobranca": {
-          const l = cobrancaMap?.get(p.id)?.lastro;
-          return l ? COBRANCA_GRAVIDADE[l] ?? null : null;
-        }
-        case "estagio": {
-          const i = PIPELINE_PRINCIPAL.indexOf(p.estagio);
-          return i < 0 ? null : i;
-        }
-        case "entrega": {
-          const d = entregaMap?.get(p.id)?.previsao_entrega;
-          const t = d ? Date.parse(d) : NaN;
-          return Number.isNaN(t) ? null : t;
-        }
-        case "na_fase": return riscoMap?.get(p.id)?.dias_na_fase ?? null;
-        default: return null;
-      }
-    };
-    return [...linhasFiltradas].sort((a, b) => {
-      const va = valorDe(a);
-      const vb = valorDe(b);
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (typeof va === "string" || typeof vb === "string") {
-        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
-      }
-      return (Number(va) - Number(vb)) * dir;
-    });
-  }, [linhasFiltradas, ordenacao, riscoMap, coberturaMap, cobrancaMap, entregaMap]);
-
-  const resumoBuscaGlobal = useMemo(() => {
-    if (!buscaGlobalAtiva) return null;
-    let entregues = 0, cancelados = 0, recuperacao = 0;
-    linhasFiltradas.forEach((p) => {
-      if (p.estagio === "entregue") entregues++;
-      else if (p.estagio === "cancelado") cancelados++;
-      else if (p.estagio === "recuperacao_venda") recuperacao++;
-    });
-    return { entregues, cancelados, recuperacao, total: linhasFiltradas.length };
-  }, [buscaGlobalAtiva, linhasFiltradas]);
-
-
-
-
-
-
+  const opcoesCd: [string, string][] = gruposAgregado(fila.data?.agregados, "cds")
+    .filter(r => !!r.cd_expedicao_codigo).map(r => [String(r.cd_expedicao_codigo), String(r.cd_expedicao_nome ?? r.cd_expedicao_codigo)]);
+  const linhasFiltradas = linhas;
+  const estagiosResumo = new Map(gruposAgregado(fila.data?.agregados, "estagios").map(r => [r.estagio, Number(r.valor ?? 0)]));
+  const resumoBuscaGlobal = buscaGlobalAtiva ? { entregues: estagiosResumo.get("entregue") ?? 0, cancelados: estagiosResumo.get("cancelado") ?? 0,
+    recuperacao: estagiosResumo.get("recuperacao_venda") ?? 0, total: fila.data?.total ?? 0 } : null;
 
   const { data: msgPendentes } = useQuery({
-    queryKey: ["canal-msgs-pendentes"],
+    queryKey: ["canal-msgs-pendentes", pedidoIdsSaida],
+    enabled: pedidoIdsSaida.length > 0,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("pedido_eventos")
         .select("pedido_id, tipo_evento, criado_em")
+        .in("pedido_id", pedidoIdsSaida)
         .in("tipo_evento", ["msg_comercial", "msg_sops"])
         .order("criado_em", { ascending: false });
 
@@ -930,13 +734,11 @@ export function FilaPedidosPorArea({
   });
   const pedidosComMsg = msgPendentes ?? new Set<string>();
 
-  const totalLinhas = linhasOrdenadas.length;
+  const totalLinhas = fila.data?.total ?? 0;
   const totalPaginas = Math.max(1, Math.ceil(totalLinhas / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = linhasOrdenadas.slice(
-    (paginaAtual - 1) * pageSize,
-    paginaAtual * pageSize,
-  );
+  const pageItems = data;
+  useEffect(() => { if (!fila.isPlaceholderData && fila.data && pagina > totalPaginas) setPagina(totalPaginas); }, [fila.isPlaceholderData, fila.data, pagina, totalPaginas]);
   useFocoAoVoltar({
     pronto: !isLoading,
     idsVisiveis: pageItems.map((p) => p.id),

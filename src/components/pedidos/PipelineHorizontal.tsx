@@ -1,6 +1,6 @@
+import { chamarLista, numeroAgregado } from "@/lib/lista/useListaPaginada";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
@@ -125,23 +125,13 @@ export function PipelineHorizontal({
     queryKey: ["pedidos-pagamento-vencido-count"],
     staleTime: 30 * 1000,
     queryFn: async () => {
-      // Fonte única do estado financeiro: vw_pedido_situacao_financeira
-      // (derivada só de titulo_a_receber). Não usar pedido_portao para isto.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_pedido_situacao_financeira")
-        .select("estagio")
-        .eq("situacao_financeira", "vencido")
-        .neq("estagio", "cancelado");
-      if (error) throw error;
-      const rows = (data ?? []) as Array<{ estagio: string }>;
-      let ativos = 0;
-      let entregues = 0;
-      for (const r of rows) {
-        if (r.estagio === "entregue") entregues += 1;
-        else ativos += 1;
-      }
-      return { ativos, entregues };
+      const r = await chamarLista({ relacao: "vw_pedidos_fila_lista", tamanho: 1,
+        filtros: [{ c: "situacao_financeira", op: "eq", v: "vencido" }, { c: "estagio", op: "neq", v: "cancelado" }],
+        agregados: [
+          { id: "ativos", fn: "count", onde: [{ c: "estagio", op: "neq", v: "entregue" }] },
+          { id: "entregues", fn: "count", onde: [{ c: "estagio", op: "eq", v: "entregue" }] },
+        ] });
+      return { ativos: numeroAgregado(r.agregados, "ativos"), entregues: numeroAgregado(r.agregados, "entregues") };
     },
   });
 
