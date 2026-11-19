@@ -20,6 +20,7 @@ import { abrirDetalhe, useEstadoTela, useFocoAoVoltar } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Selo } from "@/components/ui/selo";
@@ -1030,6 +1031,8 @@ function QuadroBancada({
         <ul className="h-[180px] space-y-0.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
           {aChegarCarregando ? <li><Skeleton className="h-16 w-full" /></li> : aChegarErro ? <li className="text-xs text-destructive">{formatError(aChegarErro)}</li> : aChegar.length === 0 ? <li className="text-xs text-muted-foreground">Nada a chegar</li> : aChegar.map((p) => (
             <li key={p.pedido_id} data-foco-id={p.pedido_id}>
+              <Tooltip>
+              <TooltipTrigger asChild>
               <Button variant="ghost" disabled={!p.pedido_id} onClick={() => { if (p.pedido_id) onAbrirAChegar(p.pedido_id); }}
                 className="h-auto w-full flex-col items-stretch gap-0 rounded border bg-card px-1 py-0.5 text-left text-[11px] font-normal leading-tight whitespace-normal">
                 <span className="flex flex-wrap items-center gap-0.5">
@@ -1041,8 +1044,10 @@ function QuadroBancada({
                 <span className="block text-muted-foreground">{p.estagio_rotulo}</span>
                 {p.motivo_liberado && <span className="block text-muted-foreground">{p.motivo_liberado}</span>}
                 {p.recebido_em && <span className="block text-muted-foreground">{esperaColeta(p.recebido_em)}</span>}
-                {p.proxima_acao && <span className="block text-muted-foreground">{p.proxima_acao}</span>}
               </Button>
+              </TooltipTrigger>
+              {p.proxima_acao && <TooltipContent className="max-w-[280px]">{p.proxima_acao}</TooltipContent>}
+              </Tooltip>
             </li>
           ))}
         </ul>
