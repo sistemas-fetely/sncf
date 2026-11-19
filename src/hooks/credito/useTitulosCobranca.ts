@@ -1,3 +1,4 @@
+import { exportarLista, useListaPaginada, type ParamsLista, type ResultadoLista } from "@/lib/lista/useListaPaginada";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
@@ -45,6 +46,9 @@ export interface TituloCobranca {
    * qualquer decisao sobre enviar algo ao cliente.
    */
   boleto_vigente?: BoletoVigente | null;
+  grupo_chave: string;
+  saldo_a_receber: number | null;
+  valor_rodape: number;
   id: string;
   numero_titulo: string;
   numero_parcela: number;
@@ -180,40 +184,28 @@ export function calcularKpis(titulos: TituloCobranca[]): KpisTitulos {
 }
 
 
-const LIMITE_TITULOS = 5000;
-
-export function useTitulosCobranca() {
-  return useQuery({
-    queryKey: ["titulos-cobranca"],
-    ...OPCOES_QUERY_RECEBIVEL,
-    queryFn: async (): Promise<TituloCobranca[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_titulos_cobranca")
-        .select("*")
-        .order("data_vencimento_atual", { ascending: true })
-        .limit(LIMITE_TITULOS);
-      if (error) throw error;
-      const linhas = (data ?? []) as TituloCobranca[];
-
-      // Um SELECT so, filtrado a quem TEM boleto vivo (~120 linhas hoje) — nao um
-      // `.in()` com os 5.000 ids da lista. FAIL-LOUD: sem o vigente a tela decidiria
-      // sobre envio pelo estado do titulo, que e o defeito que isto conserta.
-      const { data: vig, error: errV } = await (supabase as any)
-        .from("vw_titulo_boleto_vigente")
-        .select("titulo_id, enviavel, nosso_numero, linha_digitavel, codigo_barras, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
-        .not("nosso_numero", "is", null);
-      if (errV) throw new Error(`Falha ao resolver o boleto vigente: ${errV.message}`);
-      const porTitulo = new Map<string, BoletoVigente>(
-        (vig ?? []).map((v: any) => [v.titulo_id, v as BoletoVigente]),
-      );
-      for (const l of linhas) l.boleto_vigente = porTitulo.get(l.id) ?? null;
-      if (linhas.length >= LIMITE_TITULOS) {
-        throw new Error(
-          `Teto de ${LIMITE_TITULOS} títulos atingido — a tela mostraria um recorte silencioso. Pagine antes de usar.`,
-        );
-      }
-      return linhas;
-    },
-    staleTime: 30_000,
+export function useTitulosCobranca(params: Omit<ParamsLista, "relacao">): { data: ResultadoLista<TituloCobranca> | undefined; isLoading: boolean; isError: boolean; error: Error | null };
+export function useTitulosCobranca(): { data: TituloCobranca[] | undefined; isLoading: boolean };
+export function useTitulosCobranca(params?: Omit<ParamsLista, "relacao">): { data: ResultadoLista<TituloCobranca> | undefined; isLoading: boolean; isError: boolean; error: Error | null } | { data: TituloCobranca[] | undefined; isLoading: boolean } {
+  const lista = useListaPaginada<TituloCobranca>({ ...params, relacao: "vw_titulos_cobranca_lista" }, { enabled: !!params });
+  // Compatibilidade do contador da casca: a base inteira também passa pela RPC paginada.
+  const completa = useQuery({ queryKey: ["titulos-cobranca", "contador"], ...OPCOES_QUERY_RECEBIVEL, enabled: !params,
+    queryFn: () => exportarLista<TituloCobranca>({ relacao: "vw_titulos_cobranca_lista", ordem: [{ c: "data_vencimento_atual", dir: "asc" }] }),
   });
+  const linhas = lista.data?.linhas ?? [];
+  const ids = linhas.map(l => l.id);
+  const vigentes = useQuery({ queryKey: ["lista", "vw_titulos_cobranca_lista", "boletos", ids], enabled: !!params && ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vw_titulo_boleto_vigente")
+        .select("titulo_id, enviavel, nosso_numero, linha_digitavel, codigo_barras, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
+        .in("titulo_id", ids).not("nosso_numero", "is", null);
+      if (error) throw new Error(`Falha ao resolver o boleto vigente: ${error.message}`);
+      return new Map((data ?? []).map(v => [v.titulo_id, v as unknown as BoletoVigente]));
+    },
+  });
+  if (!params) return completa;
+  return { ...lista, isLoading: lista.isLoading || (ids.length > 0 && vigentes.isLoading),
+    isError: lista.isError || vigentes.isError, error: lista.error ?? vigentes.error,
+    data: lista.data ? { ...lista.data, linhas: linhas.map(l => ({ ...l, boleto_vigente: vigentes.data?.get(l.id) ?? null })) } : undefined,
+  };
 }

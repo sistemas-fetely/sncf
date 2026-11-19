@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { formatError } from "@/lib/format-error";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
@@ -46,11 +47,9 @@ import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
-import {
-  useTituloEstado,
-  useTituloEstadoKpisDe,
-} from "@/hooks/financeiro/useTituloEstadoKpis";
-import { useTituloSaldos } from "@/hooks/financeiro/useTituloSaldo";
+import { useListaPaginada, exportarLista, numeroAgregado, gruposAgregado, type ParamsLista, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
+import { useTituloEstadoKpisFiltro } from "@/hooks/financeiro/useTituloEstadoKpis";
+import type { TituloSaldo } from "@/hooks/financeiro/useTituloSaldo";
 import {
   ValorSaldo,
   BadgeParcelasAcerto,
@@ -59,6 +58,12 @@ import {
 } from "@/components/financeiro/SaldoTitulo";
 
 type RecebivelB2B = {
+  grupo_chave: string;
+  vencido_contabil: boolean | null;
+  cobravel_hoje: boolean | null;
+  em_carencia_bancaria: boolean | null;
+  faixa_aging: string | null;
+
   id: string;
   numero_titulo: string | null;
   numero_parcela: number | null;
@@ -516,269 +521,88 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const sort = lerOrdemKD(est.sort);
   const setSort = (v: React.SetStateAction<OrdemKD>) => setEst({ sort: escreverOrdemKD(resolverAcao(v, sort)) });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["recebivel-gestao"],
-    queryFn: async () => {
-      /* View de gestão ainda não tipada no client gerado. */
-      const cliente = supabase as unknown as {
-        from: (tabela: string) => {
-          select: (cols: string) => {
-            order: (
-              col: string,
-              opts: { ascending: boolean }
-            ) => Promise<{ data: unknown; error: { message: string } | null }>;
-          };
-        };
-      };
-      const { data, error } = await cliente
-        .from("vw_recebivel_gestao")
-        .select("*")
-        .order("data_vencimento", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as RecebivelB2B[];
-    },
-  });
-
-  const hoje = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-  const hojeIso = useMemo(() => iso(hoje), [hoje]);
-
-  const bancosOpcoes = useMemo(() => {
-    const set = new Set<string>();
-    (data ?? []).forEach((t) => t.banco_nome && set.add(t.banco_nome));
-    return Array.from(set).sort();
-  }, [data]);
-
-  /** Um filtro, uma verdade: período + busca + banco. Base de tudo que a tela mostra. */
-  const baseFiltros = useMemo(() => {
-    const titulos = data ?? [];
-    const buscaLc = busca.trim().toLowerCase();
-    const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
-    const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
-
-    return titulos.filter((t) => {
-      if (filtroBanco !== "todos" && t.banco_nome !== filtroBanco) return false;
-
-      if (buscaLc) {
-        const num = (t.numero_titulo ?? "").toLowerCase();
-        const cli = (t.cliente ?? "").toLowerCase();
-        const nf = (t.nf_numero ?? "").toLowerCase();
-        const ped = (t.pedido_ref ?? "").toLowerCase();
-        if (
-          !num.includes(buscaLc) &&
-          !cli.includes(buscaLc) &&
-          !nf.includes(buscaLc) &&
-          !ped.includes(buscaLc)
-        )
-          return false;
-      }
-
-      if (dDe || dAte) {
-        const ref =
-          dataBase === "vencimento"
-            ? t.data_vencimento_vigente ?? t.data_vencimento
-            : dataBase === "emissao"
-            ? t.data_compra
-            : t.data_recebimento;
-        if (!ref) return false;
-        const d = new Date(ref + "T12:00:00");
-        if (dDe && d < dDe) return false;
-        if (dAte && d > dAte) return false;
-      }
-      return true;
-    });
-  }, [data, busca, dataBase, dataDe, dataAte, filtroBanco]);
-
-  /* NAO-CAIXA-NAO-E-RECEBIVEL: carteira com `gera_caixa = false` (haver, troca de
-     mercadoria) nunca produz movimentação bancária — contar como "a receber" cria
-     saldo que nunca zera. O título continua existindo porque é ele que fecha o
-     lastro do pedido; só não soma em Gestão. */
-  const naoRecebido = (t: RecebivelB2B) =>
-    t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
-
-  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro —
-     `vw_titulo_estado.vencido_contabil`, lida via `tituloEstadoLinhas` (vencidoIds).
-     A tela de Cobrança lê a mesma coisa. Régua de caixa (data_caixa_projetada) mede
-     conciliação, não atraso, e pertence à Controladoria. */
-  const estaVencido = (t: RecebivelB2B) => vencidoIds.has(t.id);
-
-  const casaAchado = (t: RecebivelB2B, a: Achado) => {
-    if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
-    if (a === "renegociacao") return t.renegociacao_humana === true;
-    if (a === "sem_prova") return t.fonte_data_recebimento === "marcado_humano";
-    if (a === "data_divergente") return t.data_divergente === true;
-    if (a === "meio_divergente") return t.meio_divergente === true;
-    return estaVencido(t);
-  };
-
-  /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
-     (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
-     (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
-  const { data: tituloEstadoLinhas } = useTituloEstado();
-  /* SALDO-NAO-SE-CALCULA-NO-FRONT: saldo a receber vem de `vw_titulo_saldo`. */
-  const { porTitulo: saldosPorTitulo } = useTituloSaldos();
-  const cobravelIds = useMemo(
-    () =>
-      new Set(
-        (tituloEstadoLinhas ?? [])
-          .filter((l) => l.cobravel_hoje && l.titulo_id)
-          .map((l) => l.titulo_id as string),
-      ),
-    [tituloEstadoLinhas],
-  );
-  const carenciaIds = useMemo(
-    () =>
-      new Set(
-        (tituloEstadoLinhas ?? [])
-          .filter((l) => l.em_carencia_bancaria && l.titulo_id)
-          .map((l) => l.titulo_id as string),
-      ),
-    [tituloEstadoLinhas],
-  );
-  const vencidoIds = useMemo(
-    () =>
-      new Set(
-        (tituloEstadoLinhas ?? [])
-          .filter((l) => l.vencido_contabil && l.titulo_id)
-          .map((l) => l.titulo_id as string),
-      ),
-    [tituloEstadoLinhas],
-  );
-
-  /**
-   * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
-   * Os totais das colunas continuam vindo de `baseFiltros` — senão a coluna
-   * ativa zeraria a si mesma e as irmãs sumiriam.
-   */
-  const baseKpi = useMemo(() => {
-    if (!filtroInstrumento && filtroPrazo === "todos") return baseFiltros;
-    return baseFiltros.filter((t) => {
-      if (filtroInstrumento) {
-        if (!naoRecebido(t)) return false;
-        const inst = t.eixo_instrumento ?? "";
-        if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
-          return false;
-        if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
-      }
-      if (filtroPrazo === "vencidos" && !estaVencido(t)) return false;
-      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || estaVencido(t)))
-        return false;
-      /* DUAS-MEDIDAS-DO-VENCIDO: cobrável/carência vêm de vw_titulo_estado. */
-      if (filtroPrazo === "cobravel" && !cobravelIds.has(t.id)) return false;
-      if (filtroPrazo === "carencia" && !carenciaIds.has(t.id)) return false;
-
-      return true;
-    });
-  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds, vencidoIds]);
-
-  /**
-   * Base dos chips de recebimento: já com carteira, achado e instrumento
-   * aplicados, mas SEM o filtro de prazo — senão o botão ativo zeraria a si
-   * mesmo. Segue o mesmo padrão de `contagensSemKpi`.
-   */
-  const baseCarteiraSemPrazo = useMemo(() => {
-    let arr = baseFiltros;
-    if (filtroInstrumento) {
-      arr = arr.filter((t) => {
-        if (!naoRecebido(t)) return false;
-        const inst = t.eixo_instrumento ?? "";
-        if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
-          return false;
-        if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
-        return true;
-      });
-    }
-    return arr.filter((t) => {
-      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
-      if (achado && !casaAchado(t, achado)) return false;
-      return true;
-    });
-  }, [baseFiltros, filtroInstrumento, carteiraAtiva, achado]);
-
-  /** Base dos chips de recebimento: já com carteira e achado aplicados. */
-  const baseCarteira = useMemo(() => {
-    return baseKpi.filter((t) => {
-      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
-      if (achado && !casaAchado(t, achado)) return false;
-      return true;
-    });
-  }, [baseKpi, carteiraAtiva, achado]);
-
-  /** Mesma base, ignorando os filtros de KPI — usada para apagar chips impossíveis. */
-  const baseCarteiraSemKpi = useMemo(() => {
-    return baseFiltros.filter((t) => {
-      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
-      if (achado && !casaAchado(t, achado)) return false;
-      return true;
-    });
-  }, [baseFiltros, carteiraAtiva, achado]);
-
-  /* ---------- Linha 1 — Estado da carteira (só período, busca e banco) ---------- */
-  const estadoCarteira = useMemo(() => {
-    let aReceber = 0;
-    let aReceberQtd = 0;
-    let aReceberSemData = 0;
-    let garantido = 0;
-    let garantidoQtd = 0;
-    let semInstrumento = 0;
-    let semInstrumentoQtd = 0;
-    let outros = 0;
-    let outrosQtd = 0;
-
-    /* VERDADE-UNICA-DO-VENCIDO (08/09/2026): vencido e faixas de aging NÃO são mais
-       calculados aqui. Vêm de `vw_titulo_estado` (vencido_contabil / faixa_aging).
-       Nenhuma subtração de datas no frontend. */
-    for (const t of baseFiltros) {
-      const v = efetivoDe(t);
-      if (!naoRecebido(t)) continue;
-
-      aReceber += v;
-      aReceberQtd += 1;
-      if (t.data_vencimento_vigente == null) aReceberSemData += v;
-
-      const inst = t.eixo_instrumento ?? "";
-      if (INSTRUMENTO_GARANTIDO.includes(inst)) {
-        garantido += v;
-        garantidoQtd += 1;
-      } else if (inst === "sem_instrumento") {
-        semInstrumento += v;
-        semInstrumentoQtd += 1;
-      } else {
-        outros += v;
-        outrosQtd += 1;
-      }
-    }
-    return {
-      aReceber,
-      aReceberQtd,
-      aReceberSemData,
-      garantido,
-      garantidoQtd,
-      semInstrumento,
-      semInstrumentoQtd,
-      outros,
-      outrosQtd,
-    };
-  }, [baseFiltros]);
-
-  /* Fonte única do vencido contábil e das faixas de aging, restrita aos títulos
-     que sobraram nos filtros da tela — senão o cartão promete um total que a
-     lista não entrega ao clicar. */
-  const idsFiltrados = useMemo(
-    () => new Set(baseFiltros.map((t) => t.id as string)),
-    [baseFiltros],
-  );
-  const { kpis: estadoTitulos } = useTituloEstadoKpisDe(idsFiltrados);
-  const faixasAging: Record<ChaveFaixa, number> =
-    estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
-  const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
-  const cobravelHoje = estadoTitulos?.cobravelHoje ?? { qtd: 0, valor: 0 };
-  const emCarenciaBancaria = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
-
-
+  const agrupado = est.agrupado;
+  const setAgrupado = (v: boolean) => setEst({ agrupado: v });
+  const relacao = "vw_recebivel_gestao_lista";
+  const eq = (c: string, v: unknown): FiltroLista => ({ c, op: "eq", v });
+  const sim = (c: string): FiltroLista => ({ c, op: "is_true" });
+  const naoRecebidoFiltros: FiltroLista[] = [sim("nao_recebido")];
+  const naoRecebido = (t: RecebivelB2B) => t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
+  const estaVencido = (t: RecebivelB2B) => t.vencido_contabil === true;
+  const achadoFiltro = (a: Achado): FiltroLista => a === "sem_prova"
+    ? eq("fonte_data_recebimento", "marcado_humano")
+    : sim(({ sobreposicao: "sobreposicao_instrumento", renegociacao: "renegociacao_humana", data_divergente: "data_divergente", meio_divergente: "meio_divergente", inadimplente: "vencido_contabil" } as Record<string, string>)[a]);
+  const colunaData = dataBase === "vencimento" ? "data_ref_vencimento" : dataBase === "emissao" ? "data_compra" : "data_recebimento";
+  const filtrosBase: FiltroLista[] = [
+    ...(filtroBanco !== "todos" ? [eq("banco_nome", filtroBanco)] : []),
+    ...(dataDe ? [{ c: colunaData, op: "gte" as const, v: dataDe }] : []),
+    ...(dataAte ? [{ c: colunaData, op: "lte" as const, v: dataAte }] : []),
+  ];
+  const filtrosInstrumento: FiltroLista[] = !filtroInstrumento ? [] : [
+    ...naoRecebidoFiltros,
+    filtroInstrumento === "garantido" ? { c: "eixo_instrumento", op: "in", v: INSTRUMENTO_GARANTIDO } : eq("eixo_instrumento", "sem_instrumento"),
+  ];
+  const filtrosPrazo: FiltroLista[] = filtroPrazo === "todos" ? [] : filtroPrazo === "a_vencer"
+    ? [...naoRecebidoFiltros, { c: "vencido_contabil", op: "not_true" }]
+    : [sim(filtroPrazo === "vencidos" ? "vencido_contabil" : filtroPrazo === "cobravel" ? "cobravel_hoje" : "em_carencia_bancaria")];
+  const filtrosCarteira: FiltroLista[] = [
+    ...(carteiraAtiva ? [eq("carteira_codigo", carteiraAtiva)] : []),
+    ...(achado ? [achadoFiltro(achado)] : []),
+  ];
+  const filtrosFinais = [...filtrosBase, ...filtrosInstrumento, ...filtrosPrazo, ...filtrosCarteira,
+    { c: "eixo_recebimento", op: "in" as const, v: [...recebimentosAtivos] }];
+  const ordem: NonNullable<ParamsLista["ordem"]> = sort ? [{ c: sort.key, dir: sort.dir }] : [{ c: "data_vencimento", dir: "asc" }];
+  const listaParams: ParamsLista & { agrupar?: string } = { relacao, busca, filtros: filtrosFinais, ordem, pagina: page, tamanho: PAGE_SIZE,
+    ...(agrupado ? { agrupar: "grupo_chave" } : {}) };
+  const listaQ = useListaPaginada<RecebivelB2B>(listaParams, { debounceMs: 0 });
+  const paginaLinhas = listaQ.data?.linhas ?? [];
+  const chavesPagina = [...new Set(paginaLinhas.map(t => t.grupo_chave))];
+  const filtrados = paginaLinhas;
+  const count = (id: string, onde: FiltroLista[] = [], por?: string[]): AgregadoLista => ({ id, fn: "count", onde, por });
+  const sum = (id: string, c: string, onde: FiltroLista[] = [], por?: string[]): AgregadoLista => ({ id, fn: "sum", c, onde, por });
+  const instrGarantido: FiltroLista[] = [...naoRecebidoFiltros, { c: "eixo_instrumento", op: "in", v: INSTRUMENTO_GARANTIDO }];
+  const instrSem = [...naoRecebidoFiltros, eq("eixo_instrumento", "sem_instrumento")];
+  const baseAgregados: AgregadoLista[] = [count("n"), count("carteirasBusca", [], ["carteira_nome"]),
+    sum("aReceber", "efetivo", naoRecebidoFiltros), count("aReceberQtd", naoRecebidoFiltros),
+    sum("aReceberSemData", "efetivo", [...naoRecebidoFiltros, { c: "data_vencimento_vigente", op: "is_null" }]),
+    sum("garantido", "efetivo", instrGarantido), count("garantidoQtd", instrGarantido),
+    sum("semInstrumento", "efetivo", instrSem), count("semInstrumentoQtd", instrSem),
+    count("carteiras", [{ op: "or", v: [{ c: "carteira_gera_caixa", op: "eq", v: true }, { c: "carteira_gera_caixa", op: "is_null" }] }], ["carteira_codigo", "carteira_nome", "carteira_ordem", "carteira_previsao_confiavel", "carteira_rotulo_data"]),
+    sum("carteirasAberto", "efetivo", naoRecebidoFiltros, ["carteira_codigo"]), count("carteirasQtd", naoRecebidoFiltros, ["carteira_codigo"]),
+    sum("aging", "efetivo", [sim("vencido_contabil")], ["faixa_aging"]),
+    ...["vencido_contabil", "cobravel_hoje", "em_carencia_bancaria"].flatMap(c => [sum(c, "efetivo", [sim(c)]), count(c + "Qtd", [sim(c)])]),
+  ];
+  const resumoQ = useListaPaginada({ relacao, busca, filtros: filtrosBase, tamanho: 1, colunas: ["id"], agregados: baseAgregados }, { debounceMs: 0 });
+  const chipsQ = useListaPaginada({ relacao, busca, filtros: [...filtrosBase, ...filtrosInstrumento, ...filtrosPrazo, ...filtrosCarteira], tamanho: 1, colunas: ["id"], agregados: [count("chips", [], ["eixo_recebimento"]), count("n")] }, { debounceMs: 0 });
+  const chipsSemKpiQ = useListaPaginada({ relacao, busca, filtros: [...filtrosBase, ...filtrosCarteira], tamanho: 1, colunas: ["id"], agregados: [count("chips", [], ["eixo_recebimento"])] }, { debounceMs: 0 });
+  const prazoQ = useListaPaginada({ relacao, busca, filtros: [...filtrosBase, ...filtrosInstrumento, ...filtrosCarteira], tamanho: 1, colunas: ["id"], agregados: [count("vencidos", [sim("vencido_contabil")]), count("aVencer", [...naoRecebidoFiltros, { c: "vencido_contabil", op: "not_true" }])] }, { debounceMs: 0 });
+  const achadoChaves: Achado[] = ["sobreposicao", "renegociacao", "sem_prova", "data_divergente", "meio_divergente", "inadimplente"];
+  const mesColuna = baseMensal === "competencia" ? "mes_competencia" : baseMensal === "caixa_projetado" ? "mes_caixa_projetado" : "mes_caixa_efetivo";
+  const mensalOnde: FiltroLista[] = [{ op: "or", v: [{ c: "eixo_recebimento", op: "nin", v: ["cancelado", "devolvido"] }, { c: "eixo_recebimento", op: "is_null" }] }, { c: mesColuna, op: "not_null" }, ...(baseMensal === "caixa_confirmado" ? [{ c: "data_recebimento_efetiva", op: "not_null" as const }] : [])];
+  const mensalEstado = (k: string): FiltroLista[] => k === "recebido" ? [{ c: "eixo_recebimento", op: "in", v: ["compensado", "quitado"] }]
+    : [{ op: "or", v: [{ c: "eixo_recebimento", op: "nin", v: ["compensado", "quitado"] }, { c: "eixo_recebimento", op: "is_null" }] }, { c: "vencido_contabil", op: k === "atrasado" ? "is_true" : "not_true" }];
+  const globalQ = useListaPaginada({ relacao, tamanho: 1, colunas: ["id"], agregados: [count("n"), count("bancos", [], ["banco_nome"]), count("recebMeta", [], ["eixo_recebimento", "recebimento_rotulo", "recebimento_ordem"]), ...achadoChaves.map(a => count(a, [achadoFiltro(a)])),
+    count("mensalFooterN", mensalOnde), sum("mensalFooterTotal", "efetivo", mensalOnde),
+    ...["recebido", "aberto", "atrasado"].map(k => sum("mensalFooter_" + k, "efetivo", [...mensalOnde, ...mensalEstado(k)])),
+    count("mensalN", mensalOnde, [mesColuna]), sum("mensalTotal", "efetivo", mensalOnde, [mesColuna]),
+    ...["recebido", "aberto", "atrasado"].map(k => sum("mensal_" + k, "efetivo", [...mensalOnde, ...mensalEstado(k)], [mesColuna])),
+  ] });
+  const universoQ = useListaPaginada({ relacao, tamanho: 1, colunas: ["id"], agregados: [
+    { ...count("n", [{ c: "grupo_chave", op: "in", v: chavesPagina }], ["grupo_chave"]), ignorar: ["*"] },
+    { ...sum("total", "efetivo", [{ c: "grupo_chave", op: "in", v: chavesPagina }], ["grupo_chave"]), ignorar: ["*"] },
+  ] }, { enabled: agrupado && chavesPagina.length > 0 && !listaQ.isPlaceholderData });
+  const a = resumoQ.data?.agregados;
+  const n = (id: string) => numeroAgregado(a, id);
+  const estadoCarteira = { aReceber: n("aReceber"), aReceberQtd: n("aReceberQtd"), aReceberSemData: n("aReceberSemData"), garantido: n("garantido"), garantidoQtd: n("garantidoQtd"), semInstrumento: n("semInstrumento"), semInstrumentoQtd: n("semInstrumentoQtd"), outros: n("aReceber") - n("garantido") - n("semInstrumento"), outrosQtd: n("aReceberQtd") - n("garantidoQtd") - n("semInstrumentoQtd") };
+  const { kpis: estadoTitulos } = useTituloEstadoKpisFiltro({ relacao, busca, filtros: filtrosBase });
+  const bloco = (c: string) => ({ qtd: n(c + "Qtd"), valor: n(c) });
+  const vencidoContabil = estadoTitulos?.vencidoContabil ?? bloco("vencido_contabil");
+  const cobravelHoje = estadoTitulos?.cobravelHoje ?? bloco("cobravel_hoje");
+  const emCarenciaBancaria = estadoTitulos?.emCarenciaBancaria ?? bloco("em_carencia_bancaria");
+  const faixasAging = estadoTitulos?.faixas ?? Object.fromEntries(FAIXAS_ATRASO.map(([f]) => [f, gruposAgregado(a, "aging").find(g => g.faixa_aging === f)?.valor ?? 0])) as Record<ChaveFaixa, number>;
+  const bancosOpcoes = gruposAgregado(globalQ.data?.agregados, "bancos").map(g => g.banco_nome).filter((v): v is string => typeof v === "string" && !!v).sort();
+  const carenciaIds = new Set(filtrados.filter(t => t.em_carencia_bancaria).map(t => t.id));
+  const hojeIso = iso(new Date());
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
   const limparFiltrosKpi = () => {
@@ -799,97 +623,21 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
 
   /* ---------- Linha 2 — Carteiras ---------- */
-  const carteiras = useMemo(() => {
-    const mapa = new Map<
-      string,
-      {
-        codigo: string;
-        nome: string;
-        ordem: number;
-        previsaoConfiavel: boolean;
-        rotuloData: string | null;
-        aberto: number;
-        qtd: number;
-      }
-    >();
-    for (const t of baseFiltros) {
-      /* NAO-CAIXA-NAO-E-RECEBIVEL: carteiras que não geram caixa não entram nos
-         totais de Gestão, embora o título continue existindo no lastro. */
-      if (t.carteira_gera_caixa === false) continue;
-      const codigo = t.carteira_codigo ?? "—";
-      const atual =
-        mapa.get(codigo) ??
-        {
-          codigo,
-          nome: t.carteira_nome ?? codigo,
-          ordem: t.carteira_ordem ?? 99,
-          previsaoConfiavel: t.carteira_previsao_confiavel !== false,
-          rotuloData: t.carteira_rotulo_data,
-          aberto: 0,
-          qtd: 0,
-        };
-      if (naoRecebido(t)) {
-        atual.aberto += efetivoDe(t);
-        atual.qtd += 1;
-      }
-      mapa.set(codigo, atual);
-    }
-    return Array.from(mapa.values()).sort((a, b) => a.ordem - b.ordem);
-  }, [baseFiltros]);
-
-
-  /* ---------- Chips de recebimento ---------- */
-  const contagensRecebimento = useMemo(() => {
-    const c = {} as Record<EixoRecebimento, number>;
-    for (const r of RECEBIMENTO_ORDEM) c[r] = 0;
-    for (const t of baseCarteira) {
-      const r = t.eixo_recebimento;
-      if (r && r in c) c[r] += 1;
-    }
-    return c;
-  }, [baseCarteira]);
-
-  /** Contagem ignorando os filtros de KPI: revela chip impossível vs. chip vazio. */
-  const contagensSemKpi = useMemo(() => {
-    const c = {} as Record<EixoRecebimento, number>;
-    for (const r of RECEBIMENTO_ORDEM) c[r] = 0;
-    for (const t of baseCarteiraSemKpi) {
-      const r = t.eixo_recebimento;
-      if (r && r in c) c[r] += 1;
-    }
-    return c;
-  }, [baseCarteiraSemKpi]);
-
-  /** ROTULO-VEM-DO-BANCO: rótulo, ordem e classe do eixo recebimento vêm da view. */
-  const metaRecebimento = useMemo(() => {
-    const m = new Map<EixoRecebimento, { rotulo: string; ordem: number }>();
-    for (const t of data ?? []) {
-      const r = t.eixo_recebimento;
-      if (!r || m.has(r)) continue;
-      m.set(r, {
-        rotulo: t.recebimento_rotulo ?? RECEBIMENTO_LABEL[r],
-        ordem: t.recebimento_ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1,
-      });
-    }
-    return RECEBIMENTO_ORDEM.map((r) => ({
-      chave: r,
-      rotulo: m.get(r)?.rotulo ?? RECEBIMENTO_LABEL[r],
-      ordem: m.get(r)?.ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1,
-    })).sort((a, b) => a.ordem - b.ordem);
-  }, [data]);
-
-  /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
-   *  aplicado, para o botão ativo não zerar a si mesmo. */
-  const contagensPrazo = useMemo(() => {
-    let aVencer = 0;
-    let vencidos = 0;
-    for (const t of baseCarteiraSemPrazo) {
-      if (estaVencido(t)) vencidos += 1;
-      else if (naoRecebido(t)) aVencer += 1;
-
-    }
-    return { aVencer, vencidos };
-  }, [baseCarteiraSemPrazo, vencidoIds]);
+  const carteiras = gruposAgregado(a, "carteiras").map(g => ({
+    codigo: String(g.carteira_codigo), nome: String(g.carteira_nome ?? g.carteira_codigo), ordem: Number(g.carteira_ordem ?? 99),
+    previsaoConfiavel: (g as unknown as { carteira_previsao_confiavel: boolean | null }).carteira_previsao_confiavel !== false,
+    rotuloData: g.carteira_rotulo_data as string | null,
+    aberto: gruposAgregado(a, "carteirasAberto").find(x => x.carteira_codigo === g.carteira_codigo)?.valor ?? 0,
+    qtd: gruposAgregado(a, "carteirasQtd").find(x => x.carteira_codigo === g.carteira_codigo)?.valor ?? 0,
+  })).sort((x, y) => x.ordem - y.ordem);
+  const chipCounts = (ag: typeof a) => Object.fromEntries(RECEBIMENTO_ORDEM.map(r => [r, gruposAgregado(ag, "chips").find(g => g.eixo_recebimento === r)?.valor ?? 0])) as Record<EixoRecebimento, number>;
+  const contagensRecebimento = chipCounts(chipsQ.data?.agregados);
+  const contagensSemKpi = chipCounts(chipsSemKpiQ.data?.agregados);
+  const metaRecebimento = RECEBIMENTO_ORDEM.map(r => {
+    const g = gruposAgregado(globalQ.data?.agregados, "recebMeta").find(g => g.eixo_recebimento === r);
+    return { chave: r, rotulo: String(g?.recebimento_rotulo ?? RECEBIMENTO_LABEL[r]), ordem: Number(g?.recebimento_ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1) };
+  }).sort((x, y) => x.ordem - y.ordem);
+  const contagensPrazo = { aVencer: numeroAgregado(prazoQ.data?.agregados, "aVencer"), vencidos: numeroAgregado(prazoQ.data?.agregados, "vencidos") };
 
   const rotuloFiltroKpi =
     filtroInstrumento === "garantido"
@@ -1060,17 +808,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
    * A tela mentiu por omissão uma vez: busca com resultado fora da carteira
    * selecionada voltava vazia. Aqui ela conta onde o registro está.
    */
-  const buscaForaDoRecorte = useMemo(() => {
-    if (!busca.trim()) return null;
-    if (baseFiltros.length === 0) return null;
-    const nomes = new Set(
-      baseFiltros.map((t) => t.carteira_nome ?? t.carteira_codigo ?? "—")
-    );
-    return {
-      n: baseFiltros.length,
-      carteira: nomes.size === 1 ? Array.from(nomes)[0] : null,
-    };
-  }, [busca, baseFiltros]);
+  const carteirasBusca = gruposAgregado(a, "carteirasBusca");
+  const buscaForaDoRecorte = busca.trim() && n("n") > 0 ? { n: n("n"), carteira: carteirasBusca.length === 1 ? String(carteirasBusca[0].carteira_nome) : null } : null;
 
   const toggleRecebimento = (k: EixoRecebimento) => {
     setRecebimentosAtivos((prev) => {
@@ -1083,68 +822,20 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   };
 
   /* ---------- Painel de qualidade de dado (denominador explícito) ---------- */
-  const totalCarregado = (data ?? []).length;
-  const achados = useMemo(() => {
-    const lista: { chave: Achado; rotulo: string; n: number }[] = [
-      { chave: "sobreposicao", rotulo: "Sobreposição do instrumento", n: 0 },
-      { chave: "renegociacao", rotulo: "Renegociação humana", n: 0 },
-      { chave: "sem_prova", rotulo: "Sem prova bancária", n: 0 },
-      { chave: "data_divergente", rotulo: "Data divergente", n: 0 },
-      { chave: "meio_divergente", rotulo: "Meio ≠ pedido", n: 0 },
-      { chave: "inadimplente", rotulo: "Inadimplentes", n: 0 },
-    ];
-    for (const t of data ?? []) {
-      for (const item of lista) if (casaAchado(t, item.chave)) item.n += 1;
-    }
-    return lista;
-  }, [data, vencidoIds]);
+  const totalCarregado = numeroAgregado(globalQ.data?.agregados, "n");
+  const achados = achadoChaves.map(chave => ({ chave, rotulo: ACHADO_LABEL[chave], n: numeroAgregado(globalQ.data?.agregados, chave) }));
+  const mensal = gruposAgregado(globalQ.data?.agregados, "mensalN").map(g => {
+    const valor = (id: string) => gruposAgregado(globalQ.data?.agregados, id).find(x => x[mesColuna] === g[mesColuna])?.valor ?? 0;
+    return { mes: String(g[mesColuna]).slice(0, 7), titulos: g.valor ?? 0, recebido: valor("mensal_recebido"), aberto: valor("mensal_aberto"), atrasado: valor("mensal_atrasado"), total: valor("mensalTotal") };
+  }).sort((x, y) => y.mes.localeCompare(x.mes));
 
-  /* ---------- Tabela mensal (mantida como está) ---------- */
-  const mensal = useMemo(() => {
-    const mapa = new Map<
-      string,
-      { mes: string; titulos: number; recebido: number; aberto: number; atrasado: number; total: number }
-    >();
-    for (const t of data ?? []) {
-      if (t.eixo_recebimento === "cancelado" || t.eixo_recebimento === "devolvido") continue;
-      let key: string | null = null;
-      if (baseMensal === "competencia") key = mesKeyDe(t.mes_competencia ?? t.data_compra);
-      else if (baseMensal === "caixa_projetado") {
-        key = mesKeyDe(t.mes_caixa_projetado ?? t.data_caixa_projetada);
-      } else if (t.data_recebimento_efetiva) {
-        key = mesKeyDe(t.mes_caixa_efetivo ?? t.data_recebimento_efetiva);
-      }
-      if (!key) continue;
-      const linha =
-        mapa.get(key) ??
-        { mes: key, titulos: 0, recebido: 0, aberto: 0, atrasado: 0, total: 0 };
-      const v = efetivoDe(t);
-      linha.titulos += 1;
-      linha.total += v;
-      if (t.eixo_recebimento === "compensado" || t.eixo_recebimento === "quitado")
-        linha.recebido += v;
-      else if (estaVencido(t)) linha.atrasado += v;
-      else linha.aberto += v;
-
-      mapa.set(key, linha);
-    }
-    return Array.from(mapa.values()).sort((a, b) => (a.mes < b.mes ? 1 : -1));
-  }, [data, baseMensal, vencidoIds]);
-
-  const totalMensal = useMemo(
-    () =>
-      mensal.reduce(
-        (acc, l) => ({
-          titulos: acc.titulos + l.titulos,
-          recebido: acc.recebido + l.recebido,
-          aberto: acc.aberto + l.aberto,
-          atrasado: acc.atrasado + l.atrasado,
-          total: acc.total + l.total,
-        }),
-        { titulos: 0, recebido: 0, aberto: 0, atrasado: 0, total: 0 }
-      ),
-    [mensal]
-  );
+  const totalMensal = {
+    titulos: numeroAgregado(globalQ.data?.agregados, "mensalFooterN"),
+    recebido: numeroAgregado(globalQ.data?.agregados, "mensalFooter_recebido"),
+    aberto: numeroAgregado(globalQ.data?.agregados, "mensalFooter_aberto"),
+    atrasado: numeroAgregado(globalQ.data?.agregados, "mensalFooter_atrasado"),
+    total: numeroAgregado(globalQ.data?.agregados, "mensalFooterTotal"),
+  };
 
   /** Mesmos dados, ordem crescente (mais antigo à esquerda). */
   const mensalAsc = useMemo(() => [...mensal].reverse(), [mensal]);
@@ -1160,53 +851,14 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   };
 
   /* ---------- Lista final ---------- */
-  const filtrados = useMemo(() => {
-    let arr = baseCarteira.filter(
-      (t) => t.eixo_recebimento != null && recebimentosAtivos.has(t.eixo_recebimento)
-    );
-    if (sort) {
-      arr = [...arr].sort((a, b) => {
-        if (sort.key === "data_vencimento_vigente") {
-          const va = a.data_vencimento_vigente ?? null;
-          const vb = b.data_vencimento_vigente ?? null;
-          if (va === vb) return 0;
-          if (va == null) return 1; // nulls last
-          if (vb == null) return -1;
-          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-        }
-        const campo = (t: RecebivelB2B) =>
-          (t as unknown as Record<string, string | number | boolean | null>)[sort.key] ?? "";
-        const va = campo(a);
-        const vb = campo(b);
-        if (typeof va === "string" && typeof vb === "string") {
-          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-        }
-        if (typeof va === "number" && typeof vb === "number") {
-          return sort.dir === "asc" ? va - vb : vb - va;
-        }
-        const sa = String(va);
-        const sb = String(vb);
-        return sort.dir === "asc" ? sa.localeCompare(sb) : sb.localeCompare(sa);
-      });
-    }
-    return arr;
-  }, [baseCarteira, recebimentosAtivos, sort]);
-
   const semChip = recebimentosAtivos.size === 0;
 
   /* Agrupamento por pedido. */
   const grupos = useMemo(() => {
-    const universo = new Map<string, { n: number; total: number }>();
-    for (const t of data ?? []) {
-      const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
-      const cur = universo.get(chave) ?? { n: 0, total: 0 };
-      cur.n += 1;
-      cur.total += efetivoDe(t);
-      universo.set(chave, cur);
-    }
+    const universo = new Map(gruposAgregado(universoQ.data?.agregados, "n").map(g => [String(g.grupo_chave), { n: g.valor ?? 0, total: gruposAgregado(universoQ.data?.agregados, "total").find(x => x.grupo_chave === g.grupo_chave)?.valor ?? 0 }]));
     const mapa = new Map<string, RecebivelB2B[]>();
     for (const t of filtrados) {
-      const chave = t.pedido_ref ? `p:${t.pedido_ref}` : `t:${t.id}`;
+      const chave = t.grupo_chave;
       const arr = mapa.get(chave);
       if (arr) arr.push(t);
       else mapa.set(chave, [t]);
@@ -1291,7 +943,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados, data, hojeIso, carenciaIds, vencidoIds]);
+  }, [filtrados, universoQ.data, hojeIso]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
@@ -1302,18 +954,31 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       return next;
     });
 
-  const agrupado = est.agrupado;
-  const setAgrupado = (v: boolean) => setEst({ agrupado: v });
-
-  const totalItens = agrupado ? grupos.length : filtrados.length;
+  const totalItens = listaQ.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-
-  const idsFocaveis = agrupado
-    ? grupos.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE).flatMap((g) => g.titulos.map((t) => t.id as string))
-    : filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE).map((t) => t.id as string);
-  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: idsFocaveis, focoParam: "b2b_foco" });
-  useRestaurarScroll(null, !isLoading);
+  useEffect(() => { if (listaQ.data && !listaQ.isPlaceholderData && page !== pageSafe) setPage(pageSafe); }, [listaQ.data, listaQ.isPlaceholderData, page, pageSafe]);
+  const idsFocaveis = filtrados.map(t => t.id);
+  const saldoQ = useQuery({
+    queryKey: ["recebiveis-saldos-pagina", idsFocaveis], enabled: idsFocaveis.length > 0,
+    queryFn: async () => {
+      const linhas: TituloSaldo[] = [];
+      // Both chunk the IN and paginate its result: complete groups can exceed 1,000 rows.
+      for (let i = 0; i < idsFocaveis.length; i += 100) {
+        const { data, error } = await supabase.from("vw_titulo_saldo" as never).select("titulo_id,titulo_pai_id,valor_documento,alocado_conta,filhos_abertos,n_filhos_abertos,saldo_a_receber,tem_abatimento,tipo_filho,n_remessas_abertas").in("titulo_id", idsFocaveis.slice(i, i + 100));
+        if (error) throw error;
+        linhas.push(...(data ?? []) as unknown as TituloSaldo[]);
+      }
+      return linhas;
+    },
+  });
+  const saldosPorTitulo = new Map((saldoQ.data ?? []).map(t => [t.titulo_id, t]));
+  const consultas = [listaQ, resumoQ, chipsQ, chipsSemKpiQ, prazoQ, globalQ,
+    ...(agrupado && chavesPagina.length ? [universoQ] : []), ...(idsFocaveis.length ? [saldoQ] : [])];
+  const erro = consultas.find(q => q.isError)?.error;
+  const isLoading = consultas.some(q => q.isPending) || listaQ.isPlaceholderData;
+  useFocoAoVoltar({ pronto: !isLoading && !erro, idsVisiveis: idsFocaveis, focoParam: "b2b_foco" });
+  useRestaurarScroll(null, !isLoading && !erro);
 
   const numerosPorId = new Map(
     filtrados.map((t) => [t.id, t.numero_titulo ?? null] as const),
@@ -1463,8 +1128,9 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   const periodoLabel = dataDe || dataAte ? `${dataDe || "inicio"}_${dataAte || "hoje"}` : "todo";
 
-  const handleExportXLSX = () => {
-    const linhas = filtrados.map((t) => ({
+  const handleExportXLSX = async () => {
+    const todos = await exportarLista<RecebivelB2B>({ ...listaParams, agrupar: undefined } as ParamsLista);
+    const linhas = todos.map((t) => ({
       NF: t.nf_numero ?? "",
       Pedido: t.pedido_ref ?? "",
       Cliente: t.cliente ?? "",
@@ -1518,8 +1184,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   };
 
   useEffect(() => {
-    onRegistrarExport({ fn: handleExportXLSX, ativo: filtrados.length > 0 });
-  }, [filtrados]);
+    onRegistrarExport({ fn: () => { void handleExportXLSX().catch(e => window.alert(`Falha ao exportar: ${formatError(e)}`)); }, ativo: totalItens > 0 && !isLoading && !erro });
+  }, [JSON.stringify(listaParams), totalItens, isLoading, erro]);
 
   return (
     <div className="space-y-4">
@@ -2067,7 +1733,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       </div>
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
+          {erro ? <div role="alert" className="p-4 text-destructive">Falha ao carregar recebíveis: {erro.message}</div> : isLoading ? (
             <div className="space-y-2 p-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
@@ -2080,8 +1746,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                   <Inbox className="h-8 w-8" />
                   <p>Nenhum chip de Recebimento selecionado.</p>
                   <p className="text-xs">
-                    {baseCarteira.length} título{baseCarteira.length !== 1 ? "s" : ""} escondido
-                    {baseCarteira.length !== 1 ? "s" : ""} — clique num chip acima.
+                    {numeroAgregado(chipsQ.data?.agregados, "n")} título{numeroAgregado(chipsQ.data?.agregados, "n") !== 1 ? "s" : ""} escondido
+                    {numeroAgregado(chipsQ.data?.agregados, "n") !== 1 ? "s" : ""} — clique num chip acima.
                   </p>
                 </>
               ) : buscaForaDoRecorte ? (
@@ -2162,7 +1828,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
               <TableBody>
                 {agrupado
                   ? grupos
-                      .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
                       .map((g) => {
                         const aberto = abertos.has(g.chave);
                         if (g.titulos.length === 1 && g.ocultos === 0)
@@ -2263,7 +1928,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                         );
                       })
                   : filtrados
-                      .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
                       .map((t) => linhaTitulo(t, false))}
               </TableBody>
               </table>

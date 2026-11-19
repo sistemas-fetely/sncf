@@ -8,7 +8,6 @@ import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useTitulosCobranca,
-  calcularKpis,
   tituloEntraNoKpi,
   type TituloCobranca,
 } from "@/hooks/credito/useTitulosCobranca";
@@ -38,15 +37,15 @@ import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, AlertOctagon, Che
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { useTituloEstadoKpisDe } from "@/hooks/financeiro/useTituloEstadoKpis";
-import { useTituloSaldos, type TituloSaldo } from "@/hooks/financeiro/useTituloSaldo";
+import { exportarLista, useListaPaginada, numeroAgregado, gruposAgregado, useDebounceValor, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
+import { useTituloEstadoKpisFiltro } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { type TituloSaldo } from "@/hooks/financeiro/useTituloSaldo";
 import {
   ValorSaldo,
   BadgeParcelasAcerto,
   BadgeAcerto,
   LinhaTituloPai,
   ComposicaoSaldo,
-  somarSaldos,
 } from "@/components/financeiro/SaldoTitulo";
 import { cn } from "@/lib/utils";
 import {
@@ -590,7 +589,7 @@ function LinhaGrupo({
       <TableCell>
         {g.pedidoRef && g.pedidoId ? (
           <button
-            onClick={(e) => { e.stopPropagation(); onPedido(g.pedidoId!); }}
+            onClick={(e) => { e.stopPropagation(); onPedido(g.pedidoId ?? ""); }}
             className="font-mono text-xs text-primary hover:underline"
           >
             {g.pedidoRef}
@@ -690,15 +689,8 @@ export default function TitulosTab() {
   const qc = useQueryClient();
   const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
-  const { data: titulos = [], isLoading } = useTitulosCobranca();
 
-  const universo = titulos;
   /* SALDO-NAO-SE-CALCULA-NO-FRONT: saldo a receber vem de `vw_titulo_saldo`. */
-  const { porTitulo: saldosPorTitulo } = useTituloSaldos();
-  const numerosPorId = useMemo(
-    () => new Map(titulos.map((t) => [t.id, t.numero_titulo])),
-    [titulos],
-  );
   const enviarBoleto = useEnviarEmailBoleto();
   const enviarCobranca = useEnviarEmailCobranca();
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
@@ -741,24 +733,6 @@ export default function TitulosTab() {
   const [selecaoAcordo, setSelecaoAcordo] = useState<Set<string>>(new Set());
   const [acordoModal, setAcordoModal] = useState<{ titulos: TituloCobranca[]; marcados: string[] } | null>(null);
   const { data: acordosPorTitulo } = useAcordosTitulos();
-  const saldoAberto = (t: TituloCobranca) =>
-    Number(saldosPorTitulo.get(t.id)?.saldo_a_receber ?? t.valor_efetivo ?? 0);
-  const selecaoLista = titulos.filter((t) => selecaoAcordo.has(t.id));
-  const clientesSelecao = new Set(selecaoLista.map((t) => t.parceiro_id)).size;
-  const permAcordo = usePedirAcesso("acao.titulo_renegociar", "Selecionar títulos para acordo");
-  const semPermAcordo = !permAcordo.carregando && !permAcordo.permitido;
-  const selDe = (t: TituloCobranca): SelecaoLinha => ({
-    elegivel: tituloElegivelAcordo(t) && !permAcordo.carregando,
-    marcado: selecaoAcordo.has(t.id),
-    acordo: acordosPorTitulo?.get(t.id) ?? null,
-    bloqueado: semPermAcordo,
-    alternar: (v) => semPermAcordo ? void permAcordo.pedir() : setSelecaoAcordo((s) => {
-      const n = new Set(s);
-      if (v) n.add(t.id); else n.delete(t.id);
-      return n;
-    }),
-  });
-
   const agrupado = estTela.agrupado;
   const setAgrupado = (v: boolean) => setEstTela({ agrupado: v });
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
@@ -776,6 +750,84 @@ export default function TitulosTab() {
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_TITULOS),
   );
+
+  const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const buscaEfetiva = useDebounceValor(busca);
+  const encerrados = ["cancelado", "cancelado_recuperacao", "devolvido", "baixado_por_perda", "renegociado"];
+  const vivo: FiltroLista[] = [{ c: "status_real", op: "nin", v: encerrados }];
+  const pagos: FiltroLista[] = [{ c: "status_gestao", op: "in", v: ["pago", "pago_com_atraso", "pago_judicial"] }, { c: "data_pago_efetiva", op: "gte", v: mesAtual + "-01" }];
+  const baseFiltros: FiltroLista[] = [];
+  if (tipoFiltro !== "todos") baseFiltros.push({ c: "tipo_pagamento", op: tipoFiltro === "cartao" ? "ilike" : "eq", v: tipoFiltro === "cartao" ? "cartao%" : tipoFiltro });
+  if (vencDe) baseFiltros.push({ c: "data_vencimento_atual", op: "gte", v: vencDe });
+  if (vencAte) baseFiltros.push({ c: "data_vencimento_atual", op: "lte", v: vencAte });
+  const pagosNoMesQ = useQuery({ queryKey: ["lista", "vw_titulos_cobranca_lista", "pagos-mes", mesAtual],
+    enabled: cardsAtivos.has("pago_no_mes"),
+    queryFn: () => exportarLista<{ id: string }>({ relacao: "vw_titulos_cobranca_lista", colunas: ["id"], filtros: [...vivo, ...pagos] }),
+  });
+  const cardFiltros: FiltroLista[] = cardsAtivos.has("todos") ? [] : cardsAtivos.size === 0 ? [{ c: "id", op: "in", v: [] }] : [{ op: "or", v: [...cardsAtivos].map(card => card === "pago_no_mes"
+    ? { c: "id", op: "in", v: (pagosNoMesQ.data ?? []).map(t => t.id) }
+    : { c: "status_gestao", op: "eq", v: card }) }];
+  const filtros = [...baseFiltros, ...cardFiltros];
+  const pares = (id: string, onde: FiltroLista[], ignorar: string[] = ["*"], por?: string[]): AgregadoLista[] => [
+    { id: id + "Qtd", fn: "count", onde, ignorar, por }, { id: id + "Valor", fn: "sum", c: "valor_efetivo", onde, ignorar, por },
+  ];
+  const agregados: AgregadoLista[] = [
+    ...pares("total", [...baseFiltros, ...vivo]),
+    ...["a_vencer", "vence_hoje", "atrasado"].flatMap(status => pares(status, [...baseFiltros, ...vivo, { c: "status_gestao", op: "eq", v: status }])),
+    ...pares("pagoNoMes", [...baseFiltros, ...vivo, ...pagos]),
+    ...pares("pagoNoMesAguardando", [...baseFiltros, ...vivo, ...pagos, { c: "aguardando_credito", op: "is_true" }]),
+    ...["devolvido", "baixado_por_perda"].flatMap(status => pares(status, [...baseFiltros, { c: "status_gestao", op: "eq", v: status }])),
+    { id: "rodape", fn: "sum", c: "valor_rodape" }, { id: "linhas", fn: "count" },
+    ...TIPOS_FILTRO.map(tipo => ({ id: "tipo:" + tipo, fn: "count" as const, ignorar: ["tipo_pagamento"], onde: [...vivo, ...(tipo === "todos" ? [] : [{ c: "tipo_pagamento", op: tipo === "cartao" ? "ilike" as const : "eq" as const, v: tipo === "cartao" ? "cartao%" : tipo }])] })),
+  ];
+  const resumoQ = useListaPaginada({ relacao: "vw_titulos_cobranca_lista", filtros: baseFiltros, busca: buscaEfetiva, tamanho: 1,
+    agregados: agregados.filter(a => a.ignorar?.includes("*")).map(a => ({ ...a, ignorar: undefined })) });
+  const colunasOrdem: Record<ColunaTitulos, string> = { titulo: "numero_titulo", cliente: "parceiro_razao_social", pedido: "pedido_id_externo", nf: "nf_numero", tipo: "tipo_pagamento", vencimento: "data_vencimento_atual", liquidacao: "data_liquidacao_real", valor: "valor_efetivo", instrumento: "eixo_instrumento", situacao: "eixo_recebimento" };
+  const lista = useTitulosCobranca({ filtros, busca: buscaEfetiva, agrupar: agrupado ? "grupo_chave" : undefined, pagina, tamanho: tamanhoPagina,
+    ordem: [{ c: ordenacao ? colunasOrdem[ordenacao.coluna] : "data_vencimento_atual", dir: ordenacao?.dir ?? "asc" }], agregados });
+  const titulos = lista.data?.linhas ?? [];
+  const universo = titulos;
+  const isLoading = lista.isLoading;
+  const ag = { ...lista.data?.agregados, ...resumoQ.data?.agregados };
+  const par = (id: string) => ({ qtd: numeroAgregado(ag, id + "Qtd"), valor: numeroAgregado(ag, id + "Valor") });
+  const kpis = { total: par("total"), aVencer: par("a_vencer"), venceHoje: par("vence_hoje"), atrasado: par("atrasado"), pagoNoMes: par("pagoNoMes"), pagoNoMesAguardando: par("pagoNoMesAguardando") };
+  const kpisTerminais = { devolvido: par("devolvido"), baixado_por_perda: par("baixado_por_perda") };
+  const contagemTipos = Object.fromEntries(TIPOS_FILTRO.map(t => [t, numeroAgregado(ag, "tipo:" + t)]));
+  const numerosPorId = new Map(titulos.map(t => [t.id, t.numero_titulo]));
+  const saldoIds = [...new Set([...titulos.map(t => t.id), ...(detalhe ? [detalhe.id] : [])])];
+  const saldosQ = useQuery({ queryKey: ["lista", "vw_titulos_cobranca_lista", "saldos", saldoIds], enabled: saldoIds.length > 0,
+    queryFn: async () => {
+      const linhas: TituloSaldo[] = [];
+      for (let i = 0; i < saldoIds.length; i += 100) {
+        const { data, error } = await supabase.from("vw_titulo_saldo" as never).select("*").in("titulo_id", saldoIds.slice(i, i + 100));
+        if (error) throw error;
+        linhas.push(...(data ?? []) as unknown as TituloSaldo[]);
+      }
+      return new Map(linhas.map(l => [l.titulo_id, l]));
+    },
+  });
+  const saldosPorTitulo = saldosQ.data ?? new Map<string, TituloSaldo>();
+  const chaves = [...new Set(titulos.map(t => t.grupo_chave))];
+  const universoQ = useListaPaginada({ relacao: "vw_titulos_cobranca_lista", tamanho: 1, filtros: [{ c: "id", op: "in", v: [] }],
+    agregados: [{ id: "universo", fn: "count", por: ["grupo_chave"], ignorar: ["*"], onde: [{ c: "grupo_chave", op: "in", v: chaves }] }] }, { enabled: chaves.length > 0 });
+  const universoContagem = new Map(gruposAgregado(universoQ.data?.agregados, "universo").map(g => [String(g.grupo_chave), Number(g.valor ?? 0)]));
+  const saldoAberto = (t: TituloCobranca) =>
+    Number(t.valor_rodape ?? 0);
+  const selecaoLista = titulos.filter((t) => selecaoAcordo.has(t.id));
+  const clientesSelecao = new Set(selecaoLista.map((t) => t.parceiro_id)).size;
+  const permAcordo = usePedirAcesso("acao.titulo_renegociar", "Selecionar títulos para acordo");
+  const semPermAcordo = !permAcordo.carregando && !permAcordo.permitido;
+  const selDe = (t: TituloCobranca): SelecaoLinha => ({
+    elegivel: tituloElegivelAcordo(t) && !permAcordo.carregando,
+    marcado: selecaoAcordo.has(t.id),
+    acordo: acordosPorTitulo?.get(t.id) ?? null,
+    bloqueado: semPermAcordo,
+    alternar: (v) => semPermAcordo ? void permAcordo.pedir() : setSelecaoAcordo((s) => {
+      const n = new Set(s);
+      if (v) n.add(t.id); else n.delete(t.id);
+      return n;
+    }),
+  });
 
   const ordenarPor = (coluna: ColunaTitulos) => {
     setOrdenacao((atual) => {
@@ -795,12 +847,19 @@ export default function TitulosTab() {
     });
   }
 
+  const tituloVinculadoQ = useQuery({ queryKey: ["lista", "vw_titulos_cobranca_lista", "vinculado", tituloDaUrl], enabled: !!tituloDaUrl,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vw_titulos_cobranca_lista" as never).select("*").eq("id", tituloDaUrl ?? "").maybeSingle();
+      if (error) throw error;
+      return data as unknown as TituloCobranca | null;
+    },
+  });
   /* Link vindo de uma tarefa (`?titulo={id}`): abre o drawer do título. */
   useEffect(() => {
     if (!tituloDaUrl || detalhe?.id === tituloDaUrl) return;
-    const achado = titulos.find((t) => t.id === tituloDaUrl);
+    const achado = titulos.find((t) => t.id === tituloDaUrl) ?? tituloVinculadoQ.data;
     if (achado) setDetalhe(achado);
-  }, [tituloDaUrl, titulos, detalhe?.id]);
+  }, [tituloDaUrl, titulos, detalhe?.id, tituloVinculadoQ.data]);
 
   // Trocar de modo com uma coluna que so existe na lista plana limparia a ordem
   // sem avisar; melhor soltar a ordenacao explicitamente.
@@ -817,8 +876,6 @@ export default function TitulosTab() {
     setPagina(1);
   }, [busca, vencDe, vencAte, tipoFiltro, estTela.cards, agrupado, estTela.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const q = busca.trim().toLowerCase();
 
   function toggleCard(key: string) {
     setCardsAtivos((prev) => {
@@ -835,135 +892,17 @@ export default function TitulosTab() {
   }
 
 
-  /* Estágio 1: tipo + busca + data. Base dos KPIs — cards refletem o chip. */
-  const baseSemCards = useMemo(
-    () =>
-      universo.filter(
-        (t) =>
-          matchTipo(tipoFiltro, t.tipo_pagamento) &&
-          matchBusca(t, q) &&
-          matchData(t, vencDe, vencAte),
-      ),
-    [universo, tipoFiltro, q, vencDe, vencAte],
-  );
-
-  const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
-
-  /* Vencido não se calcula na tela: vem da fonte única `vw_titulo_estado`,
-     restrita aos títulos que passaram por tipo/busca/data — como os outros
-     cartões. */
-  const idsBase = useMemo(
-    () => new Set(baseSemCards.map((t) => t.id as string)),
-    [baseSemCards],
-  );
-  const { kpis: estadoTitulos } = useTituloEstadoKpisDe(idsBase);
+  const { kpis: estadoTitulos } = useTituloEstadoKpisFiltro({ relacao: "vw_titulos_cobranca_lista", filtros: baseFiltros, busca: buscaEfetiva });
   const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
   const emCarencia = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
-
-  /* Estágio 2: recorte dos cards sobre a base. */
-  const filtrados = useMemo(
-    () => baseSemCards.filter((t) => matchCards(t, cardsAtivos, mesAtual)),
-    [baseSemCards, cardsAtivos, mesAtual],
-  );
-
-  /* Contagem dos chips: busca + data + cards, MAS NÃO tipo (anti-circular). */
-  const contagemTipos = useMemo(() => {
-    const base = universo.filter(
-      (t) =>
-        matchBusca(t, q) &&
-        matchData(t, vencDe, vencAte) &&
-        tituloEntraNoKpi(t) &&
-        matchCards(t, cardsAtivos, mesAtual),
-    );
-    const c: Record<string, number> = {};
-    for (const f of TIPOS_FILTRO) {
-      c[f] = base.filter((t) => matchTipo(f, t.tipo_pagamento)).length;
-    }
-    return c;
-  }, [universo, q, vencDe, vencAte, cardsAtivos, mesAtual]);
-
-
-
-  /* Rodapé soma SALDO, nunca valor de face — senão conta duas vezes o mesmo dinheiro. */
-  const totalFiltrado = somarSaldos(
-    filtrados.map((t) => ({ id: t.id, valorFace: t.valor_efetivo })),
-    saldosPorTitulo,
-  );
-
-  /* Terminais neutros: contados à parte, nunca somados em atraso/inadimplência. */
-  const kpisTerminais = useMemo(() => {
-    const acc = {
-      devolvido: { qtd: 0, valor: 0 },
-      baixado_por_perda: { qtd: 0, valor: 0 },
-    };
-    for (const t of baseSemCards) {
-      const alvo = acc[t.status_gestao as keyof typeof acc];
-      if (!alvo) continue;
-      alvo.qtd++;
-      alvo.valor += t.valor_efetivo ?? 0;
-    }
-    return acc;
-  }, [baseSemCards]);
-
-
-  /* Estágio 3: agrupamento por pedido. `universo` entra de novo só para contar os ocultos — os títulos do mesmo pedido que os filtros escondem. */
-  const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
-
-  /* Lista plana: ordena TITULO pelo dado do titulo. */
-  const titulosOrdenados = useMemo(() => {
-    if (!ordenacao) return filtrados;
-    const dir = ordenacao.dir === "asc" ? 1 : -1;
-    const valorDe = (t: TituloCobranca): string | number | null => {
-      switch (ordenacao.coluna) {
-        case "titulo": return t.numero_titulo ?? null;
-        case "cliente": return t.parceiro_razao_social ?? null;
-        case "pedido": return t.pedido_id_externo ?? null;
-        case "nf": return t.nf_numero ?? null;
-        case "tipo": return tipoLabel(t.tipo_pagamento);
-        case "vencimento": return msDe(t.data_vencimento_atual);
-        // A mesma data que a celula mostra, na mesma ordem de precedencia.
-        case "liquidacao":
-          return msDe(
-            t.data_liquidacao_real ?? t.data_pago_efetiva ?? t.data_liquidacao_prevista,
-          );
-        case "valor": return Number(t.valor_efetivo ?? 0);
-        case "instrumento": return t.eixo_instrumento ?? null;
-        case "situacao": return t.eixo_recebimento ?? null;
-        default: return null;
-      }
-    };
-    return [...filtrados].sort((a, b) => compararOrdenavel(valorDe(a), valorDe(b), dir));
-  }, [filtrados, ordenacao]);
-
-  /* Agrupado: ordena GRUPO pelo dado do grupo. */
-  const gruposOrdenados = useMemo(() => {
-    if (!ordenacao) return grupos;
-    const dir = ordenacao.dir === "asc" ? 1 : -1;
-    const valorDe = (g: GrupoPedido): string | number | null => {
-      switch (ordenacao.coluna) {
-        case "cliente": return g.cabeca.parceiro_razao_social ?? null;
-        case "pedido": return g.pedidoRef ?? null;
-        case "nf": return g.nfs[0] ?? null;
-        case "tipo": return g.formas.length ? tipoLabel(g.formas[0]) : null;
-        case "vencimento": return msDe(g.proximoVencimento);
-        case "valor": return Number(g.totalVisivel ?? 0);
-        case "instrumento": return g.instrumentoPrevalente ?? null;
-        case "situacao": return g.recebimentoPrevalente ?? null;
-        // titulo e liquidacao nao tem valor de grupo.
-        default: return null;
-      }
-    };
-    return [...grupos].sort((a, b) => compararOrdenavel(valorDe(a), valorDe(b), dir));
-  }, [grupos, ordenacao]);
-
-  // Agrupado, a unidade paginada e o PEDIDO; na lista plana, o TITULO. Fatiar
-  // titulo dentro de grupo quebraria o grupo ao meio.
-  const totalUnidades = agrupado ? gruposOrdenados.length : titulosOrdenados.length;
+  const filtrados = titulos;
+  const totalFiltrado = numeroAgregado(ag, "rodape");
+  const grupos = agruparPorPedido(filtrados, universo).map(g => ({ ...g, ocultos: Math.max(0, (universoContagem.get(g.chave) ?? g.titulos.length) - g.titulos.length) }));
+  const totalUnidades = lista.data?.total ?? 0;
   const totalPaginasTitulos = Math.max(1, Math.ceil(totalUnidades / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginasTitulos);
-  const inicio = (paginaAtual - 1) * tamanhoPagina;
-  const gruposPagina = gruposOrdenados.slice(inicio, inicio + tamanhoPagina);
-  const titulosPagina = titulosOrdenados.slice(inicio, inicio + tamanhoPagina);
+  const gruposPagina = grupos;
+  const titulosPagina = titulos;
 
   /* Foco ao voltar: agrupado, a linha visível é a do pedido (cabeça) ou o título único. */
   const idsFocaveis = agrupado
@@ -1014,6 +953,9 @@ export default function TitulosTab() {
   // reemissao mesmo havendo boleto novo registrado e pagavel.
   const podeReenviarBoleto = (t: TituloCobranca) =>
     t.tipo_pagamento === "boleto" && t.boleto_vigente?.enviavel === true;
+
+  const erroLista = lista.error ?? resumoQ.error ?? universoQ.error ?? pagosNoMesQ.error ?? saldosQ.error;
+  if (erroLista) return <div className="text-sm text-destructive">{erroLista.message}</div>;
 
   return (
     <div className="space-y-4">
@@ -1312,8 +1254,8 @@ export default function TitulosTab() {
       />
 
       <p className="text-xs text-muted-foreground">
-        {filtrados.length} título{filtrados.length !== 1 ? "s" : ""}
-        {agrupado ? ` em ${grupos.length} pedido${grupos.length !== 1 ? "s" : ""}` : ""} · {formatBRL(totalFiltrado)}
+        {numeroAgregado(ag, "linhas")} título{numeroAgregado(ag, "linhas") !== 1 ? "s" : ""}
+        {agrupado ? ` em ${totalUnidades} pedido${totalUnidades !== 1 ? "s" : ""}` : ""} · {formatBRL(totalFiltrado)}
         {cardsAtivos.has("todos") && (
           <span className="ml-2">
             inclui encerrados (devolvido/cancelado), que não entram nos cards

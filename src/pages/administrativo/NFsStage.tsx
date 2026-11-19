@@ -1,3 +1,5 @@
+import { useListaPaginada, numeroAgregado, gruposAgregado, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { KpiPill } from "@/components/shared/KpiPill";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -109,7 +111,6 @@ import {
 } from "@/hooks/useEngineClassificacao";
 import {
   SortableTableHead,
-  ordenarPor,
   type SortState,
 } from "@/components/shared/SortableTableHead";
 
@@ -310,7 +311,7 @@ export default function NFsStage() {
       if (resultado.erros?.length > 0) {
         console.warn("Erros na classificação:", resultado.erros);
       }
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
     } catch (e) {
       toast.error("Erro na classificação: " + (e instanceof Error ? e.message : String(e)));
     } finally {
@@ -394,7 +395,7 @@ export default function NFsStage() {
           `Qive (${data.ambiente}): ${totalGravados} gravada${totalGravados === 1 ? "" : "s"}, ${totalJaExistiam} já existia${totalJaExistiam === 1 ? "" : "m"}`
         );
       }
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       qc.invalidateQueries({ queryKey: ["integracoes-sync-cursor", "qive"] });
     } catch (e) {
       toast.error("Erro ao buscar na Qive: " + (e instanceof Error ? e.message : String(e)));
@@ -415,7 +416,7 @@ export default function NFsStage() {
       const res = regerar ? await regerarResumoNFe(nf.id) : await gerarResumoNFe(nf.id);
       if (res.ok) {
         toast.success("Resumo NFe gerado e anexado");
-        qc.invalidateQueries({ queryKey: ["nfs_stage"] });
+        qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
         qc.invalidateQueries({ queryKey: ["documentos_envio_agrupados"] });
       } else {
         toast.error(`Falha na geração — registrado para revisão${res.erro ? `: ${res.erro}` : ""}`);
@@ -444,18 +445,36 @@ export default function NFsStage() {
   const { data: categorias = [] } = useCategoriasPlano();
   const { data: centrosCusto = [] } = useCentrosCusto(true);
 
-  const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs-stage"],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_nfs_stage_completude")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as NFStage[];
-    },
-  });
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(50);
+  useEffect(() => { setPagina(1); setSelecionadas(new Set()); }, [filtroPill, mesFiltro, busca, destinoFiltro, sort, tamanhoPagina]);
+  const pillFiltros = (pill: FiltroPill, sessao = false): FiltroLista[] => {
+    if (pill === "todas") return [{ c: "ativa", op: "is_true" }];
+    if (pill === "a_revisar") return [{ c: "ativa", op: "is_true" }, sessao && resolvidasNaSessao.size
+      ? { op: "or", v: [{ c: "nao_revisada", op: "is_true" }, { c: "id", op: "in", v: [...resolvidasNaSessao] }] }
+      : { c: "nao_revisada", op: "is_true" }];
+    if (pill === "nao_vinculadas" || pill === "vinculadas" || pill === "descartadas") return [{ c: "status", op: "eq", v: { nao_vinculadas: "nao_vinculada", vinculadas: "vinculada", descartadas: "descartada" }[pill] }];
+    return [{ c: { incompletas: "incompleta", docs_incompletos: "docs_incompletos", motor: "motor" }[pill], op: "is_true" }];
+  };
+  const mesFiltros: FiltroLista[] = mesFiltro ? [{ c: "mes_ref", op: "eq", v: mesFiltro }] : [];
+  const filtros: FiltroLista[] = [...pillFiltros(filtroPill, true), ...mesFiltros];
+  if (destinoFiltro) filtros.push(destinoFiltro === "__sem_destino__" ? { c: "destino_codigo", op: "is_null" } : { c: "destino_codigo", op: "eq", v: destinoFiltro });
+  const pills: [string, FiltroPill][] = [["todas", "todas"], ["aRevisar", "a_revisar"], ["naoVinculadas", "nao_vinculadas"], ["vinculadas", "vinculadas"], ["descartadas", "descartadas"], ["incompletas", "incompletas"], ["docsIncompletos", "docs_incompletos"], ["motor", "motor"]];
+  const agregados: AgregadoLista[] = [
+    ...pills.map(([id, pill]) => ({ id, fn: "count" as const, ignorar: ["*"], onde: [...pillFiltros(pill), ...mesFiltros] })),
+    { id: "total", fn: "count", ignorar: ["*"], onde: mesFiltros },
+    { id: "destinos", fn: "count", por: ["destino_codigo", "destino_rotulo"], ignorar: ["*"] },
+    { id: "mensalValor", fn: "sum", c: "valor", por: ["mes_ref"], ignorar: ["*"], onde: [{ c: "status", op: "neq", v: "descartada" }] },
+    { id: "mensalQtd", fn: "count", por: ["mes_ref"], ignorar: ["*"], onde: [{ c: "status", op: "neq", v: "descartada" }] },
+    { id: "filtradas", fn: "sum", c: "valor" },
+    { id: "selecionadas", fn: "sum", c: "valor", ignorar: ["*"], onde: [{ c: "id", op: "in", v: [...selecionadas] }] },
+  ];
+  const ordemColunas = { fornecedor: "fornecedor_ordem", nf: "nf_numero", data: "nf_data_emissao", valor: "valor", categoria: "plano_contas_id", status: "status" };
+  const listaQ = useListaPaginada<NFStage>({ relacao: "vw_nfs_stage_lista", filtros, busca, pagina, tamanho: tamanhoPagina,
+    ordem: sort ? [{ c: ordemColunas[sort.column], dir: sort.direction }] : [{ c: "created_at", dir: "desc" }], agregados });
+  const nfs = listaQ.data?.linhas ?? [];
+  const isLoading = listaQ.isLoading;
+  const ag = listaQ.data?.agregados;
 
   const { data: pastaIdPorParceiro = new Map<string, string>() } = useQuery({
     queryKey: ["pastas-por-parceiro"],
@@ -530,114 +549,17 @@ export default function NFsStage() {
     return { ultima, total };
   }, [qiveCursor]);
 
-  // Filtro + Ordenação
-  const filtered = useMemo(() => {
-    let list = nfs || [];
-    if (filtroPill === "todas") {
-      list = list.filter((n) => n.status !== "descartada" && !n.motivo_descarte);
-    } else if (filtroPill === "a_revisar") {
-      list = list.filter(
-        (n) =>
-          n.status !== "descartada" &&
-          !n.motivo_descarte &&
-          (!n.revisada_em || resolvidasNaSessao.has(n.id)),
-      );
-    } else if (filtroPill === "nao_vinculadas") {
-      list = list.filter((n) => n.status === "nao_vinculada");
-    } else if (filtroPill === "vinculadas") {
-      list = list.filter((n) => n.status === "vinculada");
-    } else if (filtroPill === "descartadas") {
-      list = list.filter((n) => n.status === "descartada");
-    } else if (filtroPill === "incompletas") {
-      list = list.filter(
-        (n) => (!n.plano_contas_id || !n.centro_custo_id) && n.status !== "descartada",
-      );
-    } else if (filtroPill === "docs_incompletos") {
-      list = list.filter(
-        (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
-      );
-    } else if (filtroPill === "motor") {
-      list = list.filter(
-        (n) =>
-          !!n.revisada_em &&
-          n.revisao_origem === "motor" &&
-          n.status !== "descartada" &&
-          !n.motivo_descarte,
-      );
-    }
-    if (mesFiltro) {
-      list = list.filter((n) => mesKeyDeNf(n) === mesFiltro);
-    }
-    if (busca.trim()) {
-      const t = busca.toLowerCase();
-      list = list.filter(
-        (n) =>
-          n.fornecedor_razao_social?.toLowerCase().includes(t) ||
-          n.fornecedor_cliente?.toLowerCase().includes(t) ||
-          n.fornecedor_cnpj?.includes(t) ||
-          n.nf_numero?.toLowerCase().includes(t),
-      );
-    }
-    if (destinoFiltro) {
-      if (destinoFiltro === "__sem_destino__") {
-        list = list.filter((n) => !n.destino_codigo);
-      } else {
-        list = list.filter((n) => n.destino_codigo === destinoFiltro);
-      }
-    }
-
-    // Ordenação
-    list = ordenarPor(list, sort, {
-      fornecedor: (n) => n.fornecedor_razao_social || n.fornecedor_cliente || "",
-      nf: (n) => n.nf_numero || "",
-      data: (n) => n.nf_data_emissao || "",
-      valor: (n) => n.valor || 0,
-      categoria: (n) => n.plano_contas_id || "",
-      status: (n) => n.status || "",
-    });
-
-    return list;
-  }, [nfs, filtroPill, mesFiltro, busca, destinoFiltro, sort, resolvidasNaSessao]);
-
-  // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
-  const totals = useMemo(() => {
-    const base = (nfs || []).filter((n) => !mesFiltro || mesKeyDeNf(n) === mesFiltro);
-    return {
-      todas: base.filter((n) => n.status !== "descartada" && !n.motivo_descarte).length,
-      aRevisar: base.filter(
-        (n) => !n.revisada_em && n.status !== "descartada" && !n.motivo_descarte,
-      ).length,
-      naoVinculadas: base.filter((n) => n.status === "nao_vinculada").length,
-      vinculadas: base.filter((n) => n.status === "vinculada").length,
-      descartadas: base.filter((n) => n.status === "descartada").length,
-      incompletas: base.filter(
-        (n) => (!n.plano_contas_id || !n.centro_custo_id) && n.status !== "descartada",
-      ).length,
-      docsIncompletos: base.filter(
-        (n) => (n.completude || "") !== "completo" && n.status !== "descartada",
-      ).length,
-      motor: base.filter(
-        (n) =>
-          !!n.revisada_em &&
-          n.revisao_origem === "motor" &&
-          n.status !== "descartada" &&
-          !n.motivo_descarte,
-      ).length,
-      total: base.length,
-    };
-  }, [nfs, mesFiltro]);
+  const filtered = nfs;
+  const totals = Object.fromEntries([...pills.map(([id]) => [id, numeroAgregado(ag, id)]), ["total", numeroAgregado(ag, "total")]]) as Record<string, number>;
 
   // Dados do gráfico por mês (eixo contínuo — meses sem NF aparecem com valor 0)
   const chartData = useMemo(() => {
     const map = new Map<string, { valor: number; qtd: number }>();
-    for (const n of nfs || []) {
-      if (n.status === "descartada") continue;
-      const k = mesKeyDeNf(n);
-      if (!k) continue;
-      const prev = map.get(k) || { valor: 0, qtd: 0 };
-      prev.valor += Number(n.valor || 0);
-      prev.qtd += 1;
-      map.set(k, prev);
+    const quantidades = new Map(gruposAgregado(ag, "mensalQtd").map(g => [String(g.mes_ref), Number(g.valor ?? 0)]));
+    for (const g of gruposAgregado(ag, "mensalValor")) {
+      if (!g.mes_ref) continue;
+      const k = String(g.mes_ref);
+      map.set(k, { valor: Number(g.valor ?? 0), qtd: quantidades.get(k) ?? 0 });
     }
     if (map.size === 0) return [] as Array<{ mesKey: string; label: string; valor: number; qtd: number }>;
     const keys = Array.from(map.keys()).sort();
@@ -654,7 +576,7 @@ export default function NFsStage() {
       if (m > 12) { m = 1; y += 1; }
     }
     return out;
-  }, [nfs]);
+  }, [ag]);
 
   // Janela de 12 meses do gráfico
   const CHART_WINDOW = 12;
@@ -675,12 +597,7 @@ export default function NFsStage() {
 
 
   // Soma do valor das selecionadas
-  const totalSelecionadas = useMemo(() => {
-    if (selecionadas.size === 0) return 0;
-    return (nfs || [])
-      .filter((n) => selecionadas.has(n.id))
-      .reduce((s, n) => s + (n.valor || 0), 0);
-  }, [selecionadas, nfs]);
+  const totalSelecionadas = numeroAgregado(ag, "selecionadas");
 
   // Combinações distintas de classificação entre as selecionadas (para diálogo Uniformizar)
   const combosSelecionadas = useMemo(() => {
@@ -704,10 +621,7 @@ export default function NFsStage() {
 
 
   // Soma das filtradas (independente de seleção)
-  const totalFiltradas = useMemo(
-    () => filtered.reduce((s, n) => s + (n.valor || 0), 0),
-    [filtered],
-  );
+  const totalFiltradas = numeroAgregado(ag, "filtradas");
 
   // ENGINE UNIVERSAL: regras ativas (alimentadas por NF, cartão, manual…)
   const { data: regrasEngine } = useRegrasAtivas();
@@ -804,7 +718,7 @@ export default function NFsStage() {
           : "Pagamento criado em Contas a Pagar",
       );
       marcarResolvidasNaSessao([nf.id]);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error("Erro ao enviar para pagamento: " + msg);
@@ -825,7 +739,7 @@ export default function NFsStage() {
         .in("id", ids);
       if (error) throw error;
       marcarResolvidasNaSessao(ids);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       toast.success(
         `${ids.length} NF${ids.length === 1 ? "" : "s"} confirmada${ids.length === 1 ? "" : "s"} como revisada${ids.length === 1 ? "" : "s"}`,
       );
@@ -869,7 +783,7 @@ export default function NFsStage() {
         }
         toast.success(partes.join(", "));
       }
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error("Erro ao reaplicar regras: " + msg);
@@ -903,7 +817,7 @@ export default function NFsStage() {
         .in("id", ids);
       if (error) throw error;
       marcarResolvidasNaSessao(ids);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       toast.success(`${ids.length} NF${ids.length === 1 ? "" : "s"} uniformizada${ids.length === 1 ? "" : "s"}`);
       setUniformizarOpen(false);
       setUniformizarEscolha(null);
@@ -976,7 +890,7 @@ export default function NFsStage() {
         }
       }
 
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       qc.invalidateQueries({ queryKey: ["engine-regras-ativas"] });
 
       // Feedback visual — checa irmãs divergentes do mesmo CNPJ
@@ -1020,7 +934,7 @@ export default function NFsStage() {
         .eq("id", id);
       if (error) throw error;
       if (stamp) marcarResolvidasNaSessao([id]);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       // Sugestão de propagação para irmãs divergentes
       const nfAtual = nfs?.find((n) => n.id === id);
       if (nfAtual && centroCustoId) {
@@ -1078,7 +992,7 @@ export default function NFsStage() {
 
       if (error) throw error;
       marcarResolvidasNaSessao(ids);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       toast.success(
         `${campo === "categoria" ? "Categoria" : "Centro de custo"} propagado para ${ids.length} NF${ids.length === 1 ? "" : "s"} da mesma empresa`
       );
@@ -1120,7 +1034,7 @@ export default function NFsStage() {
         .in("id", alvos);
       if (error) throw error;
       marcarResolvidasNaSessao(alvos);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       toast.success(`Classificação aplicada a ${alvos.length} NF${alvos.length === 1 ? "" : "s"}`);
       setAplicarFonte(null);
       setSelecionadas(new Set());
@@ -1167,7 +1081,7 @@ export default function NFsStage() {
         // ignora
       }
     }
-    qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
     qc.invalidateQueries({ queryKey: ["engine-regras-ativas"] });
     toast.success(`${ok} sugestão${ok === 1 ? "" : "ões"} aplicada${ok === 1 ? "" : "s"}`);
   }
@@ -1185,7 +1099,7 @@ export default function NFsStage() {
     }
 
     toast.success("NF removida do repositório");
-    qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
   }
 
   async function handleDescartarConfirmado() {
@@ -1193,7 +1107,7 @@ export default function NFsStage() {
     try {
       const count = await descartarStage(ids);
       toast.success(`${count} NF${count === 1 ? "" : "s"} removida${count === 1 ? "" : "s"} do repositório`);
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
       setParaDescartar([]);
       setSelecionadas(new Set());
     } catch (e) {
@@ -1538,22 +1452,8 @@ export default function NFsStage() {
             <SelectContent>
               <SelectItem value="__todos__">Todos os destinos</SelectItem>
               <SelectItem value="__sem_destino__">Sem destino</SelectItem>
-              {Array.from(
-                new Map(
-                  (nfs || [])
-                    .filter((n) => n.destino_codigo)
-                    .map((n) => [
-                      n.destino_codigo,
-                      { codigo: n.destino_codigo, rotulo: n.destino_rotulo || n.destino_codigo },
-                    ])
-                ).values()
-              )
-                .sort((a, b) => a.rotulo.localeCompare(b.rotulo))
-                .map((d) => (
-                  <SelectItem key={d.codigo} value={d.codigo!}>
-                    {d.rotulo}
-                  </SelectItem>
-                ))}
+              {gruposAgregado(ag, "destinos").filter(g => g.destino_codigo).map(g => ({ codigo: String(g.destino_codigo), rotulo: String(g.destino_rotulo ?? g.destino_codigo) }))
+                .sort((a, b) => a.rotulo.localeCompare(b.rotulo)).map(d => <SelectItem key={d.codigo} value={d.codigo}>{d.rotulo}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -1580,7 +1480,7 @@ export default function NFsStage() {
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calculator className="h-3.5 w-3.5" />
             <span>
-              <strong className="text-foreground">{filtered.length}</strong> NF{filtered.length === 1 ? "" : "s"} ·{" "}
+              <strong className="text-foreground">{listaQ.data?.total ?? 0}</strong> NF{listaQ.data?.total === 1 ? "" : "s"} ·{" "}
               <strong className="text-foreground font-mono">{formatBRL(totalFiltradas)}</strong>
             </span>
           </div>
@@ -1672,7 +1572,7 @@ export default function NFsStage() {
 
       {/* TABELA - área que rola */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6 pt-4">
-        {isLoading ? (
+        {listaQ.isError ? <div className="text-sm text-destructive">{listaQ.error.message}</div> : isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-14 w-full" />
@@ -2172,6 +2072,7 @@ export default function NFsStage() {
             </Table>
           </div>
         )}
+        <RodapePaginacao total={listaQ.data?.total ?? 0} pagina={pagina} tamanhoPagina={tamanhoPagina} onPagina={setPagina} onTamanhoPagina={setTamanhoPagina} />
       </div>
 
       {/* AlertDialog remover */}
@@ -2427,7 +2328,7 @@ export default function NFsStage() {
             data_vencimento: planoDoc.data_vencimento,
           }}
           onDone={() => {
-            qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+            qc.invalidateQueries({ queryKey: ["lista", "vw_nfs_stage_lista"] });
             qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
             setPlanoDoc(null);
           }}
