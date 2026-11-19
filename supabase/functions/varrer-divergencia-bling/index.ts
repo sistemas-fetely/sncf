@@ -5,9 +5,11 @@
 // produto_campo_destino.sobrescreve = true que divergem, e faz PUT do card inteiro.
 // Campos comparados vêm de produto_campo_destino (sistema 'Bling'); conversão vem de
 // _shared/bling/montar-valores-produto.ts (mesma regra da corrigir-produto-bling).
+// Exceção fiscal: origem_fisc sempre comparada e sobrescrita pelo SNCF, sem de-para.
 // Pagina e se re-encadeia no mesmo lote_id até terminar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { alinharOrigemCard } from "./origem.ts";
 import {
   EXTRATORES_BLING, FaseSemRegra, GRUPO_L1, GRUPO_L2, carregarFaseDestino, difere, grupoIdDoCard,
   grupoTributarioEsperado, grupoTributarioDaFicha, carregarGruposBling, num, txt,
@@ -121,7 +123,7 @@ Deno.serve(async (req) => {
     if (dpErr) throw new Error(`produto_campo_destino: ${dpErr.message}`);
     const detalheErros: Any[] = [];
     const campos = (dePara ?? []).filter((d: Any) => {
-      if (d.campo === CAMPO_GRUPO) return false; // tratado à parte
+      if (d.campo === CAMPO_GRUPO || d.campo === "origem_fisc") return false; // tratados à parte
       if (EXTRATORES_BLING[d.campo]) return true;
       if (!cursor && !corrigir) detalheErros.push({ sku: null, mensagem: `campo sem extrator: ${d.campo}` });
       return false;
@@ -252,6 +254,20 @@ Deno.serve(async (req) => {
               }
             }
           }
+          // A origem do card determina a origem das NFs de pedidos de venda.
+          // Preserva grupo e demais tributos; valor SNCF ausente/inválido nunca recebe default.
+          const origem = alinharOrigemCard(ficha.origem_fisc, atual, corrigir ? card : undefined);
+          if (origem.tipo === "pulado") {
+            const pulado = { sku: l.sku, campo: "origem_fisc", motivo: origem.motivo };
+            pulados.push(pulado);
+            if (!corrigir) detalheErros.push({ ...pulado, mensagem: origem.motivo });
+          } else if (origem.tipo === "divergencia") {
+            novas.push({
+              lote_id: loteId, sistema: SISTEMA, cod_cadastro: l.cod_cadastro, sku: l.sku,
+              destino_id: String(l.bling_card_canonico), campo: "origem_fisc", campo_destino: "tributacao.origem",
+              valor_sncf: origem.para, valor_destino: origem.de,
+            });
+          }
           if (corrigir && novas.length) {
             if (dryRun) {
               for (const n of novas) planejado.push({ sku: l.sku, campo: n.campo, de: n.valor_destino, para: n.valor_sncf });
@@ -327,7 +343,7 @@ Deno.serve(async (req) => {
     return json(200, {
       ok: true, lote_id: loteId, modo, dry_run: dryRun, concluido: acabou,
       pagina: { lidos, com_divergencia: comDiv, divergencias: divs, erros },
-      ...(corrigir ? { planejado: dryRun ? planejado : undefined, pulados, erros_detalhe: detalheErros } : {}),
+      ...(corrigir ? { planejado: dryRun ? planejado : undefined, pulados, erros_detalhe: detalheErros } : { pulados }),
       lote: { ...lote, ...patch },
     });
   } catch (e) {

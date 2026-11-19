@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Bling divergence scanning treats fiscal origin as a fixed SNCF override outside field mappings; a tested local helper rejects missing/invalid origins and preserves other card taxes, because sales invoices inherit card origin.
 - Marketplace receivables read hosted views in stable batches; order financials fetch one page-ID batch and prefer actual MP values with tested cent-based estimate comparisons, preserving other channels and writes.
 - Mesa SP dispatch and collection resolve the board's effective modal before the packaging fallback; invoiced B2B postal orders share the B2C dispatch panel, while packaging remains the measurements source.
 - Partner-account UI reads balances/statements only from dedicated views and sends settlements to existing RPCs; order previews share a pure partner-pricing helper, while canonical navigation and action census remain database-owned.
