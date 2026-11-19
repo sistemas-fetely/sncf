@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useEstadoTela } from "@/lib/navegacao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +29,8 @@ import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } fro
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useListaPaginada, numeroAgregado, gruposAgregado } from "@/lib/lista/useListaPaginada";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { hojeISO } from "@/lib/data";
 type ConciliacaoApi = {
   sku: string;
@@ -150,7 +152,7 @@ export default function EstoqueXpm() {
   const [resultado, setResultado] = useState<IngestResult | null>(null);
 
   // Filtros da aba Estoque na URL (prefixo "est").
-  const [nav, setNav] = useEstadoTela({ busca: "", status: "todos", posicao: "" }, { prefixo: "est" });
+  const [nav, setNav] = useEstadoTela({ busca: "", status: "todos", posicao: "", pagina: 1, historicoPagina: 1 }, { prefixo: "est" });
   const busca = nav.busca;
   const setBusca = (v: string) => setNav({ busca: v });
   const filtroStatus = nav.status;
@@ -159,18 +161,18 @@ export default function EstoqueXpm() {
   const posicaoEscolhida = nav.posicao;
   const setPosicaoEscolhida = (v: string) => setNav({ posicao: v });
 
-  const conciliacaoQ = useQuery({
-    queryKey: ["xpm-estoque-conciliacao"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_xpm_estoque_conciliacao_api")
-        .select("*")
-        .order("sku", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as ConciliacaoApi[];
-    },
-  });
-
+  const [tamanho, setTamanho] = useState(50);
+  useEffect(() => { setNav({ pagina: 1 }); }, [busca, filtroStatus, tamanho]);
+  useEffect(() => { setNav({ historicoPagina: 1 }); }, [posicaoEscolhida]);
+  const ignorar = ["__busca__", "status_conciliacao"];
+  const conciliacaoQ = useListaPaginada<ConciliacaoApi>({ relacao: "vw_xpm_estoque_conciliacao_api", busca,
+    filtros: filtroStatus === "todos" ? [] : [{ c: "status_conciliacao", op: "eq", v: filtroStatus }],
+    pagina: nav.pagina, tamanho, ordem: [{ c: "diferenca", dir: "desc", abs: true }, { c: "sku", dir: "asc" }],
+    agregados: [
+      { id: "totalSkus", fn: "count", ignorar, onde: [{ c: "xpm_total", op: "gt", v: 0 }] },
+      { id: "unidades", fn: "sum", c: "xpm_total", ignorar },
+      { id: "porStatus", fn: "count", por: ["status_conciliacao"], ignorar },
+    ] });
   const posicoesQ = useQuery({
     queryKey: ["xpm-estoque-posicoes"],
     queryFn: async () => {
@@ -213,36 +215,10 @@ export default function EstoqueXpm() {
     },
   });
 
-  const rows = conciliacaoQ.data ?? [];
-
-  const kpis = useMemo(() => {
-    let totalSkus = 0;
-    let unidades = 0;
-    const porStatus: Record<string, number> = { ok: 0, divergente: 0, so_na_xpm: 0, so_no_ledger: 0 };
-    for (const r of rows) {
-      const total = Number(r.xpm_total ?? 0);
-      if (total > 0) totalSkus++;
-      unidades += total;
-      if (r.status_conciliacao && porStatus[r.status_conciliacao] !== undefined) {
-        porStatus[r.status_conciliacao]++;
-      }
-    }
-    const posicao = rows.find((r) => r.data_hora_posicao)?.data_hora_posicao ?? null;
-    return { totalSkus, unidades, porStatus, posicao };
-  }, [rows]);
-
-  const rowsFiltradas = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return rows
-      .filter((r) => {
-        if (filtroStatus !== "todos" && r.status_conciliacao !== filtroStatus) return false;
-        if (!q) return true;
-        return (
-          r.sku.toLowerCase().includes(q) || (r.nome_comercial ?? "").toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => Math.abs(Number(b.diferenca ?? 0)) - Math.abs(Number(a.diferenca ?? 0)));
-  }, [rows, busca, filtroStatus]);
+  const rowsFiltradas = conciliacaoQ.data?.linhas ?? [];
+  const ag = conciliacaoQ.data?.agregados;
+  const kpis = { totalSkus: numeroAgregado(ag, "totalSkus"), unidades: numeroAgregado(ag, "unidades"),
+    porStatus: Object.fromEntries(gruposAgregado(ag, "porStatus").map(g => [String(g.status_conciliacao), Number(g.valor ?? 0)])), posicao: posicaoMaisRecente };
 
   async function handleSincronizar() {
     setSincronizando(true);
@@ -256,8 +232,8 @@ export default function EstoqueXpm() {
           ? `Estoque sincronizado — ${nf.format(Number(linhas))} linhas de posição`
           : "Estoque sincronizado com a XPM",
       );
-      qc.invalidateQueries({ queryKey: ["xpm-estoque-conciliacao"] });
-      qc.invalidateQueries({ queryKey: ["xpm-estoque-posicoes"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_xpm_estoque_conciliacao_api"] });
+      qc.invalidateQueries({ queryKey: ["lista", "xpm_estoque_posicao"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao sincronizar estoque da XPM");
     } finally {
@@ -298,7 +274,7 @@ export default function EstoqueXpm() {
 
       setResultado(data as IngestResult);
       toast.success("Estoque XPM importado");
-      qc.invalidateQueries({ queryKey: ["xpm-estoque-conciliacao"] });
+      qc.invalidateQueries({ queryKey: ["lista", "vw_xpm_estoque_conciliacao_api"] });
     } catch (e: any) {
       // FAIL-LOUD: repassa a mensagem exata da RPC (inclusive divergência de total)
       toast.error(e?.message ?? "Erro ao importar estoque XPM");
@@ -523,7 +499,7 @@ export default function EstoqueXpm() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rowsFiltradas.slice(0, 500).map((r) => {
+                    rowsFiltradas.map((r) => {
                       const fora = r.existe_no_catalogo === false;
                       const dif = Number(r.diferenca ?? 0);
                       const corDif =
@@ -575,11 +551,7 @@ export default function EstoqueXpm() {
               </Table>
             </div>
           )}
-          {rowsFiltradas.length > 500 && (
-            <div className="text-xs text-muted-foreground mt-2">
-              Exibindo 500 de {nf.format(rowsFiltradas.length)} linhas. Refine a busca ou o filtro.
-            </div>
-          )}
+          <RodapePaginacao total={conciliacaoQ.data?.total ?? 0} pagina={nav.pagina} tamanhoPagina={tamanho} onPagina={pagina => setNav({ pagina })} onTamanhoPagina={setTamanho} />
         </CardContent>
       </Card>
 
@@ -656,7 +628,7 @@ export default function EstoqueXpm() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        (historicoQ.data ?? []).slice(0, 500).map((r, i) => (
+                        (historicoQ.data ?? []).map((r, i) => (
                           <TableRow key={`${r.sku}-${r.lote ?? ""}-${i}`}>
                             <TableCell><CodProduto chave={r.sku} variant="compacto" /></TableCell>
                             <TableCell className="max-w-[320px] truncate">

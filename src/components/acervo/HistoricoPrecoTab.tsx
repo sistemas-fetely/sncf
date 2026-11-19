@@ -1,5 +1,5 @@
 import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
-import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
+import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { useRef as __useRef } from "react";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
@@ -9,9 +9,9 @@ import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 // aqui: slug novo aparece cru, nunca escondido.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada, exportarLista, numeroAgregado, gruposAgregado, type ParamsLista, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import {
   ArrowDown, ArrowUp, ArrowUpDown, Download,
   Loader2, MessageSquareText, Search,
@@ -176,104 +176,55 @@ export function HistoricoPrecoTab() {
   const setPagina = (v: __SSA<number>) => { const x = __ra(v, pagina); __s_pagina({ pagina: x } as never); };
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
-  const listaQ = useQuery({
-    queryKey: ["preco-historico-analise"],
-    queryFn: async (): Promise<EventoPreco[]> => {
-      const { data, error } = await (supabase as unknown as SupabaseClient)
-        .from("vw_preco_historico_analise")
-        .select("*")
-        .order("criado_em", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as EventoPreco[];
-    },
-  });
-
-  const eventos = useMemo(() => listaQ.data ?? [], [listaQ.data]);
-
-  const opcoes = useMemo(() => {
-    const cole = new Set<string>();
-    const grup = new Set<string>();
-    const meses = new Set<string>();
-    for (const e of eventos) {
-      if (e.colecao) cole.add(e.colecao);
-      if (e.grupo) grup.add(e.grupo);
-      if (e.mes) meses.add(e.mes);
-    }
-    const ord = (s: Set<string>) => [...s].sort((a, b) => a.localeCompare(b, "pt-BR"));
-    return { colecoes: ord(cole), grupos: ord(grup), meses: [...meses].sort() };
-  }, [eventos]);
-
-  const cartoes = useMemo(() => {
-    let alteracoes = 0;
-    let semAutoria = 0;
-    let invertidos = 0;
-    for (const e of eventos) {
-      if (e.sentido !== "criacao") alteracoes += 1;
-      if (e.sem_autoria) semAutoria += 1;
-      if (e.ficou_invertido) invertidos += 1;
-    }
-    return { total: eventos.length, alteracoes, semAutoria, invertidos };
-  }, [eventos]);
-
-  const baseOutrosFiltros = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return eventos.filter((e) => {
-      if (mesIni !== "inicio" && (e.mes ?? "") < mesIni) return false;
-      if (mesFim !== "fim" && (e.mes ?? "") > mesFim) return false;
-      if (sentido !== "todos" && e.sentido !== sentido) return false;
-      if (!q) return true;
-      return [e.cod_cadastro, e.sku, e.nome_comercial]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-
-  }, [eventos, busca, mesIni, mesFim, sentido]);
-  const selecaoProduto = useMemo(() => ({ colecao: lerFiltroProduto(colecao), grupo: lerFiltroProduto(grupo) }), [colecao, grupo]);
-  const recorte = useMemo(() => {
-    const base = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
-    const comparar = (a: EventoPreco, b: EventoPreco) => {
-      if (!ordem) {
-        return String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? ""));
-      }
-      const mult = ordem.dir === "asc" ? 1 : -1;
-      const va = a[ordem.coluna];
-      const vb = b[ordem.coluna];
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (typeof va === "number" && typeof vb === "number") return (va - vb) * mult;
-      return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
-    };
-    return [...base].sort(comparar);
-  }, [baseOutrosFiltros, selecaoProduto, ordem]);
+  const selecaoProduto = { colecao: lerFiltroProduto(colecao), grupo: lerFiltroProduto(grupo) };
+  const filtros: FiltroLista[] = Object.entries(selecaoProduto).flatMap(([c,v]) => v.length ? [{ c, op: "in" as const, v }] : []);
+  if (mesIni !== "inicio") filtros.push({ c: "mes", op: "gte", v: mesIni });
+  if (mesFim !== "fim") filtros.push({ c: "mes", op: "lte", v: mesFim });
+  if (sentido !== "todos") filtros.push({ c: "sentido", op: "eq", v: sentido });
+  const ignorar = ["__busca__", "colecao", "grupo", "mes", "sentido"];
+  const listaParams: ParamsLista = { relacao: "vw_preco_historico_analise", busca, filtros, pagina, tamanho,
+    ordem: [{ c: ordem?.coluna ?? "criado_em", dir: ordem?.dir ?? "desc" }, { c: "id", dir: "asc" }],
+    agregados: [
+      { id: "total", fn: "count", ignorar },
+      { id: "alteracoes", fn: "count", ignorar, onde: [{ c: "sentido", op: "neq", v: "criacao" }] },
+      { id: "semAutoria", fn: "count", ignorar, onde: [{ c: "sem_autoria", op: "eq", v: true }] },
+      { id: "invertidos", fn: "count", ignorar, onde: [{ c: "ficou_invertido", op: "eq", v: true }] },
+      { id: "grafico", fn: "count", por: ["mes", "sentido"] },
+      ...["colecao", "grupo", "mes"].map(c => ({ id: c, fn: "count" as const, por: [c], ignorar: c === "mes" ? ignorar : [c] })),
+    ] };
+  const listaQ = useListaPaginada<EventoPreco>(listaParams);
+  const ag = listaQ.data?.agregados;
+  const cartoes = { total: numeroAgregado(ag, "total"), alteracoes: numeroAgregado(ag, "alteracoes"), semAutoria: numeroAgregado(ag, "semAutoria"), invertidos: numeroAgregado(ag, "invertidos") };
+  const opcoesDimensao = (c: string) => gruposAgregado(ag, c).filter(g => g[c] != null).map(g => ({ valor: String(g[c]), rotulo: String(g[c]), contagem: Number(g.valor ?? 0) })).sort((a,b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+  const opcoes = { meses: opcoesDimensao("mes").map(g => g.valor) };
 
   const __pg1 = __useRef(false);
   useEffect(() => { if (!__pg1.current) { __pg1.current = true; return; } setPagina(1); }, [busca, mesIni, mesFim, sentido, colecao, grupo, tamanho]);
 
-  const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
+  const totalPaginas = Math.max(1, Math.ceil((listaQ.data?.total ?? 0) / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const naPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const naPagina = listaQ.data?.linhas ?? [];
 
   /** Séries do gráfico: sentidos presentes no recorte, na ordem do dicionário. */
   const series = useMemo(() => {
     const presentes = new Set<string>();
-    for (const e of recorte) presentes.add(e.sentido ?? "(vazio)");
+    for (const e of gruposAgregado(ag, "grafico")) presentes.add(String(e.sentido ?? "(vazio)"));
     const ordenado = Object.keys(DIC_SENTIDO).filter((s) => presentes.has(s));
     for (const s of presentes) if (!ordenado.includes(s)) ordenado.push(s);
     return ordenado;
-  }, [recorte]);
+  }, [ag]);
 
   const dadosGrafico = useMemo(() => {
     const porMes = new Map<string, Record<string, string | number>>();
-    for (const e of recorte) {
-      const mes = e.mes ?? "(sem mês)";
-      const s = e.sentido ?? "(vazio)";
+    for (const e of gruposAgregado(ag, "grafico")) {
+      const mes = String(e.mes ?? "(sem mês)");
+      const s = String(e.sentido ?? "(vazio)");
       const linha = porMes.get(mes) ?? { mes };
-      linha[s] = Number(linha[s] ?? 0) + 1;
+      linha[s] = Number(e.valor ?? 0);
       porMes.set(mes, linha);
     }
     return [...porMes.values()].sort((a, b) => String(a.mes).localeCompare(String(b.mes)));
-  }, [recorte]);
+  }, [ag]);
 
   function ordenar(coluna: ColunaOrdem) {
     setOrdem((o) =>
@@ -290,7 +241,9 @@ export function HistoricoPrecoTab() {
       : <ArrowDown className="ml-1 inline h-3 w-3" />;
   }
 
-  function exportarCsv() {
+  async function exportarCsv() {
+    try {
+    const recorte = await exportarLista<EventoPreco>(listaParams);
     const cabecalho = [
       "Data", "Código", "SKU", "Nome comercial", "Coleção", "Grupo", "Sentido",
       "Atacado de", "Atacado para", "Varejo de", "Varejo para",
@@ -314,6 +267,7 @@ export function HistoricoPrecoTab() {
     a.download = `historico-preco-${hojeIso()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    } catch (error) { toast.error(formatError(error)); }
   }
 
   return (
@@ -443,9 +397,9 @@ export function HistoricoPrecoTab() {
                 .map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", opcoes.colecoes, undefined, e => e.sku ?? e.cod_cadastro ?? e.id)} selecionados={selecaoProduto.colecao} onChange={(v) => setColecao(v.length ? __el(v) : "todas")} className="w-[180px] h-10" />
-          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "grupo", opcoes.grupos, undefined, e => e.sku ?? e.cod_cadastro ?? e.id)} selecionados={selecaoProduto.grupo} onChange={(v) => setGrupo(v.length ? __el(v) : "todos")} className="w-[170px] h-10" />
-          <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
+          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesDimensao("colecao")} selecionados={selecaoProduto.colecao} onChange={(v) => setColecao(v.length ? __el(v) : "todas")} className="w-[180px] h-10" />
+          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesDimensao("grupo")} selecionados={selecaoProduto.grupo} onChange={(v) => setGrupo(v.length ? __el(v) : "todos")} className="w-[170px] h-10" />
+          <Button variant="outline" size="sm" onClick={() => { void exportarCsv(); }} disabled={!listaQ.data?.total}>
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
@@ -591,7 +545,7 @@ export function HistoricoPrecoTab() {
             </div>
 
             <RodapePaginacao
-              total={recorte.length}
+              total={listaQ.data?.total ?? 0}
               pagina={paginaAtual}
               tamanhoPagina={tamanho}
               tela="historico_preco"

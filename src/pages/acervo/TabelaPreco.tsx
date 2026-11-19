@@ -1,5 +1,5 @@
 import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
-import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
+import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 // Tabela de Preço (espelho) — LEITURA PURA.
 // O preço é gerido pelo time comercial e vive no FOP. Esta tela não escreve
 // preço em lugar nenhum: nem em sncf_produtos, nem no FOP, nem por edge
@@ -40,6 +40,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
+import { useListaPaginada, exportarLista, numeroAgregado, gruposAgregado, type ParamsLista, type FiltroLista } from "@/lib/lista/useListaPaginada";
+import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { HistoricoPrecoTab } from "@/components/acervo/HistoricoPrecoTab";
 
 /** Linha da view vw_preco_espelho (1 por SKU). */
@@ -59,7 +62,7 @@ interface LinhaPreco {
   atacado_maior_desconto: number | null;
   alertas: string[] | null;
   qtd_alertas: number | null;
-  tem_critico: boolean | null;
+  tem_critico: string | boolean | null;
   escada: Record<string, number | null> | null;
   atualizado_em: string | null;
 }
@@ -172,95 +175,33 @@ export default function TabelaPreco() {
     },
   });
 
-  const listaQ = useQuery({
-    queryKey: ["preco-espelho"],
-    queryFn: async (): Promise<LinhaPreco[]> => {
-      const { data, error } = await (supabase as unknown as SupabaseClient)
-        .from("vw_preco_espelho")
-        .select("*")
-        .order("cod_cadastro", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as LinhaPreco[];
-    },
-  });
-
-  const linhas = useMemo(() => listaQ.data ?? [], [listaQ.data]);
   const faixas = useMemo(() => faixasQ.data ?? [], [faixasQ.data]);
   const regras = useMemo(() => regrasQ.data ?? [], [regrasQ.data]);
-
-  const regraPorSlug = useMemo(() => {
-    const m = new Map<string, Regra>();
-    for (const r of regras) m.set(r.slug, r);
-    return m;
-  }, [regras]);
-
-  const ehCritico = useCallback(
-    (l: LinhaPreco) => (l.alertas ?? []).some((s) => regraPorSlug.get(s)?.severidade === "critico"),
-    [regraPorSlug],
-  );
-
-  const opcoes = useMemo(() => {
-    const cole = new Set<string>();
-    const grup = new Set<string>();
-    const fas = new Set<string>();
-    for (const l of linhas) {
-      if (l.colecao) cole.add(l.colecao);
-      if (l.grupo) grup.add(l.grupo);
-      if (l.fase) fas.add(l.fase);
-    }
-    const ord = (s: Set<string>) => [...s].sort((a, b) => a.localeCompare(b, "pt-BR"));
-    return { colecoes: ord(cole), grupos: ord(grup), fases: ord(fas) };
-  }, [linhas]);
-
+  const regraPorSlug = useMemo(() => new Map(regras.map(r => [r.slug, r])), [regras]);
+  const ehCritico = useCallback((l: LinhaPreco) => (l.alertas ?? []).some(slug => regraPorSlug.get(slug)?.severidade === "critico"), [regraPorSlug]);
   const selecaoProduto = { colecao: lerFiltroProduto(colecao), grupo: lerFiltroProduto(grupo), fase: lerFiltroProduto(fase) };
-  const baseBusca = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return linhas.filter(l => !q || [l.cod_cadastro, l.sku, l.nome_comercial, l.colecao, l.cor_nome]
-      .some(v => (v ?? "").toLowerCase().includes(q)));
-  }, [linhas, busca]);
-  const filtroAlerta = (l: LinhaPreco) => alerta === "todos" || (alerta === "com_alerta" ? (l.alertas ?? []).length > 0
-    : alerta === "criticos" ? ehCritico(l) : (l.alertas ?? []).includes(alerta));
-  /** Recorte sem o filtro de alerta — base dos contadores clicáveis. */
-  const baseSemAlerta = filtrarDimensoesProduto(baseBusca, selecaoProduto);
-
-  const contadores = useMemo(() => {
-    let comAlerta = 0;
-    let criticos = 0;
-    const porRegra = new Map<string, number>();
-    for (const l of baseSemAlerta) {
-      const as = l.alertas ?? [];
-      if (as.length > 0) comAlerta += 1;
-      if (ehCritico(l)) criticos += 1;
-      for (const s of as) porRegra.set(s, (porRegra.get(s) ?? 0) + 1);
-    }
-    return { total: baseSemAlerta.length, comAlerta, criticos, porRegra };
-  }, [baseSemAlerta, ehCritico]);
-
-  const recorte = useMemo(() => {
-    let base = baseSemAlerta;
-    if (alerta === "com_alerta") base = base.filter((l) => (l.alertas ?? []).length > 0);
-    else if (alerta === "criticos") base = base.filter(ehCritico);
-    else if (alerta !== "todos") base = base.filter((l) => (l.alertas ?? []).includes(alerta));
-
-    const comparar = (a: LinhaPreco, b: LinhaPreco) => {
-      if (!ordem) {
-        // Padrão: críticos primeiro, depois cod_cadastro.
-        const ca = ehCritico(a) ? 0 : 1;
-        const cb = ehCritico(b) ? 0 : 1;
-        if (ca !== cb) return ca - cb;
-        return String(a.cod_cadastro ?? "").localeCompare(String(b.cod_cadastro ?? ""), "pt-BR", { numeric: true });
-      }
-      const mult = ordem.dir === "asc" ? 1 : -1;
-      const va = a[ordem.coluna];
-      const vb = b[ordem.coluna];
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (typeof va === "number" && typeof vb === "number") return (va - vb) * mult;
-      return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
-    };
-    return [...base].sort(comparar);
-  }, [baseSemAlerta, alerta, ordem, ehCritico]);
+  const filtros: FiltroLista[] = Object.entries(selecaoProduto).flatMap(([c, v]) => v.length ? [{ c, op: "in" as const, v }] : []);
+  if (alerta === "com_alerta") filtros.push({ c: "qtd_alertas", op: "gt", v: 0 });
+  else if (alerta === "criticos") filtros.push({ c: "tem_critico", op: "not_null" });
+  else if (alerta !== "todos") filtros.push({ c: "alertas", op: "contains", v: [alerta] });
+  const ignorarAlerta = ["qtd_alertas", "tem_critico", "alertas"];
+  const listaParams: ParamsLista = {
+    relacao: "vw_preco_espelho", busca, filtros, pagina, tamanho,
+    ordem: [{ c: "tem_critico", dir: "desc" }, { c: ordem?.coluna ?? "cod_cadastro", dir: ordem?.dir ?? "asc" }, { c: "sku", dir: "asc" }],
+    facetas: ["alertas"],
+    agregados: [
+      { id: "total", fn: "count", ignorar: ignorarAlerta },
+      { id: "comAlerta", fn: "count", ignorar: ignorarAlerta, onde: [{ c: "qtd_alertas", op: "gt", v: 0 }] },
+      { id: "criticos", fn: "count", ignorar: ignorarAlerta, onde: [{ c: "tem_critico", op: "not_null" }] },
+      ...["colecao", "grupo", "fase"].map(c => ({ id: c, fn: "count" as const, por: [c], ignorar: [c] })),
+    ],
+  };
+  const listaQ = useListaPaginada<LinhaPreco>(listaParams);
+  const alertasQ = useListaPaginada<LinhaPreco>({ ...listaParams, pagina: 1, tamanho: 1, filtros: filtros.filter(f => !ignorarAlerta.includes(f.c)), agregados: [], facetas: ["alertas"] });
+  const ag = listaQ.data?.agregados;
+  const contadores = { total: numeroAgregado(ag, "total"), comAlerta: numeroAgregado(ag, "comAlerta"), criticos: numeroAgregado(ag, "criticos"),
+    porRegra: new Map((alertasQ.data?.facetas.alertas ?? []).map(f => [f.valor, f.contagem])) };
+  const opcoesDimensao = (c: string) => gruposAgregado(ag, c).filter(g => g[c] != null).map(g => ({ valor: String(g[c]), rotulo: String(g[c]), contagem: Number(g.valor ?? 0) })).sort((a,b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
 
   const primeiraRender = useRef(true);
   useEffect(() => {
@@ -268,9 +209,9 @@ export default function TabelaPreco() {
     setPagina(1);
   }, [busca, colecao, grupo, fase, alerta, tamanho]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
+  const totalPaginas = Math.max(1, Math.ceil((listaQ.data?.total ?? 0) / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const naPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const naPagina = listaQ.data?.linhas ?? [];
   useFocoAoVoltar({ pronto: !listaQ.isLoading, idsVisiveis: naPagina.map((l) => l.cod_cadastro ?? l.sku) });
   useRestaurarScroll(null, !listaQ.isLoading);
 
@@ -289,7 +230,9 @@ export default function TabelaPreco() {
       : <ArrowDown className="ml-1 inline h-3 w-3" />;
   }
 
-  function exportarCsv() {
+  async function exportarCsv() {
+    try {
+    const recorte = await exportarLista<LinhaPreco>(listaParams);
     const cabecalho = [
       "Código", "SKU", "Nome comercial", "Coleção", "Cor", "Preço custo", "Preço varejo",
       ...faixas.map((f) => f.rotulo),
@@ -313,9 +256,10 @@ export default function TabelaPreco() {
     a.download = `tabela-preco-espelho-${hojeIso()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    } catch (error) { toast.error(formatError(error)); }
   }
 
-  const erro = listaQ.error ?? faixasQ.error ?? regrasQ.error;
+  const erro = listaQ.error ?? alertasQ.error ?? faixasQ.error ?? regrasQ.error;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -326,7 +270,7 @@ export default function TabelaPreco() {
           estado="Leitura do preço de cada produto. O preço é definido pelo time comercial."
           acoes={aba === "tabela" ? (
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
+              <Button variant="outline" size="sm" onClick={() => { void exportarCsv(); }} disabled={!listaQ.data?.total}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
               </Button>
@@ -423,9 +367,9 @@ export default function TabelaPreco() {
               className="pl-8"
             />
           </div>
-          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseBusca, selecaoProduto, "colecao", opcoes.colecoes, filtroAlerta, l => l.sku)} selecionados={selecaoProduto.colecao} onChange={setColecao} className="w-[190px] h-10" />
-          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseBusca, selecaoProduto, "grupo", opcoes.grupos, filtroAlerta, l => l.sku)} selecionados={selecaoProduto.grupo} onChange={setGrupo} className="w-[180px] h-10" />
-          <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFiltroProduto(baseBusca, selecaoProduto, "fase", opcoes.fases, filtroAlerta, l => l.sku)} selecionados={selecaoProduto.fase} onChange={setFase} className="w-[160px] h-10" />
+          <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesDimensao("colecao")} selecionados={selecaoProduto.colecao} onChange={setColecao} className="w-[190px] h-10" />
+          <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesDimensao("grupo")} selecionados={selecaoProduto.grupo} onChange={setGrupo} className="w-[180px] h-10" />
+          <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesDimensao("fase")} selecionados={selecaoProduto.fase} onChange={setFase} className="w-[160px] h-10" />
           <Select value={alerta} onValueChange={setAlerta}>
             <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -588,7 +532,7 @@ export default function TabelaPreco() {
             </div>
 
             <RodapePaginacao
-              total={recorte.length}
+              total={listaQ.data?.total ?? 0}
               pagina={paginaAtual}
               tamanhoPagina={tamanho}
               tela="tabela_preco"

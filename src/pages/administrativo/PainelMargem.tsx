@@ -1,11 +1,11 @@
 import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
-import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
+import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { useEstadoTela, resolverAcao, escreverLista } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { CodProduto } from "@/components/produto/CodProduto";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useListaPaginada, numeroAgregado, gruposAgregado, type FiltroLista, type AgregadoLista } from "@/lib/lista/useListaPaginada";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -70,92 +70,46 @@ export default function PainelMargem() {
   const sortDir: SortDir = dirFiltro === "desc" ? "desc" : "asc";
   const setSortDir = (v: SortDir) => setDirFiltro(v);
 
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["painel-margem"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_resultado_produto")
-        .select(
-          "sku, nome_comercial, grupo, colecao, custo, preco_b2b, preco_b2c, resultado_pct_b2b, resultado_pct_b2c, abaixo_piso_b2b, abaixo_piso_b2c"
-        );
-      if (error) throw error;
-      return (data ?? []) as Row[];
-    },
-  });
-
-  const grupos = useMemo(
-    () => Array.from(new Set(data.map((r) => r.grupo).filter(Boolean))).sort() as string[],
-    [data]
-  );
-  const colecoes = useMemo(
-    () => Array.from(new Set(data.map((r) => r.colecao).filter(Boolean))).sort() as string[],
-    [data]
-  );
-
-  const baseOutrosFiltros = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return data.filter((r) => {
-      if (soAbaixo && !(r.abaixo_piso_b2b || r.abaixo_piso_b2c)) return false;
-      if (q) {
-        const hay = [r.sku, r.nome_comercial, r.grupo, r.colecao]
-          .filter(Boolean).join(" ").toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-  }, [data, busca, soAbaixo]);
-  const selecaoProduto = useMemo(() => ({ grupo, colecao }), [grupo, colecao]);
-  const filtrados = useMemo(() => {
-    let out = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
-    if (sortKey) {
-      const key = sortKey === "margem_b2b" ? "resultado_pct_b2b" : "resultado_pct_b2c";
-      out = [...out].sort((a, b) => {
-        const va = a[key as keyof Row] as number | null;
-        const vb = b[key as keyof Row] as number | null;
-        // nulls sempre no fim
-        if (va == null && vb == null) return 0;
-        if (va == null) return 1;
-        if (vb == null) return -1;
-        return sortDir === "asc" ? va - vb : vb - va;
-      });
-    }
-    return out;
-  }, [baseOutrosFiltros, selecaoProduto, sortKey, sortDir]);
-
-  const kpis = useMemo(() => {
-    const abaixoB2B = data.filter((r) => r.abaixo_piso_b2b).length;
-    const abaixoB2C = data.filter((r) => r.abaixo_piso_b2c).length;
-    const b2b = data.map((r) => r.resultado_pct_b2b).filter((v): v is number => v != null);
-    const b2c = data.map((r) => r.resultado_pct_b2c).filter((v): v is number => v != null);
-    const mediaB2B = b2b.length ? b2b.reduce((s, v) => s + v, 0) / b2b.length : null;
-    const mediaB2C = b2c.length ? b2c.reduce((s, v) => s + v, 0) / b2c.length : null;
-    return { abaixoB2B, abaixoB2C, mediaB2B, mediaB2C };
-  }, [data]);
-
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState(50);
+  useEffect(() => setPagina(1), [busca, grupoFiltro, colecaoFiltro, soAbaixo, sortKey, sortDir]);
+  const filtros: FiltroLista[] = [
+    ...(grupo.length ? [{ c: "grupo", op: "in" as const, v: grupo }] : []),
+    ...(colecao.length ? [{ c: "colecao", op: "in" as const, v: colecao }] : []),
+  ];
+  // A condição "B2B OU B2C abaixo" é representada pela união dos SKUs dos dois agregados.
+  const abaixoQ = useListaPaginada<Row>({ relacao: "vw_resultado_produto", tamanho: 1,
+    agregados: ["abaixo_piso_b2b", "abaixo_piso_b2c"].map(c => ({ id: c, fn: "count", por: ["sku"], onde: [{ c, op: "eq", v: true }] })) }, { enabled: soAbaixo });
+  if (soAbaixo) filtros.push({ c: "sku", op: "in", v: [...new Set(["abaixo_piso_b2b", "abaixo_piso_b2c"].flatMap(c => gruposAgregado(abaixoQ.data?.agregados, c).map(g => String(g.sku))))] });
+  const ignorar = ["__busca__", "grupo", "colecao", "sku"];
+  const agregados: AgregadoLista[] = [
+    { id: "base", fn: "count", ignorar },
+    { id: "abaixoB2B", fn: "count", ignorar, onde: [{ c: "abaixo_piso_b2b", op: "eq", v: true }] },
+    { id: "abaixoB2C", fn: "count", ignorar, onde: [{ c: "abaixo_piso_b2c", op: "eq", v: true }] },
+    ...["b2b", "b2c"].flatMap(c => [
+      { id: c, fn: "avg" as const, c: `resultado_pct_${c}`, ignorar },
+      { id: `colecao_${c}`, fn: "avg" as const, c: `resultado_pct_${c}`, por: ["colecao"], ignorar },
+    ]),
+    ...["colecao", "grupo"].map(c => ({ id: c, fn: "count" as const, por: [c], ignorar: [c] })),
+  ];
+  const listaQ = useListaPaginada<Row>({ relacao: "vw_resultado_produto", busca, filtros, pagina, tamanho,
+    ordem: [{ c: sortKey === "margem_b2c" ? "resultado_pct_b2c" : sortKey === "margem_b2b" ? "resultado_pct_b2b" : "sku", dir: sortKey ? sortDir : "asc" }, { c: "sku", dir: "asc" }], agregados }, { enabled: !soAbaixo || abaixoQ.isSuccess });
+  const isLoading = listaQ.isLoading || (soAbaixo && abaixoQ.isLoading);
+  const filtrados = listaQ.data?.linhas ?? [];
+  const ag = listaQ.data?.agregados;
+  const nullable = (id: string) => typeof ag?.[id] === "number" ? ag[id] as number : null;
+  const kpis = { abaixoB2B: numeroAgregado(ag, "abaixoB2B"), abaixoB2C: numeroAgregado(ag, "abaixoB2C"), mediaB2B: nullable("b2b"), mediaB2C: nullable("b2c") };
+  const opcoesDimensao = (c: string) => gruposAgregado(ag, c).filter(g => g[c] != null).map(g => ({ valor: String(g[c]), rotulo: String(g[c]), contagem: Number(g.valor ?? 0) })).sort((a,b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
   const porColecao = useMemo(() => {
-    const map = new Map<string, { b2b: number[]; b2c: number[] }>();
-    for (const r of data) {
-      const k = r.colecao ?? "(sem coleção)";
-      if (!map.has(k)) map.set(k, { b2b: [], b2c: [] });
-      const g = map.get(k)!;
-      if (r.resultado_pct_b2b != null) g.b2b.push(r.resultado_pct_b2b);
-      if (r.resultado_pct_b2c != null) g.b2c.push(r.resultado_pct_b2c);
+    const mapa = new Map<string, { colecao: string; media_b2b: number | null; media_b2c: number | null }>();
+    for (const c of ["b2b", "b2c"] as const) for (const g of gruposAgregado(ag, `colecao_${c}`)) {
+      const colecao = String(g.colecao ?? "(sem coleção)");
+      const linha = mapa.get(colecao) ?? { colecao, media_b2b: null, media_b2c: null };
+      linha[`media_${c}`] = g.valor;
+      mapa.set(colecao, linha);
     }
-    const avg = (arr: number[]) => (arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : null);
-    return Array.from(map.entries())
-      .map(([colecao, g]) => ({
-        colecao,
-        media_b2b: avg(g.b2b),
-        media_b2c: avg(g.b2c),
-        n: g.b2b.length + g.b2c.length,
-      }))
-      .sort((a, b) => {
-        const va = a.media_b2b ?? Number.POSITIVE_INFINITY;
-        const vb = b.media_b2b ?? Number.POSITIVE_INFINITY;
-        return va - vb;
-      });
-  }, [data]);
+    return [...mapa.values()].sort((a,b) => (a.media_b2b ?? Infinity) - (b.media_b2b ?? Infinity));
+  }, [ag]);
 
   const chartData = useMemo(
     () =>
@@ -194,6 +148,7 @@ export default function PainelMargem() {
         estado={`Margem por produto nos canais B2B e B2C. Piso de referência: ${(PISO * 100).toFixed(0)}%. Somente leitura — o preço é decidido no FOP.`}
       />
 
+      {(listaQ.error || abaixoQ.error) && <p className="text-sm text-destructive">{String((listaQ.error ?? abaixoQ.error)?.message)}</p>}
       {/* KPIs */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className={cn(kpis.abaixoB2B > 0 && "border-destructive/40")}>
@@ -313,8 +268,8 @@ export default function PainelMargem() {
               onChange={(e) => setBusca(e.target.value)}
               className="max-w-xs"
             />
-            <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "grupo", grupos, undefined, r => r.sku)} selecionados={grupo} onChange={setGrupo} className="w-[180px] h-10" />
-            <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", colecoes, undefined, r => r.sku)} selecionados={colecao} onChange={setColecao} className="w-[180px] h-10" />
+            <MultiSelectFilter label="Todos os grupos" plural="grupos" opcoes={opcoesDimensao("grupo")} selecionados={grupo} onChange={setGrupo} className="w-[180px] h-10" />
+            <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesDimensao("colecao")} selecionados={colecao} onChange={setColecao} className="w-[180px] h-10" />
             <div className="flex items-center gap-2">
               <Switch id="soAbaixo" checked={soAbaixo} onCheckedChange={setSoAbaixo} />
               <Label htmlFor="soAbaixo" className="text-sm cursor-pointer">Só abaixo do piso</Label>
@@ -332,7 +287,7 @@ export default function PainelMargem() {
               </Button>
             )}
             <div className="ml-auto text-xs text-muted-foreground">
-              {filtrados.length} de {data.length} SKUs
+              {listaQ.data?.total ?? 0} de {numeroAgregado(ag, "base")} SKUs
             </div>
           </div>
         </CardHeader>
@@ -409,6 +364,7 @@ export default function PainelMargem() {
               </Table>
             </div>
           )}
+          <RodapePaginacao total={listaQ.data?.total ?? 0} pagina={pagina} tamanhoPagina={tamanho} onPagina={setPagina} onTamanhoPagina={setTamanho} />
         </CardContent>
       </Card>
     </PageShell>

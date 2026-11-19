@@ -15,11 +15,35 @@ export interface ParamsLista {
   colunas?: string[];
   busca?: string;
   filtros?: FiltroLista[];
-  ordem?: { c: string; dir: "asc" | "desc" }[];
+  ordem?: { c: string; dir: "asc" | "desc"; abs?: boolean }[];
   pagina?: number;
   tamanho?: number;
   facetas?: string[];
   ids?: string[];
+  agregados?: AgregadoLista[];
+}
+
+export interface AgregadoLista {
+  id: string;
+  fn: "sum" | "avg" | "min" | "max" | "count" | "count_distinct" | "pct";
+  c?: string;
+  p?: number;
+  por?: (string | { c: string; trunc: "day" | "week" | "month" | "year" })[];
+  onde?: FiltroLista[];
+  ignorar?: string[];
+}
+
+export type GrupoAgregado = Record<string, string | number | null> & { valor: number | null };
+export type AgregadosLista = Record<string, number | null | GrupoAgregado[]>;
+
+export function numeroAgregado(agregados: AgregadosLista | undefined, id: string): number {
+  const valor = agregados?.[id];
+  return typeof valor === "number" ? valor : 0;
+}
+
+export function gruposAgregado(agregados: AgregadosLista | undefined, id: string): GrupoAgregado[] {
+  const valor = agregados?.[id];
+  return Array.isArray(valor) ? valor : [];
 }
 
 export interface ResultadoLista<T> {
@@ -28,6 +52,7 @@ export interface ResultadoLista<T> {
   tamanho: number;
   linhas: T[];
   facetas: Record<string, { valor: string | null; contagem: number }[]>;
+  agregados: AgregadosLista;
 }
 
 export function useDebounceValor<T>(valor: T, ms = 300): T {
@@ -56,17 +81,31 @@ async function chamarLista<T>(params: ParamsLista): Promise<ResultadoLista<T>> {
   if (error) throw error;
   const r = data as unknown as ResultadoLista<T> | null;
   if (!r) throw new Error(`fn_lista não devolveu resultado para ${params.relacao}.`);
-  return { total: Number(r.total ?? 0), pagina: r.pagina, tamanho: r.tamanho, linhas: r.linhas ?? [], facetas: r.facetas ?? {} };
+  return { total: Number(r.total ?? 0), pagina: r.pagina, tamanho: r.tamanho, linhas: r.linhas ?? [], facetas: r.facetas ?? {}, agregados: r.agregados ?? {} };
 }
 
-export function useListaPaginada<T = Record<string, unknown>>(params: ParamsLista, opcoes?: { enabled?: boolean }) {
-  const busca = useDebounceValor(params.busca ?? "", 300);
+/** Exporta todo o recorte pela mesma RPC, nunca pela relação direta. */
+export async function exportarLista<T>(params: ParamsLista): Promise<T[]> {
+  const linhas: T[] = [];
+  for (let pagina = 1; ; pagina += 1) {
+    const resultado = await chamarLista<T>({ ...params, pagina, tamanho: 500 });
+    linhas.push(...resultado.linhas);
+    if (linhas.length >= resultado.total) return linhas;
+    if (!resultado.linhas.length) throw new Error(`fn_lista interrompeu a exportação de ${params.relacao} antes do total.`);
+  }
+}
+
+export function useListaPaginada<T = Record<string, unknown>>(params: ParamsLista, opcoes?: { enabled?: boolean; refetchInterval?: number; refetchOnWindowFocus?: boolean; debounceMs?: number }) {
+  const buscaDebounce = useDebounceValor(params.busca ?? "", opcoes?.debounceMs ?? 300);
+  const busca = opcoes?.debounceMs === 0 ? params.busca ?? "" : buscaDebounce;
   const efetivos = { ...params, busca };
   return useQuery({
     queryKey: ["lista", params.relacao, efetivos],
     queryFn: () => chamarLista<T>(efetivos),
     placeholderData: keepPreviousData,
     enabled: opcoes?.enabled ?? true,
+    refetchInterval: opcoes?.refetchInterval,
+    refetchOnWindowFocus: opcoes?.refetchOnWindowFocus ?? true,
   });
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useListaPaginada, gruposAgregado } from "@/lib/lista/useListaPaginada";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,41 +31,27 @@ export function EntradaXpm({ pedidoRef: refControlado, onPedidoRefChange }: { pe
     label: string;
   };
 
-  const pedidosQ = useQuery({
-    queryKey: ["xpm-cad-item-pedidos"],
-    queryFn: async (): Promise<PedidoOpt[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_xpm_cad_item")
-        .select("numero_pedido, pedido_ref, fase");
-      if (error) throw error;
-      const rows = (data ?? []) as { numero_pedido: string; pedido_ref: string; fase: number }[];
-      const agg = new Map<string, { numero_pedido: string; pedido_ref: string; fases: Set<number>; linhas: number }>();
-      for (const r of rows) {
-        const cur = agg.get(r.pedido_ref) ?? { numero_pedido: r.numero_pedido, pedido_ref: r.pedido_ref, fases: new Set<number>(), linhas: 0 };
-        cur.fases.add(r.fase);
-        cur.linhas += 1;
-        agg.set(r.pedido_ref, cur);
-      }
-      const opts: PedidoOpt[] = [];
-      for (const v of agg.values()) {
-        const fase: 1 | 2 | "mista" = v.fases.size > 1 ? "mista" : (v.fases.has(1) ? 1 : 2);
-        const faseTxt = fase === "mista" ? "fase mista" : fase === 1 ? "fase 1 — sem NF" : "fase 2 — com NF";
-        opts.push({
-          numero_pedido: v.numero_pedido,
-          pedido_ref: v.pedido_ref,
-          fase,
-          linhas: v.linhas,
-          label: `${v.numero_pedido} · ${v.pedido_ref} · ${faseTxt} · ${v.linhas} linhas`,
-        });
-      }
-      return opts.sort((a, b) => b.numero_pedido.localeCompare(a.numero_pedido));
-    },
-  });
+  const pedidosQ = useListaPaginada({ relacao: "vw_xpm_cad_item", tamanho: 1,
+    agregados: [{ id: "pedidos", fn: "count", por: ["numero_pedido", "pedido_ref", "fase"] }] });
+  const agg = new Map<string, { numero_pedido: string; pedido_ref: string; fases: Set<number>; linhas: number }>();
+  for (const r of gruposAgregado(pedidosQ.data?.agregados, "pedidos")) {
+    const ref = String(r.pedido_ref);
+    const cur = agg.get(ref) ?? { numero_pedido: String(r.numero_pedido), pedido_ref: ref, fases: new Set<number>(), linhas: 0 };
+    cur.fases.add(Number(r.fase));
+    cur.linhas += Number(r.valor ?? 0);
+    agg.set(ref, cur);
+  }
+  const pedidos: PedidoOpt[] = [...agg.values()].map(v => {
+    const fase = v.fases.size > 1 ? "mista" as const : v.fases.has(1) ? 1 as const : 2 as const;
+    const faseTxt = fase === "mista" ? "fase mista" : fase === 1 ? "fase 1 — sem NF" : "fase 2 — com NF";
+    return { numero_pedido: v.numero_pedido, pedido_ref: v.pedido_ref, fase, linhas: v.linhas,
+      label: `${v.numero_pedido} · ${v.pedido_ref} · ${faseTxt} · ${v.linhas} linhas` };
+  }).sort((a,b) => b.numero_pedido.localeCompare(a.numero_pedido));
 
   useEffect(() => {
     if (preSelecionou.current || !pedidoRefUrl || !pedidosQ.data) return;
     preSelecionou.current = true;
-    if (pedidosQ.data.some((p) => p.pedido_ref === pedidoRefUrl)) setPedidoRef(pedidoRefUrl);
+    if (pedidos.some((p) => p.pedido_ref === pedidoRefUrl)) setPedidoRef(pedidoRefUrl);
   }, [pedidosQ.data, pedidoRefUrl]);
 
   async function handleGerar() {
@@ -129,6 +115,7 @@ export function EntradaXpm({ pedidoRef: refControlado, onPedidoRefChange }: { pe
             <CardDescription>Escolha o pedido e baixe a planilha que traduz a NF para os nossos SKUs (Código Material × NF × Cod. NF). Serve para cadastro e para o recebimento na XPM. Pedido em fase 1 (sem NF) sai com NF e Cod. NF vazios.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {pedidosQ.error && <p className="text-sm text-destructive">{pedidosQ.error.message}</p>}
             <div className="space-y-2">
               <Label>Pedido de importação</Label>
               <Select value={pedidoRef} onValueChange={setPedidoRef} disabled={pedidosQ.isLoading}>
@@ -136,7 +123,7 @@ export function EntradaXpm({ pedidoRef: refControlado, onPedidoRefChange }: { pe
                   <SelectValue placeholder={pedidosQ.isLoading ? "Carregando…" : "Selecione um pedido"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {(pedidosQ.data ?? []).map((p) => (
+                  {pedidos.map((p) => (
                     <SelectItem key={p.pedido_ref} value={p.pedido_ref}>
                       {p.label}
                     </SelectItem>
