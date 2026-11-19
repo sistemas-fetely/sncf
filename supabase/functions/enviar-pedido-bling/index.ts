@@ -784,19 +784,21 @@ async function handle(req: Request, sis: ModoSistema | null, reenvioAutorizado =
       return await falhaLimpando("Parceiro sem bling_id — sincronize o parceiro no Bling antes", 409);
     }
 
-    // 2b. Transportadora (opcional)
+    // 2b. Transportadora (opcional) — TRANSPORTADORA-POR-AGENCIA (18/11/2026):
+    // a transportadora EFETIVA vem de fn_pedido_transportadora_efetiva (agência do CD
+    // quando houver de-para em transportadora_agencia_cd; senão a escolhida no pedido).
     let blingTransportadoraId: number | null = null;
     let transpCnpj: string | null = null;
     let transpNome: string | null = null;
+    let transpEfetivaId: string | null = null;
     if (pedido.transportadora_id) {
-      const { data: transp } = await supabase
-        .from("parceiros_comerciais")
-        .select("bling_id, razao_social, cnpj")
-        .eq("id", pedido.transportadora_id)
-        .maybeSingle();
-      if (transp?.bling_id) blingTransportadoraId = Number(transp.bling_id);
-      transpCnpj = transp?.cnpj ?? null;
-      transpNome = transp?.razao_social ?? null;
+      const { data: tEf, error: tEfErr } = await supabase.rpc("fn_pedido_transportadora_efetiva", { p_pedido_id: pedido_id });
+      if (tEfErr) return await falhaLimpando(`Falha ao resolver a transportadora do pedido: ${tEfErr.message}`, 500);
+      const t: any = tEf ?? null;
+      if (t?.bling_id) blingTransportadoraId = Number(t.bling_id);
+      transpCnpj = t?.cnpj ?? null;
+      transpNome = t?.razao_social ?? null;
+      transpEfetivaId = t?.id ?? null;
     }
 
     // 3. Forma de pagamento
@@ -1626,7 +1628,7 @@ if (itensSemProdutoBling.length > 0) {
       // grava o id do contato que o Bling RESOLVEU — 200 não prova que o campo foi
       // entendido, então só vale o id lido de volta. Nunca sobrescreve bling_id existente.
       // Falha aqui não derruba o envio (o pedido já existe no Bling) — só loga.
-      if (pedido.transportadora_id && !blingTransportadoraId && transpNome) {
+      if (transpEfetivaId && !blingTransportadoraId && transpNome) {
         try {
           const resT = await client.get(`/pedidos/vendas/${blingId}`);
           const contatoId = Number(resT?.data?.transporte?.contato?.id ?? 0);
@@ -1634,10 +1636,10 @@ if (itensSemProdutoBling.length > 0) {
             const { error: eT } = await supabase
               .from("parceiros_comerciais")
               .update({ bling_id: String(contatoId) })
-              .eq("id", pedido.transportadora_id)
+              .eq("id", transpEfetivaId)
               .is("bling_id", null);
             if (eT) console.warn("[enviar-pedido-bling] gravar bling_id da transportadora falhou", { pedido_id, erro: eT.message });
-            else console.log("[enviar-pedido-bling] bling_id da transportadora aprendido", { pedido_id, transportadora_id: pedido.transportadora_id, contato_id: contatoId });
+            else console.log("[enviar-pedido-bling] bling_id da transportadora aprendido", { pedido_id, transportadora_id: transpEfetivaId, contato_id: contatoId });
           } else {
             console.warn("[enviar-pedido-bling] Bling não resolveu contato da transportadora", { pedido_id, bling_id: blingId, transportadora: transpNome });
           }
