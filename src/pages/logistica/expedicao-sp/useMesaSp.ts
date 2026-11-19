@@ -934,7 +934,12 @@ export function useTrocarModal() {
       }
       return rpc.mutateAsync(args); // erro do RPC é avisado pelo useRpcMesa
     },
-    onSettled: (_d, _e, a) => { if (a) void qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, a.p_pedido_id] }); },
+    onSettled: (_d, _e, a) => {
+      if (!a) return;
+      void qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, a.p_pedido_id] });
+      // MESA-SP-MODAL-EFETIVO-DOCS: a chave de dados de impressão não casa com o prefixo acima.
+      void qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, "dados-impressao", a.p_pedido_id] });
+    },
   });
 }
 

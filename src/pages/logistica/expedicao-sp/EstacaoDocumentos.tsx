@@ -78,8 +78,10 @@ export function EstacaoDocumentos({ pedido, embalagem, bloqueado = false }: Prop
   const danfeQ = useDanfeEtiqueta(usaZebra ? pedido.id : null, !!dados?.nf);
   const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
   // Serviço (PAC/SEDEX) só vai ao rodapé da etiqueta quando o modal é Correios (exige rastreio).
+  // dados.modal = modal EFETIVO (troca no despacho vence a embalagem, MESA-SP-MODAL-EFETIVO-DOCS);
+  // embalagem.modal é só fallback enquanto dados carrega.
   // dados.modal é o NOME ("Correios") e embalagem.modal é o CÓDIGO ("CORREIOS") — casa por código ou nome.
-  const ehCorreios = modalDoCadastro(modaisQ.data ?? [], embalagem?.modal, dados?.modal)?.exige_etiqueta_correios === true;
+  const ehCorreios = modalDoCadastro(modaisQ.data ?? [], dados?.modal, embalagem?.modal)?.exige_etiqueta_correios === true;
   // Etiqueta Correios gerada pelo SNCF (pré-postagem viva) — a linha fica ok pelo código registrado.
   const ppQ = usePrepostagemViva(ehCorreios ? pedido.id : null);
   const pp = ppQ.data ?? null;
