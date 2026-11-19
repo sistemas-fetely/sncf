@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Mercado Pago credentials render all dimension accounts, including inactive setup rows; connection testing resolves the Vault secret server-side by account code after the existing permission gate, never by a client-provided secret name.
 - Mesa SP pre-arrival reads its own view/query with global freshness and Mesa invalidation; it never enters stage selectors or actions, and detail navigation preserves CD/channel plus card focus.
 - Paginated lists use fn_lista aggregates and 500-row RPC exports; grouped pages retain complete members and read hidden counts through page-key aggregates ignoring all filters. Dedicated XPM RPCs own cycle statistics and distinct stock photos; photo equality preserves timestamp microseconds and database text format because fn_lista eq compares text.
 - Credit analysis pages split preapproved and remaining segments using server counts before fetching page slices, preserving boolean priority without sorting UUIDs. Unsupported external-map formulas and timed-out aggregate queries stay explicitly blocked, never approximated by page totals.
