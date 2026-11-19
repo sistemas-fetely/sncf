@@ -28,26 +28,13 @@ export function useLancamentos() {
     setLoading(true);
     setErro(null);
     try {
-      const { data: lancs, error } = await supabase
-        .from("correios_lancamentos")
+      // vw_correios_lancamento_rastreio já traz rastreio_status e rastreio_entregue (casados no banco).
+      const { data: lancs, error } = await (supabase as any)
+        .from("vw_correios_lancamento_rastreio")
         .select("*")
         .order("data_postagem", { ascending: false });
       if (error) throw error;
-
-      const { data: rastreios } = await supabase
-        .from("pedido_rastreamento")
-        .select("codigo_rastreio, status_atual, entregue");
-
-      const mapR = new Map((rastreios ?? []).map((r: any) => [r.codigo_rastreio, r]));
-      const merged = (lancs ?? []).map((l: any) => {
-        const r = mapR.get(l.etiqueta);
-        return {
-          ...l,
-          rastreio_status: r?.status_atual ?? null,
-          rastreio_entregue: r?.entregue ?? null,
-        };
-      });
-      setLista(merged as Lancamento[]);
+      setLista((lancs ?? []) as Lancamento[]);
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
     } finally {

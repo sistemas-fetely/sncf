@@ -3,6 +3,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import leituraSemLimite from "./eslint-rules/leitura-sem-limite.js";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -28,6 +29,9 @@ export default tseslint.config(
     // primitivos do shadcn e o codigo gerado. O que foi limpo nao suja de novo.
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/components/ui/**", "src/integrations/**"],
+    plugins: {
+      fetely: { rules: { "leitura-sem-limite": leituraSemLimite } },
+    },
     rules: {
       // ===== ERRO CEGO — proibe o idioma que produz "[object Object]" =====
       // ===== SISTEMA VISUAL Fetely — guardiao das regras de cor/peso/largura =====
@@ -70,6 +74,8 @@ export default tseslint.config(
             "SISTEMA VISUAL §2: cor literal em style inline e proibida. Use classe com token semantico. (Cor vinda do banco e excecao — extraia para variavel antes.)",
         },
       ],
+      // ===== LEITURA-SEM-LIMITE — proibe ler relacao grande inteira (corte de 1.000 linhas) =====
+      "fetely/leitura-sem-limite": "error",
     },
   },
   {
@@ -347,6 +353,44 @@ export default tseslint.config(
     ],
     rules: {
       "react-hooks/rules-of-hooks": "warn",
+    },
+  },
+  {
+    // ===== RATCHET LEITURA-SEM-LIMITE — dívida legada, só pode encolher; arquivo migrado sai daqui =====
+    // Onda 1/3 (19/11/2026) retirou: TrocarCdVDDialog, GED, CadastroPedidoCompra, DeParaFornecedor,
+    // MarcacaoPedido, BuscarDocumentoDialog, usePedidoRelogio, useLancamentos, useAcordosTitulos.
+    files: [
+      "src/components/acervo/HistoricoPrecoTab.tsx",
+      "src/components/acervo/XpmCadastroPainel.tsx",
+      "src/components/vendas/DashB2c.tsx",
+      "src/hooks/auditoria/useAuditoria.ts",
+      "src/hooks/comercial/useMesaEntrega.ts",
+      "src/hooks/credito/useTitulosCobranca.ts",
+      "src/hooks/financas/useFluxoCompetencia.ts",
+      "src/hooks/financeiro/useTituloEstadoKpis.ts",
+      "src/hooks/tarefas/usePedidosParaVinculo.ts",
+      "src/hooks/tarefas/useTitulosParaVinculo.ts",
+      "src/hooks/vendas/useB2c.ts",
+      "src/pages/acervo/CartorioCodigos.tsx",
+      "src/pages/acervo/TabelaPreco.tsx",
+      "src/pages/administrativo/AnaliseDespesas.tsx",
+      "src/pages/administrativo/BancoSafra.tsx",
+      "src/pages/administrativo/CaixaBanco.tsx",
+      "src/pages/administrativo/ConciliacaoMesa.tsx",
+      "src/pages/administrativo/ContasReceber.tsx",
+      "src/pages/administrativo/DashboardFinanceiro.tsx",
+      "src/pages/administrativo/Despesas.tsx",
+      "src/pages/administrativo/NFsStage.tsx",
+      "src/pages/administrativo/PainelMargem.tsx",
+      "src/pages/vendas/xpm/ComparativoFontesXpm.tsx",
+      "src/pages/vendas/xpm/EstoqueXpm.tsx",
+      "src/pages/vendas/xpm/ExpedicoesXpm.tsx",
+      "src/pages/vendas/xpm/PainelXpm.tsx",
+      "src/pages/vendas/xpm/components/EntradaXpm.tsx",
+    ],
+    ignores: ["**/*.test.*"],
+    rules: {
+      "fetely/leitura-sem-limite": "warn",
     },
   },
 );

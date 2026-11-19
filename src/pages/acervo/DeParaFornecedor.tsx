@@ -1,5 +1,5 @@
 import { useEstadoTela } from "@/lib/navegacao";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { nomeExibicao } from "@/lib/parceiros/nome";
+import { rawMessage } from "@/lib/format-error";
+import { useListaPaginada } from "@/lib/lista/useListaPaginada";
+import { ParceiroBusca } from "@/components/parceiros/ParceiroBusca";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
@@ -155,88 +158,37 @@ export default function DeParaFornecedor() {
   const qc = useQueryClient();
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: componente embutido, prefixo "dp".
-  const [nav, setNav] = useEstadoTela({ forn: "todos", busca: "", tipo: "todos" }, { prefixo: "dp", replaceKeys: ["busca"] });
+  const [nav, setNav] = useEstadoTela({ forn: "todos", busca: "", tipo: "todos", pag: 1 }, { prefixo: "dp", replaceKeys: ["busca"] });
   const fornecedorFiltro = nav.forn;
-  const setFornecedorFiltro = (v: string) => setNav({ forn: v });
+  const setFornecedorFiltro = (v: string) => setNav({ forn: v, pag: 1 });
   const busca = nav.busca;
-  const setBusca = (v: string) => setNav({ busca: v });
+  const setBusca = (v: string) => setNav({ busca: v, pag: 1 });
   const tipoFiltro = nav.tipo as TipoLinha | "todos";
-  const setTipoFiltro = (v: TipoLinha | "todos") => setNav({ tipo: v });
+  const setTipoFiltro = (v: TipoLinha | "todos") => setNav({ tipo: v, pag: 1 });
 
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [confirmarDelete, setConfirmarDelete] = useState<VwFornecedorProduto | null>(null);
 
-  // Lista principal
-  const listaQ = useQuery({
-    queryKey: ["fornecedor-produto-lista"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_fornecedor_produto")
-        .select("*")
-        .order("fornecedor", { ascending: true })
-        .order("codigo_fornecedor", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as VwFornecedorProduto[];
-    },
+  // Lista principal — filtro, busca, ordem e página no banco (fn_lista), nunca a view inteira.
+  const pagina = Math.max(1, Number(nav.pag ?? 1) || 1);
+  const setPagina = (n: number) => setNav({ pag: Math.max(1, n) });
+  const TAMANHO = 100;
+  const listaQ = useListaPaginada<VwFornecedorProduto>({
+    relacao: "vw_fornecedor_produto",
+    busca,
+    filtros: [
+      ...(fornecedorFiltro !== "todos" ? [{ c: "fornecedor_id", op: "eq" as const, v: fornecedorFiltro }] : []),
+      ...(tipoFiltro !== "todos" ? [{ c: "tipo_linha", op: "eq" as const, v: tipoFiltro }] : []),
+    ],
+    ordem: [{ c: "fornecedor", dir: "asc" }, { c: "codigo_fornecedor", dir: "asc" }],
+    pagina,
+    tamanho: TAMANHO,
   });
-
-  // Fornecedores (parceiros comerciais)
-  const parceirosQ = useQuery({
-    queryKey: ["parceiros-comerciais-lista-lite"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("parceiros_comerciais")
-        .select("id, nome_fantasia, razao_social")
-        .order("nome_fantasia", { ascending: true })
-        .limit(2000);
-      if (error) throw error;
-      return (data ?? []) as Parceiro[];
-    },
-  });
-
-  const parceirosById = useMemo(() => {
-    const map = new Map<string, Parceiro>();
-    (parceirosQ.data ?? []).forEach((p) => map.set(p.id, p));
-    return map;
-  }, [parceirosQ.data]);
-
-  const nomeParceiro = (p: Parceiro) =>
-    nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)");
-
-  // Opções do select de filtro: fornecedores com de-para + fallback "todos"
-  const fornecedoresComDePara = useMemo(() => {
-    const map = new Map<string, string>();
-    (listaQ.data ?? []).forEach((r) => {
-      if (r.fornecedor_id) map.set(r.fornecedor_id, r.fornecedor || r.fornecedor_id);
-    });
-    return Array.from(map.entries())
-      .map(([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [listaQ.data]);
-
-  const linhasFiltradas = useMemo(() => {
-    let arr = listaQ.data ?? [];
-    if (fornecedorFiltro !== "todos") {
-      arr = arr.filter((r) => r.fornecedor_id === fornecedorFiltro);
-    }
-    if (tipoFiltro !== "todos") {
-      arr = arr.filter((r) => r.tipo_linha === tipoFiltro);
-    }
-    if (busca.trim()) {
-      const q = busca.trim().toLowerCase();
-      arr = arr.filter(
-        (r) =>
-          r.codigo_fornecedor.toLowerCase().includes(q) ||
-          (r.descricao_fornecedor || "").toLowerCase().includes(q) ||
-          (r.sku || "").toLowerCase().includes(q) ||
-          (r.produto || "").toLowerCase().includes(q) ||
-          (r.fornecedor || "").toLowerCase().includes(q) ||
-          (r.apelido || "").toLowerCase().includes(q),
-      );
-    }
-    return arr;
-  }, [listaQ.data, fornecedorFiltro, tipoFiltro, busca]);
+  const linhasFiltradas = listaQ.data?.linhas ?? [];
+  const totalLinhas = listaQ.data?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(totalLinhas / TAMANHO));
+  useEffect(() => { if (listaQ.isError) toast.error(rawMessage(listaQ.error)); }, [listaQ.isError, listaQ.error]);
 
   // -----------------------------------------------
   // Mutations
@@ -343,26 +295,20 @@ export default function DeParaFornecedor() {
 
       {/* Conferir códigos de uma nota */}
       <ConferirCodigosBloco
-        parceiros={parceirosQ.data ?? []}
         onMapear={(fornecedor_id, codigo) => abrirCriar(fornecedor_id, codigo)}
       />
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-72">
-          <Select value={fornecedorFiltro} onValueChange={setFornecedorFiltro}>
-            <SelectTrigger>
-              <SelectValue placeholder="Fornecedor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os fornecedores</SelectItem>
-              {fornecedoresComDePara.map((f) => (
-                <SelectItem key={f.id} value={f.id}>
-                  {f.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+<ParceiroBusca
+            tipo="fornecedor"
+            permitirLimpar
+            value={fornecedorFiltro === "todos" ? null : fornecedorFiltro}
+            onChange={(id) => setFornecedorFiltro(id ?? "todos")}
+            placeholder="Todos os fornecedores"
+            rotulo={(p) => nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)")}
+          />
         </div>
         <div className="w-40">
           <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v as TipoLinha | "todos")}>
@@ -475,6 +421,15 @@ export default function DeParaFornecedor() {
               </TableBody>
             </Table>
           )}
+          {totalLinhas > 0 && (
+            <div className="flex items-center justify-between gap-3 border-t p-3 text-sm text-muted-foreground">
+              <span>{totalLinhas.toLocaleString("pt-BR")} mapeamentos · página {pagina} de {totalPaginas}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={pagina <= 1 || listaQ.isFetching} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
+                <Button variant="outline" size="sm" disabled={pagina >= totalPaginas || listaQ.isFetching} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -487,9 +442,6 @@ export default function DeParaFornecedor() {
         }}
         form={form}
         setForm={setForm}
-        parceiros={parceirosQ.data ?? []}
-        parceirosById={parceirosById}
-        nomeParceiro={nomeParceiro}
         onSubmit={() => salvar.mutate(form)}
         submitting={salvar.isPending}
       />
@@ -528,10 +480,8 @@ export default function DeParaFornecedor() {
 // ==========================================================================
 
 function ConferirCodigosBloco({
-  parceiros,
   onMapear,
 }: {
-  parceiros: Parceiro[];
   onMapear: (fornecedor_id: string, codigo: string) => void;
 }) {
   const [fornecedorId, setFornecedorId] = useState<string>("");
@@ -577,18 +527,13 @@ function ConferirCodigosBloco({
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,320px)_1fr_auto] gap-3 items-start">
           <div>
             <Label className="text-xs text-muted-foreground">Fornecedor</Label>
-            <Select value={fornecedorId} onValueChange={setFornecedorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o fornecedor" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {parceiros.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {nome(p)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+<ParceiroBusca
+              tipo="fornecedor"
+              value={fornecedorId || null}
+              onChange={(id) => setFornecedorId(id ?? "")}
+              placeholder="Selecione o fornecedor"
+              rotulo={(p) => nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)")}
+            />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">
@@ -730,9 +675,6 @@ function FormDialog({
   onOpenChange,
   form,
   setForm,
-  parceiros,
-  parceirosById,
-  nomeParceiro,
   onSubmit,
   submitting,
 }: {
@@ -740,9 +682,6 @@ function FormDialog({
   onOpenChange: (o: boolean) => void;
   form: FormData;
   setForm: (f: FormData) => void;
-  parceiros: Parceiro[];
-  parceirosById: Map<string, Parceiro>;
-  nomeParceiro: (p: Parceiro) => string;
   onSubmit: () => void;
   submitting: boolean;
 }) {
@@ -753,7 +692,6 @@ function FormDialog({
     setForm({ ...form, tipo_linha: t, sku: t === "produto" ? form.sku : "" });
   };
 
-  const fornecedorAtual = form.fornecedor_id ? parceirosById.get(form.fornecedor_id) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -771,9 +709,6 @@ function FormDialog({
             <ParceiroCombobox
               value={form.fornecedor_id}
               onChange={(v) => setForm({ ...form, fornecedor_id: v })}
-              parceiros={parceiros}
-              nomeParceiro={nomeParceiro}
-              currentLabel={fornecedorAtual ? nomeParceiro(fornecedorAtual) : null}
             />
           </div>
 
@@ -897,47 +832,19 @@ function FormDialog({
 function ParceiroCombobox({
   value,
   onChange,
-  parceiros,
-  nomeParceiro,
-  currentLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
-  parceiros: Parceiro[];
-  nomeParceiro: (p: Parceiro) => string;
-  currentLabel: string | null;
 }) {
-  const [open, setOpen] = useState(false);
+  // COMBO-POR-DIGITACAO: busca no banco (fn_busca_parceiro), nunca a base inteira.
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-          {currentLabel || "Selecione o fornecedor..."}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-        <Command>
-          <CommandInput placeholder="Buscar fornecedor..." />
-          <CommandList>
-            <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
-            <CommandGroup>
-              {parceiros.slice(0, 500).map((p) => (
-                <CommandItem
-                  key={p.id}
-                  value={`${nomeParceiro(p)} ${p.id}`}
-                  onSelect={() => {
-                    onChange(p.id);
-                    setOpen(false);
-                  }}
-                >
-                  {nomeParceiro(p)}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <ParceiroBusca
+      tipo="fornecedor"
+      value={value || null}
+      onChange={(id) => onChange(id ?? "")}
+      placeholder="Selecione o fornecedor..."
+      rotulo={(p) => nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)")}
+    />
   );
 }
 

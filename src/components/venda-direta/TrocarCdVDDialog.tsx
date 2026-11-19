@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ParceiroBusca, buscarParceiros } from "@/components/parceiros/ParceiroBusca";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { invalidarVendaDireta } from "./queryKeys";
 import { argsTrocaCdVD, exigeTransportadoraVD, podeConfirmarTrocaCdVD, type PedidoTrocaCdVD } from "./trocarCdVD";
@@ -30,22 +31,21 @@ export function TrocarCdVDDialog({ pedido, onClose }: { pedido: PedidoTrocaCdVD;
   const opcoes = useQuery({
     queryKey: ["vd-trocar-cd-opcoes"],
     queryFn: async () => {
-      const [cds, canais, transportadoras] = await Promise.all([
+      const [cds, canais, braspress] = await Promise.all([
         supabase.from("centro_distribuicao").select("codigo, rotulo_curto").eq("ativo", true).eq("vende", true).order("rotulo_curto"),
         supabase.from("centro_canal").select("centro_codigo").eq("canal", "B2C").eq("habilitado", true),
-        supabase.from("parceiros_comerciais").select("id, razao_social").contains("tipos", ["transportadora"]).not("bling_id", "is", null).order("razao_social"),
+        buscarParceiros({ q: "braspress", tipo: "transportadora", com_bling: true, limite: 1 }),
       ]);
       if (cds.error) throw cds.error;
       if (canais.error) throw canais.error;
-      if (transportadoras.error) throw transportadoras.error;
       const habilitados = new Set(canais.data.map((c) => c.centro_codigo));
-      return { cds: cds.data.filter((c) => habilitados.has(c.codigo)), transportadoras: transportadoras.data };
+      return { cds: cds.data.filter((c) => habilitados.has(c.codigo)), braspressId: braspress[0]?.id ?? "" };
     },
   });
   useEffect(() => {
     if (!opcoes.data) return;
     setCentro(opcoes.data.cds.find((c) => c.codigo === "XPM-SC")?.codigo ?? "");
-    setTransportadora(opcoes.data.transportadoras.find((t) => t.razao_social?.toUpperCase().includes("BRASPRESS"))?.id ?? "");
+    setTransportadora(opcoes.data.braspressId);
   }, [opcoes.data]);
   useEffect(() => { if (opcoes.error) toast.error(rawMessage(opcoes.error)); }, [opcoes.error]);
   const trocar = useMutation({
@@ -86,10 +86,9 @@ export function TrocarCdVDDialog({ pedido, onClose }: { pedido: PedidoTrocaCdVD;
           {opcoes.isSuccess && !opcoes.data.cds.length && <p className="text-sm text-muted-foreground">Nenhum CD de venda habilitado para B2C.</p>}
         </div>
         <div className="space-y-1"><Label htmlFor="vd-troca-transportadora">Transportadora{obrigatoria ? " *" : ""}</Label>
-          <Select value={transportadora || "nenhuma"} onValueChange={(v) => setTransportadora(v === "nenhuma" ? "" : v)} disabled={!opcoes.isSuccess || trocar.isPending}>
-            <SelectTrigger id="vd-troca-transportadora"><SelectValue placeholder="Selecione a transportadora" /></SelectTrigger>
-            <SelectContent><SelectItem value="nenhuma">Sem transportadora selecionada</SelectItem>{opcoes.data?.transportadoras.map((t) => <SelectItem key={t.id} value={t.id}>{t.razao_social}</SelectItem>)}</SelectContent>
-          </Select>
+          <ParceiroBusca id="vd-troca-transportadora" tipo="transportadora" comBling permitirLimpar value={transportadora || null}
+            onChange={(id) => setTransportadora(id ?? "")} placeholder="Sem transportadora selecionada"
+            rotulo={(t) => t.razao_social || t.nome_fantasia || "(sem nome)"} disabled={!opcoes.isSuccess || trocar.isPending} />
           {obrigatoria && <p className="text-sm text-muted-foreground">Retirada no Site SP vira entrega pela transportadora no endereço do cadastro do cliente.</p>}
         </div>
         <p className="text-sm text-muted-foreground">Frete por conta da Fetely — o total do pedido não muda.</p>

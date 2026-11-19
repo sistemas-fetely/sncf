@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { buscarTodos } from "@/lib/supabaseLotes";
+import { ParceiroBusca } from "@/components/parceiros/ParceiroBusca";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,11 +110,11 @@ export default function GED() {
   const { data: pastas = [], isLoading: loadingPastas } = useQuery({
     queryKey: ["ged-pastas"],
     queryFn: async () => {
-      const { data: rawPastas, error } = await (supabase as any)
-        .from("vw_ged_pastas_kpis")
-        .select("*")
-        .order("nome");
-      if (error) throw error;
+      // Árvore inteira de pastas: carga em lotes (ordem estável nome, id) para não cortar em 1.000.
+      const rawPastas = await buscarTodos(
+        () => (supabase as any).from("vw_ged_pastas_kpis").select("*"),
+        ["nome", "id"],
+      );
 
       const lista = (rawPastas ?? []) as Pasta[];
 
@@ -629,16 +631,6 @@ export function NovaPastaDialog({
   const [parceiroId, setParceiroId] = useState<string>("");
   const [salvando, setSalvando] = useState(false);
 
-  const { data: parceiros = [] } = useQuery({
-    queryKey: ["parceiros-select"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("parceiros_comerciais")
-        .select("id, razao_social")
-        .order("razao_social");
-      return data ?? [];
-    },
-  });
 
   async function salvar() {
     if (!nome.trim()) {
@@ -715,18 +707,8 @@ export function NovaPastaDialog({
           {!parentId && (
             <div className="space-y-1">
               <Label>Parceiro relacionado</Label>
-              <Select value={parceiroId} onValueChange={setParceiroId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Opcional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(parceiros as any[]).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ParceiroBusca value={parceiroId || null} onChange={(id) => setParceiroId(id ?? "")} placeholder="Opcional" permitirLimpar
+                rotulo={(p) => p.razao_social || p.nome_fantasia || "(sem nome)"} />
             </div>
           )}
           {parentId && parentNome && (
@@ -781,16 +763,6 @@ function UploadDocumentoDialog({
   const [salvandoTudo, setSalvandoTudo] = useState(false);
 
   const { data: tipos = [] } = useParametros("tipo_documento_ged");
-  const { data: parceiros = [] } = useQuery({
-    queryKey: ["parceiros-select"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("parceiros_comerciais")
-        .select("id, razao_social")
-        .order("razao_social");
-      return data ?? [];
-    },
-  });
 
   function reset() {
     setItens([]);
@@ -1043,7 +1015,6 @@ function UploadDocumentoDialog({
                   key={item.id}
                   item={item}
                   tipos={tipos as any[]}
-                  parceiros={parceiros as any[]}
                   onAtualizar={(c) => atualizarItem(item.id, c)}
                   onRemover={() => removerItem(item.id)}
                 />
@@ -1083,13 +1054,11 @@ function UploadDocumentoDialog({
 function ItemUploadCard({
   item,
   tipos,
-  parceiros,
   onAtualizar,
   onRemover,
 }: {
   item: ItemUpload;
   tipos: any[];
-  parceiros: any[];
   onAtualizar: (campos: Partial<ItemUpload>) => void;
   onRemover: () => void;
 }) {
@@ -1195,21 +1164,8 @@ function ItemUploadCard({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Parceiro</Label>
-              <Select
-                value={item.parceiroId}
-                onValueChange={(v) => onAtualizar({ parceiroId: v })}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue placeholder="Opcional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {parceiros.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ParceiroBusca value={item.parceiroId || null} onChange={(id) => onAtualizar({ parceiroId: id ?? "" })} placeholder="Opcional" permitirLimpar
+                rotulo={(p) => p.razao_social || p.nome_fantasia || "(sem nome)"} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Tags (vírgula)</Label>

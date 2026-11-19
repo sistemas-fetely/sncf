@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
+import { ParceiroBusca, buscarParceiros } from "@/components/parceiros/ParceiroBusca";
 import { invalidarCompras } from "@/lib/compras/invalidar";
 import {
   gerarTemplatePedidoMercadoria,
@@ -222,61 +223,20 @@ function parsearLinhas(texto: string): LinhaParsed[] {
 // ============================================================================
 
 function FornecedorCombobox({
-  parceiros,
   value,
   onChange,
 }: {
-  parceiros: Parceiro[];
   value: string;
   onChange: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const sel = parceiros.find((p) => p.id === value);
-  const label = sel
-    ? nomeExibicao(sel.razao_social, sel.nome_fantasia)
-    : "Selecione o fornecedor";
+  // COMBO-POR-DIGITACAO: busca no banco, nunca a base inteira de parceiros.
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          className={cn("w-full justify-between font-normal", !sel && "text-muted-foreground")}
-        >
-          <span className="truncate">{label}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-        <Command>
-          <CommandInput placeholder="Buscar fornecedor..." />
-          <CommandList>
-            <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
-            <CommandGroup>
-              {parceiros.map((p) => (
-                <CommandItem
-                  key={p.id}
-                  value={`${p.nome_fantasia ?? ""} ${p.razao_social ?? ""}`}
-                  onSelect={() => {
-                    onChange(p.id);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex flex-col">
-                    <span>{nomeCanonico(p.razao_social, p.nome_fantasia ?? "—")}</span>
-                    {apelidoParceiro(p.razao_social, p.nome_fantasia) && (
-                      <span className="text-xs text-muted-foreground">
-                        {apelidoParceiro(p.razao_social, p.nome_fantasia)}
-                      </span>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <ParceiroBusca
+      value={value || null}
+      onChange={(id) => onChange(id ?? "")}
+      placeholder="Selecione o fornecedor"
+      rotulo={(p) => nomeExibicao(p.razao_social, p.nome_fantasia)}
+    />
   );
 }
 
@@ -339,17 +299,6 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
     },
   });
 
-  const parceirosQ = useQuery({
-    queryKey: ["parceiros-comerciais-lista-lite"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("parceiros_comerciais")
-        .select("id, nome_fantasia, razao_social")
-        .order("nome_fantasia");
-      if (error) throw error;
-      return (data ?? []) as Parceiro[];
-    },
-  });
 
   // ---------------- Estado do formulário ----------------
   const [header, setHeader] = useState<HeaderForm>(EMPTY_HEADER);
@@ -393,7 +342,7 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
   };
 
   // Cabeçalho vindo da planilha: só preenche o que a planilha trouxe.
-  const aplicarCabecalhoPlanilha = (cab: CabecalhoPlanilha) => {
+  const aplicarCabecalhoPlanilha = async (cab: CabecalhoPlanilha) => {
     const norm = (v: string) =>
       v
         .toLowerCase()
@@ -406,8 +355,16 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
           (m) => norm(m.codigo) === norm(cab.modalidade!) || norm(m.rotulo) === norm(cab.modalidade!),
         )
       : undefined;
+    let candidatosFornecedor: Awaited<ReturnType<typeof buscarParceiros>> = [];
+    if (cab.fornecedor) {
+      try {
+        candidatosFornecedor = await buscarParceiros({ q: cab.fornecedor, limite: 50 });
+      } catch (e) {
+        toast.error(`Falha ao procurar o fornecedor: ${formatError(e)}`);
+      }
+    }
     const fornecedor = cab.fornecedor
-      ? parceirosQ.data?.find(
+      ? candidatosFornecedor.find(
           (x) =>
             norm(x.nome_fantasia ?? "") === norm(cab.fornecedor!) ||
             norm(x.razao_social ?? "") === norm(cab.fornecedor!),
@@ -607,7 +564,6 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
             <div className="space-y-1.5 md:col-span-2">
               <Label>Fornecedor *</Label>
               <FornecedorCombobox
-                parceiros={parceirosQ.data ?? []}
                 value={header.fornecedor_id}
                 onChange={(id) => setHeader({ ...header, fornecedor_id: id })}
               />
@@ -860,7 +816,7 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
         open={importOpen}
         onOpenChange={setImportOpen}
         temTextoAtual={textoLinhas.trim().length > 0}
-        onImportarCabecalho={(cab) => aplicarCabecalhoPlanilha(cab)}
+        onImportarCabecalho={(cab) => void aplicarCabecalhoPlanilha(cab)}
         onImportar={(texto, modo) => {
           setTextoLinhas((cur) =>
             modo === "substituir" || !cur.trim() ? texto : `${cur.replace(/\s*$/, "")}\n${texto}`,

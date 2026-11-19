@@ -7,7 +7,7 @@
 // novo na catraca para fazer o build passar: corrija o codigo.
 import base from "./eslint.config.js";
 
-const PORTAO = new Set(["no-restricted-syntax", "react-hooks/rules-of-hooks"]);
+const PORTAO = new Set(["no-restricted-syntax", "react-hooks/rules-of-hooks", "fetely/leitura-sem-limite"]);
 
 export default base.map((bloco) =>
   bloco.rules

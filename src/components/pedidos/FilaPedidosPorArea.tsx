@@ -574,7 +574,6 @@ export function FilaPedidosPorArea({
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
   const { data: riscoMap } = usePedidoRisco();
-  const { data: relogioMap } = usePedidoRelogio();
   const { data: faixas } = usePedidoRiscoFaixas();
   // Alerta operacional — fonte única: vw_pedido_alerta (achados vivos da auditoria).
   const { data: alertaMap } = usePedidoAlerta();
@@ -615,6 +614,13 @@ export function FilaPedidosPorArea({
 
   // NOME-CANONICO-COM-APELIDO: v_pedidos_fila não traz apelido. Uma consulta
   // batelada em vw_parceiro_nome cobre a lista inteira (nunca por linha).
+  // Relógio lido por chave: só os pedidos que a fila tem na tela (lista + perna do apelido).
+  const pedidoIdsRelogio = useMemo(
+    () => [...(data || []), ...(pedidosPorApelido || [])].map((p) => p.id),
+    [data, pedidosPorApelido],
+  );
+  const { data: relogioMap } = usePedidoRelogio(pedidoIdsRelogio);
+
   const parceiroIdsLista = useMemo(() => {
     const set = new Set<string>();
     (data || []).forEach((p) => { if (p.parceiro_id) set.add(p.parceiro_id); });

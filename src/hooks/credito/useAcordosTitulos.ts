@@ -10,13 +10,21 @@ export function useAcordosTitulos() {
     ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async (): Promise<Map<string, string>> => {
       const sb = supabase as any;
-      const [acordos, origens, filhos] = await Promise.all([
+      const [acordos, origens] = await Promise.all([
         sb.from("acordo_renegociacao").select("id, numero_acordo"),
         sb.from("acordo_titulo").select("acordo_id, titulo_id"),
-        sb.from("titulo_a_receber").select("id, acordo_id").not("acordo_id", "is", null),
       ]);
-      for (const r of [acordos, origens, filhos]) {
+      for (const r of [acordos, origens]) {
         if (r.error) throw new Error(`Falha ao ler acordos: ${r.error.message}`);
+      }
+      // Títulos filhos lidos por chave (acordo_id), em lotes de 200 — nunca a carteira inteira.
+      const idsAcordos: string[] = (acordos.data ?? []).map((a: any) => a.id);
+      const filhos = { data: [] as { id: string; acordo_id: string }[] };
+      for (let i = 0; i < idsAcordos.length; i += 200) {
+        const lote = idsAcordos.slice(i, i + 200);
+        const r = await sb.from("titulo_a_receber").select("id, acordo_id").in("acordo_id", lote);
+        if (r.error) throw new Error(`Falha ao ler títulos dos acordos: ${r.error.message}`);
+        filhos.data.push(...(r.data ?? []));
       }
       const numero = new Map<string, string>(
         (acordos.data ?? []).map((a: any) => [a.id, a.numero_acordo]),

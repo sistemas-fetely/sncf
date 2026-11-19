@@ -88,7 +88,9 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
         .is("conta_pagar_id", null)
         .is("motivo_descarte", null)
         .not("status", "in", "(descartada,duplicata)")
-        .not("plano_contas_id", "is", null);
+        .not("plano_contas_id", "is", null)
+        .order("nf_data_emissao", { ascending: false })
+        .limit(50);
 
       for (const tok of tokens) {
         const digits = tok.replace(/\D/g, "");
@@ -101,9 +103,7 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
         query = query.or(parts.join(","));
       }
 
-      const { data, error } = await query
-        .order("nf_data_emissao", { ascending: false })
-        .limit(30);
+      const { data, error } = await query;
       if (error) throw error;
       if (myReq !== reqIdRef.current) return;
 

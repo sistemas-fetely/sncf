@@ -29,13 +29,9 @@ function useSugestoesMarcacao() {
   return useQuery({
     queryKey: ["marcacoes-sugestoes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select("marcacao")
-        .not("marcacao", "is", null)
-        .neq("marcacao", "");
+      const { data, error } = await supabase.rpc("fn_marcacoes_usadas" as never);
       if (error) throw error;
-      const usadas = [...new Set((data ?? []).map((r) => r.marcacao as string))].sort();
+      const usadas = ((data ?? []) as unknown as string[]).filter(Boolean);
       const extras = usadas.filter((s) => !SUGESTOES_PADRAO.includes(s));
       return [...SUGESTOES_PADRAO, ...extras];
     },
