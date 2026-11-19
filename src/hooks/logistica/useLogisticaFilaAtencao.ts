@@ -1,4 +1,5 @@
-import { useListaPaginada, type ParamsLista } from "@/lib/lista/useListaPaginada";
+import { useQuery } from "@tanstack/react-query";
+import { exportarLista } from "@/lib/lista/useListaPaginada";
 
 export type MotivoAtencao =
   | "entregue_sem_lastro"
@@ -32,17 +33,12 @@ export interface FilaAtencaoRow {
 }
 
 /** Pedidos que precisam de olhar humano: view vw_logistica_fila_atencao. */
-export function useLogisticaFilaAtencao(params: Omit<ParamsLista, "relacao"> = {}) {
-  return useListaPaginada<FilaAtencaoRow>({
-    ...params,
-    relacao: "vw_logistica_fila_atencao",
-    ordem: [{ c: "severidade", dir: "asc" }, { c: "dias_desde_faturamento", dir: "desc" }],
-    agregados: [
-      { id: "universo", fn: "count", ignorar: ["*"] },
-      { id: "motivos", fn: "min", c: "severidade", por: ["motivo"], ignorar: ["*"] },
-      { id: "urgente", fn: "count", onde: [{ c: "severidade", op: "lte", v: 2 }] },
-      { id: "atencao", fn: "count", onde: [{ c: "severidade", op: "eq", v: 3 }] },
-      { id: "informativo", fn: "count", onde: [{ op: "or", v: [{ c: "severidade", op: "gt", v: 3 }, { c: "severidade", op: "is_null" }] }] },
-    ],
+export function useLogisticaFilaAtencao() {
+  return useQuery({
+    queryKey: ["logistica", "fila-atencao", "vw_logistica_fila_atencao"],
+    queryFn: async (): Promise<FilaAtencaoRow[]> => {
+      // PARE: fn_lista também excede o tempo; não alterar filtros nem contadores.
+      return exportarLista<FilaAtencaoRow>({ relacao: "vw_logistica_fila_atencao", ordem: [{ c: "severidade", dir: "asc" }, { c: "dias_desde_faturamento", dir: "desc" }] });
+    },
   });
 }
