@@ -30,7 +30,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
 import { Switch } from "@/components/ui/switch";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { alternarFiltroVD, correspondeFiltroVD, lerFiltroVD } from "@/components/venda-direta/filtroGestaoVD";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -87,7 +87,6 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   faltando_site_sp: { sku: string; quantidade: number; saldo_site_sp: number }[] | null;
 }
 
-type FiltroPagamento = "todos" | "pagos" | "nao_pagos";
 
 const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
@@ -141,11 +140,8 @@ export default function VendaDiretaGestao() {
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros de lista vivem na URL.
-  const [nav, setNav] = useEstadoTela({ filtro: "", acaoEquipe: false, cancelados: false, entregues: false, busca: "", pagamento: "todos", pagina: 1 });
-  const filtro = useMemo<FiltroVD | null>(() => {
-    const [tipo, ...resto] = nav.filtro.split(":");
-    return tipo && resto.length ? ({ tipo, codigo: resto.join(":") } as FiltroVD) : null;
-  }, [nav.filtro]);
+  const [nav, setNav] = useEstadoTela({ filtro: "", cancelados: false, entregues: false, busca: "", pagina: 1 });
+  const filtro = useMemo(() => lerFiltroVD(nav.filtro), [nav.filtro]);
   // Card "Entregue · 30 dias": clicar liga o toggle de entregues; clicar de
   // novo / limpar volta ao normal (toggle desligado, entregues escondidos).
   const setFiltro = (f: FiltroVD | null) => {
@@ -156,8 +152,6 @@ export default function VendaDiretaGestao() {
       entregues: clicouEntregue ? true : limpouEntregue ? false : nav.entregues,
     });
   };
-  const soAcaoEquipe = nav.acaoEquipe;
-  const setSoAcaoEquipe = (v: boolean) => setNav({ acaoEquipe: v });
   const mostrarCancelados = nav.cancelados;
   const setMostrarCancelados = (v: boolean | ((p: boolean) => boolean)) => setNav({ cancelados: typeof v === "function" ? v(nav.cancelados) : v });
   const mostrarEntregues = nav.entregues;
@@ -167,8 +161,6 @@ export default function VendaDiretaGestao() {
   useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
   const busca = nav.busca;
   const setBusca = (v: string) => setNav({ busca: v });
-  const filtroPagamento = nav.pagamento as FiltroPagamento;
-  const setFiltroPagamento = (v: FiltroPagamento) => setNav({ pagamento: v });
   const pagina = nav.pagina;
   const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -252,32 +244,26 @@ export default function VendaDiretaGestao() {
     return esconderEntregues ? b.filter((l) => l.fase !== "entregue") : b;
   }, [mostrarCancelados, visiveis, ativos, esconderEntregues]);
 
-  const bate = (l: Linha, f: FiltroVD) =>
-    f.tipo === "fase" ? l.fase === f.codigo : f.tipo === "etapa" ? l.etapa === f.codigo : temAlerta(l, f.codigo);
 
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
     const td = soDigitos(t);
     const base = baseLista;
     return base.filter((l) => {
-      if (filtro && !bate(l, filtro)) return false;
-      if (soAcaoEquipe && !l.acao_equipe) return false;
-      // Bonificado não tem cobrança: não conta como aguardando pagamento.
-      if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em && l.pagamento !== "bonificacao") return false;
-      if (filtroPagamento === "nao_pagos" && (l.pagamento_confirmado_em || l.pagamento === "bonificacao" || l.pagamento === "conta_corrente_socio")) return false;
+      if (!correspondeFiltroVD(l, filtro)) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
         (l.cliente_nome ?? "").toLowerCase().includes(t) ||
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseLista, filtro, filtroPagamento, busca, soAcaoEquipe]);
+  }, [baseLista, filtro, busca]);
 
   const primeiraRender = useRef(true);
   useEffect(() => {
     if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [nav.filtro, filtroPagamento, busca, mostrarCancelados, mostrarEntregues, soAcaoEquipe]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nav.filtro, busca, mostrarCancelados, mostrarEntregues]); // eslint-disable-line react-hooks/exhaustive-deps
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
   useFocoAoVoltar({ pronto: q.isSuccess, idsVisiveis: pag.map((l) => l.id) });
   useRestaurarScroll(null, q.isSuccess);
@@ -382,7 +368,7 @@ export default function VendaDiretaGestao() {
             etapas={dimQ.data.etapas}
             responsaveis={dimQ.data.responsaveis}
             filtro={filtro}
-            onFiltro={(f) => setFiltro(filtro && filtro.tipo === f.tipo && filtro.codigo === f.codigo ? null : f)}
+            onFiltro={(f) => setFiltro(alternarFiltroVD(filtro, f))}
           />
         )}
         {dimQ.isError && <p className="text-sm text-destructive">{rawMessage(dimQ.error)}</p>}
@@ -391,15 +377,8 @@ export default function VendaDiretaGestao() {
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
           filtros={
             <div className="flex flex-wrap items-center gap-3">
-              <ToggleGroup type="single" size="sm" variant="outline" value={filtroPagamento} onValueChange={(v) => v && setFiltroPagamento(v as FiltroPagamento)}>
-                <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
-                <ToggleGroupItem value="pagos">Pagos</ToggleGroupItem>
-                <ToggleGroupItem value="nao_pagos">Não pagos</ToggleGroupItem>
-              </ToggleGroup>
-              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe(!soAcaoEquipe)}
-                className={cn(soAcaoEquipe && "gold-border bg-gold-soft")}>
-                Ação da equipe
-              </Button>
+              <Button size="sm" variant="outline" aria-pressed={!filtro} onClick={() => setFiltro(null)}
+                className={cn(!filtro && "gold-border bg-gold-soft shadow-sm")}>Todos</Button>
               <div className="flex items-center gap-2">
                 <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
                 <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>

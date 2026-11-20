@@ -1,13 +1,14 @@
 import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertTriangle, Ban, ChevronRight, Circle, FileText, ListOrdered, Package, PackageCheck, PauseCircle, Truck, Wallet,
+  AlertTriangle, Ban, ChevronRight, Circle, FileText, Inbox, ListOrdered, Package, PackageCheck, PauseCircle, Truck, Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { EstadoSelo } from "@/components/ui/selo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 export type TomEtapa = "neutro" | "espera" | "acao" | "alerta" | "critico" | "sucesso" | "muted";
 export interface VdFase { codigo: string; rotulo: string; descricao: string | null; icone: string | null; ordem: number; fora_do_fluxo: boolean; terminal: boolean }
@@ -32,7 +33,7 @@ export const FASE_FORA = "fora_do_fluxo";
 
 const ICONES: Record<string, LucideIcon> = {
   wallet: Wallet, "file-text": FileText, "list-ordered": ListOrdered, package: Package, truck: Truck,
-  "package-check": PackageCheck, "alert-triangle": AlertTriangle, ban: Ban,
+  "package-check": PackageCheck, "alert-triangle": AlertTriangle, ban: Ban, inbox: Inbox,
 };
 export const iconeFase = (nome: string | null | undefined) => (nome && ICONES[nome]) || Circle;
 
@@ -102,12 +103,10 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
           const espera = n > 0 && !equipe && !sucesso;
           const falta = daFase.filter((l) => temAlerta(l, ALERTA_FALTA)).length;
           const Icon = iconeFase(fase.icone);
-          const rotulo = fase.codigo === "entregue" ? `${fase.rotulo} · 30 dias` : fase.rotulo;
+          const rotulo = fase.rotulo;
           const card = (
             <div
-              role="button" tabIndex={0}
-              onClick={() => onFiltro({ tipo: "fase", codigo: fase.codigo })}
-              onKeyDown={(e) => e.key === "Enter" && onFiltro({ tipo: "fase", codigo: fase.codigo })}
+              onClick={(ev) => { if (!(ev.target as HTMLElement).closest("button")) onFiltro({ tipo: "fase", codigo: fase.codigo }); }}
               className={cn(
                 "relative flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md border bg-card px-3 py-2 transition-all gold-border-hover",
                 ativo ? "gold-border bg-gold-soft shadow-sm"
@@ -116,34 +115,38 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
                   : "border-border",
               )}
             >
+              <Button type="button" variant="ghost" aria-label={rotulo} aria-pressed={ativo} title={rotulo}
+                onClick={() => onFiltro({ tipo: "fase", codigo: fase.codigo })}
+                className="h-auto w-full flex-col items-start gap-0.5 px-0 py-0 hover:bg-transparent focus-visible:ring-2">
               <div className={cn("flex items-center gap-1.5 pr-8 text-[10px] font-medium uppercase tracking-wide", zerado ? "text-muted-foreground/60" : "text-muted-foreground")}>
                 <Icon className={cn("h-4 w-4 shrink-0", zerado ? "text-muted-foreground/60" : sucesso ? "text-success" : espera ? "text-muted-foreground" : "text-foreground")} />
                 <span className="truncate">{rotulo}</span>
               </div>
               <div className={cn("text-2xl font-medium tabular-nums leading-tight",
                 zerado ? "text-muted-foreground/60" : espera ? "text-muted-foreground" : sucesso ? "text-success-strong" : "text-foreground")}>{n}</div>
+              </Button>
               {presentes.map(({ e, n: ne }) => {
                 const at = igual(filtro, { tipo: "etapa", codigo: e.codigo });
                 return (
-                  <button key={e.codigo} type="button"
+                  <Button key={e.codigo} type="button" variant="ghost" aria-pressed={at}
                     onClick={(ev) => { ev.stopPropagation(); onFiltro({ tipo: "etapa", codigo: e.codigo }); }}
-                    className={cn("rounded-sm text-left text-[11px] leading-snug text-muted-foreground hover:text-foreground hover:underline", at && "gold-border bg-gold-soft px-1 text-foreground")}>
+                    className={cn("relative z-10 h-auto justify-start whitespace-normal rounded-sm px-0 py-0 text-left text-[11px] leading-snug text-muted-foreground hover:text-foreground hover:underline", at && "gold-border bg-gold-soft px-1 text-foreground")}>
                     <span className="tabular-nums">{ne}</span> {e.rotulo} {respRotulo(e) !== "—" && <span className="text-[10px] text-muted-foreground/80">· {respRotulo(e)}</span>}
-                  </button>
+                  </Button>
                 );
               })}
               {equipe && <div className="text-[10px] font-medium text-primary">Ação da equipe</div>}
               {espera && <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><PauseCircle className="h-3 w-3" />em espera</div>}
               {falta > 0 && (
-                <div className="absolute right-1 top-1">
+                <div className="absolute right-1 top-1 z-10">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button"
+                      <Button type="button" variant="ghost" aria-pressed={igual(filtro, { tipo: "alerta", codigo: ALERTA_FALTA })}
                         onClick={(ev) => { ev.stopPropagation(); onFiltro({ tipo: "alerta", codigo: ALERTA_FALTA }); }}
-                        className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                        className={cn("inline-flex h-auto items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                           igual(filtro, { tipo: "alerta", codigo: ALERTA_FALTA }) ? "gold-border bg-gold-soft" : "bg-destructive text-destructive-foreground")}>
                         <AlertTriangle className="h-2.5 w-2.5" />{falta}
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>Falta no Site SP</TooltipContent>
                   </Tooltip>
@@ -163,11 +166,11 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
       </div>
       <div className="hidden w-px shrink-0 bg-border 2xl:block" aria-hidden="true" />
       <div className="flex flex-col gap-1 2xl:w-56 2xl:shrink-0">
-        <button type="button" onClick={() => onFiltro({ tipo: "fase", codigo: FASE_FORA })}
-          className={cn("rounded-sm text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground",
+        <Button type="button" variant="ghost" aria-pressed={igual(filtro, { tipo: "fase", codigo: FASE_FORA })} onClick={() => onFiltro({ tipo: "fase", codigo: FASE_FORA })}
+          className={cn("h-auto justify-start rounded-sm px-0 py-0 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground",
             igual(filtro, { tipo: "fase", codigo: FASE_FORA }) && "gold-border bg-gold-soft px-1")}>
           {faseFora?.rotulo ?? FASE_FORA} · <span className="tabular-nums">{totalFora}</span>
-        </button>
+        </Button>
         {fora.length === 0 ? (
           <div className="rounded-md border bg-card px-2 py-1.5 text-xs text-muted-foreground/60">Nada fora do fluxo</div>
         ) : (
@@ -175,9 +178,9 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
             {fora.map(({ e, n }) => {
               const ativo = igual(filtro, { tipo: "etapa", codigo: e.codigo });
               return (
-                <button key={e.codigo} type="button" onClick={() => onFiltro({ tipo: "etapa", codigo: e.codigo })}
+                <Button key={e.codigo} type="button" variant="ghost" aria-pressed={ativo} onClick={() => onFiltro({ tipo: "etapa", codigo: e.codigo })}
                   className={cn(
-                    "flex items-center justify-between gap-2 rounded-md border bg-card px-2 py-1 text-left text-xs transition-all gold-border-hover",
+                    "flex h-auto items-center justify-between gap-2 whitespace-normal rounded-md border bg-card px-2 py-1 text-left text-xs transition-all gold-border-hover",
                     ativo ? "gold-border bg-gold-soft shadow-sm"
                       : e.tom === "critico" ? "border-border border-l-4 border-l-destructive text-destructive-strong"
                       : e.tom === "alerta" ? "border-border border-l-4 border-l-warning text-warning-strong"
@@ -190,7 +193,7 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
                     <span className="block text-[10px] text-muted-foreground">{respRotulo(e)}</span>
                   </span>
                   <span className="text-base font-medium tabular-nums">{n}</span>
-                </button>
+                </Button>
               );
             })}
           </div>
