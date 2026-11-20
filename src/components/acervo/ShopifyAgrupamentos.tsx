@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Info, Save } from "lucide-react";
@@ -18,8 +18,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CodProduto } from "@/components/produto/CodProduto";
-import { mudarEixos, podeSalvarAgrupamento, titulosAlterados, type ColecaoAgrupamento } from "./agrupamentoShopify";
-import { agrupamentoKey, useColecoesAgrupamento, useCamposVariacao, usePreviaAgrupamento, useHistoricoAgrupamento } from "./useAgrupamentoShopify";
+import { mudarEixos, podeSalvarAgrupamento, titulosAlterados, eixosDiferentes, type ColecaoAgrupamento } from "./agrupamentoShopify";
+import { agrupamentoKey, useColecoesAgrupamento, useFiltrosAgrupamento, useAgrupamentosVigentes, useCamposVariacao, usePreviaAgrupamento, useHistoricoAgrupamento } from "./useAgrupamentoShopify";
+import { ShopifyPublicacaoAgrupamento } from "./ShopifyPublicacaoAgrupamento";
 
 function Situacao({ status }: { status: string }) {
   const rotulo = ({ sem_agrupamento: "Sem agrupamento", rascunho: "Rascunho", publicado: "Publicado", encerrado: "Encerrado" } as Record<string, string>)[status] ?? status;
@@ -34,21 +35,24 @@ function Carregando() {
 function dataHora(v: string | null) { return v ? new Date(v).toLocaleString("pt-BR") : "—"; }
 
 export function ShopifyAgrupamentos() {
-  const q = useColecoesAgrupamento();
-  const [estado, setEstado] = useEstadoTela({ busca: "", situacao: "todas" }, { prefixo: "ag" });
+  const [estado, setEstado] = useEstadoTela({ colecao: "", grupo: "", tipo: "", situacao: "" }, { prefixo: "ag" });
+  const q = useColecoesAgrupamento(estado);
+  const filtros = useFiltrosAgrupamento();
   const [colecao, setColecao] = useState<ColecaoAgrupamento | null>(null);
-  const linhas = useMemo(() => (q.data ?? []).filter((l) =>
-    `${l.colecao} ${l.tipo}`.toLocaleLowerCase("pt-BR").includes(estado.busca.toLocaleLowerCase("pt-BR"))
-    && (estado.situacao === "todas" || l.status === estado.situacao)), [q.data, estado]);
+  const linhas = q.data ?? [];
+  const linhaAtual = colecao ? linhas.find((l) => l.colecao === colecao.colecao && l.tipo === colecao.tipo && l.grupo === colecao.grupo) ?? colecao : null;
   return <section className="space-y-4">
     <h2 className="text-lg font-medium">Agrupamentos (variações)</h2>
-    <p className="max-w-3xl text-sm text-muted-foreground">O SKU não muda. Aqui você define como os SKUs de uma coleção se agrupam em produtos-pai no Shopify e o que vira variação. Nesta etapa nada é enviado ao Shopify.</p>
+    <p className="max-w-3xl text-sm text-muted-foreground">O SKU não muda. Aqui você define como os SKUs de uma coleção se agrupam em produtos-pai no Shopify e o que vira variação.</p>
     <div className="flex flex-wrap gap-3">
-      <Input className="w-full sm:max-w-xs" placeholder="Buscar coleção ou tipo" aria-label="Buscar coleção ou tipo" value={estado.busca} onChange={(e) => setEstado({ busca: e.target.value })} />
-      <Select value={estado.situacao} onValueChange={(situacao) => setEstado({ situacao })}><SelectTrigger className="w-48" aria-label="Situação do agrupamento"><SelectValue /></SelectTrigger><SelectContent>
-        <SelectItem value="todas">Todas as situações</SelectItem><SelectItem value="sem_agrupamento">Sem agrupamento</SelectItem><SelectItem value="rascunho">Rascunho</SelectItem><SelectItem value="publicado">Publicado</SelectItem>
-      </SelectContent></Select>
+      {([
+        { chave: "colecao", nome: "Coleção", todos: "Todas", opcoes: filtros.data?.colecoes.map((v) => ({ valor: v, nome: v })) ?? [] },
+        { chave: "grupo", nome: "Grupo", todos: "Todos", opcoes: filtros.data?.grupos.map((v) => ({ valor: v, nome: v })) ?? [] },
+        { chave: "tipo", nome: "Tipo", todos: "Todos", opcoes: [...new Set((filtros.data?.tipos ?? []).filter((t) => !estado.grupo || t.grupo === estado.grupo).map((t) => t.rotulo))].map((v) => ({ valor: v, nome: v })) },
+        { chave: "situacao", nome: "Situação", todos: "Todas", opcoes: filtros.data?.situacoes.map((s) => ({ valor: s.slug, nome: s.nome })) ?? [] },
+      ] as const).map((f) => <div key={f.chave} className="space-y-1 w-full sm:w-48"><p className="text-xs text-muted-foreground">{f.nome}</p><Select disabled={filtros.isLoading || filtros.isError} value={estado[f.chave] || "__todos"} onValueChange={(v) => setEstado({ [f.chave]: v === "__todos" ? "" : v, ...(f.chave === "grupo" ? { tipo: "" } : {}) })}><SelectTrigger aria-label={f.nome}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__todos">{f.todos}</SelectItem>{f.opcoes.map((o) => <SelectItem key={o.valor} value={o.valor}>{o.nome}</SelectItem>)}</SelectContent></Select></div>)}
     </div>
+    {filtros.isError && <Erro error={filtros.error} />}
     {q.isLoading ? <Carregando /> : q.isError ? <Erro error={q.error} /> : <div className="rounded-md border bg-card card-shadow overflow-x-auto">
       <Table><TableHeader><TableRow><TableHead>Coleção</TableHead><TableHead>Grupo / Tipo</TableHead><TableHead className="text-right">SKUs</TableHead><TableHead className="text-right">Pais vigentes</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader>
         <TableBody>{linhas.map((l) => <TableRow key={JSON.stringify([l.colecao, l.tipo])} className="cursor-pointer" tabIndex={0} onClick={() => setColecao(l)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setColecao(l); } }}>
@@ -56,7 +60,7 @@ export function ShopifyAgrupamentos() {
         </TableRow>)}{linhas.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">{q.data?.length ? "Nenhuma coleção corresponde aos filtros." : "Nenhuma coleção disponível para agrupamento."}</TableCell></TableRow>}</TableBody></Table>
     </div>}
     <Sheet open={!!colecao} onOpenChange={(open) => { if (!open) setColecao(null); }}><SheetContent className="w-full sm:max-w-5xl overflow-y-auto p-4 sm:p-6">
-      {colecao && <AgrupamentoDrawer key={JSON.stringify([colecao.colecao, colecao.tipo])} colecao={colecao} />}
+      {linhaAtual && <AgrupamentoDrawer key={JSON.stringify([linhaAtual.colecao, linhaAtual.tipo])} colecao={linhaAtual} />}
     </SheetContent></Sheet>
   </section>;
 }
@@ -69,10 +73,12 @@ function AgrupamentoDrawer({ colecao }: { colecao: ColecaoAgrupamento }) {
   const [confirmar, setConfirmar] = useState(false);
   const previa = usePreviaAgrupamento(colecao.colecao, colecao.tipo, eixos);
   const historico = useHistoricoAgrupamento(colecao.colecao);
+  const vigentes = useAgrupamentosVigentes(colecao.agrupamento_ids ?? []);
   const { permitido, carregando } = usePermissaoAcaoOuSuperAdmin("acao.cadastrar_produto_shopify");
   const p = previa.data;
   const selecionados = eixos ?? p?.eixos ?? [];
   const nomeCampo = (slug: string) => campos.data?.find((c) => c.slug === slug)?.nome ?? slug;
+  const naoSalvo = eixosDiferentes(eixos, (vigentes.data ?? []).map((a) => a.eixos)) || !!(p && Object.keys(titulosAlterados(p.pais, titulos)).length);
   const salvar = useMutation({ mutationFn: async () => {
     if (!podeSalvarAgrupamento(p, permitido, carregando || previa.isFetching || campos.isFetching || campos.isError) || !p) throw new Error("Agrupamento não pode ser salvo neste estado.");
     const { data, error } = await (supabase.rpc as any)("fn_agrupamento_salvar", {
@@ -109,6 +115,10 @@ function AgrupamentoDrawer({ colecao }: { colecao: ColecaoAgrupamento }) {
       </AccordionItem>)}</Accordion>
     </>}
     <Button disabled={bloqueado} onClick={() => setConfirmar(true)} title={!permitido ? "Requer permissão para cadastrar produto no Shopify" : undefined}><Save className="mr-2 h-4 w-4" />Salvar agrupamento (rascunho)</Button>
+    <section className="space-y-3 border-t pt-5"><h3 className="font-medium">Publicar no Shopify</h3><p className="text-sm text-muted-foreground">Cria o produto-pai no Shopify em Rascunho (invisível na loja) com as variantes e remove os produtos soltos em rascunho desses SKUs. O SKU não muda.</p>
+      {naoSalvo && <Alert><AlertDescription>Salve o agrupamento antes de publicar</AlertDescription></Alert>}
+      {vigentes.isLoading ? <Carregando /> : vigentes.isError ? <Erro error={vigentes.error} /> : !vigentes.data?.length ? <p className="text-sm text-muted-foreground">Nenhum agrupamento vigente. Salve um rascunho para publicar.</p> : vigentes.data.map((pai) => <ShopifyPublicacaoAgrupamento key={JSON.stringify([pai.id, eixos, titulos])} pai={pai} permitido={permitido && !carregando} alterado={naoSalvo || previa.isFetching || salvar.isPending} />)}
+    </section>
     <section className="space-y-3 border-t pt-5"><h3 className="font-medium">Histórico</h3>{historico.isLoading ? <Carregando /> : historico.isError ? <Erro error={historico.error} /> : !historico.data?.length ? <p className="text-sm text-muted-foreground">Nenhum agrupamento registrado para esta coleção.</p> : <div className="overflow-x-auto rounded-md border bg-card"><Table><TableHeader><TableRow><TableHead>Título</TableHead><TableHead>Variação</TableHead><TableHead>SKUs</TableHead><TableHead>Situação</TableHead><TableHead>De</TableHead><TableHead>Até</TableHead></TableRow></TableHeader><TableBody>{historico.data.map((h) => <TableRow key={h.id} className={h.vigente_ate || h.status === "encerrado" ? "text-muted-foreground" : ""}><TableCell>{h.titulo}</TableCell><TableCell>{h.eixos.map(nomeCampo).join(", ")}</TableCell><TableCell>{h.skus}</TableCell><TableCell><Situacao status={h.status} /></TableCell><TableCell>{dataHora(h.vigente_de)}</TableCell><TableCell>{dataHora(h.vigente_ate)}</TableCell></TableRow>)}</TableBody></Table></div>}</section>
     <AlertDialog open={confirmar} onOpenChange={(open) => { if (!salvar.isPending) setConfirmar(open); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Salvar agrupamento (rascunho)?</AlertDialogTitle><AlertDialogDescription>Isso substitui o agrupamento em rascunho desta coleção, se houver. Nada é enviado ao Shopify.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={salvar.isPending}>Cancelar</AlertDialogCancel><Button disabled={bloqueado} onClick={() => void gravar()}>{salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar agrupamento</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </div>;

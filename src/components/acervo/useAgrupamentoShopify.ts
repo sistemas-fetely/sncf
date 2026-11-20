@@ -5,15 +5,37 @@ import type { CampoVariacao, ColecaoAgrupamento, PreviaAgrupamento } from "./agr
 export const agrupamentoKey = ["shopify-agrupamentos"];
 export interface HistoricoAgrupamento {
   id: string; titulo: string; eixos: string[]; skus: number; status: string;
-  vigente_de: string; vigente_ate: string | null;
+  vigente_de: string; vigente_ate: string | null; id_externo?: string | null;
 }
 
-export function useColecoesAgrupamento() {
-  return useQuery({ queryKey: [...agrupamentoKey, "colecoes"], queryFn: async () => {
-    const { data, error } = await (supabase.rpc as any)("fn_agrupamento_colecoes", { p_sistema: "Shopify" });
+export interface FiltrosAgrupamento { colecao: string; grupo: string; tipo: string; situacao: string }
+export interface OpcoesAgrupamento { colecoes: string[]; grupos: string[]; tipos: { rotulo: string; grupo: string }[]; situacoes: { slug: string; nome: string }[] }
+export function useFiltrosAgrupamento() {
+  return useQuery({ queryKey: [...agrupamentoKey, "filtros"], queryFn: async () => {
+    const { data, error } = await (supabase.rpc as any)("fn_agrupamento_filtros", { p_sistema: "Shopify" });
+    if (error) throw error;
+    if (!data) throw new Error("Resposta vazia ao carregar filtros.");
+    return data as OpcoesAgrupamento;
+  } });
+}
+export function useColecoesAgrupamento(filtros: FiltrosAgrupamento) {
+  return useQuery({ queryKey: [...agrupamentoKey, "colecoes", filtros], queryFn: async () => {
+    const { data, error } = await (supabase.rpc as any)("fn_agrupamento_colecoes", {
+      p_sistema: "Shopify", p_colecao: filtros.colecao || null, p_grupo: filtros.grupo || null,
+      p_tipo: filtros.tipo || null, p_status: filtros.situacao || null,
+    });
     if (error) throw error;
     if (!Array.isArray(data)) throw new Error("Resposta vazia ao carregar coleções.");
     return data as ColecaoAgrupamento[];
+  } });
+}
+
+export function useAgrupamentosVigentes(ids: string[]) {
+  return useQuery({ queryKey: [...agrupamentoKey, "vigentes", ids], enabled: ids.length > 0, queryFn: async () => {
+    const { data, error } = await supabase.from("vw_produto_agrupamento_lista" as any)
+      .select("id,titulo,eixos,skus,status,vigente_de,vigente_ate,id_externo").in("id", ids);
+    if (error) throw error;
+    return (data ?? []) as unknown as HistoricoAgrupamento[];
   } });
 }
 

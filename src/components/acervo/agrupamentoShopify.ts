@@ -1,7 +1,7 @@
 export interface CampoVariacao { slug: string; nome: string; ordem: number }
 export interface ColecaoAgrupamento {
   colecao: string; grupo: string; tipo: string; skus: number; numerica: boolean;
-  agrupados: number; pais_vigentes: number; status: string;
+  agrupados: number; pais_vigentes: number; status: string; agrupamento_ids: string[];
 }
 export interface PaiAgrupamento {
   chave: string; chave_txt: string; titulo: string; variantes_n: number; problemas: number;
@@ -27,4 +27,18 @@ export function podeSalvarAgrupamento(previa: PreviaAgrupamento | undefined, per
 export function titulosAlterados(pais: PaiAgrupamento[], edicoes: Record<string, string>): Record<string, string> {
   return Object.fromEntries(pais.filter((p) => edicoes[p.chave_txt] !== undefined && edicoes[p.chave_txt] !== p.titulo)
     .map((p) => [p.chave_txt, edicoes[p.chave_txt]]));
+}
+
+export interface ProdutoSolto { id?: string; titulo: string; status: string; skus: string[] }
+export interface ResultadoPublicacao {
+  ok: boolean; dry_run?: boolean; bloqueado?: boolean; erro?: string; status?: string;
+  variantes?: number; opcoes?: { name: string; values: { name: string }[] }[];
+  remover?: ProdutoSolto[]; bloqueios?: { erro: string; produto?: ProdutoSolto }[];
+  nao_removidos?: (ProdutoSolto & { erro: string })[]; avisos?: string[];
+}
+export function podePublicarAgrupamento(simulacao: ResultadoPublicacao | null, permitido: boolean, alterado: boolean, ocupado = false): boolean {
+  return !!simulacao?.ok && simulacao.dry_run === true && !simulacao.bloqueado && permitido && !alterado && !ocupado;
+}
+export function eixosDiferentes(eixos: string[] | null, salvos: string[][]): boolean {
+  return eixos !== null && (!salvos.length || salvos.some((s) => JSON.stringify(s) !== JSON.stringify(eixos)));
 }

@@ -1,7 +1,7 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
 - VD payment selection excludes local PIX without changing legacy normalization; Safra PIX-link proof and waiting-state helpers stay separate from card transaction parsing to preserve card confirmation.
-- Shopify grouping UI uses existing RPCs and ordered variation dimensions; a tested helper enforces axis limits and changed-title payloads, while separate URL sub-tabs preserve the existing registration panel.
+- Shopify grouping UI filters through existing RPCs and reads current parent IDs; tested guards require a successful dry-run, permission and saved axes before publication. Keep the supplied publishing edge intact and registration isolated in its URL sub-tab.
 - Large operational lists use prepared relations with server filters/facets/aggregates and page-only live enrichment; commercial temperature order uses bounded per-band pages because the existing view has no business-order column.
 - Bling divergence scanning treats fiscal origin as a fixed SNCF override outside field mappings; a tested local helper rejects missing/invalid origins and preserves other card taxes, because sales invoices inherit card origin.
 - Marketplace receivables read hosted views in stable batches; order financials fetch one page-ID batch and prefer actual MP values with tested cent-based estimate comparisons, preserving other channels and writes.
