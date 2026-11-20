@@ -40,7 +40,8 @@ export function EscolherCdVD({ pedido, etapa, podeEditar, itens, itensProntos }:
   const cep = String(pedido.endereco_entrega?.cep ?? "").replace(/\D/g, "");
   const cot = useCotacaoTransportadora(cep, itens, Number(pedido.valor_liquido ?? 0), escolher && cd === "XPM-SC" && itensProntos);
   useEffect(() => {
-    setTransportadora(cot.cotacao?.recomendada?.transportadora_id ?? null);
+    setTransportadora((atual) => cot.cotacao?.opcoes.some((o) => o.transportadora_id === atual)
+      ? atual : cot.cotacao?.recomendada?.transportadora_id ?? null);
   }, [cot.cotacao]);
   const confirmar = useMutation({
     mutationFn: async (desfazer: boolean) => {
@@ -72,7 +73,7 @@ export function EscolherCdVD({ pedido, etapa, podeEditar, itens, itensProntos }:
           {[{ codigo: "SITE-SP", nome: "Site SP" }, { codigo: "XPM-SC", nome: "XPM SC" }].map((opcao) => {
             const saldo = sugestao.data.saldo_por_cd?.[opcao.codigo];
             return <Button key={opcao.codigo} variant="outline" role="radio" aria-checked={cd === opcao.codigo} disabled={!podeEditar || confirmar.isPending}
-              onClick={() => { setCd(opcao.codigo); setTransportadora(null); }}
+              onClick={() => { if (cd !== opcao.codigo) { setCd(opcao.codigo); setTransportadora(null); } }}
               className={cn("h-auto min-w-0 flex-col items-start gap-2 whitespace-normal p-3 text-left", cd === opcao.codigo && "border-primary bg-primary/5 ring-1 ring-primary")}>
               <span className="flex items-center gap-2"><Truck className="h-4 w-4" />{opcao.nome}</span>
               {saldo ? <span className={cn("text-xs font-normal", saldo.sem_saldo > 0 ? "text-warning-strong" : "text-success-strong")}>
