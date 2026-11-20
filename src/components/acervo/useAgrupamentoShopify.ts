@@ -8,7 +8,7 @@ export interface HistoricoAgrupamento {
   vigente_de: string; vigente_ate: string | null; id_externo?: string | null;
 }
 
-export interface FiltrosAgrupamento { colecao: string; grupo: string; tipo: string; situacao: string }
+export interface FiltrosAgrupamento { busca: string; colecao: string; grupo: string; tipo: string; situacao: string }
 export interface OpcoesAgrupamento { colecoes: string[]; grupos: string[]; tipos: { rotulo: string; grupo: string }[]; situacoes: { slug: string; nome: string }[] }
 export function useFiltrosAgrupamento() {
   return useQuery({ queryKey: [...agrupamentoKey, "filtros"], queryFn: async () => {
@@ -22,7 +22,7 @@ export function useColecoesAgrupamento(filtros: FiltrosAgrupamento) {
   return useQuery({ queryKey: [...agrupamentoKey, "colecoes", filtros], queryFn: async () => {
     const { data, error } = await (supabase.rpc as any)("fn_agrupamento_colecoes", {
       p_sistema: "Shopify", p_colecao: filtros.colecao || null, p_grupo: filtros.grupo || null,
-      p_tipo: filtros.tipo || null, p_status: filtros.situacao || null,
+      p_tipo: filtros.tipo || null, p_status: filtros.situacao || null, p_busca: filtros.busca || null,
     });
     if (error) throw error;
     if (!Array.isArray(data)) throw new Error("Resposta vazia ao carregar coleções.");

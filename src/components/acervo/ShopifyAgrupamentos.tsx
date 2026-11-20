@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Info, Save } from "lucide-react";
@@ -35,8 +35,13 @@ function Carregando() {
 function dataHora(v: string | null) { return v ? new Date(v).toLocaleString("pt-BR") : "—"; }
 
 export function ShopifyAgrupamentos() {
-  const [estado, setEstado] = useEstadoTela({ colecao: "", grupo: "", tipo: "", situacao: "" }, { prefixo: "ag" });
-  const q = useColecoesAgrupamento(estado);
+  const [estado, setEstado] = useEstadoTela({ busca: "", colecao: "", grupo: "", tipo: "", situacao: "" }, { prefixo: "ag" });
+  const [busca, setBusca] = useState(estado.busca);
+  useEffect(() => {
+    const timer = setTimeout(() => setBusca(estado.busca), 300);
+    return () => clearTimeout(timer);
+  }, [estado.busca]);
+  const q = useColecoesAgrupamento({ ...estado, busca });
   const filtros = useFiltrosAgrupamento();
   const [colecao, setColecao] = useState<ColecaoAgrupamento | null>(null);
   const linhas = q.data ?? [];
@@ -44,6 +49,7 @@ export function ShopifyAgrupamentos() {
   return <section className="space-y-4">
     <h2 className="text-lg font-medium">Agrupamentos (variações)</h2>
     <p className="max-w-3xl text-sm text-muted-foreground">O SKU não muda. Aqui você define como os SKUs de uma coleção se agrupam em produtos-pai no Shopify e o que vira variação.</p>
+    <Input aria-label="Buscar agrupamentos" placeholder="Buscar por coleção, tipo, SKU, código, nome, EAN ou cor" value={estado.busca} onChange={(e) => setEstado({ busca: e.target.value })} />
     <div className="flex flex-wrap gap-3">
       {([
         { chave: "colecao", nome: "Coleção", todos: "Todas", opcoes: filtros.data?.colecoes.map((v) => ({ valor: v, nome: v })) ?? [] },
@@ -51,6 +57,7 @@ export function ShopifyAgrupamentos() {
         { chave: "tipo", nome: "Tipo", todos: "Todos", opcoes: [...new Set((filtros.data?.tipos ?? []).filter((t) => !estado.grupo || t.grupo === estado.grupo).map((t) => t.rotulo))].map((v) => ({ valor: v, nome: v })) },
         { chave: "situacao", nome: "Situação", todos: "Todas", opcoes: filtros.data?.situacoes.map((s) => ({ valor: s.slug, nome: s.nome })) ?? [] },
       ] as const).map((f) => <div key={f.chave} className="space-y-1 w-full sm:w-48"><p className="text-xs text-muted-foreground">{f.nome}</p><Select disabled={filtros.isLoading || filtros.isError} value={estado[f.chave] || "__todos"} onValueChange={(v) => setEstado({ [f.chave]: v === "__todos" ? "" : v, ...(f.chave === "grupo" ? { tipo: "" } : {}) })}><SelectTrigger aria-label={f.nome}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__todos">{f.todos}</SelectItem>{f.opcoes.map((o) => <SelectItem key={o.valor} value={o.valor}>{o.nome}</SelectItem>)}</SelectContent></Select></div>)}
+      <Button variant="ghost" className="self-end" onClick={() => { setEstado({ busca: "", colecao: "", grupo: "", tipo: "", situacao: "" }); setBusca(""); }}>Limpar filtros</Button>
     </div>
     {filtros.isError && <Erro error={filtros.error} />}
     {q.isLoading ? <Carregando /> : q.isError ? <Erro error={q.error} /> : <div className="rounded-md border bg-card card-shadow overflow-x-auto">
