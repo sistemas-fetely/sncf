@@ -195,6 +195,3 @@ verify_jwt = false
 
 [functions.enviar-pacote-drive]
   verify_jwt = false
-
-[functions.bling-teste-variacao]
-  verify_jwt = true
