@@ -18,6 +18,8 @@ import { ehCancelamentoComNf } from "@/components/devolucao/correcaoNf";
 import { BotaoCorrigirNf } from "@/components/devolucao/CorrigirNfDialog";
 import { BotaoCorrigirEnderecoEntrega } from "./CorrigirEnderecoEntregaDialog";
 import { podeExibirCorrecaoEndereco } from "./enderecoEntregaVD";
+import { EscolherCdVD } from "./EscolherCdVD";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 
 export interface LinhaGaveta {
   id: string;
@@ -38,6 +40,7 @@ export interface LinhaGaveta {
   valor_liquido: number | null;
   /** Vindos da view da gestão: o botão de correção decide o estágio com eles. */
   estagio?: string | null;
+  fila_status?: string | null;
   cancelado_em?: string | null;
 }
 
@@ -131,6 +134,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
   cancelamentoNf?: CancelamentoNfSP | null;
   classificacao?: ClassificacaoVD | null;
 }) {
+  const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
   const id = linha?.id;
   const itensQ = useQuery({
     queryKey: [...QK_VD_GAVETA, "itens", id],
@@ -191,6 +195,8 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
         {l && (
           <div className="flex-1 space-y-5 overflow-y-auto p-4">
             {classificacao && <LinhaDoTempo c={classificacao} />}
+            <EscolherCdVD key={l.id} pedido={l} etapa={classificacao?.etapa ?? null} podeEditar={podeEditar}
+              itens={itensQ.data ?? []} itensProntos={itensQ.isSuccess} />
             <Secao titulo="Itens">
               {itensQ.isLoading ? <Skeleton className="h-16 w-full" /> : itensQ.isError ? <Erro e={itensQ.error} /> : (itensQ.data ?? []).length === 0 ? (
                 <p className="text-muted-foreground">Nenhum item.</p>

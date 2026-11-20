@@ -40,15 +40,16 @@ export function useCotacaoTransportadora(cep: string, itens: { sku: string; quan
   return { cotacao: chave ? q.data ?? null : null, cotando: aguardando, erro: q.error ? rawMessage(q.error) : null };
 }
 
-export function CartoesTransportadora({ cotacao, cotando, erro, valor, onChange, cepOk }: {
+export function CartoesTransportadora({ cotacao, cotando, erro, valor, onChange, cepOk, aviso }: {
   cotacao: CotacaoTransportadora | null; cotando: boolean; erro: string | null; valor: string | null;
   onChange: (id: string) => void; cepOk: boolean;
+  aviso?: string;
 }) {
   return (
     <div className="space-y-2">
       <p className="flex items-start gap-2 rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        Sai da XPM SC: a XPM separa, a NF sai depois do Conferido e o prazo da transportadora conta a partir do embarque.
+        {aviso ?? "Sai da XPM SC: a XPM separa, a NF sai depois do Conferido e o prazo da transportadora conta a partir do embarque."}
       </p>
       {!cepOk ? (
         <p className="text-xs text-muted-foreground">Informe o CEP de entrega para cotar a transportadora.</p>

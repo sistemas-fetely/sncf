@@ -77,7 +77,11 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
   const fluxo = fases.filter((f) => !f.fora_do_fluxo && f.codigo !== "cancelado").sort((a, b) => a.ordem - b.ordem);
   const porEtapa = (fase: string) =>
     etapas.filter((e) => e.fase_codigo === fase)
-      .map((e) => ({ e, n: linhas.filter((l) => l.fase === fase && l.etapa === e.codigo).length }))
+      .map((e) => {
+        const membros = linhas.filter((l) => l.fase === fase && l.etapa === e.codigo);
+        const linha = membros[0];
+        return { e: { ...e, rotulo: linha?.etapa_rotulo ?? e.rotulo, tom: linha?.etapa_tom ?? e.tom, proxima_acao: linha?.proxima_acao ?? e.proxima_acao }, n: membros.length };
+      })
       .filter((x) => x.n > 0);
   const respRotulo = (e: VdEtapa) => (e.responsavel_codigo && responsaveis.get(e.responsavel_codigo)?.rotulo) || "—";
   const fora = porEtapa(FASE_FORA);
@@ -91,7 +95,7 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
           const daFase = linhas.filter((l) => l.fase === fase.codigo);
           const n = daFase.length;
           const presentes = porEtapa(fase.codigo);
-          const equipe = daFase.some((l) => l.acao_equipe);
+          const equipe = daFase.some((l) => l.acao_equipe || l.etapa_tom === "acao");
           const sucesso = fase.terminal;
           const ativo = igual(filtro, { tipo: "fase", codigo: fase.codigo });
           const zerado = n === 0 && !ativo;

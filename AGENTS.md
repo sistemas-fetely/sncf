@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- VD center choice uses the management view's stage, a drawer-only suggestion query and shared carrier quotes; tested guards and existing RPCs own confirm/undo with awaited order refresh, preserving database classification.
 - VD payment selection excludes local PIX without changing legacy normalization; Safra PIX-link proof and waiting-state helpers stay separate from card transaction parsing to preserve card confirmation.
 - Shopify grouping UI filters through existing RPCs and reads current parent IDs; tested guards require a successful dry-run, permission and saved axes before publication. Keep the supplied publishing edge intact and registration isolated in its URL sub-tab.
 - Large operational lists use prepared relations with server filters/facets/aggregates and page-only live enrichment; commercial temperature order uses bounded per-band pages because the existing view has no business-order column.
