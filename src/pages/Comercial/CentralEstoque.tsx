@@ -1,10 +1,13 @@
 import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
-import { filtrarDimensoesProduto, opcoesFiltroProduto, lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
+import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 /**
  * CENTRAL DE ESTOQUE (ESTOQUE v6 F2) — uma linha por produto, uma coluna por CD.
- * DISPONÍVEL é o número da venda; o resto é detalhe. Fonte única: vw_central_estoque.
+ * DISPONÍVEL é o número da venda; o resto é detalhe. Fonte: fn_lista por SKU.
  */
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { chamarLista, numeroAgregado, useListaPaginada } from "@/lib/lista/useListaPaginada";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Boxes, Lock } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -19,16 +22,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { useEstadoTela, useRestaurarScroll, escreverLista } from "@/lib/navegacao";
-import { useCentralEstoque } from "@/hooks/estoque/useCentralEstoque";
-import { filtrar, type ProdutoCentral } from "@/lib/estoque/centralEstoque";
+import { useColunasCentralEstoque } from "@/hooks/estoque/useCentralEstoque";
+import { adaptarProdutoCentral, type LinhaCentralProduto, type ProdutoCentral } from "@/lib/estoque/centralEstoque";
+import { contagensCentralEstoque, parametrosCentralEstoque } from "@/lib/estoque/centralEstoqueLista";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { GavetaProdutoEstoque } from "@/components/estoque/central/GavetaProdutoEstoque";
 import { corNumero } from "@/components/estoque/central/statusVisual";
 import { FilaOperacionalEstoque } from "@/components/estoque/FilaOperacionalEstoque";
 import { AcoesAlertasEstoque } from "@/components/estoque/AcoesAlertasEstoque";
-import { useFilaOperacionalEstoque } from "@/hooks/estoque/useFilaOperacionalEstoque";
-import { skusDoCard } from "@/lib/estoque/filaOperacionalEstoque";
+import { useReposicaoSp } from "@/hooks/estoque/useReposicaoSp";
 import { PainelReposicaoSp } from "@/components/estoque/central/PainelReposicaoSp";
 
 const fmt = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
@@ -37,22 +40,53 @@ const fmt = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-
 export default function CentralEstoque() {
   const [f, setF] = useEstadoTela({ q: "", colecao: "", fase: "", card: "", painel: "", reposicao: "urgente", saldo: false, pagina: 1, tamanho: DEFAULT_PAGE_SIZE as number }, { replaceKeys: ["q"] });
   const navigate = useNavigate();
-  const fila = useFilaOperacionalEstoque();
   const cardAtivo = f.card || (f.painel === "repor" ? "repor" : "");
-  const skusCard = skusDoCard(fila, cardAtivo);
   const [params, setParams] = useSearchParams();
   const foco = params.get("foco");
-  const { produtos, colunas, isLoading, error } = useCentralEstoque();
+  const selecaoProduto = { colecao: lerFiltroProduto(f.colecao), fase: lerFiltroProduto(f.fase) };
+  const filtros = { ...f, ...selecaoProduto, card: cardAtivo };
+  const lista = useListaPaginada<LinhaCentralProduto>(parametrosCentralEstoque(filtros));
+  const consultaColunas = useColunasCentralEstoque();
+  const reposicao = useReposicaoSp();
+  const colunas = consultaColunas.data ?? [];
+  const pagina = useMemo(() => (lista.data?.linhas ?? []).map(adaptarProdutoCentral), [lista.data?.linhas]);
+  const produtoPagina = foco ? pagina.find(p => p.sku === foco) : undefined;
+  const detalhe = useQuery({
+    queryKey: ["lista", "vw_central_estoque_produto", "foco", foco],
+    enabled: !!foco && !!lista.data && !lista.isFetching && !produtoPagina,
+    queryFn: async () => {
+      if (!foco) throw new Error("Produto não informado.");
+      const r = await chamarLista<LinhaCentralProduto>({ relacao: "vw_central_estoque_produto", filtros: [{ c: "sku", op: "eq", v: foco }], tamanho: 1, pagina: 1 });
+      const linha = r.linhas[0];
+      if (!linha) throw new Error("Nenhum produto.");
+      return adaptarProdutoCentral(linha);
+    },
+  });
+  const alerta = useQuery({
+    queryKey: ["estoque-alerta-produto", "foco", foco], enabled: !!foco,
+    queryFn: async () => {
+      if (!foco) throw new Error("Produto não informado.");
+      const { data, error } = await supabase.from("vw_estoque_alerta_produto").select("*").eq("sku", foco).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const aberto = foco ? produtoPagina ?? detalhe.data ?? null : null;
+  const isLoading = lista.isLoading || consultaColunas.isLoading;
+  const error = lista.error ?? consultaColunas.error;
+  const erroGaveta = detalhe.error ?? alerta.error;
+  const fila = {
+    contagens: contagensCentralEstoque(lista.data?.agregados),
+    custoPosicao: numeroAgregado(lista.data?.agregados, "custo_parado"),
+    unidadesParadas: numeroAgregado(lista.data?.agregados, "unidades_paradas"),
+    urgente: (reposicao.data ?? []).filter(r => r.ritmo === "urgente").length,
+    carga: (reposicao.data ?? []).filter(r => r.ritmo === "carga").length,
+    isLoading: lista.isLoading || reposicao.isLoading, error: lista.error ?? reposicao.error,
+  };
   useRestaurarScroll(null, !isLoading);
 
-  const colecoes = useMemo(() => [...new Set(produtos.map((p) => p.colecao).filter(Boolean) as string[])].sort(), [produtos]);
-  const fases = useMemo(() => [...new Set(produtos.map((p) => p.fase).filter(Boolean) as string[])].sort(), [produtos]);
-  const selecaoProduto = { colecao: lerFiltroProduto(f.colecao), fase: lerFiltroProduto(f.fase) };
-  const baseOutrosFiltros = filtrar(produtos, { q: f.q, colecao: "", fase: "", card: "", comSaldo: f.saldo }).filter(p => !skusCard || skusCard.has(p.sku));
-  const visiveis = filtrarDimensoesProduto(baseOutrosFiltros, selecaoProduto);
-  const skusVisiveis = new Set(visiveis.map(p => p.sku));
-  const pagina = visiveis.slice((f.pagina - 1) * f.tamanho, f.pagina * f.tamanho);
-  const aberto = foco ? produtos.find((p) => p.sku === foco) ?? null : null;
+  const opcoesFaceta = (campo: string) => (lista.data?.facetas[campo] ?? []).flatMap(o => o.valor ? [{ valor: o.valor, rotulo: o.valor, contagem: o.contagem }] : [])
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
 
   const abrir = (sku: string | null) => setParams((p) => { const n = new URLSearchParams(p); if (sku) n.set("foco", sku); else n.delete("foco"); return n; });
 
@@ -82,10 +116,10 @@ export default function CentralEstoque() {
       {cardAtivo === "repor" ? <PainelReposicaoSp aba={f.reposicao === "carga" ? "carga" : "urgente"} onAba={v => setF({ reposicao: v })} onUsar={reposicaoSp => navigate("/pedidos/transferencias?aba=nova", { state: { reposicaoSp } })} /> : <>
       <div className="flex flex-wrap items-center gap-2">
         <FilterInput value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: 1 })} placeholder="Código, SKU ou nome" className="w-64" />
-        <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "colecao", colecoes, undefined, p => p.sku)} selecionados={selecaoProduto.colecao} onChange={(v) => setF({ colecao: escreverLista(v), pagina: 1 })} className="w-44 h-9" />
-        <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFiltroProduto(baseOutrosFiltros, selecaoProduto, "fase", fases, undefined, p => p.sku)} selecionados={selecaoProduto.fase} onChange={(v) => setF({ fase: escreverLista(v), pagina: 1 })} className="w-40 h-9" />
+        <MultiSelectFilter label="Todas as coleções" plural="coleções" opcoes={opcoesFaceta("colecao")} selecionados={selecaoProduto.colecao} onChange={(v) => setF({ colecao: escreverLista(v), pagina: 1 })} className="w-44 h-9" />
+        <MultiSelectFilter label="Todas as fases" plural="fases" opcoes={opcoesFaceta("fase")} selecionados={selecaoProduto.fase} onChange={(v) => setF({ fase: escreverLista(v), pagina: 1 })} className="w-40 h-9" />
         <div className="flex items-center gap-2"><Switch id="so-saldo" checked={f.saldo} onCheckedChange={(v) => setF({ saldo: v, pagina: 1 })} /><Label htmlFor="so-saldo" className="text-sm">Só com saldo</Label></div>
-        <AcoesAlertasEstoque card={cardAtivo} alertas={fila.alertas.filter(a => a.sku && skusVisiveis.has(a.sku))} />
+        <AcoesAlertasEstoque card={cardAtivo} filtros={filtros} />
       </div>
 
       {error ? (
@@ -129,14 +163,15 @@ export default function CentralEstoque() {
                 </tbody>
               </table>
             </div>
-            <RodapePaginacao total={visiveis.length} pagina={f.pagina} tamanhoPagina={f.tamanho} tela="tela.central_estoque"
+            <RodapePaginacao total={lista.data?.total ?? 0} pagina={f.pagina} tamanhoPagina={f.tamanho} tela="tela.central_estoque"
               onPagina={(n) => setF({ pagina: n })} onTamanhoPagina={(n) => setF({ tamanho: n, pagina: 1 })} />
           </div>
         </TooltipProvider>
       )}
       </>}
 
-      <GavetaProdutoEstoque produto={aberto} alerta={fila.alertas.find(a => a.sku === aberto?.sku)} onFechar={() => abrir(null)} />
+      {foco && erroGaveta && <Alert variant="destructive"><AlertDescription>{formatError(erroGaveta)}</AlertDescription></Alert>}
+      <GavetaProdutoEstoque produto={aberto} alerta={alerta.data ?? undefined} onFechar={() => abrir(null)} />
     </PageShell>
   );
 }

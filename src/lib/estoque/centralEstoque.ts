@@ -31,6 +31,24 @@ export interface ProdutoCentral {
 
 export interface CentroColuna { codigo: string; rotulo: string; ordem: number; papel: PapelCentro }
 
+/** Linha já consolidada pelo banco: nunca recalcular os totais ou a prioridade. */
+export interface LinhaCentralProduto {
+  sku: string; cod_cadastro: string | null; nome: string | null; cor: string | null;
+  colecao: string | null; fase: string | null;
+  centros: Record<string, LinhaCentral>; terceiros: LinhaCentral[];
+  gravidade: number; cobertura: number | null; rede: number; terceiros_disp: number;
+}
+
+export function adaptarProdutoCentral(linha: LinhaCentralProduto): ProdutoCentral {
+  return {
+    sku: linha.sku, cod_cadastro: linha.cod_cadastro, nome: linha.nome, cor: linha.cor,
+    colecao: linha.colecao, fase: linha.fase, centros: linha.centros,
+    principais: Object.values(linha.centros).filter(l => ePrincipal(l.papel)),
+    terceiros: linha.terceiros, gravidade: linha.gravidade, cobertura: linha.cobertura,
+    rede: linha.rede, terceirosDisp: linha.terceiros_disp,
+  };
+}
+
 export const ePrincipal = (p: PapelCentro) => p === "mae" || p === "avancado" || p === "complemento";
 const n = (v: number | null | undefined) => Number(v ?? 0);
 

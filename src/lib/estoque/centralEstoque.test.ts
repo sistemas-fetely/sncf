@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agrupar, contarFila, filtrar, type LinhaCentral } from "./centralEstoque";
+import { adaptarProdutoCentral, agrupar, contarFila, filtrar, type LinhaCentral } from "./centralEstoque";
 
 const base = (o: Partial<LinhaCentral>): LinhaCentral => ({
   cod_cadastro: null, sku: "A", nome_comercial: null, cor_nome: null, colecao: null, fase: null, centro: "XPM-SC",
@@ -24,7 +24,8 @@ describe("central de estoque", () => {
     expect(produtos.map((p) => p.sku)).toEqual(["RET", "ZER", "ACA", "OK"]);
   });
   it("rede só soma centros que contam na rede; terceiros à parte", () => {
-    const ok = produtos.find((p) => p.sku === "OK")!;
+    const ok = produtos.find((p) => p.sku === "OK");
+    if (!ok) throw new Error("Produto OK ausente.");
     expect(ok.rede).toBe(12);
     expect(ok.terceirosDisp).toBe(7);
   });
@@ -38,5 +39,22 @@ describe("central de estoque", () => {
   it("sem contagem só conta CD com disponível > 0", () => {
     const r = agrupar([base({ sku: "Z", centro: "FET-SP-SR", papel: "complemento", disponivel: 0 })]);
     expect(contarFila(r.produtos).sem_contagem).toBe(0);
+  });
+
+  it("adapta centros e terceiros sem recalcular gravidade, cobertura ou totais do banco", () => {
+    const centros = {
+      "XPM-SC": base({ disponivel: 100, status: "retido" }),
+      "SITE-SP": base({ centro: "SITE-SP", papel: "avancado", disponivel: 20 }),
+      "FET-SP-SR": base({ centro: "FET-SP-SR", papel: "complemento", disponivel: 30 }),
+      "OUTRO": base({ centro: "OUTRO", papel: "outro", disponivel: 50 }),
+    };
+    const terceiros = [base({ centro: "CONSIG", papel: "terceiro", disponivel: 99 })];
+    const p = adaptarProdutoCentral({ sku: "A", cod_cadastro: "02047", nome: "Bowl", cor: "Azul", colecao: "Amour", fase: "venda",
+      centros, terceiros, gravidade: 3, cobertura: 324.8, rede: 443, terceiros_disp: 9 });
+    expect(p.centros).toBe(centros);
+    expect(p.principais.map(l => l.centro)).toEqual(["XPM-SC", "SITE-SP", "FET-SP-SR"]);
+    expect(p.terceiros).toBe(terceiros);
+    expect({ gravidade: p.gravidade, cobertura: p.cobertura, rede: p.rede, terceiros: p.terceirosDisp }).toEqual({ gravidade: 3, cobertura: 324.8, rede: 443, terceiros: 9 });
+    expect([p.cod_cadastro, p.nome, p.cor, p.colecao, p.fase]).toEqual(["02047", "Bowl", "Azul", "Amour", "venda"]);
   });
 });

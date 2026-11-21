@@ -1,9 +1,8 @@
-import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
-import { agrupar, type LinhaCentral } from "@/lib/estoque/centralEstoque";
+import type { CentroColuna } from "@/lib/estoque/centralEstoque";
 import type { ReposicaoSp } from "@/lib/estoque/reposicaoSp";
 
 const sb = supabase;
@@ -14,26 +13,20 @@ export async function invalidarEstoque(qc: QueryClient) {
     ["central-estoque", "central-estoque-canais", "reposicao-sp", "estoque-cockpit", "vw_estoque_cockpit", "conciliacao-estoque", "estoque-centro", "shopify-estoque-retido"]
       .map((k) => qc.invalidateQueries({ queryKey: [k] })),
   );
+  await qc.invalidateQueries({ queryKey: ["lista", "vw_central_estoque_produto"] });
+  await qc.invalidateQueries({ queryKey: ["estoque-alerta-produto"] });
 }
 
-/** POSTGREST-CORTA-EM-MIL: lê a view em lotes de 1000 e agrupa por SKU. */
-export function useCentralEstoque() {
-  const q = useQuery({
-    queryKey: ["central-estoque"],
+export function useColunasCentralEstoque() {
+  return useQuery({
+    queryKey: ["central-estoque", "colunas"],
     queryFn: async () => {
-      const out: LinhaCentral[] = [];
-      for (let de = 0; ; de += 1000) {
-        const { data, error } = await sb.from("vw_central_estoque").select("*")
-          .order("sku").order("centro").range(de, de + 999);
-        if (error) throw error;
-        out.push(...((data ?? []) as unknown as LinhaCentral[]));
-        if (!data || data.length < 1000) break;
-      }
-      return out;
+      const { data, error } = await sb.from("vw_central_estoque_colunas" as any)
+        .select("codigo,rotulo,ordem,papel").order("ordem");
+      if (error) throw error;
+      return (data ?? []) as unknown as CentroColuna[];
     },
   });
-  const agrupado = useMemo(() => agrupar(q.data ?? []), [q.data]);
-  return { ...q, ...agrupado };
 }
 
 export interface CanaisProduto {
@@ -88,10 +81,11 @@ export function useRetencaoCanal() {
         if (error) throw error;
         return;
       }
+      if (!id) throw new Error("Retenção não informada.");
       const { data: u } = await supabase.auth.getUser();
       const { data, error } = await sb.from("estoque_retencao_canal")
         .update({ liberado_em: new Date().toISOString(), liberado_por: u.user?.id ?? null })
-        .eq("id", id!).is("liberado_em", null).select("id");
+        .eq("id", id).is("liberado_em", null).select("id");
       if (error) throw error;
       if (!data?.length) throw new Error("Nenhuma retenção aberta foi encerrada (sem permissão ou já liberada).");
     },

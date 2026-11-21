@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Central stock reads one fn_lista page per SKU with global card aggregates and server facets; the adapter preserves database totals, off-page drawer lookup uses the same RPC, and actions fetch only their small alert subset so transfers never depend on the visible page.
 - Site SP phase filters use vd_fase metadata and URL-backed phase/step selection; independent accessible buttons share B2C gold selection, while search and delivered/cancelled visibility remain separate.
 - VD center choice uses the management view's stage, a drawer-only suggestion query and shared carrier quotes; tested guards and existing RPCs own confirm/undo with awaited order refresh, preserving database classification.
 - VD payment selection excludes local PIX without changing legacy normalization; Safra PIX-link proof and waiting-state helpers stay separate from card transaction parsing to preserve card confirmation.
