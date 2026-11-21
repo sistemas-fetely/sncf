@@ -106,10 +106,12 @@ export default function ExtratoConta() {
   const preset: Preset = __n_preset.preset as Preset;
   const setPreset = (v: __SSA<Preset>) => { const x = __ra(v, preset); __s_preset({ preset: x } as never); };
   const [__n_dataInicio, __s_dataInicio] = __uet({ de: "" });
-  const dataInicio: string = ((__n_dataInicio.de as string) || (intervaloPreset("este_mes").inicio ?? "")) as string;
+  // preset "tudo" = sem fallback de "este mês": usa só o que está na URL (vazio = extrato completo;
+  // datas manuais também marcam preset "tudo" e precisam continuar valendo).
+  const dataInicio: string = (preset === "tudo" ? ((__n_dataInicio.de as string) || "") : ((__n_dataInicio.de as string) || (intervaloPreset("este_mes").inicio ?? ""))) as string;
   const setDataInicio = (v: __SSA<string>) => { const x = __ra(v, dataInicio); __s_dataInicio({ de: x } as never); };
   const [__n_dataFim, __s_dataFim] = __uet({ ate: "" });
-  const dataFim: string = ((__n_dataFim.ate as string) || (intervaloPreset("este_mes").fim ?? "")) as string;
+  const dataFim: string = (preset === "tudo" ? ((__n_dataFim.ate as string) || "") : ((__n_dataFim.ate as string) || (intervaloPreset("este_mes").fim ?? ""))) as string;
   const setDataFim = (v: __SSA<string>) => { const x = __ra(v, dataFim); __s_dataFim({ ate: x } as never); };
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { replaceKeys: ["busca"] });
