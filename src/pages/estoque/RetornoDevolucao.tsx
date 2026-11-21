@@ -45,6 +45,8 @@ import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
+import { RessarcimentoExtrato } from "@/components/devolucao/RessarcimentoExtrato";
+import { mostrarRessarcimentoExtrato } from "@/lib/devolucao/ressarcimentoExtrato";
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
@@ -68,6 +70,7 @@ type Funil = {
   transferencia_pedido_id: string | null; transferencia_numero: string | null; transferencia_ok: boolean | null;
   e1_aberta: boolean; e2_reversa: boolean; e3_recebida: boolean; e4_conferida: boolean;
   e5_nf_resolvida: boolean; e6_ressarcida: boolean; e7_encerrada: boolean;
+  ressarcimento_mov_id: string | null;
   nf_vinculo_confirmado: boolean | null; nf_retorno_sugerida: string | null;
   nf_vinculo_sugerido_id: string | null; grau_sugerido?: string | null;
   desfecho: string | null; e_decisao_comercial: boolean | null; e_estoque_ajustado: boolean | null;
@@ -682,6 +685,7 @@ export default function RetornoDevolucao() {
                               )}
                             </div>
                           )}
+                          {mostrarRessarcimentoExtrato(d) && <RessarcimentoExtrato key={d.id} devolucaoId={d.id} movimentoId={d.ressarcimento_mov_id ?? null} valor={d.valor_credito} />}
                           {ehAberta(d) && (
                             <div className="mx-2 mb-2 flex flex-wrap items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
                               <span className="text-xs font-medium text-muted-foreground">Para encerrar</span>

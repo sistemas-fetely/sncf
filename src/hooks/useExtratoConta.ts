@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { filtroBuscaExtrato } from "@/lib/financeiro/buscaExtrato";
 
 /**
  * Extrato da Conta — leitura exclusiva da view `vw_extrato_conta`.
@@ -79,18 +80,8 @@ export function useExtratoConta(
       if (filtros.conciliado !== "todos")
         q = q.eq("conciliado", filtros.conciliado === "sim");
 
-      const termo = filtros.busca.trim();
-      if (termo) {
-        const t = termo.replace(/[,%()]/g, " ");
-        q = q.or(
-          [
-            `descricao.ilike.%${t}%`,
-            `contraparte_nome.ilike.%${t}%`,
-            `contraparte_documento.ilike.%${t}%`,
-            `referencia_pedido.ilike.%${t}%`,
-          ].join(","),
-        );
-      }
+      const busca = filtroBuscaExtrato(filtros.busca);
+      if (busca) q = q.or(busca);
 
       const { data, error } = await q;
       if (error) throw error;
