@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- XPM receipt sync shares Vault/PAT auth with inspection, performs GET-only collection and persists whole pages through the existing idempotent RPC; tested bounds and cron/admin guards prevent unbounded or unauthorized imports.
 - Account-statement search builds a tested PostgREST text-or-absolute-value predicate; return reimbursement uses existing candidate/link/unlink RPCs with tested visibility and awaited shared cache refresh, keeping reconciliation and closure database-owned.
 - Central stock reads one fn_lista page per SKU with global card aggregates and server facets; the adapter preserves database totals, off-page drawer lookup uses the same RPC, and actions fetch only their small alert subset so transfers never depend on the visible page.
 - Site SP phase filters use vd_fase metadata and URL-backed phase/step selection; independent accessible buttons share B2C gold selection, while search and delivered/cancelled visibility remain separate.

@@ -11,6 +11,7 @@
 // pat_vault_key saem de integracoes_config; o PAT sai do vault via get_vault_secret.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { autenticarXpm } from "../_shared/xpm-auth.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -102,27 +103,9 @@ Deno.serve(async (req) => {
     let tokenXpm: string | null = null;
     const obterToken = async (): Promise<string> => {
       if (tokenXpm) return tokenXpm;
-      const { data: pat, error: ePat } = await sb.rpc("get_vault_secret", {
-        p_name: cfg!.pat_vault_key,
-      });
-      if (ePat) throw new Error(`vault: ${ePat.message}`);
-      if (!pat) throw new Error("PAT ausente no vault");
-      // config.auth_endpoint e caminho relativo ("/api/TokenAuth/AuthenticatePAT").
-      const endpoint = cfg!.auth_endpoint ?? "/api/TokenAuth/AuthenticatePAT";
-      const authUrl = endpoint.startsWith("http") ? endpoint : `${base}${endpoint}`;
-      const r = await fetch(authUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ personalAccessToken: pat, tenantName: cfg!.tenant_name }),
-      });
-      const j = await r.json().catch(() => null);
-      const t = (j as Record<string, any> | null)?.result?.accessToken;
-      if (!r.ok || !t) {
-        throw new Error(
-          `auth falhou em ${authUrl}: ${(j as any)?.error?.message ?? `HTTP ${r.status}`}`,
-        );
-      }
-      tokenXpm = t as string;
+      if (!cfg) throw new Error("Config XPM ausente.");
+      const { token } = await autenticarXpm(sb, cfg);
+      tokenXpm = token;
       return tokenXpm;
     };
 
