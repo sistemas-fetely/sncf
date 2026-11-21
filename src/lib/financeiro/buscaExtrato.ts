@@ -12,7 +12,7 @@ export function filtroBuscaExtrato(texto: string): string | null {
   const termo = texto.trim();
   if (!termo) return null;
   const t = termo.replace(/[,%()"\\]/g, " ");
-  const campos = ["descricao", "contraparte_nome", "contraparte_documento", "referencia_pedido"];
+  const campos = ["descricao", "contraparte_nome", "contraparte_documento", "referencia_pedido", "id_transacao_banco"];
   const partes = campos.map(c => `${c}.ilike.%${t}%`);
   const valor = valorBuscaExtrato(termo);
   if (valor !== null) partes.push(`and(valor_abs.gte.${Math.max(0, valor - 0.01).toFixed(2)},valor_abs.lte.${(valor + 0.01).toFixed(2)})`);

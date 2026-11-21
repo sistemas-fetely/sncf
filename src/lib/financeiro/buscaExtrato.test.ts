@@ -11,9 +11,15 @@ describe("busca do extrato", () => {
     expect(valorBuscaExtrato(texto)).toBe(1234.56);
     expect(filtroBuscaExtrato(texto)).toContain("and(valor_abs.gte.1234.55,valor_abs.lte.1234.57)");
   });
-  it("texto mantém descrição, nome, documento e referência sem filtro de valor", () => {
+  it("texto mantém descrição, nome, documento, referência e id do banco sem filtro de valor", () => {
     expect(valorBuscaExtrato("SISPAG DARE")).toBeNull();
-    expect(filtroBuscaExtrato("DARE")).toBe("descricao.ilike.%DARE%,contraparte_nome.ilike.%DARE%,contraparte_documento.ilike.%DARE%,referencia_pedido.ilike.%DARE%");
+    expect(filtroBuscaExtrato("DARE")).toBe("descricao.ilike.%DARE%,contraparte_nome.ilike.%DARE%,contraparte_documento.ilike.%DARE%,referencia_pedido.ilike.%DARE%,id_transacao_banco.ilike.%DARE%");
+  });
+  it("código longo do banco (172432072243) busca pelo id_transacao_banco mesmo sendo lido como valor", () => {
+    expect(valorBuscaExtrato("172432072243")).toBe(172432072243);
+    const filtro = filtroBuscaExtrato("172432072243");
+    expect(filtro).toContain("id_transacao_banco.ilike.%172432072243%");
+    expect(filtro).toContain("and(valor_abs.gte.172432072242.99,valor_abs.lte.172432072243.01)");
   });
   it.each(["", "abc23,04", "123.456.789-00", "46.379.400/0001-50", "23,04xyz"])("não interpreta %s como valor", texto => expect(valorBuscaExtrato(texto)).toBeNull());
   it("valor zero não produz limite inferior negativo", () => expect(filtroBuscaExtrato("0")).toContain("and(valor_abs.gte.0.00,valor_abs.lte.0.01)"));
