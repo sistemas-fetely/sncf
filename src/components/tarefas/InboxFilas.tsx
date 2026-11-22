@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import { useFilaMedidas, fmtPrazoMedida, type FilaMedida } from "@/hooks/tarefas
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -521,18 +523,104 @@ function BlocoMedida({ medida }: { medida: FilaMedida }) {
   );
 }
 
+export interface AreaFilaDash {
+  chave: string;
+  departamento_id: string | null;
+  departamentos: { nome: string; ordem: number | null } | null;
+}
+
+const PESO_SEVERIDADE: Record<string, number> = { critica: 0, alta: 1, normal: 2, baixa: 3 };
+const PREFERENCIAS_FILAS = "sncf.dash.filas-operacao";
+
+interface PreferenciasFilasDash {
+  ocultarVazias: boolean;
+  recolhidas: Record<string, boolean>;
+}
+
+function lerPreferenciasFilas(): PreferenciasFilasDash {
+  try {
+    const salvo = JSON.parse(window.localStorage.getItem(PREFERENCIAS_FILAS) ?? "null");
+    const recolhidas: Record<string, boolean> = {};
+    if (salvo?.recolhidas && typeof salvo.recolhidas === "object" && !Array.isArray(salvo.recolhidas)) {
+      for (const [id, valor] of Object.entries(salvo.recolhidas)) {
+        if (typeof valor === "boolean") recolhidas[id] = valor;
+      }
+    }
+    return { ocultarVazias: salvo?.ocultarVazias === true, recolhidas };
+  } catch (error) {
+    console.warn("Não foi possível ler as preferências das filas", formatError(error));
+    return { ocultarVazias: false, recolhidas: {} };
+  }
+}
+
+/** Só apresentação: todas as contagens continuam vindo de fn_inbox_filas. */
+export function agruparFilasDash(filas: FilaInbox[], areas: AreaFilaDash[], ocultarVazias: boolean) {
+  const catalogo = new Map(areas.map((area) => [area.chave, area]));
+  const grupos = new Map<string, {
+    id: string; nome: string; ordem: number | null; semArea: boolean;
+    total: number; filasComItens: number; filas: FilaInbox[];
+  }>();
+  for (const fila of filas) {
+    const area = catalogo.get(fila.chave);
+    const id = area?.departamento_id ?? "sem-area";
+    const grupo = grupos.get(id) ?? {
+      id, nome: area?.departamentos?.nome ?? "Sem área", ordem: area?.departamentos?.ordem ?? null,
+      semArea: !area?.departamento_id, total: 0, filasComItens: 0, filas: [],
+    };
+    grupo.total += fila.total;
+    if (fila.total > 0) grupo.filasComItens += 1;
+    // Falha de contagem não significa fila vazia: preserve o alerta existente.
+    if (!ocultarVazias || fila.total > 0 || fila.erro) grupo.filas.push(fila);
+    grupos.set(id, grupo);
+  }
+  return [...grupos.values()]
+    .sort((a, b) => Number(a.semArea) - Number(b.semArea)
+      || (a.ordem ?? Infinity) - (b.ordem ?? Infinity)
+      || a.nome.localeCompare(b.nome, "pt-BR"))
+    .map((grupo) => ({ ...grupo, filas: grupo.filas.sort((a, b) => {
+      const vaziaA = a.total === 0 && !a.erro;
+      const vaziaB = b.total === 0 && !b.erro;
+      return Number(vaziaA) - Number(vaziaB)
+        || (PESO_SEVERIDADE[a.severidade] ?? 2) - (PESO_SEVERIDADE[b.severidade] ?? 2)
+        || b.total - a.total;
+    }) }));
+}
+
 export function InboxFilas() {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
+  const [preferencias, setPreferencias] = useState(lerPreferenciasFilas);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PREFERENCIAS_FILAS, JSON.stringify(preferencias));
+    } catch (error) {
+      toast.error("Não foi possível guardar a preferência das filas", { description: formatError(error) });
+    }
+  }, [preferencias]);
   const [filaAberta, setFilaAberta] = useState<FilaInbox | null>(null);
   const { data: filas, isLoading, isError, error, refetch, isFetching } = useInboxFilas();
   const medidas = useFilaMedidas();
+  const areas = useQuery({
+    queryKey: ["tarefas", "dash", "filas-areas"],
+    queryFn: async (): Promise<AreaFilaDash[]> => {
+      const todas: AreaFilaDash[] = [];
+      const tamanho = 500;
+      for (let inicio = 0; ; inicio += tamanho) {
+        const { data, error } = await supabase.from("tarefas_filas")
+          .select("chave,departamento_id,departamentos!tarefas_filas_departamento_id_fkey(nome,ordem)")
+          .order("id").range(inicio, inicio + tamanho - 1);
+        if (error) throw error;
+        const pagina = (data ?? []) as unknown as AreaFilaDash[];
+        todas.push(...pagina);
+        if (pagina.length < tamanho) return todas;
+      }
+    },
+  });
 
   const totalGeral = (filas ?? []).reduce((acc, f) => acc + f.total, 0);
 
-  const comPendencia = (filas ?? []).filter((f) => f.total > 0 || !!f.erro);
-  const zeradas = (filas ?? []).filter((f) => f.total === 0 && !f.erro);
-  const visiveis = [...comPendencia, ...zeradas];
+  const secoes = useMemo(() => agruparFilasDash(filas ?? [], areas.data ?? [], preferencias.ocultarVazias),
+    [filas, areas.data, preferencias.ocultarVazias]);
 
   return (
     <Card>
@@ -562,7 +650,12 @@ export function InboxFilas() {
 
       {expanded && (
         <CardContent className="space-y-3">
-          {isLoading && (
+          <div className="flex items-center gap-2">
+            <Switch id="dash-ocultar-filas-vazias" checked={preferencias.ocultarVazias}
+              onCheckedChange={(ocultarVazias) => setPreferencias((p) => ({ ...p, ocultarVazias }))} />
+            <Label htmlFor="dash-ocultar-filas-vazias" className="text-xs">Ocultar filas vazias</Label>
+          </div>
+          {(isLoading || areas.isLoading) && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-24 w-full rounded-lg" />
@@ -570,26 +663,40 @@ export function InboxFilas() {
             </div>
           )}
 
-          {isError && (
+          {(isError || areas.isError) && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Não foi possível carregar as filas</AlertTitle>
               <AlertDescription className="space-y-2">
-                <p className="text-xs break-words">{formatError(error)}</p>
-                <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+                <p className="text-xs break-words">{formatError(error ?? areas.error)}</p>
+                <Button size="sm" variant="outline" onClick={() => { void refetch(); void areas.refetch(); }} disabled={isFetching || areas.isFetching}>
                   Tentar de novo
                 </Button>
               </AlertDescription>
             </Alert>
           )}
 
-          {!isLoading && !isError && visiveis.length === 0 && (
+          {!isLoading && !isError && !areas.isLoading && !areas.isError && secoes.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhuma fila cadastrada.</p>
           )}
 
-          {!isLoading && !isError && visiveis.length > 0 && (
+          {!isLoading && !isError && !areas.isLoading && !areas.isError && secoes.map((secao) => {
+            const recolhida = preferencias.recolhidas[secao.id] === true;
+            return (
+            <section key={secao.id} className="space-y-3 border-t pt-3">
+              <h3>
+                <Button variant="ghost" className="h-auto w-full justify-start gap-2 whitespace-normal px-0 py-1 text-left"
+                  aria-expanded={!recolhida} aria-controls={`dash-area-${secao.id}`}
+                  onClick={() => setPreferencias((p) => ({ ...p, recolhidas: { ...p.recolhidas, [secao.id]: !recolhida } }))}>
+                  {recolhida ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronUp className="h-4 w-4 shrink-0" />}
+                  <span className="text-sm font-medium">{secao.nome}
+                    <span className="font-normal text-muted-foreground"> · {secao.total.toLocaleString("pt-BR")} itens · {secao.filasComItens} filas</span>
+                  </span>
+                </Button>
+              </h3>
+              {!recolhida && <div id={`dash-area-${secao.id}`}>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-              {visiveis.map((fila) => {
+              {secao.filas.map((fila) => {
                 const comErro = !!fila.erro;
                 const zerada = fila.total === 0 && !comErro;
                 const ehCritica = !zerada && fila.severidade === "critica";
@@ -612,7 +719,8 @@ export function InboxFilas() {
                       ehCritica && "border-destructive bg-destructive/5",
                       ehAlta && "border-warning bg-warning/5",
                       !ehCritica && !ehAlta && "border-border bg-card",
-                      comErro && "border-destructive"
+                      comErro && "border-destructive",
+                      zerada && "opacity-50"
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -648,7 +756,11 @@ export function InboxFilas() {
                 );
               })}
             </div>
-          )}
+            {secao.filas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma fila com itens.</p>}
+              </div>}
+            </section>
+            );
+          })}
         </CardContent>
       )}
 
