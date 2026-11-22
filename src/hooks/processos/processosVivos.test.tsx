@@ -1,12 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { supabase } from "@/integrations/supabase/client";
 import { passoDoMotor, useProcessoPassosVivos, type ProcessoPassoVivo } from "./useProcessoPassosVivos";
-import { idsHistoricoSobDemanda, useProcessoRegrasHistorico, type ProcessoRegra } from "./useProcessoRegras";
+import { idsHistoricoSobDemanda, useProcessoRegrasHistorico, podeSalvarRegra, useAlterarProcessoRegra, type EdicaoRegra, type ProcessoRegra } from "./useProcessoRegras";
+import { linkDoCaso, useProcessoRastreioPorPedido, type ProcessoTarefa } from "./useProcessoTarefas";
+import { toast } from "sonner";
 
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
+const { rpcMock } = vi.hoisted(() => ({ rpcMock: vi.fn() }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn(), rpc: rpcMock } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 const clientes: QueryClient[] = [];
 function wrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -71,4 +75,90 @@ it("propaga a falha de leitura em vez de devolver histórico vazio", async () =>
   await waitFor(() => expect(result.current.isError).toBe(true));
   expect(result.current.error).toEqual(error);
   unmount();
+});
+
+const regra = { id: "prazo", unidade: "dias_uteis", valor: 2, valor_texto: null, conta_a_partir_de: "Entrega" } as ProcessoRegra;
+const edicao: EdicaoRegra = { valor: "3", valorTexto: "", contaAPartirDe: "Entrega", motivo: "Prazo revisto" };
+
+it("exige motivo não vazio para alterar a regra", () => {
+  expect(podeSalvarRegra(regra, { ...edicao, motivo: "" })).toBe(false);
+  expect(podeSalvarRegra(regra, { ...edicao, motivo: "  " })).toBe(false);
+  expect(podeSalvarRegra(regra, edicao)).toBe(true);
+});
+
+it("não permite salvar quando só o motivo mudou", () => {
+  expect(podeSalvarRegra(regra, { ...edicao, valor: "2" })).toBe(false);
+  expect(podeSalvarRegra(regra, { ...edicao, valor: "2", valorTexto: "Observação nova" })).toBe(true);
+  expect(podeSalvarRegra(regra, { ...edicao, valor: "2", contaAPartirDe: "NF" })).toBe(true);
+});
+
+it("novo valor numérico deve ser inteiro maior ou igual a zero", () => {
+  for (const valor of ["-1", "1.5", "", "abc"]) expect(podeSalvarRegra(regra, { ...edicao, valor })).toBe(false);
+  expect(podeSalvarRegra(regra, { ...edicao, valor: "0" })).toBe(true);
+});
+
+it("regra de texto dispensa o número e exige mudança no texto ou na contagem", () => {
+  const texto = { ...regra, unidade: "texto", valor: null, valor_texto: "Texto atual" };
+  expect(podeSalvarRegra(texto, { ...edicao, valor: "", valorTexto: "Texto novo" })).toBe(true);
+  expect(podeSalvarRegra(texto, { ...edicao, valor: "3", valorTexto: "Texto atual" })).toBe(false);
+});
+
+it("salva pela RPC e atualiza regras, histórico e passos do processo", async () => {
+  rpcMock.mockResolvedValue({ data: { ok: true }, error: null });
+  const provider = wrapper();
+  const qc = clientes[clientes.length - 1];
+  const invalidar = vi.spyOn(qc, "invalidateQueries");
+  const { result, unmount } = renderHook(() => useAlterarProcessoRegra("processo-devolucao"), { wrapper: provider });
+  await act(async () => { await result.current.mutateAsync({ regra, edicao }); });
+  expect(supabase.rpc).toHaveBeenCalledWith("processo_regra_alterar", {
+    p_regra_id: "prazo", p_valor: 3, p_valor_texto: null, p_conta_a_partir_de: "Entrega", p_motivo: "Prazo revisto",
+  });
+  for (const chave of ["regras", "regras-historico", "passos-vivos"]) {
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: ["processos", chave, "processo-devolucao"] });
+  }
+  expect(toast.success).toHaveBeenCalledWith("Regra atualizada");
+  unmount();
+});
+
+it.each([null, 7])("preserva p_valor=%s ao alterar regra textual", async (valor) => {
+  rpcMock.mockResolvedValue({ data: {}, error: null });
+  const { result, unmount } = renderHook(() => useAlterarProcessoRegra("processo"), { wrapper: wrapper() });
+  await act(async () => { await result.current.mutateAsync({ regra: { ...regra, unidade: "texto", valor }, edicao: { ...edicao, valorTexto: "Regra revista" } }); });
+  expect(supabase.rpc).toHaveBeenCalledWith("processo_regra_alterar", expect.objectContaining({ p_valor: valor, p_valor_texto: "Regra revista" }));
+  unmount();
+});
+
+it("mantém a mensagem literal do banco no erro e não invalida leituras", async () => {
+  const error = { message: "Você não tem permissão para alterar esta regra." };
+  rpcMock.mockResolvedValue({ data: null, error });
+  const provider = wrapper();
+  const invalidar = vi.spyOn(clientes[clientes.length - 1], "invalidateQueries");
+  const { result, unmount } = renderHook(() => useAlterarProcessoRegra("processo"), { wrapper: provider });
+  await act(async () => { await expect(result.current.mutateAsync({ regra, edicao })).rejects.toEqual(error); });
+  expect(toast.error).toHaveBeenCalledWith(error.message);
+  expect(invalidar).not.toHaveBeenCalled();
+  unmount();
+});
+
+it("agrupa rastreio e rastreio_nf abertos pelo pedido da view sem consultar pedido_rastreamento", async () => {
+  const linhas = [
+    { tarefa_id: "postal", caso_tipo: "rastreio", aberta: true, pedido_id: "pedido-1", caso_id: null },
+    { tarefa_id: "nf", caso_tipo: "rastreio_nf", aberta: true, pedido_id: "pedido-1", caso_ref: "NF 874" },
+    { tarefa_id: "fechada", caso_tipo: "rastreio_nf", aberta: false, pedido_id: "pedido-1" },
+    { tarefa_id: "sem-pedido", caso_tipo: "rastreio", aberta: true, pedido_id: null },
+    { tarefa_id: "devolucao", caso_tipo: "devolucao", aberta: true, pedido_id: "pedido-1" },
+  ];
+  vi.mocked(supabase.from).mockReturnValue({ select: vi.fn().mockResolvedValue({ data: linhas, error: null }) } as never);
+  const { result, unmount } = renderHook(() => useProcessoRastreioPorPedido(), { wrapper: wrapper() });
+  await waitFor(() => expect(result.current.get("pedido-1")).toEqual(linhas.slice(0, 2)));
+  expect(result.current.size).toBe(1);
+  expect(supabase.from).toHaveBeenCalledTimes(1);
+  expect(supabase.from).toHaveBeenCalledWith("vw_processo_tarefa");
+  unmount();
+});
+
+it("abre rastreio por nota em Entregas com a referência na busca", () => {
+  expect(linkDoCaso({ caso_tipo: "rastreio_nf", caso_ref: "NF 874" } as ProcessoTarefa)).toBe("/logistica?aba=entregas&and_busca=NF%20874");
+  expect(linkDoCaso({ caso_tipo: "rastreio", caso_ref: "AP123BR" } as ProcessoTarefa)).toBe("/logistica?aba=entregas&and_busca=AP123BR");
+  expect(linkDoCaso({ caso_tipo: "rastreio_nf", caso_ref: null } as ProcessoTarefa)).toBeNull();
 });

@@ -11,8 +11,9 @@ export interface ProcessoTarefa {
   passo_nome: string | null;
   passo_ordem: number | null;
   area_nome: string | null;
-  caso_tipo: "devolucao" | "rastreio" | string;
+  caso_tipo: "devolucao" | "rastreio" | "rastreio_nf" | string;
   caso_id: string | null;
+  pedido_id: string | null;
   caso_ref: string | null;
   status: string | null;
   prazo_data: string | null;
@@ -59,38 +60,22 @@ export const fmtPrazoCurto = (d: string | null) => (d ? d.slice(5, 10).split("-"
 /** Link para o caso, usando os parâmetros de URL já existentes das telas. */
 export function linkDoCaso(r: ProcessoTarefa): string | null {
   if (r.caso_tipo === "devolucao" && r.caso_id) return `/devolucoes?detalhe=${encodeURIComponent(r.caso_id)}${r.caso_ref ? `&q=${encodeURIComponent(r.caso_ref)}` : ""}`;
-  if (r.caso_tipo === "rastreio" && r.caso_ref) return `/logistica?aba=entregas&and_busca=${encodeURIComponent(r.caso_ref)}`;
+  if ((r.caso_tipo === "rastreio" || r.caso_tipo === "rastreio_nf") && r.caso_ref) return `/logistica?aba=entregas&and_busca=${encodeURIComponent(r.caso_ref)}`;
   return null;
 }
 
 /**
  * Tarefas abertas de rastreio indexadas por pedido_id (as linhas de Entregas não trazem
- * o id nem o código do rastreamento). Reusa a mesma consulta da view + 1 leitura de
- * pedido_rastreamento só para os ids com tarefa aberta.
+ * o id nem o código do rastreamento). O vínculo por pedido vem da própria view.
  */
 export function useProcessoRastreioPorPedido() {
   const procQ = useProcessoTarefas();
-  const abertas = useMemo(
-    () => [...(procQ.data?.values() ?? [])].filter((p) => p.aberta && p.caso_tipo === "rastreio" && p.caso_id),
-    [procQ.data],
-  );
-  const ids = useMemo(() => abertas.map((p) => p.caso_id as string).sort(), [abertas]);
-  const pedQ = useQuery({
-    queryKey: ["processos", "rastreio-pedido", ids],
-    enabled: ids.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("pedido_rastreamento").select("id, pedido_id").in("id", ids);
-      if (error) throw error;
-      return (data ?? []) as { id: string; pedido_id: string | null }[];
-    },
-  });
   return useMemo(() => {
-    const ped = new Map((pedQ.data ?? []).map((x) => [x.id, x.pedido_id]));
     const m = new Map<string, ProcessoTarefa[]>();
-    for (const p of abertas) {
-      const pid = ped.get(p.caso_id as string);
-      if (pid) m.set(pid, [...(m.get(pid) ?? []), p]);
+    for (const p of procQ.data?.values() ?? []) {
+      if (!p.aberta || !p.pedido_id || (p.caso_tipo !== "rastreio" && p.caso_tipo !== "rastreio_nf")) continue;
+      m.set(p.pedido_id, [...(m.get(p.pedido_id) ?? []), p]);
     }
     return m;
-  }, [abertas, pedQ.data]);
+  }, [procQ.data]);
 }
