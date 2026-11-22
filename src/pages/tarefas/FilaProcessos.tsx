@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Inbox } from "lucide-react";
+import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Inbox, Loader2 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatError } from "@/lib/format-error";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -19,6 +21,10 @@ import {
   useCancelarTarefaFila, useConcluirTarefaFila, useFilaProcessos, type TarefaFila,
 } from "@/hooks/tarefas/useFilaProcessos";
 import { linkDoCaso, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
+import {
+  podeConfirmarDecisao, tarefaPermiteDecisao, useProcessoDecidir, useProcessoDecisaoPrevia,
+  type DecisaoProcesso, type DesfechoProcesso,
+} from "@/hooks/processos/useProcessoDecisao";
 
 const TODOS = "__todos__";
 
@@ -53,6 +59,7 @@ export default function FilaProcessos() {
   const [evidenciaTexto, setEvidenciaTexto] = useState("");
   const [evidenciaUrl, setEvidenciaUrl] = useState("");
   const [alvoCancelar, setAlvoCancelar] = useState<TarefaFila | null>(null);
+  const [alvoDecidir, setAlvoDecidir] = useState<TarefaFila | null>(null);
   const [motivo, setMotivo] = useState("");
 
   const linhas = tarefas ?? [];
@@ -283,6 +290,9 @@ export default function FilaProcessos() {
                   )}
                   {t.esta_aberta && (
                     <>
+                      {tarefaPermiteDecisao(t.esta_aberta, proc) && (
+                        <Button size="sm" variant="default" onClick={() => setAlvoDecidir(t)}>Decidir</Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => abrirConcluir(t)}>
                         <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Concluir
                       </Button>
@@ -298,6 +308,8 @@ export default function FilaProcessos() {
           })}
         </div>
       )}
+
+      {alvoDecidir && <DecisaoClienteDialog key={alvoDecidir.id} tarefa={alvoDecidir} fechar={() => setAlvoDecidir(null)} />}
 
       {/* Conclusão — a RPC recusa tarefa bloqueante sem evidência */}
       <Dialog open={!!alvoConcluir} onOpenChange={(v) => !v && setAlvoConcluir(null)}>
@@ -387,5 +399,88 @@ export default function FilaProcessos() {
         </DialogContent>
       </Dialog>
     </PageShell>
+  );
+}
+
+const valorDecisao = (valor: number) => valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function DecisaoClienteDialog({ tarefa, fechar }: { tarefa: TarefaFila; fechar: () => void }) {
+  const previaQ = useProcessoDecisaoPrevia(tarefa.id, true);
+  const decidir = useProcessoDecidir();
+  const [escolha, setEscolha] = useState<DecisaoProcesso | "">("");
+  const [desfecho, setDesfecho] = useState<DesfechoProcesso | "">("");
+  const [combinado, setCombinado] = useState("");
+  const previa = previaQ.isError ? undefined : previaQ.data;
+  const confirmar = podeConfirmarDecisao(previa, escolha, combinado, desfecho, decidir.isPending || previaQ.isFetching);
+
+  return (
+    <Dialog open onOpenChange={(aberto) => { if (!aberto && !decidir.isPending) fechar(); }}>
+      <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Decidir com o cliente</DialogTitle>
+          <DialogDescription className="break-words">{tarefa.titulo}</DialogDescription>
+        </DialogHeader>
+        {previaQ.isPending && <Skeleton className="h-32 w-full" />}
+        {previaQ.isError && <p className="text-sm text-destructive">{formatError(previaQ.error)}</p>}
+        {previa && (
+          <div className="space-y-4">
+            <p className="text-sm">Pedido {previa.pedido ?? "—"} · {previa.momento ?? "—"}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button className="h-auto min-h-16 whitespace-normal" variant={escolha === "reenviar" ? "default" : "outline"}
+                aria-pressed={escolha === "reenviar"} disabled={decidir.isPending} onClick={() => setEscolha("reenviar")}>
+                Reenviar
+              </Button>
+              <Button className="h-auto min-h-16 whitespace-normal" variant={escolha === "cancelar" ? "default" : "outline"}
+                aria-pressed={escolha === "cancelar"} disabled={decidir.isPending} onClick={() => setEscolha("cancelar")}>
+                Cancelar o pedido
+              </Button>
+            </div>
+            {escolha === "reenviar" && <p className="text-sm text-muted-foreground">A tarefa é concluída com a decisão registrada. O reenvio segue pelo fluxo normal do pedido.</p>}
+            {escolha === "cancelar" && (
+              <div className="space-y-3">
+                <div className="space-y-2 rounded-md border p-3 text-sm">
+                  <p className="font-medium">O que vai acontecer</p>
+                  <p className="whitespace-pre-line">{previa.o_que_acontece}</p>
+                  <ul className="list-disc space-y-1 pl-4">
+                    <li>{previa.financeiro.titulos_abertos} título(s) em aberto · R$ {valorDecisao(previa.financeiro.valor_aberto)}</li>
+                    <li>{previa.financeiro.boletos_a_baixar} boleto(s) com baixa pedida ao banco</li>
+                    {previa.financeiro.titulos_pagos > 0 && <li>{previa.financeiro.titulos_pagos} título(s) já pago(s) · R$ {valorDecisao(previa.financeiro.valor_pago)}</li>}
+                  </ul>
+                </div>
+                <p className="text-xs text-destructive">O boleto baixado no banco não volta: se o cliente mudar de ideia será preciso emitir outro.</p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="decisao-desfecho">Desfecho</Label>
+                  <Select value={desfecho} onValueChange={(valor) => {
+                    if (valor === "haver" || valor === "troca" || valor === "reembolso") setDesfecho(valor);
+                  }} disabled={decidir.isPending}>
+                    <SelectTrigger id="decisao-desfecho" aria-required="true"><SelectValue placeholder="Escolha o desfecho" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="haver">Crédito para o cliente</SelectItem>
+                      <SelectItem value="troca">Troca</SelectItem>
+                      <SelectItem value="reembolso">Reembolso</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {!previa.pode_cancelar && <ul className="space-y-1 text-xs text-destructive">{previa.pendencias.map((pendencia, i) => <li key={i}>{pendencia}</li>)}</ul>}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="decisao-combinado">O que foi combinado com o cliente</Label>
+              <Textarea id="decisao-combinado" required minLength={5} rows={3} value={combinado}
+                disabled={decidir.isPending} onChange={(e) => setCombinado(e.target.value)} />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" disabled={decidir.isPending} onClick={fechar}>Voltar</Button>
+          <Button variant={escolha === "cancelar" ? "destructive" : "default"} disabled={!confirmar} onClick={() => {
+            if (!confirmar || !escolha) return;
+            decidir.mutate({ tarefaId: tarefa.id, decisao: escolha, motivo: combinado, desfecho: desfecho || null }, { onSuccess: fechar });
+          }}>
+            {decidir.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
