@@ -1,7 +1,7 @@
 // Recebimento XPM · termo HTML por e-mail (10/11/2026, OK Flavio).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { dataBrasilia, parsearTermoEmail } from "./parser.ts";
+import { dataBrasilia, dataOriginalEncaminhado, parsearTermoEmail } from "./parser.ts";
 
 const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"]}, x-internal-key` };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -36,6 +36,7 @@ Deno.serve(async (req) => {
   const log: Record<string, unknown> = {
     resend_email_id: emailId, recebido_em: new Date().toISOString(), remetente: null,
     assunto: null, data_email: null, termo_entrada_id: null, linhas_lidas: 0, resultado: null, erro: null,
+    data_origem: "email", linhas: null,
   };
   try {
     const { data: ja, error: ej } = await sb.from("xpm_termo_email_log").select("id, erro")
@@ -51,10 +52,21 @@ Deno.serve(async (req) => {
     log.remetente = email.from ?? null;
     log.assunto = String(email.subject ?? "");
     const dataEmail = String(email.created_at ?? email.date ?? "");
-    const dataRecebimento = dataBrasilia(dataEmail);
-    log.data_email = new Date(dataEmail).toISOString();
-    const rows = parsearTermoEmail(String(email.html ?? ""));
+    const recebida = new Date(dataEmail);
+    if (!Number.isFinite(recebida.getTime())) throw new Error("Data do e-mail inválida ou ausente.");
+    log.data_email = recebida.toISOString();
+    const html = String(email.html ?? "");
+    const original = /^\s*(?:ENC|FW|FWD|RES|RE|TR)\s*:/i.test(String(log.assunto))
+      ? dataOriginalEncaminhado(html, typeof email.text === "string" ? email.text : undefined) : null;
+    const agora = Date.now();
+    const usarOriginal = original !== null && original.getTime() <= agora;
+    const escolhida = usarOriginal ? original : recebida;
+    if (escolhida.getTime() > agora) throw new Error("Data de recebimento futura não permitida.");
+    const dataRecebimento = dataBrasilia(escolhida.toISOString());
+    log.data_origem = usarOriginal ? "encaminhado" : "email";
+    const rows = parsearTermoEmail(html);
     log.linhas_lidas = rows.length;
+    log.linhas = rows;
     const { data: resultado, error } = await sb.rpc("ingerir_termo_conferencia", {
       p_termo: String(log.assunto).replace(/^(?:\s*(?:ENC|FW|FWD|RES|RE|TR)\s*:\s*)+/i, ""), p_rows: rows, p_data_recebimento: dataRecebimento,
       p_centro_codigo: "XPM-SC", p_porta: "xpm_email",

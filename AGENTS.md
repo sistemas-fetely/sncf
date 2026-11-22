@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- XPM email receipts parse original forwarded headers in Brasília before falling back to the received email timestamp; never ingest a future date and log the chosen origin plus exact RPC rows so refusals remain replayable and fail loud.
 - XPM receipt sync shares Vault/PAT auth with inspection, performs GET-only collection and persists whole pages through the existing idempotent RPC; tested bounds and cron/admin guards prevent unbounded or unauthorized imports.
 - Account-statement search builds a tested PostgREST text-or-absolute-value predicate; return reimbursement uses existing candidate/link/unlink RPCs with tested visibility and awaited shared cache refresh, keeping reconciliation and closure database-owned.
 - Central stock reads one fn_lista page per SKU with global card aggregates and server facets; the adapter preserves database totals, off-page drawer lookup uses the same RPC, and actions fetch only their small alert subset so transfers never depend on the visible page.
