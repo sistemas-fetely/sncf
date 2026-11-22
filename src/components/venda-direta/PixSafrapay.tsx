@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
+import { FunctionRegion } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
@@ -64,7 +65,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
 
   const gerar = useMutation({
     mutationFn: async (forcar: boolean) => {
-      const { data, error } = await supabase.functions.invoke("safrapay-pix", { body: { pedido_id: pedidoId, forcar_novo: forcar } });
+      const { data, error } = await supabase.functions.invoke("safrapay-pix", { body: { pedido_id: pedidoId, forcar_novo: forcar }, region: FunctionRegion.SaEast1 });
       if (error) {
         let msg = error.message;
         try { const c = await (error as { context?: Response }).context?.json(); if (c?.erro) msg = c.erro; } catch { /* mantém */ }

@@ -3,6 +3,7 @@ import type { SetStateAction } from "react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Check, ChevronDown, ChevronRight, Copy, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
+import { FunctionRegion } from "@supabase/supabase-js";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,7 +167,7 @@ export function CancelamentoReembolsoPainel({ devolucaoId, aguardandoConferencia
     qc.invalidateQueries({ queryKey: ["vw_devolucao_funil"] }),
   ]);
   const estornar = async (id: string) => {
-    const { data, error } = await supabase.functions.invoke("safrapay-estorno", { body: { devolucao_id: id } });
+    const { data, error } = await supabase.functions.invoke("safrapay-estorno", { body: { devolucao_id: id }, region: FunctionRegion.SaEast1 });
     if (error) throw new Error((data as { erro?: string } | null)?.erro ?? error.message);
     if ((data as { ok?: boolean; erro?: string } | null)?.ok === false) throw new Error((data as { erro?: string }).erro);
     return data as { status?: string };
@@ -221,7 +222,7 @@ export function CancelamentoReembolsoPainel({ devolucaoId, aguardandoConferencia
   });
   const verificar = useMutation({
     mutationFn: async (d: DevolucaoVD) => {
-      const { data, error } = await supabase.functions.invoke("safrapay-link-sync", { body: { pedido_id: d.pedido_id } });
+      const { data, error } = await supabase.functions.invoke("safrapay-link-sync", { body: { pedido_id: d.pedido_id }, region: FunctionRegion.SaEast1 });
       if (error) throw new Error((data as { erro?: string } | null)?.erro ?? error.message);
       if ((data as { ok?: boolean; erro?: string } | null)?.ok === false) throw new Error((data as { erro?: string }).erro);
     },
