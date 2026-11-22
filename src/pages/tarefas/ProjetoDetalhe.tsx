@@ -16,6 +16,7 @@ import { AutomacoesProjeto } from "@/components/tarefas/projetos/AutomacoesProje
 import { CamposProjeto } from "@/components/tarefas/projetos/CamposProjeto";
 import { PessoasProjeto } from "@/components/tarefas/projetos/PessoasProjeto";
 import { ConfiguracoesProjeto } from "@/components/tarefas/projetos/ConfiguracoesProjeto";
+import { ExcluirProjetoMenu } from "@/components/tarefas/projetos/ExcluirProjetoMenu";
 import { SalvarProjetoComoTemplateDialog } from "@/components/tarefas/templates/SalvarProjetoComoTemplateDialog";
 import { SAUDE_CLASSE, SAUDE_ROTULO, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 
@@ -66,6 +67,7 @@ export default function ProjetoDetalhe() {
                   {SAUDE_ROTULO[projeto.saude]}
                 </Badge>
               )}
+              {projeto && <ExcluirProjetoMenu projeto={projeto} voltarParaLista />}
             </>
           }
         />

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { MarcaProjeto } from "@/components/tarefas/projetos/MarcaProjeto";
+import { ExcluirProjetoMenu } from "@/components/tarefas/projetos/ExcluirProjetoMenu";
 import { NovoProjetoDialog } from "@/components/tarefas/projetos/NovoProjetoDialog";
 import { useMeusPapeisProjeto, usePapeisProjeto } from "@/hooks/tarefas/useProjetoMembros";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,6 +87,7 @@ export default function ProjetosGrid() {
                         {p.responsavel_id ? nomePessoa(p.responsavel_id) : "Sem responsável"}
                       </p>
                     </div>
+                    <ExcluirProjetoMenu projeto={p} />
                   </div>
                   {p.descricao && (
                     <p className="line-clamp-2 text-sm text-muted-foreground">{p.descricao}</p>
