@@ -28,6 +28,7 @@ import remarkGfm from "remark-gfm";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 import { QuemExecutaProcesso } from "@/components/processos/QuemExecutaProcesso";
 import { PassosProcesso } from "@/components/processos/PassosProcesso";
+import { RegrasProcesso } from "@/components/processos/RegrasProcesso";
 import { DivergenciasProcesso } from "@/components/processos/DivergenciasProcesso";
 import { CustoProcesso } from "@/components/processos/CustoProcesso";
 import { SeloAbrangencia } from "@/components/processos/SeloAbrangencia";
@@ -329,6 +330,7 @@ export default function ProcessoDetalhe() {
           <DivergenciasProcesso processoId={id!} />
         </div>
         <PassosProcesso processoId={id!} />
+        <RegrasProcesso processoId={processo.id} />
         <CustoProcesso processoId={id!} />
       </div>
 

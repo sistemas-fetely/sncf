@@ -2,6 +2,7 @@
 // Cada passo pode apontar para a atribuição que o executa: é isso que dá endereço
 // à divergência entre o que está documentado e o que está declarado.
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowDown,
   ArrowUp,
@@ -74,6 +75,8 @@ import {
 } from "@/hooks/processos/useProcessoPassos";
 import { DialogLigarAtribuicao } from "@/components/processos/DialogLigarAtribuicao";
 import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
+import { passoDoMotor, useProcessoPassosVivos } from "@/hooks/processos/useProcessoPassosVivos";
+import { dataProcesso, numeroProcesso } from "@/hooks/processos/useProcessoRegras";
 
 import {
   useAceitarPassoSugerido,
@@ -85,6 +88,7 @@ import {
 
 export function PassosProcesso({ processoId }: { processoId: string }) {
   const passos = useProcessoPassos(processoId);
+  const vivos = useProcessoPassosVivos(processoId);
   const { data: atribuicoes } = useAtribuicoesParaPasso();
   const reordenar = useReordenarPassos(processoId);
   const remover = useRemoverPasso(processoId);
@@ -168,6 +172,7 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
         {passos.isError && (
           <p className="text-sm text-destructive">{formatError(passos.error)}</p>
         )}
+        {vivos.isError && <p className="text-sm text-destructive">{formatError(vivos.error)}</p>}
 
         {!passos.isLoading && lista.length === 0 && (
           <div className="space-y-2 text-xs text-muted-foreground">
@@ -186,6 +191,12 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
           <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
             {lista.map((p, i) => {
               const atr = nomeAtribuicao(p.atribuicao_id);
+              const vivo = vivos.data?.get(p.id);
+              const motor = passoDoMotor(vivo);
+              const trecho = vivo?.trecho === "entrega_falhou" ? "Entrega falhou"
+                : vivo?.trecho === "retornando" ? "Retornando"
+                : vivo?.trecho === "entregue_devolucao" ? "Entregue: cliente devolve" : vivo?.trecho;
+              const area = vivo?.automatico ? "Sistema" : vivo?.area_nome || (p.quem_executa === "externo" ? "Externo" : null);
               return (
                 <div key={p.id} className="space-y-2 rounded-lg border bg-card p-3">
                   <div className="flex items-start gap-2">
@@ -218,7 +229,31 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                         sem atribuição
                       </Badge>
                     )}
+                    {motor && vivo && (
+                      <>
+                        {trecho && <Badge variant="outline" className="text-[10px]">{trecho}</Badge>}
+                        {vivo.canal && <Badge variant="outline" className="text-[10px]">{vivo.canal.toUpperCase()}</Badge>}
+                        {area && <Badge variant="secondary" className="text-[10px]">{area}</Badge>}
+                        {vivo.regra_prazo_codigo && (
+                          <Badge variant="outline" className="text-[10px]"
+                            title={`conta a partir de: ${vivo.prazo_conta_de || "—"} · regra ${vivo.regra_prazo_codigo} · definido por ${vivo.prazo_definido_por || "—"} em ${dataProcesso(vivo.prazo_definido_em)}`}>
+                            {numeroProcesso(vivo.prazo_valor)} {vivo.prazo_unidade}
+                          </Badge>
+                        )}
+                        {(vivo.tarefas_abertas ?? 0) > 0 && (
+                          <Link to="/tarefas/fila" className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            <Badge variant="outline" className="text-[10px] hover:text-primary">{vivo.tarefas_abertas} tarefa(s) aberta(s)</Badge>
+                          </Link>
+                        )}
+                      </>
+                    )}
                   </div>
+
+                  {motor && vivo && (vivo.fato_inicio || vivo.fato_fim) && (
+                    <p className="break-words text-[10px] text-muted-foreground">
+                      começa: {vivo.fato_inicio || "—"} → termina: {vivo.fato_fim || "—"}
+                    </p>
+                  )}
 
                   {/* Quem executa: só 'time' consome tempo da equipe e pede atribuição. */}
                   <div className="space-y-1">
@@ -316,15 +351,17 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => apagar(p)}
-                      aria-label="Remover passo"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {!motor && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => apagar(p)}
+                        aria-label="Remover passo"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
 
                 </div>

@@ -1,1 +1,2 @@
 - Process-task badges/links read `vw_processo_tarefa` only via `useProcessoTarefas` (one query per screen); Entregas match rastreio by pedido (`useProcessoRastreioPorPedido`) since remessa rows lack tracking id/code.
+- Live steps and rules use locally typed read-only view hooks per process; rule history is loaded in one ID batch only for expanded rules with changes, so cards never introduce N+1 queries or new writes.
