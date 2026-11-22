@@ -1,0 +1,1 @@
+- Process-task badges/links read `vw_processo_tarefa` only via `useProcessoTarefas` (one query per screen); Entregas match rastreio by pedido (`useProcessoRastreioPorPedido`) since remessa rows lack tracking id/code.
