@@ -1,6 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
-- Dash queue grouping reads only queue/department metadata alongside the unchanged count RPC; localStorage is explicitly allowed only for its per-area collapse and empty-queue toggle preferences, so presentation never changes counts.
+- Dash queue chips read only queue/department metadata alongside the unchanged count RPC; localStorage is explicitly allowed only for the active-area and empty-queue toggle preferences, so filtering never changes counts or source ordering.
 - XPM email receipts parse original forwarded headers in Brasília before falling back to the received email timestamp; never ingest a future date and log the chosen origin plus exact RPC rows so refusals remain replayable and fail loud.
 - XPM receipt sync shares Vault/PAT auth with inspection, performs GET-only collection and persists whole pages through the existing idempotent RPC; tested bounds and cron/admin guards prevent unbounded or unauthorized imports.
 - Account-statement search builds a tested PostgREST text-or-absolute-value predicate; return reimbursement uses existing candidate/link/unlink RPCs with tested visibility and awaited shared cache refresh, keeping reconciliation and closure database-owned.

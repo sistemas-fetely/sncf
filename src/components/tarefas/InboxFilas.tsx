@@ -534,56 +534,52 @@ const PREFERENCIAS_FILAS = "sncf.dash.filas-operacao";
 
 interface PreferenciasFilasDash {
   ocultarVazias: boolean;
-  recolhidas: Record<string, boolean>;
+  areaAtiva: string | null;
 }
 
 function lerPreferenciasFilas(): PreferenciasFilasDash {
   try {
     const salvo = JSON.parse(window.localStorage.getItem(PREFERENCIAS_FILAS) ?? "null");
-    const recolhidas: Record<string, boolean> = {};
-    if (salvo?.recolhidas && typeof salvo.recolhidas === "object" && !Array.isArray(salvo.recolhidas)) {
-      for (const [id, valor] of Object.entries(salvo.recolhidas)) {
-        if (typeof valor === "boolean") recolhidas[id] = valor;
-      }
-    }
-    return { ocultarVazias: salvo?.ocultarVazias === true, recolhidas };
+    return { ocultarVazias: salvo?.ocultarVazias === true, areaAtiva: typeof salvo?.areaAtiva === "string" ? salvo.areaAtiva : null };
   } catch (error) {
     console.warn("Não foi possível ler as preferências das filas", formatError(error));
-    return { ocultarVazias: false, recolhidas: {} };
+    return { ocultarVazias: false, areaAtiva: null };
   }
 }
 
 /** Só apresentação: todas as contagens continuam vindo de fn_inbox_filas. */
-export function agruparFilasDash(filas: FilaInbox[], areas: AreaFilaDash[], ocultarVazias: boolean) {
+export function agruparFilasDash(filas: FilaInbox[], areas: AreaFilaDash[]) {
   const catalogo = new Map(areas.map((area) => [area.chave, area]));
   const grupos = new Map<string, {
     id: string; nome: string; ordem: number | null; semArea: boolean;
-    total: number; filasComItens: number; filas: FilaInbox[];
+    total: number; filasComItens: number; severidade: string; filas: FilaInbox[];
   }>();
   for (const fila of filas) {
     const area = catalogo.get(fila.chave);
     const id = area?.departamento_id ?? "sem-area";
     const grupo = grupos.get(id) ?? {
       id, nome: area?.departamentos?.nome ?? "Sem área", ordem: area?.departamentos?.ordem ?? null,
-      semArea: !area?.departamento_id, total: 0, filasComItens: 0, filas: [],
+      semArea: !area?.departamento_id, total: 0, filasComItens: 0, severidade: fila.severidade, filas: [],
     };
     grupo.total += fila.total;
     if (fila.total > 0) grupo.filasComItens += 1;
-    // Falha de contagem não significa fila vazia: preserve o alerta existente.
-    if (!ocultarVazias || fila.total > 0 || fila.erro) grupo.filas.push(fila);
+    if ((PESO_SEVERIDADE[fila.severidade] ?? 2) < (PESO_SEVERIDADE[grupo.severidade] ?? 2)) grupo.severidade = fila.severidade;
+    grupo.filas.push(fila);
     grupos.set(id, grupo);
   }
   return [...grupos.values()]
     .sort((a, b) => Number(a.semArea) - Number(b.semArea)
       || (a.ordem ?? Infinity) - (b.ordem ?? Infinity)
-      || a.nome.localeCompare(b.nome, "pt-BR"))
-    .map((grupo) => ({ ...grupo, filas: grupo.filas.sort((a, b) => {
-      const vaziaA = a.total === 0 && !a.erro;
-      const vaziaB = b.total === 0 && !b.erro;
-      return Number(vaziaA) - Number(vaziaB)
-        || (PESO_SEVERIDADE[a.severidade] ?? 2) - (PESO_SEVERIDADE[b.severidade] ?? 2)
-        || b.total - a.total;
-    }) }));
+      || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+export function filtrarFilasDash(filas: FilaInbox[], areas: AreaFilaDash[], areaAtiva: string | null, ocultarVazias: boolean) {
+  const catalogo = new Map(areas.map((area) => [area.chave, area.departamento_id ?? "sem-area"]));
+  const filtradas = filas.filter((fila) => (!areaAtiva || (catalogo.get(fila.chave) ?? "sem-area") === areaAtiva)
+    && (!ocultarVazias || fila.total > 0 || !!fila.erro));
+  // Mantém a ordenação recebida do hook, só deslocando zeradas ao final.
+  return [...filtradas.filter((fila) => fila.total > 0 || !!fila.erro),
+    ...filtradas.filter((fila) => fila.total === 0 && !fila.erro)];
 }
 
 export function InboxFilas() {
@@ -619,8 +615,13 @@ export function InboxFilas() {
 
   const totalGeral = (filas ?? []).reduce((acc, f) => acc + f.total, 0);
 
-  const secoes = useMemo(() => agruparFilasDash(filas ?? [], areas.data ?? [], preferencias.ocultarVazias),
-    [filas, areas.data, preferencias.ocultarVazias]);
+  const grupos = useMemo(() => agruparFilasDash(filas ?? [], areas.data ?? []), [filas, areas.data]);
+  const areaAtiva = grupos.some((grupo) => grupo.id === preferencias.areaAtiva) ? preferencias.areaAtiva : null;
+  const visiveis = useMemo(() => filtrarFilasDash(filas ?? [], areas.data ?? [], areaAtiva, preferencias.ocultarVazias),
+    [filas, areas.data, areaAtiva, preferencias.ocultarVazias]);
+  const chips = [{ id: null, nome: "Todas", total: totalGeral,
+    filasComItens: (filas ?? []).filter((fila) => fila.total > 0).length,
+    severidade: grupos.reduce((pior, grupo) => (PESO_SEVERIDADE[grupo.severidade] ?? 2) < (PESO_SEVERIDADE[pior] ?? 2) ? grupo.severidade : pior, "baixa") }, ...grupos];
 
   return (
     <Card>
@@ -644,12 +645,28 @@ export function InboxFilas() {
           </Button>
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Trabalho pendente registrado nas filas do sistema, agrupado por área
+          Trabalho pendente registrado nas filas do sistema
         </p>
       </CardHeader>
 
       {expanded && (
         <CardContent className="space-y-3">
+          {!isLoading && !isError && !areas.isLoading && !areas.isError && (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar filas por área">
+              {chips.map((chip) => {
+                const ativo = areaAtiva === chip.id;
+                return <Button key={chip.id ?? "todas"} size="sm" variant={ativo ? "default" : "outline"}
+                  aria-pressed={ativo} className={cn("h-auto max-w-full gap-1.5 whitespace-normal py-1.5 text-left text-xs",
+                    !ativo && chip.severidade === "critica" && "border-destructive",
+                    !ativo && chip.severidade === "alta" && "border-warning")}
+                  onClick={() => setPreferencias((p) => ({ ...p, areaAtiva: ativo ? null : chip.id }))}>
+                  <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full",
+                    chip.severidade === "critica" ? "bg-destructive" : chip.severidade === "alta" ? "bg-warning" : ativo ? "bg-primary-foreground" : "bg-muted-foreground")} />
+                  <span>{chip.nome} · {chip.total.toLocaleString("pt-BR")} itens · {chip.filasComItens} filas</span>
+                </Button>;
+              })}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Switch id="dash-ocultar-filas-vazias" checked={preferencias.ocultarVazias}
               onCheckedChange={(ocultarVazias) => setPreferencias((p) => ({ ...p, ocultarVazias }))} />
@@ -676,27 +693,13 @@ export function InboxFilas() {
             </Alert>
           )}
 
-          {!isLoading && !isError && !areas.isLoading && !areas.isError && secoes.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma fila cadastrada.</p>
+          {!isLoading && !isError && !areas.isLoading && !areas.isError && visiveis.length === 0 && (
+            <p className="text-sm text-muted-foreground">{(filas ?? []).length === 0 ? "Nenhuma fila cadastrada." : "Nenhuma fila para este filtro."}</p>
           )}
 
-          {!isLoading && !isError && !areas.isLoading && !areas.isError && secoes.map((secao) => {
-            const recolhida = preferencias.recolhidas[secao.id] === true;
-            return (
-            <section key={secao.id} className="space-y-3 border-t pt-3">
-              <h3>
-                <Button variant="ghost" className="h-auto w-full justify-start gap-2 whitespace-normal px-0 py-1 text-left"
-                  aria-expanded={!recolhida} aria-controls={`dash-area-${secao.id}`}
-                  onClick={() => setPreferencias((p) => ({ ...p, recolhidas: { ...p.recolhidas, [secao.id]: !recolhida } }))}>
-                  {recolhida ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronUp className="h-4 w-4 shrink-0" />}
-                  <span className="text-sm font-medium">{secao.nome}
-                    <span className="font-normal text-muted-foreground"> · {secao.total.toLocaleString("pt-BR")} itens · {secao.filasComItens} filas</span>
-                  </span>
-                </Button>
-              </h3>
-              {!recolhida && <div id={`dash-area-${secao.id}`}>
+          {!isLoading && !isError && !areas.isLoading && !areas.isError && visiveis.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-              {secao.filas.map((fila) => {
+              {visiveis.map((fila) => {
                 const comErro = !!fila.erro;
                 const zerada = fila.total === 0 && !comErro;
                 const ehCritica = !zerada && fila.severidade === "critica";
@@ -756,11 +759,7 @@ export function InboxFilas() {
                 );
               })}
             </div>
-            {secao.filas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma fila com itens.</p>}
-              </div>}
-            </section>
-            );
-          })}
+          )}
         </CardContent>
       )}
 

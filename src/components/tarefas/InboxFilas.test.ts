@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import type { FilaInbox } from "@/hooks/tarefas/useInboxFilas";
-import { agruparFilasDash, type AreaFilaDash } from "./InboxFilas";
+import { agruparFilasDash, filtrarFilasDash, type AreaFilaDash } from "./InboxFilas";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
@@ -14,7 +14,7 @@ const area = (chave: string, id: string, nome: string, ordem: number): AreaFilaD
 it("agrupa por departamento_id, usa nome e ordem do departamento e deixa Sem área no fim", () => {
   const grupos = agruparFilasDash([fila("a", 1000), fila("b", 34), fila("c", 5), fila("solta", 7)], [
     area("a", "log", "Logística", 2), area("b", "log", "Logística", 2), area("c", "fin", "Finanças", 1),
-  ], false);
+  ]);
   expect(grupos.map((g) => [g.id, g.nome])).toEqual([["fin", "Finanças"], ["log", "Logística"], ["sem-area", "Sem área"]]);
   expect(grupos[1].filas.map((f) => f.chave)).toEqual(["a", "b"]);
 });
@@ -22,37 +22,38 @@ it("agrupa por departamento_id, usa nome e ordem do departamento e deixa Sem ár
 it("soma itens e conta apenas filas com itens, sem modificar nenhuma contagem", () => {
   const filas = [fila("a", 1000), fila("b", 34), fila("zero", 0)];
   const areas = filas.map((f) => area(f.chave, "log", "Logística", 1));
-  const [grupo] = agruparFilasDash(filas, areas, false);
+  const [grupo] = agruparFilasDash(filas, areas);
   expect(grupo.total).toBe(1034);
   expect(grupo.filasComItens).toBe(2);
   expect(filas.map((f) => f.total)).toEqual([1000, 34, 0]);
 });
 
-it("ordena critica > alta > normal > baixa e desempata por quantidade desc", () => {
-  const filas = [fila("baixa", 900, "baixa"), fila("normal", 800), fila("alta-menor", 10, "alta"),
-    fila("critica", 1, "critica"), fila("alta-maior", 30, "alta")];
-  const [grupo] = agruparFilasDash(filas, [], false);
-  expect(grupo.filas.map((f) => f.chave)).toEqual(["critica", "alta-maior", "alta-menor", "normal", "baixa"]);
-  expect(filas.map((f) => f.chave)).toEqual(["baixa", "normal", "alta-menor", "critica", "alta-maior"]);
+it("usa a pior severidade presente na área, incluindo filas vazias", () => {
+  const [grupo] = agruparFilasDash([fila("baixa", 900, "baixa"), fila("normal", 800), fila("alta", 30, "alta"), fila("critica", 0, "critica")], []);
+  expect(grupo.severidade).toBe("critica");
+  expect(agruparFilasDash([fila("baixa", 1, "baixa")], [])[0].severidade).toBe("baixa");
+  expect(agruparFilasDash([fila("normal", 1), fila("alta", 1, "alta")], [])[0].severidade).toBe("alta");
 });
 
-it("mantém filas vazias no final independentemente da severidade", () => {
-  const [grupo] = agruparFilasDash([fila("zero-critica", 0, "critica"), fila("baixa", 1, "baixa"), fila("zero-normal", 0)], [], false);
-  expect(grupo.filas.map((f) => f.chave)).toEqual(["baixa", "zero-critica", "zero-normal"]);
+it("grid preserva a ordem original e coloca zeradas no final", () => {
+  const filas = [fila("zero-critica", 0, "critica"), fila("baixa", 1, "baixa"), fila("alta", 30, "alta"), fila("zero-normal", 0)];
+  expect(filtrarFilasDash(filas, [], null, false).map((f) => f.chave)).toEqual(["baixa", "alta", "zero-critica", "zero-normal"]);
+  expect(filas.map((f) => f.chave)).toEqual(["zero-critica", "baixa", "alta", "zero-normal"]);
 });
 
-it("ocultar vazias não altera os totais nem o número de filas com itens da seção", () => {
-  const filas = [fila("a", 12), fila("zero", 0)];
-  const [grupo] = agruparFilasDash(filas, [], true);
-  expect(grupo.filas.map((f) => f.chave)).toEqual(["a"]);
-  expect(grupo.total).toBe(12);
-  expect(grupo.filasComItens).toBe(1);
+it("filtra uma única área sem alterar totais dos chips e Todas restaura o grid", () => {
+  const filas = [fila("a", 12), fila("b", 8), fila("zero", 0), fila("solta", 2)];
+  const areas = [area("a", "log", "Logística", 1), area("zero", "log", "Logística", 1), area("b", "fin", "Financeiro", 2)];
+  expect(filtrarFilasDash(filas, areas, "log", false).map((f) => f.chave)).toEqual(["a", "zero"]);
+  expect(filtrarFilasDash(filas, areas, "log", true).map((f) => f.chave)).toEqual(["a"]);
+  expect(filtrarFilasDash(filas, areas, "sem-area", false).map((f) => f.chave)).toEqual(["solta"]);
+  expect(filtrarFilasDash(filas, areas, null, false).map((f) => f.chave)).toEqual(["a", "b", "solta", "zero"]);
+  const grupos = agruparFilasDash(filas, areas);
+  expect(grupos.map((g) => [g.total, g.filasComItens])).toEqual([[12, 1], [8, 1], [2, 1]]);
 });
 
-it("ocultar vazias preserva erros de contagem e seções sem itens", () => {
-  const [grupo] = agruparFilasDash([fila("zero", 0), { ...fila("erro", 0), erro: "Falha de contagem" }], [], true);
-  expect(grupo.filas.map((f) => f.chave)).toEqual(["erro"]);
-  expect(grupo.total).toBe(0);
-  expect(grupo.filasComItens).toBe(0);
-  expect(agruparFilasDash([fila("zero", 0)], [], true)[0].filas).toEqual([]);
+it("ocultar vazias preserva alertas de falha de contagem", () => {
+  const filas = [fila("zero", 0), { ...fila("erro", 0), erro: "Falha de contagem" }];
+  expect(filtrarFilasDash(filas, [], null, true).map((f) => f.chave)).toEqual(["erro"]);
+  expect(agruparFilasDash(filas, [])[0].filasComItens).toBe(0);
 });
