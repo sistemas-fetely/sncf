@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { RemessaDetalheDrawer } from "./RemessaDetalheDrawer";
-import { fmtPrazoCurto, useProcessoRastreioPorPedido } from "@/hooks/processos/useProcessoTarefas";
+import { useProcessoRastreioPorPedido } from "@/hooks/processos/useProcessoTarefas";
+import { SeloProcessoTarefa } from "@/components/processos/SeloProcessoTarefa";
 
 const ROTULOS: Record<SituacaoAndamento, string> = {
   ocorrencia: "Com ocorrência", atrasada: "Atrasada", parada: "Parada", sem_rastreio: "Sem rastreio", em_transito: "Em trânsito",
@@ -81,11 +82,7 @@ export function EntregasAndamento({ transportadoraId, canal }: { transportadoraI
           <TableBody>{linhas.map(r => {
             const situacao = situacaoAndamento(r);
             return <TableRow key={r.pedido_id ?? r.referencia} className="cursor-pointer" onClick={() => r.pedido_id && setNav({ detalhe: r.pedido_id })}>
-              <TableCell className="whitespace-nowrap font-medium"><Valor valor={r.referencia} />{procDe(r).map(p => (
-                <Badge key={p.tarefa_id} variant="outline" className={cn("ml-1 rounded px-1.5 py-0 text-[10px] font-normal", p.atrasada && "border-destructive text-destructive")}>
-                  {p.passo_nome} · {p.area_nome} · prazo {fmtPrazoCurto(p.prazo_data)}
-                </Badge>
-              ))}</TableCell>
+              <TableCell className="whitespace-nowrap font-medium"><Valor valor={r.referencia} /><SeloProcessoTarefa tarefas={procDe(r)} /></TableCell>
               <TableCell className="max-w-44 truncate" title={r.cliente ?? undefined}><Valor valor={r.cliente} /></TableCell>
               <TableCell><Badge variant="outline" className="text-[10px] uppercase">{r.canal}</Badge></TableCell>
               <TableCell className="whitespace-nowrap"><Valor valor={r.cidade_destino} />/<Valor valor={r.uf_destino} /></TableCell>

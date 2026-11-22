@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { agruparAbertasPorCaso, fmtPrazoCurto, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
+import { SeloProcessoTarefa } from "@/components/processos/SeloProcessoTarefa";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -523,16 +524,12 @@ export default function RetornoDevolucao() {
                     <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : d.id)}>
                       <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
                           <span className="font-medium">{d.numero ?? "—"}</span>
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
+                          <SeloProcessoTarefa tarefas={procPorCaso.get(`devolucao:${d.id}`) ?? []} />
                           {d.canal === "b2c" && <IconeDivergenciaLoja devolucaoId={d.id} />}
-                          {(procPorCaso.get(`devolucao:${d.id}`) ?? []).map((p) => (
-                            <Badge key={p.tarefa_id} variant="outline" className={`rounded px-1.5 py-0 text-[10px] font-normal ${p.atrasada ? "border-destructive text-destructive" : ""}`}>
-                              {p.passo_nome} · {p.area_nome} · prazo {fmtPrazoCurto(p.prazo_data)}
-                            </Badge>
-                          ))}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}{d.canal === "b2c" && blingNumerosQ.data?.get(d.id) && <span> · Bling nº {blingNumerosQ.data.get(d.id)}</span>}</div>
                       </TableCell>
