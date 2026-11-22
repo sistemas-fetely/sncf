@@ -1,8 +1,8 @@
-import { Home, Users, Wallet, CreditCard, HandCoins, BookOpen, User, Monitor, Shield, LucideIcon } from "lucide-react";
+import { Home, Users, Wallet, HandCoins, BookOpen, User, Monitor, Shield, LucideIcon } from "lucide-react";
 
 export interface CasaApp {
   /** Identificador interno */
-  id: "casa" | "meu_espaco" | "recebimento" | "financas" | "pessoas" | "credito" | "acervo" | "ti" | "mesa";
+  id: "casa" | "meu_espaco" | "recebimento" | "financas" | "pessoas" | "acervo" | "ti" | "mesa";
   /** Label exibido no top nav */
   label: string;
   /** Rota default ao clicar no app */
@@ -29,7 +29,7 @@ export interface CasaApp {
 /**
  * ORDEM-POR-FREQUENCIA (23/08/2026): Casa e Meu Espaço primeiro — são os dois
  * únicos que toda pessoa tem, independente de área. Depois os módulos por
- * volume de uso: SOPs (operação diária), Finanças, Pessoas, Crédito, Acervo, TI.
+ * volume de uso: SOPs (operação diária), Finanças, Pessoas, Acervo, TI.
  * O rodapé do mobile (CasaBottomNav) segue a mesma lógica.
  */
 export const CASA_APPS: CasaApp[] = [
@@ -64,7 +64,7 @@ export const CASA_APPS: CasaApp[] = [
     id: "recebimento",
     label: "SOPs",
     defaultRoute: "/pedidos",
-    routeMatchers: ["/recebimento", "/pedidos", "/cliente", "/comercial", "/vendas", "/administrativo-fetely/parceiros", "/credito/clientes", "/logistica", "/parceiros", "/canal-cpo"],
+    routeMatchers: ["/recebimento", "/pedidos", "/cliente", "/comercial", "/vendas", "/administrativo-fetely/parceiros", "/logistica", "/parceiros", "/canal-cpo"],
     icon: HandCoins,
     tela_slug: "tela.pedidos",
     appChaves: ["sops"],
@@ -73,7 +73,7 @@ export const CASA_APPS: CasaApp[] = [
     id: "financas",
     label: "Finanças",
     defaultRoute: "/administrativo",
-    routeMatchers: ["/administrativo", "/compras"],
+    routeMatchers: ["/administrativo", "/compras", "/credito"],
     icon: Wallet,
     tela_slug: "tela.financeiro",
     slugPrefix: "tela.fin_",
@@ -109,15 +109,6 @@ export const CASA_APPS: CasaApp[] = [
     tela_slug: "tela.pessoas",
     slugPrefix: "tela.pessoas_",
     appChaves: ["pessoas"],
-  },
-  {
-    id: "credito",
-    label: "Crédito",
-    defaultRoute: "/credito",
-    routeMatchers: ["/credito"],
-    icon: CreditCard,
-    tela_slug: "tela.credito",
-    appChaves: ["credito"],
   },
   {
     id: "acervo",

@@ -426,21 +426,11 @@ const App = () => (
             <Route element={<ProtectedRoute><RotaGate><CasaLayout /></RotaGate></ProtectedRoute>}>
               <Route path="/" element={<CasaHome />} />
 
-              {/* ═══════════════════════════════════════════════
-                  App Crédito — App Simples (sem sidebar lateral)
-                  Doutrina: Apps Simples usam CasaLayout direto.
-                  ═══════════════════════════════════════════════ */}
-              <Route path="/credito" element={<CreditoIndex />} />
-              <Route path="/credito/analises/:id" element={<AnaliseDetalhe />} />
-              <Route path="/credito/clientes" element={<CreditoClientesIndex />} />
-              <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
               <Route path="/recebimento" element={<RecebimentoLayout />}>
                 <Route index element={<Navigate to="/pedidos" replace />} />
               </Route>
               <Route path="/recebimento/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
               <Route path="/recebimento/conciliacao" element={<ConciliacaoRecebiveisRedirect />} />
-              <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
-              <Route path="/credito/regua-etapas" element={<ReguaEtapas />} />
 
 
               {/* Detail routes (sem sidebar) */}
@@ -654,6 +644,13 @@ const App = () => (
                   useAppDaRota), então cada uma abre com a lateral do app dono. O acesso
                   continua no RotaGate do CasaLayout, como antes. */}
               <Route element={<FinancasLayout />}>
+                {/* CREDITO-EM-FINANCAS (22/11/2026): Crédito virou submenu de Finanças; URLs mantidas */}
+                <Route path="/credito" element={<CreditoIndex />} />
+                <Route path="/credito/analises/:id" element={<AnaliseDetalhe />} />
+                <Route path="/credito/clientes" element={<CreditoClientesIndex />} />
+                <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
+                <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
+                <Route path="/credito/regua-etapas" element={<ReguaEtapas />} />
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
                 {/* ADM — Cadastro de Parceiros */}

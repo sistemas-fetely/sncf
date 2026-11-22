@@ -120,7 +120,7 @@ export function CasaTopNav({ className }: { className?: string }) {
             if (s.startsWith(prefixo)) return temRotaVisivel;
           }
         }
-        return false;
+        return temRotaVisivel;
       }),
     [appsTop, isSuperAdmin, permitidas, legadoPorChave, slugsExclusivos, nav, rotasPorApp, visiveisRotas]
   );
