@@ -28,6 +28,12 @@ export interface ProcessoTarefa {
   caso_abertas: number | null;
   caso_posicao: number | null;
   caso_chave: string | null;
+  retomar_em: string | null;
+  andamentos: number | null;
+}
+
+export function tarefaEstaAtrasada(atrasada: boolean | null, processo?: ProcessoTarefa) {
+  return !!atrasada && !processo?.retomar_em;
 }
 
 export const KEY_PROCESSO_TAREFA = ["processos", "vw_processo_tarefa"] as const;

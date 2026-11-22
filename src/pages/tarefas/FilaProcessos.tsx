@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Clock3, Inbox, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Clock3, Inbox, Loader2, MessageSquare } from "lucide-react";
+import { AndamentoCaso, RegistrarAndamento } from "@/components/processos/AndamentoCaso";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +23,7 @@ import {
   useCancelarTarefaFila, useConcluirTarefaFila, useFilaProcessos, type TarefaFila,
   controlesTarefaFila, ordenarFilaPorCaso, podeConcluirTarefaFila,
 } from "@/hooks/tarefas/useFilaProcessos";
-import { linkDoCaso, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
+import { fmtPrazoCurto, linkDoCaso, tarefaEstaAtrasada, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
 import {
   podeConfirmarDecisao, tarefaPermiteDecisao, useProcessoDecidir, useProcessoDecisaoPrevia,
   type DecisaoProcesso, type DesfechoProcesso,
@@ -46,7 +48,7 @@ export default function FilaProcessos() {
     area: area === TODOS ? null : area,
     processo: processo === TODOS ? null : processo,
     soBloqueantes,
-    soAtrasadas,
+    soAtrasadas: false,
     mostrarEncerradas,
   });
 
@@ -63,16 +65,17 @@ export default function FilaProcessos() {
   const [alvoDecidir, setAlvoDecidir] = useState<TarefaFila | null>(null);
   const [motivo, setMotivo] = useState("");
 
-  const linhas = useMemo(() => ordenarFilaPorCaso(tarefas ?? [], procMap), [tarefas, procMap]);
+  const linhas = useMemo(() => ordenarFilaPorCaso((tarefas ?? []).filter((t) =>
+    !soAtrasadas || tarefaEstaAtrasada(t.esta_atrasada, procMap?.get(t.id))), procMap), [tarefas, procMap, soAtrasadas]);
 
   const resumo = useMemo(() => {
     const abertas = linhas.filter((t) => t.esta_aberta);
     return {
       abertas: abertas.length,
       bloqueantes: abertas.filter((t) => t.bloqueante).length,
-      atrasadas: abertas.filter((t) => t.esta_atrasada).length,
+      atrasadas: abertas.filter((t) => tarefaEstaAtrasada(t.esta_atrasada, procMap?.get(t.id))).length,
     };
-  }, [linhas]);
+  }, [linhas, procMap]);
 
   const sistemas = useMemo(() => {
     const m = new Map<string, string>();
@@ -223,6 +226,8 @@ export default function FilaProcessos() {
             const controles = controlesTarefaFila(t.esta_aberta, proc);
             const destino = (proc && linkDoCaso(proc)) || t.link_acao;
             const aberta = expandidas.has(t.id);
+            const caso = proc ? { casoId: proc.caso_id, pedidoId: proc.pedido_id,
+              devolucaoId: proc.caso_tipo === "devolucao" ? proc.caso_id : null, tarefaId: t.id } : null;
             return (
             <Card key={t.id}>
               <CardContent className="flex flex-wrap items-start gap-3 p-3">
@@ -247,7 +252,14 @@ export default function FilaProcessos() {
                         Bloqueante
                       </Badge>
                     )}
-                    {t.esta_atrasada && (
+                    {(proc?.andamentos ?? 0) > 0 && <TooltipProvider><Tooltip>
+                      <TooltipTrigger asChild><span tabIndex={0} aria-label={`${proc?.andamentos} registros de andamento`} className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <MessageSquare className="h-3.5 w-3.5" />{proc?.andamentos}
+                      </span></TooltipTrigger><TooltipContent>{proc?.andamentos} registros de andamento</TooltipContent>
+                    </Tooltip></TooltipProvider>}
+                    {proc?.retomar_em ? <Badge variant="secondary" className="rounded px-1.5 py-0 text-[10px]">
+                      Aguardando · volta em {fmtPrazoCurto(proc.retomar_em)}
+                    </Badge> : t.esta_atrasada && (
                       <Badge variant="outline" className="rounded border-destructive px-1.5 py-0 text-[10px] text-destructive">
                         Atrasada {t.dias_atraso ?? 0}d
                       </Badge>
@@ -294,6 +306,7 @@ export default function FilaProcessos() {
                       {proc?.fecha_por === "sistema" && proc.o_que_falta && (
                         <p className="whitespace-pre-line text-xs text-muted-foreground">{proc.o_que_falta}</p>
                       )}
+                      {t.esta_aberta && caso && <AndamentoCaso caso={caso} mostrarBotao={false} />}
                     </div>
                   )}
                 </div>
@@ -304,6 +317,7 @@ export default function FilaProcessos() {
                       Abrir <ArrowRight className="ml-1 h-3.5 w-3.5" />
                     </Button>
                   )}
+                  {t.esta_aberta && caso && <RegistrarAndamento caso={caso} />}
                   {t.esta_aberta && (
                     <>
                       {tarefaPermiteDecisao(t.esta_aberta, proc) && (

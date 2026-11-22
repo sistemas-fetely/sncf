@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { agruparAbertasPorCaso, fmtPrazoCurto, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
 import { SeloProcessoTarefa } from "@/components/processos/SeloProcessoTarefa";
+import { AndamentoCaso } from "@/components/processos/AndamentoCaso";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -264,6 +265,16 @@ export default function RetornoDevolucao() {
   const cardAtivo = nav.card as "" | "abertas" | "paradas";
   const clicarCard = (c: "abertas" | "paradas") => setNav({ card: cardAtivo === c ? "" : c });
   const expandido = nav.detalhe || null;
+  const pedidoAndamentoQ = useQuery({
+    queryKey: ["processos", "andamento-pedido-devolucao", expandido],
+    enabled: !!expandido,
+    queryFn: async () => {
+      if (!expandido) return null;
+      const { data, error } = await supabase.from("devolucao").select("pedido_id").eq("id", expandido).single();
+      if (error) throw error;
+      return data.pedido_id;
+    },
+  });
   const procTarefasQ = useProcessoTarefas();
   const procPorCaso = useMemo(() => agruparAbertasPorCaso(procTarefasQ.data), [procTarefasQ.data]);
   const setExpandido = (id: string | null) => setNav({ detalhe: id ?? "" });
@@ -706,6 +717,12 @@ export default function RetornoDevolucao() {
                               ))}
                             </div>
                           )}
+                          <div className="mx-2 mb-2 space-y-2 px-3 py-2">
+                            <h3 className="text-xs font-medium text-muted-foreground">Andamento</h3>
+                            {pedidoAndamentoQ.isLoading ? <p className="text-xs text-muted-foreground">Carregando andamento…</p> : pedidoAndamentoQ.isError ?
+                              <p className="text-xs text-destructive">{formatError(pedidoAndamentoQ.error)}</p> :
+                              <AndamentoCaso caso={{ casoId: d.id, devolucaoId: d.id, pedidoId: pedidoAndamentoQ.data }} />}
+                          </div>
                           {mostrarRessarcimentoExtrato(d) && <RessarcimentoExtrato key={d.id} devolucaoId={d.id} movimentoId={d.ressarcimento_mov_id ?? null} valor={d.valor_credito} />}
                           {ehAberta(d) && (
                             <div className="mx-2 mb-2 flex flex-wrap items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
