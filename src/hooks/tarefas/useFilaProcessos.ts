@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
+import type { ProcessoTarefa } from "@/hooks/processos/useProcessoTarefas";
 
 /**
  * Fila de Processos — lê SOMENTE vw_tarefas (sobre sncf_tarefas).
@@ -51,6 +53,33 @@ export interface FiltrosFila {
 }
 
 export const KEY_FILA = ["tarefas", "fila-processos"] as const;
+
+/** Preserva a posição da primeira tarefa de cada caso na ordenação original. */
+export function ordenarFilaPorCaso(tarefas: TarefaFila[], processos?: Map<string, ProcessoTarefa>): TarefaFila[] {
+  const grupos = new Map<string, TarefaFila[]>();
+  for (const tarefa of tarefas) {
+    const proc = processos?.get(tarefa.id);
+    const chave = tarefa.esta_aberta && proc?.caso_chave ? `caso:${proc.caso_chave}` : `tarefa:${tarefa.id}`;
+    const grupo = grupos.get(chave) ?? [];
+    grupo.push(tarefa);
+    grupos.set(chave, grupo);
+  }
+  return [...grupos.values()].flatMap((grupo) => grupo.sort((a, b) =>
+    (processos?.get(a.id)?.caso_posicao ?? 0) - (processos?.get(b.id)?.caso_posicao ?? 0)));
+}
+
+export function controlesTarefaFila(aberta: boolean | null, proc?: ProcessoTarefa) {
+  return {
+    concluir: !!aberta && (!proc || (proc.fecha_por === "pessoa" && proc.passo_codigo !== "decidir_desfecho")),
+    cancelar: !!aberta && !proc,
+  };
+}
+
+export function podeConcluirTarefaFila(tarefa: TarefaFila | null, proc: ProcessoTarefa | undefined, texto: string, url: string) {
+  if (!tarefa || !controlesTarefaFila(tarefa.esta_aberta, proc).concluir) return false;
+  if (proc?.fecha_por === "pessoa") return !!texto.trim();
+  return !tarefa.bloqueante || !!texto.trim() || !!url.trim();
+}
 
 export function useFilaProcessos(filtros: FiltrosFila = {}) {
   const { sistema, area, processo, soBloqueantes, soAtrasadas, mostrarEncerradas } = filtros;
@@ -109,7 +138,7 @@ export function useConcluirTarefaFila() {
       qc.invalidateQueries({ queryKey: KEY_FILA });
       toast.success("Tarefa concluída");
     },
-    onError: (e: Error) => toast.error(`Não foi possível concluir: ${e.message}`),
+    onError: (e) => toast.error(formatError(e)),
   });
 }
 
@@ -127,7 +156,7 @@ export function useCancelarTarefaFila() {
       qc.invalidateQueries({ queryKey: KEY_FILA });
       toast.success("Tarefa cancelada");
     },
-    onError: (e: Error) => toast.error(`Não foi possível cancelar: ${e.message}`),
+    onError: (e) => toast.error(formatError(e)),
   });
 }
 

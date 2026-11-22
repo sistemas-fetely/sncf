@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Inbox, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Clock3, Inbox, Loader2 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import {
   useCancelarTarefaFila, useConcluirTarefaFila, useFilaProcessos, type TarefaFila,
+  controlesTarefaFila, ordenarFilaPorCaso, podeConcluirTarefaFila,
 } from "@/hooks/tarefas/useFilaProcessos";
 import { linkDoCaso, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
 import {
@@ -35,7 +36,7 @@ export default function FilaProcessos() {
   const [processo, setProcesso] = useState<string>(TODOS);
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const alternar = (id: string) => setExpandidas((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const { data: procMap } = useProcessoTarefas();
+  const { data: procMap, isLoading: processosLoading, error: processosError } = useProcessoTarefas();
   const [soBloqueantes, setSoBloqueantes] = useState(false);
   const [soAtrasadas, setSoAtrasadas] = useState(false);
   const [mostrarEncerradas, setMostrarEncerradas] = useState(false);
@@ -62,7 +63,7 @@ export default function FilaProcessos() {
   const [alvoDecidir, setAlvoDecidir] = useState<TarefaFila | null>(null);
   const [motivo, setMotivo] = useState("");
 
-  const linhas = tarefas ?? [];
+  const linhas = useMemo(() => ordenarFilaPorCaso(tarefas ?? [], procMap), [tarefas, procMap]);
 
   const resumo = useMemo(() => {
     const abertas = linhas.filter((t) => t.esta_aberta);
@@ -108,9 +109,10 @@ export default function FilaProcessos() {
     setMotivo("");
   }
 
-  const exigeEvidencia = !!alvoConcluir?.bloqueante;
-  const podeConcluir =
-    !exigeEvidencia || !!evidenciaTexto.trim() || !!evidenciaUrl.trim();
+  const processoConcluir = alvoConcluir ? procMap?.get(alvoConcluir.id) : undefined;
+  const exigeTexto = processoConcluir?.fecha_por === "pessoa";
+  const exigeEvidencia = exigeTexto || !!alvoConcluir?.bloqueante;
+  const podeConcluir = podeConcluirTarefaFila(alvoConcluir, processoConcluir, evidenciaTexto, evidenciaUrl);
 
   return (
     <PageShell>
@@ -201,11 +203,11 @@ export default function FilaProcessos() {
         </Button>
       </div>
 
-      {error ? (
+      {error || processosError ? (
         <p className="text-sm text-destructive">
-          Não foi possível carregar a fila: {(error as Error).message}
+          Não foi possível carregar a fila: {formatError(error ?? processosError)}
         </p>
-      ) : isLoading ? (
+      ) : isLoading || processosLoading ? (
         <p className="text-sm text-muted-foreground">Carregando fila…</p>
       ) : linhas.length === 0 ? (
         <Card>
@@ -218,6 +220,7 @@ export default function FilaProcessos() {
         <div className="space-y-2">
           {linhas.map((t) => {
             const proc = procMap?.get(t.id);
+            const controles = controlesTarefaFila(t.esta_aberta, proc);
             const destino = (proc && linkDoCaso(proc)) || t.link_acao;
             const aberta = expandidas.has(t.id);
             return (
@@ -234,6 +237,11 @@ export default function FilaProcessos() {
                       {aberta ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                       <span className="truncate font-medium">{t.titulo}</span>
                     </button>
+                    {t.esta_aberta && proc && (proc.caso_abertas ?? 0) > 1 && proc.caso_posicao != null && (
+                      <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px]">
+                        {proc.caso_posicao} de {proc.caso_abertas}
+                      </Badge>
+                    )}
                     {t.bloqueante && (
                       <Badge variant="destructive" className="rounded px-1.5 py-0 text-[10px]">
                         Bloqueante
@@ -275,10 +283,18 @@ export default function FilaProcessos() {
                       {t.motivo_bloqueio}
                     </p>
                   )}
-                  {aberta && (
-                    <p className="whitespace-pre-line pt-1 text-sm">
-                      {t.descricao?.trim() || "Sem descrição."}
+                  {proc?.fecha_por === "sistema" && proc.o_que_falta && (
+                    <p className="flex items-start gap-1 text-[11px] text-muted-foreground">
+                      <Clock3 className="mt-0.5 h-3 w-3 shrink-0" />{proc.o_que_falta}
                     </p>
+                  )}
+                  {aberta && (
+                    <div className="space-y-1 pt-1">
+                      <p className="whitespace-pre-line text-sm">{t.descricao?.trim() || "Sem descrição."}</p>
+                      {proc?.fecha_por === "sistema" && proc.o_que_falta && (
+                        <p className="whitespace-pre-line text-xs text-muted-foreground">{proc.o_que_falta}</p>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -293,12 +309,12 @@ export default function FilaProcessos() {
                       {tarefaPermiteDecisao(t.esta_aberta, proc) && (
                         <Button size="sm" variant="default" onClick={() => setAlvoDecidir(t)}>Decidir</Button>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => abrirConcluir(t)}>
+                      {controles.concluir && <Button size="sm" variant="outline" onClick={() => abrirConcluir(t)}>
                         <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Concluir
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => abrirCancelar(t)}>
+                      </Button>}
+                      {controles.cancelar && <Button size="sm" variant="ghost" onClick={() => abrirCancelar(t)}>
                         <Ban className="mr-1 h-3.5 w-3.5" /> Cancelar
-                      </Button>
+                      </Button>}
                     </>
                   )}
                 </div>
@@ -320,9 +336,14 @@ export default function FilaProcessos() {
           </DialogHeader>
 
           <div className="space-y-3">
+            {exigeTexto && processoConcluir?.o_que_falta && (
+              <p className="whitespace-pre-line text-sm text-muted-foreground">{processoConcluir.o_que_falta}</p>
+            )}
             <div className="space-y-1.5">
-              <Label>Evidência</Label>
+              <Label htmlFor="concluir-evidencia">{exigeTexto ? "O que foi feito" : "Evidência"}</Label>
               <Textarea
+                id="concluir-evidencia"
+                required={exigeTexto}
                 value={evidenciaTexto}
                 onChange={(e) => setEvidenciaTexto(e.target.value)}
                 rows={4}
@@ -339,7 +360,7 @@ export default function FilaProcessos() {
             </div>
             {exigeEvidencia && !podeConcluir && (
               <p className="text-xs text-destructive">
-                Tarefa bloqueante exige evidência para concluir.
+                {exigeTexto ? "Informe o que foi feito para concluir." : "Tarefa bloqueante exige evidência para concluir."}
               </p>
             )}
           </div>
@@ -349,7 +370,7 @@ export default function FilaProcessos() {
             <Button
               disabled={!podeConcluir || concluir.isPending}
               onClick={() => {
-                if (!alvoConcluir) return;
+                if (!alvoConcluir || !podeConcluir) return;
                 concluir.mutate(
                   { id: alvoConcluir.id, evidenciaTexto, evidenciaUrl },
                   { onSuccess: () => setAlvoConcluir(null) },

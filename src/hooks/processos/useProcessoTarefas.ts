@@ -23,6 +23,11 @@ export interface ProcessoTarefa {
   aberta_em: string | null;
   fechada_em: string | null;
   fechada_por: string | null;
+  fecha_por: "sistema" | "pessoa" | null;
+  o_que_falta: string | null;
+  caso_abertas: number | null;
+  caso_posicao: number | null;
+  caso_chave: string | null;
 }
 
 export const KEY_PROCESSO_TAREFA = ["processos", "vw_processo_tarefa"] as const;
