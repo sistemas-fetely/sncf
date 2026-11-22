@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,6 @@ import {
 
 type Previa = { projeto: string; tarefas: number; abertas: number; secoes: number; itens_gestao: number; pode_excluir: boolean };
 type Resultado = { projeto: string; tarefas_excluidas: number; secoes_excluidas: number; excluido: boolean };
-
-const msgErro = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 
 /** Menu "⋯" com "Excluir projeto" — a permissão e a exclusão são do banco (fn_excluir_projeto). */
 export function ExcluirProjetoMenu({
@@ -49,7 +48,7 @@ export function ExcluirProjetoMenu({
       if (voltarParaLista) navigate("/tarefas/projetos", { replace: true });
       await qc.invalidateQueries({ queryKey: ["tarefas"] });
     },
-    onError: (e) => toast.error(msgErro(e)),
+    onError: (e) => toast.error(formatError(e)),
   });
 
   if (!podeVer) return null;
@@ -62,7 +61,7 @@ export function ExcluirProjetoMenu({
       setTexto("");
       setPrevia(data as unknown as Previa);
     } catch (e) {
-      toast.error(msgErro(e));
+      toast.error(formatError(e));
     } finally {
       setCarregando(false);
     }
