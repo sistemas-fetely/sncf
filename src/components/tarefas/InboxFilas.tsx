@@ -644,34 +644,43 @@ export function InboxFilas() {
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Trabalho pendente registrado nas filas do sistema
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-xs text-muted-foreground">
+            Trabalho pendente registrado nas filas do sistema
+          </p>
+          {expanded && (
+            <div className="ml-auto flex items-center gap-2">
+              <Switch id="dash-ocultar-filas-vazias" checked={preferencias.ocultarVazias}
+                onCheckedChange={(ocultarVazias) => setPreferencias((p) => ({ ...p, ocultarVazias }))} />
+              <Label htmlFor="dash-ocultar-filas-vazias" className="text-xs">Ocultar filas vazias</Label>
+            </div>
+          )}
+        </div>
       </CardHeader>
 
       {expanded && (
         <CardContent className="space-y-3">
           {!isLoading && !isError && !areas.isLoading && !areas.isError && (
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar filas por área">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 border-b border-border pb-4" role="group" aria-label="Filtrar filas por área">
               {chips.map((chip) => {
                 const ativo = areaAtiva === chip.id;
                 return <Button key={chip.id ?? "todas"} size="sm" variant={ativo ? "default" : "outline"}
-                  aria-pressed={ativo} className={cn("h-auto max-w-full gap-1.5 whitespace-normal py-1.5 text-left text-xs",
-                    !ativo && chip.severidade === "critica" && "border-destructive",
-                    !ativo && chip.severidade === "alta" && "border-warning")}
+                  aria-pressed={ativo} title={chip.nome}
+                  className={cn("grid h-[88px] w-full min-w-0 grid-rows-[1fr_auto_auto] justify-stretch justify-items-start gap-1 whitespace-normal border p-2.5 text-left hover:border-primary",
+                    ativo ? "border-primary text-primary-foreground" : "border-border bg-card text-card-foreground hover:bg-card hover:text-card-foreground")}
                   onClick={() => setPreferencias((p) => ({ ...p, areaAtiva: ativo ? null : chip.id }))}>
-                  <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full",
-                    chip.severidade === "critica" ? "bg-destructive" : chip.severidade === "alta" ? "bg-warning" : ativo ? "bg-primary-foreground" : "bg-muted-foreground")} />
-                  <span>{chip.nome} · {chip.total.toLocaleString("pt-BR")} itens · {chip.filasComItens} filas</span>
+                  <span className={cn("flex w-full min-w-0 items-start gap-1.5 text-[10px] uppercase tracking-wide leading-3",
+                    ativo ? "text-primary-foreground" : "text-muted-foreground")}>
+                    <span className="line-clamp-2 break-words">{chip.nome}</span>
+                    <span aria-hidden="true" className={cn("mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full",
+                      chip.severidade === "critica" ? "bg-destructive" : chip.severidade === "alta" ? "bg-warning" : "bg-muted-foreground")} />
+                  </span>
+                  <span className="text-xl font-medium tabular-nums leading-none">{chip.total.toLocaleString("pt-BR")}</span>
+                  <span className={cn("text-xs leading-4", ativo ? "text-primary-foreground" : "text-muted-foreground")}>{chip.filasComItens} filas</span>
                 </Button>;
               })}
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <Switch id="dash-ocultar-filas-vazias" checked={preferencias.ocultarVazias}
-              onCheckedChange={(ocultarVazias) => setPreferencias((p) => ({ ...p, ocultarVazias }))} />
-            <Label htmlFor="dash-ocultar-filas-vazias" className="text-xs">Ocultar filas vazias</Label>
-          </div>
           {(isLoading || areas.isLoading) && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
