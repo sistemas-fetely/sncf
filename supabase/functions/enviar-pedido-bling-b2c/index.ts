@@ -269,6 +269,16 @@ Deno.serve(async (req) => {
     return linha?.bling_natureza_id != null ? Number(linha.bling_natureza_id) : null;
   }
 
+  // B2C-TRANSPORTADORA-POR-CD (22/11/2026): agência Correios do Bling por CD.
+  async function resolverAgenciaCorreios(centroId: string | null): Promise<number> {
+    const { data, error } = await supabase.rpc("fn_b2c_agencia_correios", { p_centro_id: centroId });
+    if (error) throw new Error(`Transportadora B2C: ${error.message}`);
+    // deno-lint-ignore no-explicit-any
+    const id = Number((data as any)?.bling_id ?? 0);
+    if (!Number.isFinite(id) || id <= 0) throw new Error("Transportadora B2C: agência sem bling_id. Nada enviado ao Bling.");
+    return id;
+  }
+
   // ── Auth: cron (x-cron-secret) ou usuario autenticado ─────────────────────
   const cronSecret = req.headers.get("x-cron-secret");
   let autorizado = false;
@@ -387,13 +397,9 @@ Deno.serve(async (req) => {
     // transportadora Correios + servico PAC/SEDEX por shippingLine. Sem qualquer um
     // destes na config o item da fila FAIL-LOUD — pedido sem transporte nao desce.
     const cfgJson = (cfg.config ?? {}) as Record<string, unknown>;
-    const transportadoraContatoId = Number(cfgJson.b2c_transportadora_contato_id ?? 0);
     const servicoPac = String(cfgJson.b2c_servico_pac ?? "").trim();
     const servicoSedex = String(cfgJson.b2c_servico_sedex ?? "").trim();
     const transporteCfgFaltando: string[] = [];
-    if (!Number.isFinite(transportadoraContatoId) || transportadoraContatoId <= 0) {
-      transporteCfgFaltando.push("b2c_transportadora_contato_id");
-    }
     if (!servicoPac) transporteCfgFaltando.push("b2c_servico_pac");
     if (!servicoSedex) transporteCfgFaltando.push("b2c_servico_sedex");
 
@@ -970,6 +976,15 @@ Deno.serve(async (req) => {
             await falharVd(`Natureza B2C: ${(e as Error).message}`);
             continue;
           }
+          let transportadoraBlingIdVd: number | null = null;
+          if (!retirada && !freteFetely && !viaTransportadora) {
+            try {
+              transportadoraBlingIdVd = await resolverAgenciaCorreios(item.centro_id_resolvido);
+            } catch (e) {
+              await falharVd((e as Error).message);
+              continue;
+            }
+          }
           const blingItensVd = itensVd.map((it, i) => ({
             codigo: codExtVd.get(it.sku)!,
             descricao: it.nome || it.sku,
@@ -1040,7 +1055,7 @@ Deno.serve(async (req) => {
               : {
                 fretePorConta: fretePorContaVd,
                 ...(freteVd > 0 ? { frete: freteVd } : {}),
-                contato: { id: transportadoraContatoId },
+                contato: { id: transportadoraBlingIdVd },
                 volumes: [{ servico: servicoVd }],
                 etiqueta: {
                   nome: nomeVd,
@@ -1122,6 +1137,7 @@ Deno.serve(async (req) => {
             contato_id: contatoVd,
             bling_pedido_id: blingIdVd,
             bling_pedido_numero: blingNumeroVd,
+            transportadora_bling_id: transportadoraBlingIdVd,
             total: totalVd,
             retirada,
             resolucao_produto: fonteVd,
@@ -1150,7 +1166,7 @@ Deno.serve(async (req) => {
           const eEvOk = await registrarEvento(
             "outro",
             `Pedido criado no Bling (loja ${rotuloLojaVd}) nº ${blingNumeroVd ?? blingIdVd}`,
-            { bling_pedido_id: String(blingIdVd), bling_pedido_numero: blingNumeroVd, loja_bling_id: lojaId, natureza_bling_id: naturezaBlingVd },
+            { bling_pedido_id: String(blingIdVd), bling_pedido_numero: blingNumeroVd, loja_bling_id: lojaId, natureza_bling_id: naturezaBlingVd, transportadora_bling_id: transportadoraBlingIdVd },
           );
           if (eEvOk) errosPos.push(eEvOk);
 
@@ -1624,6 +1640,13 @@ Deno.serve(async (req) => {
           await falhar(`Natureza B2C: ${(e as Error).message}`);
           continue;
         }
+        let transportadoraBlingId: number;
+        try {
+          transportadoraBlingId = await resolverAgenciaCorreios(item.centro_id_resolvido);
+        } catch (e) {
+          await falhar((e as Error).message);
+          continue;
+        }
         const payload: Record<string, unknown> = {
           // CHAVE DE CONTINUIDADE: o trigger de NF do SNCF casa o pedido interno por
           // `numeroLoja`. Errar aqui quebra o nascimento do pedido no SNCF inteiro.
@@ -1648,7 +1671,7 @@ Deno.serve(async (req) => {
             // Logistica Correios preenchida.
             fretePorConta,
             ...(valorFrete > 0 ? { frete: valorFrete } : {}),
-            contato: { id: transportadoraContatoId },
+            contato: { id: transportadoraBlingId },
             volumes: [
               {
                 servico:
@@ -1743,6 +1766,7 @@ Deno.serve(async (req) => {
             order_name: item.order_name,
             loja_bling_id: lojaId,
             natureza_bling_id: naturezaBling,
+            transportadora_bling_id: transportadoraBlingId,
             centro_id: item.centro_id_resolvido,
             regra_id: item.regra_id,
             contato_id: contatoId,
