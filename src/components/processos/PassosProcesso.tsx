@@ -77,6 +77,14 @@ import { DialogLigarAtribuicao } from "@/components/processos/DialogLigarAtribui
 import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
 import { passoDoMotor, useProcessoPassosVivos } from "@/hooks/processos/useProcessoPassosVivos";
 import { dataProcesso, numeroProcesso } from "@/hooks/processos/useProcessoRegras";
+import {
+  FILTROS_CANAL_PASSO,
+  passoNoCanal,
+  rotuloCanal,
+  rotuloTrecho,
+  type FiltroCanalPasso,
+} from "@/lib/processos/rotulosPasso";
+import { cn } from "@/lib/utils";
 
 import {
   useAceitarPassoSugerido,
@@ -112,6 +120,14 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
 
 
   const lista = passos.data ?? [];
+
+  // Filtro só de exibição: a lista completa continua mandada para reordenar.
+  const [filtroCanal, setFiltroCanal] = useState<FiltroCanalPasso>("sem_filtro");
+  const filtroAtivo = filtroCanal !== "sem_filtro";
+  const temPassoMotor = [...(vivos.data?.values() ?? [])].some(passoDoMotor);
+  const visiveis = lista
+    .map((p, i) => ({ passo: p, indice: i }))
+    .filter(({ passo }) => passoNoCanal(vivos.data?.get(passo.id)?.canal, filtroCanal));
 
   const mover = (indice: number, direcao: -1 | 1) => {
     const destino = indice + direcao;
@@ -187,15 +203,34 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
           </div>
         )}
 
+        {temPassoMotor && (
+          <div className="flex flex-wrap items-center gap-1">
+            {FILTROS_CANAL_PASSO.map((f) => (
+              <Button
+                key={f.valor}
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-pressed={filtroCanal === f.valor}
+                onClick={() => setFiltroCanal(f.valor)}
+                className={cn(
+                  "h-7 px-2 text-[11px]",
+                  filtroCanal === f.valor && "border-primary bg-primary/10 text-primary",
+                )}
+              >
+                {f.rotulo}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {lista.length > 0 && (
           <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
-            {lista.map((p, i) => {
+            {visiveis.map(({ passo: p, indice: i }) => {
               const atr = nomeAtribuicao(p.atribuicao_id);
               const vivo = vivos.data?.get(p.id);
               const motor = passoDoMotor(vivo);
-              const trecho = vivo?.trecho === "entrega_falhou" ? "Entrega falhou"
-                : vivo?.trecho === "retornando" ? "Retornando"
-                : vivo?.trecho === "entregue_devolucao" ? "Entregue: cliente devolve" : vivo?.trecho;
+              const trecho = rotuloTrecho(vivo?.trecho);
               const area = vivo?.automatico ? "Sistema" : vivo?.area_nome || (p.quem_executa === "externo" ? "Externo" : null);
               return (
                 <div key={p.id} className="space-y-2 rounded-lg border bg-card p-3">
@@ -232,7 +267,7 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                     {motor && vivo && (
                       <>
                         {trecho && <Badge variant="outline" className="text-[10px]">{trecho}</Badge>}
-                        {vivo.canal && <Badge variant="outline" className="text-[10px]">{vivo.canal.toUpperCase()}</Badge>}
+                        {vivo.canal && <Badge variant="outline" className="text-[10px]">{rotuloCanal(vivo.canal)}</Badge>}
                         {area && <Badge variant="secondary" className="text-[10px]">{area}</Badge>}
                         {vivo.regra_prazo_codigo && (
                           <Badge variant="outline" className="text-[10px]"
@@ -305,9 +340,10 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      disabled={i === 0 || reordenar.isPending}
+                      disabled={i === 0 || reordenar.isPending || filtroAtivo}
                       onClick={() => mover(i, -1)}
                       aria-label="Subir passo"
+                      title={filtroAtivo ? "Reordenação disponível sem filtro de canal" : undefined}
                     >
                       <ArrowUp className="h-3.5 w-3.5" />
                     </Button>
@@ -315,9 +351,10 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      disabled={i === lista.length - 1 || reordenar.isPending}
+                      disabled={i === lista.length - 1 || reordenar.isPending || filtroAtivo}
                       onClick={() => mover(i, 1)}
                       aria-label="Descer passo"
+                      title={filtroAtivo ? "Reordenação disponível sem filtro de canal" : undefined}
                     >
                       <ArrowDown className="h-3.5 w-3.5" />
                     </Button>

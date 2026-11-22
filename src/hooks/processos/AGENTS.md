@@ -1,2 +1,3 @@
 - Process-task badges/links read `vw_processo_tarefa` only via `useProcessoTarefas` (one query per screen); Entregas match rastreio by pedido (`useProcessoRastreioPorPedido`) since remessa rows lack tracking id/code.
 - Live steps and rules use locally typed read-only view hooks per process; rule history is loaded in one ID batch only for expanded rules with changes, so cards never introduce N+1 queries or new writes.
+- Step trecho/canal labels and the display-only channel filter come from `src/lib/processos/rotulosPasso.ts` (unknown code shows itself), so the steps card never hardcodes a ternary per código and a new code can't disappear from the screen.
