@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { RemessaDetalheDrawer } from "./RemessaDetalheDrawer";
+import { fmtPrazoCurto, useProcessoRastreioPorPedido } from "@/hooks/processos/useProcessoTarefas";
 
 const ROTULOS: Record<SituacaoAndamento, string> = {
   ocorrencia: "Com ocorrência", atrasada: "Atrasada", parada: "Parada", sem_rastreio: "Sem rastreio", em_transito: "Em trânsito",
@@ -48,7 +49,9 @@ export function EntregasAndamento({ transportadoraId, canal }: { transportadoraI
   const sort: SortState<Col> | null = COLUNAS.some(c => c.k === coluna) && (direcao === "asc" || direcao === "desc")
     ? { column: coluna as Col, direction: direcao } : null;
   const busca = nav.busca.trim().toLocaleLowerCase("pt-BR");
-  const base = data.filter(r => !busca || [r.referencia, r.cliente, r.cidade_destino].some(v => v?.toLocaleLowerCase("pt-BR").includes(busca)));
+  const procPorPedido = useProcessoRastreioPorPedido();
+  const procDe = (r: RemessaRow) => (r.pedido_id ? procPorPedido.get(r.pedido_id) ?? [] : []);
+  const base = data.filter(r => !busca || [r.referencia, r.cliente, r.cidade_destino, ...procDe(r).map(p => p.caso_ref)].some(v => v?.toLocaleLowerCase("pt-BR").includes(busca)));
   const contagens = Object.fromEntries(CARDS.map(c => [c.k, c.k === "todas" ? base.length : base.filter(r => situacaoAndamento(r) === c.k).length]));
   const filtro = CARDS.some(c => c.k === nav.situacao) ? nav.situacao : "todas";
   const filtradas = base.filter(r => filtro === "todas" || situacaoAndamento(r) === filtro).sort(compararAndamento);
@@ -78,7 +81,11 @@ export function EntregasAndamento({ transportadoraId, canal }: { transportadoraI
           <TableBody>{linhas.map(r => {
             const situacao = situacaoAndamento(r);
             return <TableRow key={r.pedido_id ?? r.referencia} className="cursor-pointer" onClick={() => r.pedido_id && setNav({ detalhe: r.pedido_id })}>
-              <TableCell className="whitespace-nowrap font-medium"><Valor valor={r.referencia} /></TableCell>
+              <TableCell className="whitespace-nowrap font-medium"><Valor valor={r.referencia} />{procDe(r).map(p => (
+                <Badge key={p.tarefa_id} variant="outline" className={cn("ml-1 rounded px-1.5 py-0 text-[10px] font-normal", p.atrasada && "border-destructive text-destructive")}>
+                  {p.passo_nome} · {p.area_nome} · prazo {fmtPrazoCurto(p.prazo_data)}
+                </Badge>
+              ))}</TableCell>
               <TableCell className="max-w-44 truncate" title={r.cliente ?? undefined}><Valor valor={r.cliente} /></TableCell>
               <TableCell><Badge variant="outline" className="text-[10px] uppercase">{r.canal}</Badge></TableCell>
               <TableCell className="whitespace-nowrap"><Valor valor={r.cidade_destino} />/<Valor valor={r.uf_destino} /></TableCell>

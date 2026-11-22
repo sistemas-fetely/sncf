@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Ban, CheckCircle2, Inbox } from "lucide-react";
+import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, ChevronRight, Inbox } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 import {
   useCancelarTarefaFila, useConcluirTarefaFila, useFilaProcessos, type TarefaFila,
 } from "@/hooks/tarefas/useFilaProcessos";
+import { linkDoCaso, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
 
 const TODOS = "__todos__";
 
@@ -25,6 +26,10 @@ export default function FilaProcessos() {
   const navigate = useNavigate();
   const [sistema, setSistema] = useState<string>(TODOS);
   const [area, setArea] = useState<string>(TODOS);
+  const [processo, setProcesso] = useState<string>(TODOS);
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
+  const alternar = (id: string) => setExpandidas((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const { data: procMap } = useProcessoTarefas();
   const [soBloqueantes, setSoBloqueantes] = useState(false);
   const [soAtrasadas, setSoAtrasadas] = useState(false);
   const [mostrarEncerradas, setMostrarEncerradas] = useState(false);
@@ -32,6 +37,7 @@ export default function FilaProcessos() {
   const { data: tarefas, isLoading, error } = useFilaProcessos({
     sistema: sistema === TODOS ? null : sistema,
     area: area === TODOS ? null : area,
+    processo: processo === TODOS ? null : processo,
     soBloqueantes,
     soAtrasadas,
     mostrarEncerradas,
@@ -72,6 +78,14 @@ export default function FilaProcessos() {
     const m = new Map<string, string>();
     (universo ?? []).forEach((t) => {
       if (t.area_destino) m.set(t.area_destino, t.area_nome ?? t.area_destino);
+    });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [universo]);
+
+  const processos = useMemo(() => {
+    const m = new Map<string, string>();
+    (universo ?? []).forEach((t) => {
+      if (t.tipo_processo) m.set(t.tipo_processo, t.tipo_processo_nome ?? t.tipo_processo);
     });
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [universo]);
@@ -145,6 +159,18 @@ export default function FilaProcessos() {
           </SelectContent>
         </Select>
 
+        <Select value={processo} onValueChange={setProcesso}>
+          <SelectTrigger className="h-8 w-[210px]">
+            <SelectValue placeholder="Processo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS}>Todos os processos</SelectItem>
+            {processos.map(([valor, nome]) => (
+              <SelectItem key={valor} value={valor}>{nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Button
           size="sm"
           variant={soBloqueantes ? "default" : "outline"}
@@ -183,12 +209,24 @@ export default function FilaProcessos() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {linhas.map((t) => (
+          {linhas.map((t) => {
+            const proc = procMap?.get(t.id);
+            const destino = (proc && linkDoCaso(proc)) || t.link_acao;
+            const aberta = expandidas.has(t.id);
+            return (
             <Card key={t.id}>
               <CardContent className="flex flex-wrap items-start gap-3 p-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate font-medium">{t.titulo}</p>
+                    <button
+                      type="button"
+                      onClick={() => alternar(t.id)}
+                      aria-expanded={aberta}
+                      className="flex min-w-0 items-center gap-1 text-left"
+                    >
+                      {aberta ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="truncate font-medium">{t.titulo}</span>
+                    </button>
                     {t.bloqueante && (
                       <Badge variant="destructive" className="rounded px-1.5 py-0 text-[10px]">
                         Bloqueante
@@ -216,6 +254,11 @@ export default function FilaProcessos() {
                         {t.area_nome ?? t.area_destino}
                       </Badge>
                     )}
+                    {proc && (
+                      <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px]">
+                        {proc.processo_nome} · {proc.passo_nome}
+                      </Badge>
+                    )}
                     {t.colaborador_nome && <span>· {t.colaborador_nome}</span>}
                     {t.prazo_data && <span>· prazo {t.prazo_data.slice(0, 10).split("-").reverse().join("/")}</span>}
                   </div>
@@ -225,11 +268,16 @@ export default function FilaProcessos() {
                       {t.motivo_bloqueio}
                     </p>
                   )}
+                  {aberta && (
+                    <p className="whitespace-pre-line pt-1 text-sm">
+                      {t.descricao?.trim() || "Sem descrição."}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-1">
-                  {t.link_acao && (
-                    <Button size="sm" variant="ghost" onClick={() => navigate(t.link_acao!)}>
+                  {destino && (
+                    <Button size="sm" variant="ghost" onClick={() => navigate(destino)}>
                       Abrir <ArrowRight className="ml-1 h-3.5 w-3.5" />
                     </Button>
                   )}
@@ -246,7 +294,8 @@ export default function FilaProcessos() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

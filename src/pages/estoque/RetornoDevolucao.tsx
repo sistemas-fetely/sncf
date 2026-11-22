@@ -13,6 +13,8 @@ import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
+import { agruparAbertasPorCaso, fmtPrazoCurto, useProcessoTarefas } from "@/hooks/processos/useProcessoTarefas";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -261,6 +263,8 @@ export default function RetornoDevolucao() {
   const cardAtivo = nav.card as "" | "abertas" | "paradas";
   const clicarCard = (c: "abertas" | "paradas") => setNav({ card: cardAtivo === c ? "" : c });
   const expandido = nav.detalhe || null;
+  const procTarefasQ = useProcessoTarefas();
+  const procPorCaso = useMemo(() => agruparAbertasPorCaso(procTarefasQ.data), [procTarefasQ.data]);
   const setExpandido = (id: string | null) => setNav({ detalhe: id ?? "" });
   const [conferirId, setConferirId] = useState<string | null>(null);
   const [receber, setReceber] = useState<Funil | null>(null);
@@ -524,6 +528,11 @@ export default function RetornoDevolucao() {
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
                           {d.canal === "b2c" && <IconeDivergenciaLoja devolucaoId={d.id} />}
+                          {(procPorCaso.get(`devolucao:${d.id}`) ?? []).map((p) => (
+                            <Badge key={p.tarefa_id} variant="outline" className={`rounded px-1.5 py-0 text-[10px] font-normal ${p.atrasada ? "border-destructive text-destructive" : ""}`}>
+                              {p.passo_nome} · {p.area_nome} · prazo {fmtPrazoCurto(p.prazo_data)}
+                            </Badge>
+                          ))}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}{d.canal === "b2c" && blingNumerosQ.data?.get(d.id) && <span> · Bling nº {blingNumerosQ.data.get(d.id)}</span>}</div>
                       </TableCell>
@@ -683,6 +692,21 @@ export default function RetornoDevolucao() {
                                   <CancelamentoReembolsoPainel devolucaoId={d.id} aguardandoConferencia={!d.sem_retorno_fisico && !d.e4_conferida} />
                                 </div>
                               )}
+                            </div>
+                          )}
+                          {(procPorCaso.get(`devolucao:${d.id}`) ?? []).length > 0 && (
+                            <div className="mx-2 mb-2 space-y-1 rounded-md border bg-card px-3 py-2 text-sm">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">Processo</span>
+                                <Link to="/tarefas/fila" className="text-xs text-primary underline-offset-2 hover:underline">ver na fila</Link>
+                              </div>
+                              {(procPorCaso.get(`devolucao:${d.id}`) ?? []).map((p) => (
+                                <div key={p.tarefa_id} className={`flex flex-wrap gap-x-3 text-xs ${p.atrasada ? "text-destructive" : ""}`}>
+                                  <span className="font-medium">{p.passo_nome}</span>
+                                  <span>{p.area_nome ?? "—"}</span>
+                                  <span>prazo {fmtPrazoCurto(p.prazo_data)}{p.atrasada ? " · atrasada" : ""}</span>
+                                </div>
+                              ))}
                             </div>
                           )}
                           {mostrarRessarcimentoExtrato(d) && <RessarcimentoExtrato key={d.id} devolucaoId={d.id} movimentoId={d.ressarcimento_mov_id ?? null} valor={d.valor_credito} />}

@@ -12,6 +12,7 @@ import { SortableTableHead, type SortState } from "@/components/shared/SortableT
 import { KpiPill } from "@/components/shared/KpiPill";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { fmtPrazoCurto, useProcessoRastreioPorPedido } from "@/hooks/processos/useProcessoTarefas";
 import { useLogisticaRemessas, type RemessaRow } from "@/hooks/logistica/useLogisticaRemessas";
 import { brl, ddmm, isoDiasAtras, ROTULO_FONTE_REMESSA } from "@/lib/logistica/formato";
 import { RemessaDetalheDrawer } from "./RemessaDetalheDrawer";
@@ -104,15 +105,24 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
   const [aberto, setAberto] = useState<string | null>(null);
   const mobile = useIsMobile();
 
+  // PROCESSOS-VIVOS: selo de tarefa aberta de rastreio, casada pelo pedido.
+  const procPorPedido = useProcessoRastreioPorPedido();
+  const selosProc = (r: RemessaRow) => (r.pedido_id ? procPorPedido.get(r.pedido_id) ?? [] : []).map((p) => (
+    <Badge key={p.tarefa_id} variant="outline" className={cn("ml-1 rounded px-1.5 py-0 text-[10px] font-normal", p.atrasada && "border-destructive text-destructive")}>
+      {p.passo_nome} · {p.area_nome} · prazo {fmtPrazoCurto(p.prazo_data)}
+    </Badge>
+  ));
+
   const base = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return filtrarUfPeriodo(data, uf).filter((r) => {
       if (transp && r.transportadora !== transp) return false;
       if (soCobrado && !(r.receita_frete > 0)) return false;
-      if (q && ![r.referencia, r.cliente, r.cidade_destino].some((v) => (v ?? "").toLowerCase().includes(q))) return false;
+      const codigos = r.pedido_id ? (procPorPedido.get(r.pedido_id) ?? []).map((p) => p.caso_ref) : [];
+      if (q && ![r.referencia, r.cliente, r.cidade_destino, ...codigos].some((v) => (v ?? "").toLowerCase().includes(q))) return false;
       return true;
     });
-  }, [data, transp, soCobrado, busca, uf]);
+  }, [data, transp, soCobrado, busca, uf, procPorPedido]);
 
   const contagem = useMemo(() => {
     const c = {} as Record<Status, number>;
@@ -202,7 +212,7 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
         <div className="grid gap-2">
           {linhas.map((r, i) => (
             <button key={`${r.pedido_id}-${i}`} onClick={() => r.pedido_id && setAberto(r.pedido_id)} className="rounded-lg border bg-card p-3 text-left text-sm space-y-1">
-              <div className="flex justify-between gap-2"><Ref r={r} /><BadgeEstado r={r} /></div>
+              <div className="flex justify-between gap-2"><span><Ref r={r} />{selosProc(r)}</span><BadgeEstado r={r} /></div>
               <div className="text-xs">{r.cliente ?? "—"}</div>
               <div className="text-xs text-muted-foreground">{r.cidade_destino ?? "—"}/{r.uf_destino ?? "—"} · despachado {ddmm(r.data_despacho)}</div>
               <div className="text-xs flex justify-between"><span>Cobrado {brl(r.receita_frete)}</span><Custo r={r} /></div>
@@ -234,7 +244,7 @@ function EntregasPeriodo({ transportadoraId, canal }: { transportadoraId: string
             <TableBody>
               {linhas.map((r, i) => (
                 <TableRow key={`${r.pedido_id}-${i}`} className="cursor-pointer" onClick={() => r.pedido_id && setAberto(r.pedido_id)}>
-                  <TableCell className="font-medium whitespace-nowrap"><Ref r={r} /></TableCell>
+                  <TableCell className="font-medium whitespace-nowrap"><Ref r={r} />{selosProc(r)}</TableCell>
                   <TableCell className="max-w-[180px] truncate">{r.cliente ?? "—"}</TableCell>
                   {!transportadoraId && <TableCell className="whitespace-nowrap">{r.transportadora}</TableCell>}
                   <TableCell><Badge variant="outline" className="text-[10px] uppercase">{r.canal}</Badge></TableCell>

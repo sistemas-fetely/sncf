@@ -44,6 +44,7 @@ const CAMPOS =
 export interface FiltrosFila {
   sistema?: string | null;
   area?: string | null;
+  processo?: string | null;
   soBloqueantes?: boolean;
   soAtrasadas?: boolean;
   mostrarEncerradas?: boolean;
@@ -52,12 +53,13 @@ export interface FiltrosFila {
 export const KEY_FILA = ["tarefas", "fila-processos"] as const;
 
 export function useFilaProcessos(filtros: FiltrosFila = {}) {
-  const { sistema, area, soBloqueantes, soAtrasadas, mostrarEncerradas } = filtros;
+  const { sistema, area, processo, soBloqueantes, soAtrasadas, mostrarEncerradas } = filtros;
   return useQuery({
     queryKey: [
       ...KEY_FILA,
       sistema ?? "-",
       area ?? "-",
+      processo ?? "-",
       !!soBloqueantes,
       !!soAtrasadas,
       !!mostrarEncerradas,
@@ -71,6 +73,7 @@ export function useFilaProcessos(filtros: FiltrosFila = {}) {
 
       if (sistema) q = q.eq("sistema_origem", sistema);
       if (area) q = q.eq("area_destino", area);
+      if (processo) q = q.eq("tipo_processo", processo);
       if (soBloqueantes) q = q.eq("bloqueante", true);
       if (soAtrasadas) q = q.eq("esta_atrasada", true);
       if (!mostrarEncerradas) q = q.eq("esta_aberta", true);
