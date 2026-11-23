@@ -12,38 +12,43 @@ import { EscolhaCdLinhaVD } from "@/components/venda-direta/EscolhaCdLinhaVD";
 import { controlesCdLinhaVD } from "@/components/venda-direta/escolherCdVD";
 import { podeTrocarCdVD } from "@/components/venda-direta/trocarCdVD";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
-  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ExternalLink, List, PackageCheck, Plus, QrCode,
-  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, Paperclip, type LucideIcon, } from "lucide-react";
+  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Copy, Link2, ExternalLink, List, PackageCheck, Plus, QrCode,
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, Truck, Wallet, Paperclip, type LucideIcon, } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog } from "@/components/venda-direta/MensagensVendaDireta";
 import {
-  ALERTA_FALTA, FunilVD, estadoDoTom, naoMapeada, temAlerta, useDimensoesVD,
+  ALERTA_FALTA, iconeFase, estadoDoTom, naoMapeada, temAlerta, useDimensoesVD,
   type ClassificacaoVD, type FiltroVD,
 } from "@/components/venda-direta/FunilVD";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PipelineFases } from "@/components/vendas/PipelineFases";
+import { ToggleCdB2c, abreviarCd } from "@/components/vendas/EscolhaCdB2c";
+import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { fmtDataHora } from "@/lib/data";
+import { COLUNAS_GESTAO_VD, fasesGestaoVD, filtrarGestaoVD, lerOrdemGestaoVD, ordenarGestaoVD, porCdGestaoVD, recentesGestaoVD, type ColunaGestaoVD } from "@/components/venda-direta/gestaoListaVD";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
-import { Switch } from "@/components/ui/switch";
-import { alternarFiltroVD, correspondeFiltroVD, lerFiltroVD } from "@/components/venda-direta/filtroGestaoVD";
-import { Label } from "@/components/ui/label";
+import { alternarFiltroVD, lerFiltroVD } from "@/components/venda-direta/filtroGestaoVD";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { cn } from "@/lib/utils";
-import { esconderEntreguesNaLista } from "@/lib/pedidos/entregues";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
@@ -76,6 +81,8 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   endereco_entrega: Record<string, unknown> | null;
   pagamento_confirmado_em: string | null;
   link_pagamento: string | null;
+  codigo_rastreio: string | null;
+  rastreio_servico: string | null;
   fila_id: string | null;
   fila_erro: string | null;
   bling_pedido_numero: string | number | null;
@@ -97,8 +104,6 @@ const modalLabel = (m: string | null) => (m ? (MODAL_LABEL[m] ?? m) : "—");
 const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX na hora (QR)" : p === "pix_safra" ? "Link PIX Safra" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : p === "bonificacao" ? "Bonificação" : "—";
 const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
 
-const soDigitos = (s: string) => s.replace(/\D/g, "");
-const TRINTA_DIAS = 30 * 24 * 3600 * 1000;
 
 function tempoDesde(iso: string | null): string {
   if (!iso) return "—";
@@ -142,22 +147,26 @@ export default function VendaDiretaGestao() {
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros de lista vivem na URL.
-  const [nav, setNav] = useEstadoTela({ filtro: "", cancelados: false, entregues: false, busca: "", pagina: 1 });
+  const [nav, setNav] = useEstadoTela({ filtro: "", cd: "todos", vendedora: "todas", pagamento: "todos", ordem: "", busca: "", pagina: 1 });
   const filtro = useMemo(() => lerFiltroVD(nav.filtro), [nav.filtro]);
-  // Card "Entregue · 30 dias": clicar liga o toggle de entregues; clicar de
-  // novo / limpar volta ao normal (toggle desligado, entregues escondidos).
-  const setFiltro = (f: FiltroVD | null) => {
-    const clicouEntregue = !!f && f.tipo === "fase" && f.codigo === "entregue";
-    const limpouEntregue = f === null && filtro?.tipo === "fase" && filtro.codigo === "entregue";
-    setNav({
-      filtro: f ? `${f.tipo}:${f.codigo}` : "",
-      entregues: clicouEntregue ? true : limpouEntregue ? false : nav.entregues,
-    });
+  const setFiltro = (f: FiltroVD | null) => setNav({ filtro: f ? `${f.tipo}:${f.codigo}` : "", pagina: 1 });
+  const ordenacao = useMemo(() => lerOrdemGestaoVD(nav.ordem), [nav.ordem]);
+  const ordenarPor = (coluna: ColunaGestaoVD) => {
+    const inicial = COLUNAS_GESTAO_VD.find((c) => c.coluna === coluna)?.inicial ?? "asc";
+    const dir = ordenacao?.coluna === coluna ? (ordenacao.dir === "asc" ? "desc" : "asc") : inicial;
+    setNav({ ordem: ordenacao?.coluna === coluna && dir === inicial ? "" : `${coluna}:${dir}`, pagina: 1 });
   };
-  const mostrarCancelados = nav.cancelados;
-  const setMostrarCancelados = (v: boolean | ((p: boolean) => boolean)) => setNav({ cancelados: typeof v === "function" ? v(nav.cancelados) : v });
-  const mostrarEntregues = nav.entregues;
-  const setMostrarEntregues = (v: boolean) => setNav({ entregues: v });
+  const pipelineRef = useRef<HTMLDivElement>(null);
+  const [alturaPipeline, setAlturaPipeline] = useState(0);
+  useEffect(() => {
+    const el = pipelineRef.current;
+    if (!el) return;
+    const medir = () => setAlturaPipeline(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [aba]);
   const [config, setConfig] = useState(false);
   const dimQ = useDimensoesVD();
   useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
@@ -197,17 +206,23 @@ export default function VendaDiretaGestao() {
     refetchOnWindowFocus: true,
     refetchInterval: 30_000,
     queryFn: async (): Promise<Linha[]> => {
-      const { data, error } = await supabase
-        .from("vw_venda_direta_gestao" as never)
-        .select("*")
-        .order("recebido_em", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as Linha[];
+      const linhas: Linha[] = [];
+      for (let inicio = 0; ; inicio += 500) {
+        const { data, error } = await supabase.from("vw_venda_direta_gestao" as never)
+          .select("*").order("recebido_em", { ascending: false }).order("id").range(inicio, inicio + 499);
+        if (error) throw error;
+        const lote = (data ?? []) as unknown as Linha[];
+        linhas.push(...lote);
+        if (lote.length < 500) return linhas;
+      }
     },
   });
 
   const reprocessar = useMutation({
-    mutationFn: (l: Linha) => reprocessarFilaB2c([l.fila_id!], "bling", "Reprocessado na gestão VD"),
+    mutationFn: (l: Linha) => {
+      if (!l.fila_id) throw new Error("Pedido sem vínculo com a fila Bling.");
+      return reprocessarFilaB2c([l.fila_id], "bling", "Reprocessado na gestão VD");
+    },
     onSuccess: (_r, l) => {
       toast.success(`Descida de ${l.id_externo} reenviada para a fila`);
       void invalidarVendaDireta(qc);
@@ -215,94 +230,64 @@ export default function VendaDiretaGestao() {
     onError: (e) => toast.error(rawMessage(e)),
   });
 
-  // Entregue conta só os últimos 30 dias (marcos.entregue_em) — cartão e filtro seguem a mesma régua.
-  const visiveis = useMemo(
-    () => (q.data ?? []).filter((l) => {
-      if (l.fase !== "entregue") return true;
-      const em = l.marcos?.entregue_em;
-      return !!em && Date.now() - new Date(em).getTime() <= TRINTA_DIAS;
-    }),
-    [q.data],
-  );
-  const ativos = useMemo(() => visiveis.filter((l) => l.fase !== "cancelado"), [visiveis]);
-  const nCancelados = visiveis.length - ativos.length;
-  const nEntregues = visiveis.filter((l) => l.fase === "entregue").length;
-
-  // Entregues escondidos por padrão; visíveis com o toggle, com busca ou com
-  // filtro que aponte para entregues (fase "entregue" ou etapa dela).
-  const filtroDeEntregue = useMemo(() => {
-    if (!filtro) return false;
-    if (filtro.tipo === "fase") return filtro.codigo === "entregue";
-    if (filtro.tipo === "etapa") return dimQ.data?.etapas.some((e) => e.codigo === filtro.codigo && e.fase_codigo === "entregue") ?? false;
-    return false;
-  }, [filtro, dimQ.data]);
-  const esconderEntregues = esconderEntreguesNaLista({
-    mostrarEntregues,
-    temBusca: busca.trim().length > 0,
-    filtroDeEntregue,
-  });
-  const baseLista = useMemo(() => {
-    const b = mostrarCancelados ? visiveis : ativos;
-    return esconderEntregues ? b.filter((l) => l.fase !== "entregue") : b;
-  }, [mostrarCancelados, visiveis, ativos, esconderEntregues]);
-
-
-  const linhas = useMemo(() => {
-    const t = busca.trim().toLowerCase();
-    const td = soDigitos(t);
-    const base = baseLista;
-    return base.filter((l) => {
-      if (!correspondeFiltroVD(l, filtro)) return false;
-      if (!t) return true;
-      return (l.id_externo ?? "").toLowerCase().includes(t) ||
-        (l.cliente_nome ?? "").toLowerCase().includes(t) ||
-        (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseLista, filtro, busca]);
-
-  const primeiraRender = useRef(true);
-  useEffect(() => {
-    if (primeiraRender.current) { primeiraRender.current = false; return; }
-    setPagina(1);
-  }, [nav.filtro, busca, mostrarCancelados, mostrarEntregues]); // eslint-disable-line react-hooks/exhaustive-deps
-  const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
-  useFocoAoVoltar({ pronto: q.isSuccess, idsVisiveis: pag.map((l) => l.id) });
-  useRestaurarScroll(null, q.isSuccess);
-  const abrirPedido = (id: string) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { foco: id, label: "Pedidos Site SP" });
-
-  const skusFalta = useMemo(
-    () => Array.from(new Set(pag.flatMap((l) => (l.faltando_site_sp ?? []).map((f) => f.sku)))),
-    [pag],
-  );
-  const prodFalta = useProdutosPorSku(skusFalta);
-
-  // CD do pedido: rótulo curto de pedidos.origem_centro_id (só para a página visível).
-  const idsPag = pag.map((l) => l.id).sort().join(",");
+  // Uma leitura em lotes de TODOS os pedidos, não apenas da página visível.
+  const idsLista = useMemo(() => (q.data ?? []).map((l) => l.id).sort(), [q.data]);
   const cdPedidoQ = useQuery({
-    queryKey: ["vd-gestao-cd-pedido", idsPag],
-    enabled: idsPag.length > 0,
-    queryFn: async (): Promise<Map<string, string>> => {
-      const ids = idsPag.split(",");
-      const { data: peds, error } = await (supabase as any).from("pedidos").select("id, origem_centro_id").in("id", ids);
+    queryKey: ["vd-gestao-cd-pedido", idsLista],
+    enabled: q.isSuccess,
+    queryFn: async () => {
+      const pedidos: { id: string; origem_centro_id: string | null }[] = [];
+      for (let inicio = 0; inicio < idsLista.length; inicio += 300) {
+        const { data, error } = await supabase.from("pedidos").select("id, origem_centro_id").in("id", idsLista.slice(inicio, inicio + 300));
+        if (error) throw error;
+        pedidos.push(...(data ?? []));
+      }
+      const centroIds = [...new Set(pedidos.flatMap((p) => p.origem_centro_id ? [p.origem_centro_id] : []))];
+      const { data: cds, error } = await supabase.from("centro_distribuicao").select("id, codigo, nome, loja_bling_id, cnpj_emitente").order("nome");
       if (error) throw error;
-      const centroIds = [...new Set(((peds ?? []) as { origem_centro_id: string | null }[]).map((p) => p.origem_centro_id).filter(Boolean))] as string[];
-      const rot = new Map<string, string>();
-      if (centroIds.length) {
-        const { data: cds, error: e2 } = await (supabase as any).from("centro_distribuicao").select("id, codigo, nome, rotulo_curto").in("id", centroIds);
-        if (e2) throw e2;
-        for (const c of cds ?? []) rot.set(c.id, c.rotulo_curto ?? c.nome ?? c.codigo);
+      const centros = (cds ?? []).filter((c) => centroIds.includes(c.id)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      const codigoPorId = new Map(centros.map((c) => [c.id, c.codigo]));
+      const porPedido = new Map<string, string>();
+      for (const p of pedidos) {
+        const codigo = p.origem_centro_id ? codigoPorId.get(p.origem_centro_id) : undefined;
+        if (codigo) porPedido.set(p.id, codigo);
       }
-      const m = new Map<string, string>();
-      for (const p of (peds ?? []) as { id: string; origem_centro_id: string | null }[]) {
-        if (p.origem_centro_id && rot.has(p.origem_centro_id)) m.set(p.id, rot.get(p.origem_centro_id)!);
-      }
-      return m;
+      return { centros, porPedido };
     },
   });
   useEffect(() => {
     if (cdPedidoQ.isError) toast.error(`Falha ao ler o CD dos pedidos: ${rawMessage(cdPedidoQ.error)}`);
   }, [cdPedidoQ.isError, cdPedidoQ.error]);
+  const centrosPorPedido = useMemo(() => cdPedidoQ.data?.porPedido ?? new Map<string, string>(), [cdPedidoQ.data]);
+  const visiveis = useMemo(() => recentesGestaoVD(q.data ?? []), [q.data]);
+  const baseCd = useMemo(() => porCdGestaoVD(visiveis, nav.cd, centrosPorPedido), [visiveis, nav.cd, centrosPorPedido]);
+  const fases = useMemo(() => fasesGestaoVD(dimQ.data?.fases ?? [], baseCd).map((f) => {
+    const Icon = iconeFase(f.icone);
+    return { ...f, icone: <Icon className="h-4 w-4" />, eh_desvio: f.fora_do_fluxo };
+  }), [dimQ.data, baseCd]);
+  const devolvidos = useMemo(() => new Set((devolucoesQ.data ?? []).filter((d) => d.status === "concluida").map((d) => d.pedido_id)), [devolucoesQ.data]);
+  const linhas = useMemo(() => ordenarGestaoVD(filtrarGestaoVD(baseCd, { busca, filtro, vendedora: nav.vendedora, pagamento: nav.pagamento }, devolvidos), ordenacao, centrosPorPedido, devolvidos), [baseCd, busca, filtro, nav.vendedora, nav.pagamento, devolvidos, ordenacao, centrosPorPedido]);
+  const vendedoras = useMemo(() => [...new Map((q.data ?? []).flatMap((l) => l.vendedor_id && l.vendedor_nome ? [[l.vendedor_id, l.vendedor_nome] as const] : [])).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR")), [q.data]);
+  const fasesAlfabeticas = useMemo(() => [...(dimQ.data?.fases ?? [])].sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR")), [dimQ.data]);
+  const andamento = baseCd.filter((l) => l.fase !== "cancelado" && l.fase !== "entregue");
+  const valorAndamento = andamento.reduce((v, l) => v + Number(l.valor_liquido ?? 0), 0);
+  const primeiraRender = useRef(true);
+  useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
+    setPagina(1);
+  }, [nav.filtro, busca, nav.cd, nav.vendedora, nav.pagamento]);
+  const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
+  useFocoAoVoltar({ pronto: q.isSuccess && cdPedidoQ.isSuccess, idsVisiveis: pag.map((l) => l.id) });
+  useRestaurarScroll(null, q.isSuccess && cdPedidoQ.isSuccess);
+  const abrirPedido = (id: string) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { foco: id, label: "Pedidos Site SP" });
+  const skusFalta = useMemo(() => Array.from(new Set(pag.flatMap((l) => (l.faltando_site_sp ?? []).map((f) => f.sku)))), [pag]);
+  const prodFalta = useProdutosPorSku(skusFalta);
+  const carregando = q.isLoading || cdPedidoQ.isLoading || dimQ.isLoading;
+  const erroLista = q.error ?? cdPedidoQ.error ?? dimQ.error;
+  const copiar = async (valor: string | number, rotulo: string) => {
+    try { await navigator.clipboard.writeText(String(valor)); toast.success(`${rotulo} copiado.`); }
+    catch (e) { toast.error(rawMessage(e)); }
+  };
 
   const gaveta = gavetaId ? (q.data ?? []).find((l) => l.id === gavetaId) ?? null : null;
 
@@ -345,144 +330,149 @@ export default function VendaDiretaGestao() {
 
   return (
     <PageShell>
-      <PageHeader
-        titulo="Pedidos Site SP"
+      <CasaPageHeader
+        title="Pedidos Site SP"
         breadcrumb={[{ label: "Operação" }, { label: "Pedidos Site SP" }]}
-        icone={ShoppingBag}
-        estado={`Venda direta do Site SP, do pagamento à entrega${q.dataUpdatedAt ? ` · atualizada às ${new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}`}
-        acoes={
-          podeEditar && aba !== "estoque-site-sp" && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon" aria-label="Configurações dos Pedidos Site SP" onClick={() => setConfig(true)}><Settings className="h-4 w-4" /></Button>
-              <Button asChild><Link to="/pedidos/venda-direta/novo"><Plus className="mr-1 h-4 w-4" />Novo pedido</Link></Button>
-            </div>
-          )
-        }
+        subtitle={`Venda direta do Site SP, do pagamento à entrega${q.dataUpdatedAt ? ` · atualizada às ${new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}`}
+        actions={podeEditar && aba !== "estoque-site-sp" && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" aria-label="Configurações dos Pedidos Site SP" onClick={() => setConfig(true)}><Settings className="h-4 w-4" /></Button>
+            <Button asChild><Link to="/pedidos/venda-direta/novo"><Plus className="mr-1 h-4 w-4" />Novo pedido</Link></Button>
+          </div>
+        )}
       />
-
       <AbasSiteSp />
       {aba === "estoque-site-sp" ? <ConteudoAba slug="tela.venda_direta_gestao"><EstoqueSiteSpTab /></ConteudoAba> : <>
       <TooltipProvider>
-        {dimQ.data && (
-          <FunilVD
-            linhas={ativos}
-            fases={dimQ.data.fases}
-            etapas={dimQ.data.etapas}
-            responsaveis={dimQ.data.responsaveis}
-            filtro={filtro}
-            onFiltro={(f) => setFiltro(alternarFiltroVD(filtro, f))}
-          />
-        )}
-        {dimQ.isError && <p className="text-sm text-destructive">{rawMessage(dimQ.error)}</p>}
-
-        <TabelaFetely
-          busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
-          filtros={
-            <div className="flex flex-wrap items-center gap-3">
-              <Button size="sm" variant="outline" aria-pressed={!filtro} onClick={() => setFiltro(null)}
-                className={cn(!filtro && "gold-border bg-gold-soft shadow-sm")}>Todos</Button>
-              <div className="flex items-center gap-2">
-                <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
-                <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch id="vd-entregues" checked={mostrarEntregues} onCheckedChange={setMostrarEntregues} />
-                <Label htmlFor="vd-entregues" className="text-sm font-normal">Mostrar entregues <span className="tabular-nums text-muted-foreground">({nEntregues})</span></Label>
-              </div>
-            </div>
-          }
-          carregando={q.isLoading}
-          erro={q.isError ? `Erro ao carregar: ${rawMessage(q.error)}` : null}
-          aoTentarNovamente={() => q.refetch()}
-          vazio={{ mensagem: "Nenhum pedido do Site SP ainda.", acao: podeEditar ? <Button asChild><Link to="/pedidos/venda-direta/novo">Criar o primeiro pedido</Link></Button> : undefined }}
-          semResultado="Nenhum pedido para esse filtro."
-          total={baseLista.length}
-          exibidos={linhas.length}
-          rotulo="pedidos"
-        >
-          <div className="overflow-hidden rounded-md border bg-card">
-            <div className="max-h-[calc(100vh-18rem)] overflow-auto">
-              <Table containerClassName="overflow-visible">
-                <TableHeader className="sticky top-0 z-10 bg-muted">
-                  <TableRow>
-                    <TableHead>Nº</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Vendedora</TableHead>
-                    <TableHead>CD</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead>Entrega</TableHead>
-                    <TableHead className="text-right">Frete</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Situação</TableHead>
-                    <TableHead className="whitespace-nowrap">Na fase há</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pag.map((l) => {
-                    const controlesCd = controlesCdLinhaVD(l.etapa, podeEditar, podeTrocarCdVD(l));
-                    const etapa = acoesEtapa(l, false);
-                    const aviso = avisoDe(l, true);
-                    const devolucao = devolucaoPorPedido.get(l.id);
-                    const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
-                    const reembolsoConcluido = devolucao?.status === "concluida";
-                    const cancelNfAberto = cancelNfPorPedido?.get(l.id)?.aberta ?? false;
-                    return (
-                      <TableRow
-                        key={l.id}
-                        data-foco-id={l.id}
-                        className="cursor-pointer"
-                        onClick={(e) => {
-                          const el = e.target as HTMLElement;
-                          if (el.closest("button, a, input, label")) return;
-                          setGavetaId(l.id);
-                        }}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button type="button" className="cursor-pointer text-primary underline-offset-2 hover:underline" onClick={() => setGavetaId(l.id)}>{l.id_externo}</button>
-                              </TooltipTrigger>
-                              <TooltipContent>Ver detalhes</TooltipContent>
-                            </Tooltip>
-
-                            {l.fila_erro && (
+        <div className="space-y-4" style={{ "--fila-topo-colado": `${64 + alturaPipeline}px` } as CSSProperties}>
+          <div ref={pipelineRef} className="sticky top-16 z-20 -mx-6 space-y-2 border-b border-border bg-background px-6 py-2 max-md:static max-md:[&>div]:flex-wrap max-md:[&>div:last-child>button]:min-w-0 max-md:[&>div:last-child>button]:basis-[calc(33.333%-0.5rem)] max-md:[&>div:first-child>button]:whitespace-normal max-md:[&>div:first-child>button]:max-w-full">
+            <ToggleCdB2c centros={cdPedidoQ.data?.centros ?? []} valor={nav.cd} onChange={(cd) => setNav({ cd, pagina: 1 })} />
+            <PipelineFases fases={fases} estagioAtivo={filtro?.tipo === "fase" ? filtro.codigo : null}
+              onClickEstagio={(codigo) => setFiltro(alternarFiltroVD(filtro, { tipo: "fase", codigo }))}
+              onLimparFiltro={() => setFiltro(null)} carregando={carregando}
+              erro={erroLista ? rawMessage(erroLista) : null} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input placeholder="Buscar por pedido, cliente, telefone…" value={busca} onChange={(e) => setBusca(e.target.value)} className="w-[240px]" />
+            <Select value={filtro?.tipo === "fase" ? filtro.codigo : "todas"} onValueChange={(v) => setFiltro(v === "todas" ? null : { tipo: "fase", codigo: v })}>
+              <SelectTrigger className="w-[190px]"><SelectValue placeholder="Fase: todas" /></SelectTrigger>
+              <SelectContent><SelectItem value="todas">Fase: todas</SelectItem>{fasesAlfabeticas.map((f) => <SelectItem key={f.codigo} value={f.codigo}>{f.rotulo}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={nav.vendedora} onValueChange={(vendedora) => setNav({ vendedora, pagina: 1 })}>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Vendedora: todas" /></SelectTrigger>
+              <SelectContent><SelectItem value="todas">Vendedora: todas</SelectItem>{vendedoras.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={nav.pagamento} onValueChange={(pagamento) => setNav({ pagamento, pagina: 1 })}>
+              <SelectTrigger className="w-[210px]"><SelectValue placeholder="Pagamento: todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Pagamento: todos</SelectItem>
+                <SelectItem value="aguardando">Aguardando</SelectItem><SelectItem value="bonificacao">Bonificação</SelectItem>
+                <SelectItem value="conta_corrente_socio">Conta corrente sócio</SelectItem><SelectItem value="devolvido">Devolvido</SelectItem><SelectItem value="pago">Pago</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="ml-auto text-xs text-muted-foreground">{linhas.length} pedidos · {andamento.length} em andamento ({formatBRL(valorAndamento)})</span>
+          </div>
+          {erroLista ? <div role="alert" className="flex items-center gap-2 text-sm text-destructive">
+            Erro ao carregar: {rawMessage(erroLista)}
+            <Button variant="outline" size="sm" onClick={() => { void q.refetch(); void cdPedidoQ.refetch(); void dimQ.refetch(); }}>Tentar novamente</Button>
+          </div> : <Card><CardContent className="p-0">
+            <Table containerClassName="overflow-visible" className="table-fixed [&_th]:px-2 [&_th]:text-xs [&_th_button]:max-w-full [&_th_button]:whitespace-normal [&_td]:px-2 [&_td]:text-xs [&_td]:break-words max-md:block max-md:[&_colgroup]:hidden max-md:[&_thead]:hidden max-md:[&_tbody]:block max-md:[&_tr]:grid max-md:[&_tr]:grid-cols-2 max-md:[&_td]:block max-md:[&_td]:min-w-0 max-md:[&_td]:py-2 max-md:[&_td:before]:mb-1 max-md:[&_td:before]:block max-md:[&_td:before]:text-[10px] max-md:[&_td:before]:text-muted-foreground max-md:[&_td:before]:content-[attr(data-coluna)]">
+              <colgroup>{COLUNAS_GESTAO_VD.map((c) => <col key={c.coluna} style={{ width: c.largura }} />)}<col style={{ width: "10%" }} /></colgroup>
+              <TableHeader><TableRow className={LINHA_CABECALHO_COLADO}>
+                {COLUNAS_GESTAO_VD.map((c) => <CabecalhoOrdenavel key={c.coluna} rotulo={c.rotulo}
+                  dir={ordenacao?.coluna === c.coluna ? ordenacao.dir : null} onOrdenar={() => ordenarPor(c.coluna)}
+                  alinharDireita={c.coluna === "valor"} className={c.coluna === "valor" ? "text-right" : undefined} />)}
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {carregando ? <TableRow><TableCell colSpan={12} className="py-8 text-center"><Skeleton className="mx-auto h-4 w-32" /></TableCell></TableRow>
+                : pag.length === 0 ? <TableRow><TableCell colSpan={12} className="py-8 text-center text-muted-foreground">{q.data?.length ? "Nenhum pedido para esse filtro." : "Nenhum pedido do Site SP ainda."}</TableCell></TableRow>
+                : pag.map((l) => {
+                  const controlesCd = controlesCdLinhaVD(l.etapa, podeEditar, podeTrocarCdVD(l));
+                  const etapa = acoesEtapa(l, false);
+                  const aviso = avisoDe(l, true);
+                  const devolucao = devolucaoPorPedido.get(l.id);
+                  const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
+                  const reembolsoConcluido = devolucao?.status === "concluida";
+                  const cancelNfAberto = cancelNfPorPedido?.get(l.id)?.aberta ?? false;
+                  return <TableRow key={l.id} data-foco-id={l.id} className="cursor-pointer" onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("button, a, input, label, [role=combobox]")) return;
+                    setGavetaId(l.id);
+                  }}>
+                    <TableCell data-coluna="Pedido" className="font-medium">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Button variant="link" className="h-auto p-0 text-xs" onClick={() => setGavetaId(l.id)}>{l.id_externo}</Button>
+                        {l.fila_erro && <Tooltip><TooltipTrigger asChild><AlertTriangle className="h-4 w-4 text-destructive" aria-label="Erro na fila" /></TooltipTrigger><TooltipContent className="max-w-sm whitespace-pre-wrap">{l.fila_erro}</TooltipContent></Tooltip>}
+                      </div>
+                    </TableCell>
+                    <TableCell data-coluna="Bling">
+                      <div className="flex flex-col items-start gap-0.5">
+                        {l.marcos?.bling_numero && <Button variant="ghost" title="Copiar número do pedido Bling" className="h-auto max-w-full gap-1 p-0 font-mono text-xs hover:text-gold" onClick={(e) => { e.stopPropagation(); void copiar(l.marcos?.bling_numero ?? "", "Pedido Bling"); }}><span className="break-all">#{l.marcos.bling_numero}</span><Copy className="h-3 w-3 shrink-0 text-muted-foreground" /></Button>}
+                        {l.marcos?.nf_numero && <Button variant="ghost" title="Copiar NF" className="h-auto max-w-full gap-1 p-0 font-mono text-xs text-muted-foreground hover:text-gold" onClick={(e) => { e.stopPropagation(); void copiar(l.marcos?.nf_numero ?? "", "NF"); }}><span>NF {l.marcos.nf_numero}</span><Copy className="h-3 w-3 shrink-0" /></Button>}
+                        {!l.marcos?.bling_numero && !l.marcos?.nf_numero && <span className="text-muted-foreground">—</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell data-coluna="Data / Idade">{fmtDataHora(l.recebido_em)}<div className="text-xs text-muted-foreground">na fase há {tempoDesde(l.entrou_na_fase_em)}</div></TableCell>
+                    <TableCell data-coluna="Cliente">
+                      {l.cliente_id ? <Tooltip><TooltipTrigger asChild><Button variant="link" className="h-auto max-w-full whitespace-normal p-0 text-left text-xs" onClick={() => {
+                        if (l.cliente_id) setClienteSheet({ parceiroId: l.cliente_id, pedidoId: l.id, filaId: l.fila_erro ? l.fila_id ?? undefined : undefined, filaErro: l.fila_erro });
+                      }}>{l.cliente_nome ?? "—"}</Button></TooltipTrigger><TooltipContent>Editar cliente</TooltipContent></Tooltip> : <div>{l.cliente_nome ?? "—"}</div>}
+                      <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone}</div>
+                      <div className="text-xs text-muted-foreground">{l.vendedor_nome}</div>
+                    </TableCell>
+                    <TableCell data-coluna="CD">{abreviarCd(centrosPorPedido.get(l.id))}</TableCell>
+                    <TableCell data-coluna="Valor" className="text-right tabular-nums">
+                      {formatBRL(l.valor_liquido)}
+                      {Number(l.credito_aplicado ?? 0) > 0 && <div className="text-xs text-muted-foreground">Crédito −{formatBRL(Number(l.credito_aplicado))} · A pagar {formatBRL(Number(l.valor_a_pagar ?? 0))}</div>}
+                      {l.frete && <Tooltip><TooltipTrigger asChild><span className="block cursor-help text-xs text-muted-foreground">{l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "frete grátis" : `frete ${formatBRL(l.frete.cobrado)}`}</span></TooltipTrigger><TooltipContent>Custo {l.frete.custo != null ? formatBRL(l.frete.custo) : "—"} · fonte {l.frete.fonte ? (FONTE_LABEL[l.frete.fonte] ?? l.frete.fonte) : "—"}</TooltipContent></Tooltip>}
+                    </TableCell>
+                    <TableCell data-coluna="Estágio">
+                          {naoMapeada(l) ? (
+                            <Selo className="max-w-full whitespace-normal" estado="destructive">Situação não mapeada — avisar Sistemas</Selo>
+                          ) : reembolsoAtivo && !cancelNfAberto ? (
+                            <Link
+                              to={`/devolucoes?aba=reembolso&pedido=${l.id}`}
+                              title="Abrir reembolso em Devoluções e Correções › Cancelamento sem NF"
+                              aria-label="Abrir reembolso em Devoluções e Correções › Cancelamento sem NF"
+                              className="inline-block cursor-pointer rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <Selo className="max-w-full whitespace-normal" estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
+                            </Link>
+                          ) : (
+                            <Selo className="max-w-full whitespace-normal" estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
+                          )}
+                    </TableCell>
+                    <TableCell data-coluna="Dono" className="text-xs text-muted-foreground">{l.responsavel_rotulo ?? "—"}</TableCell>
+                    <TableCell data-coluna="Próxima ação">
+                      <div>{l.proxima_acao}</div>
+                      <div className="mt-1 space-y-0.5 text-xs">
+                        {l.etapa_detalhe && <div className={l.etapa_tom === "critico" ? "text-destructive-strong" : "text-muted-foreground"}>{l.etapa_detalhe}</div>}
+                        {controlesCd.mostrarEscolha && <EscolhaCdLinhaVD pedido={l} podeEditar={podeEditar} />}
+                            {temAlerta(l, ALERTA_FALTA) && (
                               <Tooltip>
-                                <TooltipTrigger asChild><AlertTriangle className="h-4 w-4 text-destructive" aria-label="Erro na fila" /></TooltipTrigger>
-                                <TooltipContent className="max-w-sm whitespace-pre-wrap">{l.fila_erro}</TooltipContent>
+                                <TooltipTrigger asChild><span className="block cursor-help text-destructive-strong">Falta no Site SP</span></TooltipTrigger>
+                                <TooltipContent className="max-w-sm">
+                                  {prodFalta.isError && <div>{rawMessage(prodFalta.error)}</div>}
+                                  {(l.faltando_site_sp ?? []).map((f) => {
+                                    const p = prodFalta.data?.get(f.sku);
+                                    return <div key={f.sku} className="tabular-nums"><CodProduto chave={f.sku} variant="compacto" />{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
+                                  })}
+                                </TooltipContent>
                               </Tooltip>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {l.cliente_id ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button type="button" className="cursor-pointer text-left text-primary underline-offset-2 hover:underline" onClick={() => setClienteSheet({ parceiroId: l.cliente_id!, pedidoId: l.id, filaId: l.fila_erro ? l.fila_id ?? undefined : undefined, filaErro: l.fila_erro })}>{l.cliente_nome ?? "—"}</button>
-                              </TooltipTrigger>
-                              <TooltipContent>Editar cliente</TooltipContent>
-                            </Tooltip>
-                          ) : <div>{l.cliente_nome ?? "—"}</div>}
-                          <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone ?? ""}</div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {l.vendedor_nome ?? <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {cdPedidoQ.data?.get(l.id) ?? <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell>
+                      </div>
+                    </TableCell>
+                        <TableCell data-coluna="Pagamento">
                           {reembolsoConcluido ? (
                             <div>
                               <div className="text-muted-foreground">Devolvido</div>
                               <div className="text-xs tabular-nums text-muted-foreground">{formatBRL(devolucao.valor)}</div>
                             </div>
                           ) : l.pagamento === "conta_corrente_socio" ? (
-                            <Badge variant="outline">Conta corrente sócio</Badge>
+                            <Badge variant="outline" className="max-w-full whitespace-normal">Conta corrente sócio</Badge>
                           ) : l.pagamento === "bonificacao" ? (
                             <div>
-                              <Badge variant="outline" className="border-info/50 bg-info/10 text-foreground">Bonificação</Badge>
+                              <Badge variant="outline" className="max-w-full whitespace-normal border-info/50 bg-info/10 text-foreground">Bonificação</Badge>
                               <div className="text-xs text-muted-foreground">sem cobrança</div>
                             </div>
                           ) : l.pagamento_confirmado_em ? (
@@ -497,72 +487,12 @@ export default function VendaDiretaGestao() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <div className="whitespace-nowrap text-xs text-muted-foreground">{modalLabel(l.modal)}</div>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {l.frete ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help">{l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "Grátis" : formatBRL(l.frete.cobrado)}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Custo {l.frete.custo != null ? formatBRL(l.frete.custo) : "—"} · fonte {l.frete.fonte ? (FONTE_LABEL[l.frete.fonte] ?? l.frete.fonte) : "—"}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatBRL(l.valor_liquido)}
-                          {Number(l.credito_aplicado ?? 0) > 0 && (
-                            <div className="whitespace-nowrap text-xs text-muted-foreground">Crédito −{formatBRL(Number(l.credito_aplicado))} · A pagar {formatBRL(Number(l.valor_a_pagar ?? 0))}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {naoMapeada(l) ? (
-                            <Selo estado="destructive">Situação não mapeada — avisar Sistemas</Selo>
-                          ) : reembolsoAtivo && !cancelNfAberto ? (
-                            <Link
-                              to={`/devolucoes?aba=reembolso&pedido=${l.id}`}
-                              title="Abrir reembolso em Devoluções e Correções › Cancelamento sem NF"
-                              aria-label="Abrir reembolso em Devoluções e Correções › Cancelamento sem NF"
-                              className="inline-block cursor-pointer rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
-                            </Link>
-                          ) : (
-                            <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
-                          )}
-                          <div className="mt-1 space-y-0.5 text-xs">
-                            {l.etapa_detalhe && (
-                              <div className={l.etapa_tom === "critico" ? "text-destructive-strong" : "text-muted-foreground"}>{l.etapa_detalhe}</div>
-                            )}
-                            {(l.marcos?.bling_numero || l.marcos?.nf_numero) && (
-                              <div className="tabular-nums text-muted-foreground/80">
-                                {[l.marcos?.bling_numero ? `Bling #${l.marcos.bling_numero}` : null, l.marcos?.nf_numero ? `NF ${l.marcos.nf_numero}` : null].filter(Boolean).join(" · ")}
-                              </div>
-                            )}
-                            {l.proxima_acao && (
-                              <div className="text-foreground">→ {l.proxima_acao}{l.responsavel_rotulo && <span className="text-muted-foreground"> · {l.responsavel_rotulo}</span>}</div>
-                            )}
-                            {controlesCd.mostrarEscolha && <EscolhaCdLinhaVD pedido={l} podeEditar={podeEditar} />}
-                            {temAlerta(l, ALERTA_FALTA) && (
-                              <Tooltip>
-                                <TooltipTrigger asChild><span className="block cursor-help text-destructive-strong">Falta no Site SP</span></TooltipTrigger>
-                                <TooltipContent className="max-w-sm">
-                                  {prodFalta.isError && <div>{rawMessage(prodFalta.error)}</div>}
-                                  {(l.faltando_site_sp ?? []).map((f) => {
-                                    const p = prodFalta.data?.get(f.sku);
-                                    return <div key={f.sku} className="tabular-nums"><CodProduto chave={f.sku} variant="compacto" />{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
-                                  })}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="tabular-nums text-muted-foreground">{tempoDesde(l.entrou_na_fase_em)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-0.5">
+                    <TableCell data-coluna="Rastreio" className="text-xs text-muted-foreground">
+                      <div>{modalLabel(l.rastreio_servico ?? l.modal)}</div>
+                      {l.codigo_rastreio && <span className="break-all font-mono">{l.codigo_rastreio}</span>}
+                    </TableCell>
+                        <TableCell data-coluna="Ações" className="text-right">
+                          <div className="flex flex-wrap items-center justify-end gap-0.5">
                             {aviso}
                             {etapa.map((a) => <BotaoIcone key={a.k} a={a} />)}
                             {controlesCd.mostrarTroca && <BotaoIcone a={{ k: "trocar-cd", label: "Trocar CD", icon: ArrowLeftRight, onClick: () => setTrocarCd(l) }} />}
@@ -580,22 +510,13 @@ export default function VendaDiretaGestao() {
                             </Tooltip>
                           </div>
                         </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <RodapePaginacao
-              total={linhas.length}
-              pagina={pagina}
-              tamanhoPagina={tamanho}
-              tela="venda_direta_gestao"
-              onPagina={setPagina}
-              onTamanhoPagina={setTamanho}
-            />
-          </div>
-        </TabelaFetely>
+                  </TableRow>;
+                })}
+              </TableBody>
+            </Table>
+            <RodapePaginacao total={linhas.length} pagina={pagina} tamanhoPagina={tamanho} tela="venda_direta_gestao" onPagina={setPagina} onTamanhoPagina={setTamanho} />
+          </CardContent></Card>}
+        </div>
 
         {clienteSheet && (
           <ClienteVDSheet
