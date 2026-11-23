@@ -10,6 +10,7 @@ import { rawMessage } from "@/lib/format-error";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { CartoesTransportadora, useCotacaoTransportadora } from "./CotacaoTransportadoraVD";
 import { argsEscolhaCdVD, podeConfirmarCdVD } from "./escolherCdVD";
+import { chaveOpcaoVD } from "./correiosScVD";
 import { invalidarVendaDireta, QK_VD_GAVETA } from "./queryKeys";
 import type { LinhaGaveta } from "./GavetaPedidoVD";
 
@@ -43,14 +44,16 @@ export function EscolhaCdLinhaVD({ pedido, podeEditar }: { pedido: LinhaGaveta; 
     },
   });
   const cep = String(pedido.endereco_entrega?.cep ?? "").replace(/\D/g, "");
-  const cot = useCotacaoTransportadora(cep, itensQ.data ?? [], Number(pedido.valor_liquido ?? 0), scAberto && itensQ.isSuccess);
+  const cot = useCotacaoTransportadora(cep, itensQ.data ?? [], Number(pedido.valor_liquido ?? 0), scAberto, pedido.id);
+  const selecionada = cot.cotacao?.opcoes.find((o) => chaveOpcaoVD(o) === transportadora);
   useEffect(() => {
-    if (scAberto) setTransportadora(cot.cotacao?.recomendada?.transportadora_id ?? null);
+    if (scAberto) setTransportadora((atual) => cot.cotacao?.opcoes.some((o) => chaveOpcaoVD(o) === atual)
+      ? atual : cot.cotacao?.recomendada?.transportadora_id ?? null);
   }, [cot.cotacao, scAberto]);
   const confirmar = useMutation({
     mutationFn: async (cd: "SITE-SP" | "XPM-SC") => {
       const { data, error } = await supabase.rpc("fn_vd_escolher_cd" as never,
-        argsEscolhaCdVD(pedido.id, cd, "", cd === "XPM-SC" ? transportadora : null) as never);
+        argsEscolhaCdVD(pedido.id, cd, "", cd === "XPM-SC" ? selecionada?.transportadora_id ?? null : null, selecionada) as never);
       if (error) throw error;
       const r = data as unknown as Resultado | null;
       if (!r?.ok) throw new Error(r?.erro ?? "Não foi possível confirmar o CD.");
@@ -69,8 +72,8 @@ export function EscolhaCdLinhaVD({ pedido, podeEditar }: { pedido: LinhaGaveta; 
     const faltam = sugestao.data?.saldo_por_cd?.[codigo]?.sem_saldo;
     return faltam != null && faltam > 0 ? `Falta ${faltam} item(ns) em ${nomeCd(codigo)}.` : null;
   };
-  const cotacaoOk = itensQ.isSuccess && !itensQ.isFetching && !cot.cotando && !cot.erro && !!cot.cotacao?.ok
-    && !!cot.cotacao.opcoes.some((o) => o.transportadora_id === transportadora);
+  const cotacaoOk = itensQ.isSuccess && !itensQ.isFetching && !cot.cotando && !!cot.cotacao?.ok && !!selecionada
+    && !(selecionada.servico && cot.correiosCotando);
   const habilitadoSC = !!sugestao.data && podeConfirmarCdVD("XPM-SC", transportadora, podeEditar, cotacaoOk) && !confirmar.isPending;
 
   return <div className="mt-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>

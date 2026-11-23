@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- SC exit quotes optionally merge an independent read-only Correios volume quote; service-qualified selection keys distinguish PAC/SEDEX sharing a carrier ID, preserve the RPC recommendation and send the chosen price/service without changing unrelated CD dialogs.
 - Case progress shares one scoped OR-view timeline and existing registration RPC across queue and returns; only expanded details fetch history, and live resume dates suppress overdue presentation without changing database process rules.
 - Dash queue chips read only queue/department metadata alongside the unchanged count RPC; localStorage is explicitly allowed only for the active-area and empty-queue toggle preferences, so filtering never changes counts or source ordering.
 - XPM email receipts parse original forwarded headers in Brasília before falling back to the received email timestamp; never ingest a future date and log the chosen origin plus exact RPC rows so refusals remain replayable and fail loud.
