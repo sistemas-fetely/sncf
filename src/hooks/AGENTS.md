@@ -1,0 +1,1 @@
+- Menu badges (`fn_badges`) and Dash queues (`fn_inbox_filas`) read DB-side caches: their queries are `meta.pesada`, no window-focus refetch, polling ≥ 2 min, keys outside other prefixes, so mutations never re-read them.

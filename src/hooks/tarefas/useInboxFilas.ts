@@ -17,11 +17,17 @@ const SEVERIDADE_PESO: Record<string, number> = {
   normal: 2,
 };
 
+// Chave fora do prefixo "tarefas": invalidações de tarefa não releem as filas.
+export const KEY_INBOX_FILAS = ["inbox-filas"] as const;
+
 export function useInboxFilas() {
   return useQuery({
-    queryKey: ["tarefas", "inbox-filas"],
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    queryKey: KEY_INBOX_FILAS,
+    // fora da rede de segurança: contagem vem de cache do banco (2 min)
+    meta: { pesada: true },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: 120_000,
     queryFn: async (): Promise<FilaInbox[]> => {
       const { data, error } = await supabase.rpc("fn_inbox_filas");
       if (error) throw error;

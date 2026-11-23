@@ -11,11 +11,16 @@ export interface BadgeNavegacao {
  * `fonte` casa com sncf_navegacao.badge_fonte (ex: 'inbox_tarefas', 'fila:<chave>').
  * Chave ausente = nenhum badge (de propósito).
  */
+export const KEY_BADGES_NAVEGACAO = ["badges-navegacao"] as const;
+
 export function useBadgesNavegacao() {
   return useQuery({
-    queryKey: ["badges-navegacao"],
+    queryKey: KEY_BADGES_NAVEGACAO,
     meta: { pesada: true },
-    staleTime: 60 * 1000,
+    // fn_badges lê cache atualizado a cada 2 min no banco
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: 120_000,
     queryFn: async (): Promise<Map<string, BadgeNavegacao>> => {
       const { data, error } = await (supabase as any).rpc("fn_badges");
       if (error) throw error;
