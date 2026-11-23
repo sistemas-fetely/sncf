@@ -10,6 +10,7 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { canalEscondeQrPixNovo } from "@/lib/pedidos/pixQrContexto";
 import { podeAcionarPagamento } from "@/lib/pedidos/acoesPagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { temCondicaoPendente } from "@/lib/pedidos/condicaoPendente";
@@ -3241,7 +3242,7 @@ export default function PedidoDetalhe() {
                   />
 
                   {podeAcionarPagamento(pedido.estagio, pedido.cancelado_em) ? (
-                    <LinkPagamentoCard pedidoId={pedido.id} />
+                    <LinkPagamentoCard pedidoId={pedido.id} esconderQrPix={canalEscondeQrPixNovo(pedido.canal)} />
                   ) : (
                     <p className="text-xs text-muted-foreground" role="status">
                       {pedido.cancelado_em || estagio === "cancelado" ? "Pagamento indisponível" : ["pre_separacao", "aguardando_estoque", "em_separacao", "pre_faturamento", "faturado", "em_transporte", "entregue"].includes(estagio) ? "Pagamento resolvido" : "Pagamento indisponível neste estágio"} — pedido em {(ESTAGIO_LABELS[estagio] ?? estagio).toLocaleLowerCase("pt-BR")}

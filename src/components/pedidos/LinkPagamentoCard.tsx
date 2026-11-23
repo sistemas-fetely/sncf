@@ -21,6 +21,7 @@ import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { usePixSafrapayAtivo } from "@/hooks/pagamentos/usePixSafrapayAtivo";
 import { usePixNoLink } from "@/hooks/pagamentos/usePixNoLink";
 import { rotuloMeioLink } from "@/lib/pagamentos/meioLink";
+import { linhasQrPixVisiveis } from "@/lib/pedidos/pixQrContexto";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { hojeISO } from "@/lib/data";
 import {
@@ -105,14 +106,27 @@ function UrlCopiavel({ url, className }: { url: string; className?: string }) {
   );
 }
 
-export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; className?: string }) {
+/**
+ * esconderQrPix (23/11/2026): no pedido B2B fica só o "Gerar link PIX Safra".
+ * O bloco "PIX na hora (QR)" sai das parcelas PIX pendentes; um QR já gerado
+ * antes continua no card, em modo leitura, sem botão de gerar.
+ */
+export function LinkPagamentoCard({
+  pedidoId,
+  className,
+  esconderQrPix = false,
+}: {
+  pedidoId: string;
+  className?: string;
+  esconderQrPix?: boolean;
+}) {
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState<string | null>(null);
   const provisoesQ = useQuery({
     queryKey: ["provisoes-pedido", pedidoId, "links"],
     queryFn: async () => {
       const { data, error } = await supabase.from("provisao_recebimento")
-        .select("id, pedido_id, valor, link_pagamento, pix_txid, numero_parcela, eh_portao, tipo_pagamento, status, pago_em")
+        .select("id, pedido_id, valor, link_pagamento, pix_txid, pix_qr_url, pix_token, numero_parcela, eh_portao, tipo_pagamento, status, pago_em")
         .eq("pedido_id", pedidoId).is("pago_em", null).order("numero_parcela", { ascending: true });
       if (error) throw error;
       return (data ?? []).filter((p) => !["pago", "cancelado", "cancelada"].includes(String(p.status)));
@@ -136,6 +150,8 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
   // PIX só tem QR enquanto a provisão está "prevista". "consumida" já virou título
   // depois da NF — a cobrança mora no título, não aqui.
   const linhasPix = abertas.filter((p) => p.tipo_pagamento === "pix" && p.status === "prevista");
+  // B2B: só as parcelas que já têm QR seguem no card — e em modo leitura.
+  const linhasQr = linhasQrPixVisiveis(linhasPix, esconderQrPix);
   const temCartao = abertas.some((p) => p.eh_portao === true && p.tipo_pagamento === "cartao");
   const temPixPortao = linhasPix.some((p) => p.eh_portao === true);
   const linksVisiveis = (linksApiQ.data ?? []).filter((l) => l.status === "aberto" || l.status === "pago");
@@ -275,13 +291,14 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
           )}
         </div>
         {linksApiQ.isLoading && <Skeleton className="h-12 w-full" />}
-        {!pixAtivo && linhasPix.map((p) => (
+        {!pixAtivo && linhasQr.map((p) => (
           <div key={p.id} className="border-t pt-2 space-y-1">
-            {linhasPix.length > 1 && (
+            {linhasQr.length > 1 && (
               <p className="text-xs font-medium">PIX na hora (QR) · parcela {p.numero_parcela ?? "—"} · {formatBRL(Number(p.valor ?? 0))}</p>
             )}
             <PixQrCode provisaoId={p.id} pedidoId={p.pedido_id} tipoPagamento="pix"
-              linkPagamento={p.link_pagamento} pixTxid={p.pix_txid} valor={Number(p.valor ?? 0)} />
+              linkPagamento={p.link_pagamento} pixTxid={p.pix_txid} valor={Number(p.valor ?? 0)}
+              somenteLeitura={esconderQrPix} />
           </div>
         ))}
         {linksVisiveis.map((l) => (

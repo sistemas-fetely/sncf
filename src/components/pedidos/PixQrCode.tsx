@@ -21,6 +21,11 @@ interface Props {
   valor?: number | null;
   beneficiario?: string | null;
   banco?: string | null;
+  /**
+   * true = exibir um QR já gerado sem oferecer geração nova (pedido B2B,
+   * 23/11/2026). Sem QR pronto o bloco simplesmente não aparece.
+   */
+  somenteLeitura?: boolean;
 }
 
 export function PixQrCode({
@@ -32,6 +37,7 @@ export function PixQrCode({
   valor,
   beneficiario,
   banco,
+  somenteLeitura = false,
 }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -69,11 +75,14 @@ export function PixQrCode({
   const qrUrl = portaoPix?.pix_qr_url ?? null;
 
   const temQr = !!payload && !!txid;
+  // Em modo leitura o payload já basta para mostrar o QR (o txid é só informação).
+  const mostrarQr = temQr || (somenteLeitura && !!payload);
   const linkPublico = token ? publicUrl(`/pagar/${token}`) : null;
 
   // ── Sobe o PNG do QR pro bucket público (só se ainda não houver imagem) ──
   useEffect(() => {
     if (!ehPix || !payload || !provisaoId) return;
+    if (somenteLeitura) return;
     if (qrUrl) return;
     if (subindoRef.current) return;
 
@@ -115,9 +124,11 @@ export function PixQrCode({
     }, 120);
 
     return () => clearTimeout(t);
-  }, [ehPix, payload, provisaoId, qrUrl, qc, toast]);
+  }, [ehPix, payload, provisaoId, qrUrl, somenteLeitura, qc, toast]);
 
   if (!ehPix) return null;
+  // Modo leitura sem QR pronto: não há nada a mostrar nem a gerar.
+  if (somenteLeitura && !mostrarQr) return null;
 
   const copiar = () => {
     if (!payload) return;
@@ -145,7 +156,7 @@ export function PixQrCode({
             <QrCode className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">PIX na hora (QR)</span>
           </div>
-          {temQr && (
+          {temQr && !somenteLeitura && (
             <Button
               variant="ghost"
               size="sm"
@@ -180,7 +191,7 @@ export function PixQrCode({
           </div>
         )}
 
-        {!temQr ? (
+        {!mostrarQr ? (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
               Valor exato e identificador único.
@@ -268,7 +279,7 @@ export function PixQrCode({
                 )}
                 <div className="flex gap-2 min-w-0">
                   <dt className="text-muted-foreground shrink-0">Identificador no extrato</dt>
-                  <dd className="font-mono truncate text-foreground">{txid}</dd>
+                  <dd className="font-mono truncate text-foreground">{txid ?? "—"}</dd>
                 </div>
               </dl>
 
