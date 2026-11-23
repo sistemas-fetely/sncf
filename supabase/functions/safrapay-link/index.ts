@@ -4,7 +4,11 @@
 // NUNCA loga nem devolve o MerchantToken ou o accessToken.
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders as corsBase } from "npm:@supabase/supabase-js@2/cors";
+
+// BUG 23/11/2026: front chama com region: SaEast1, que envia o header x-region;
+// o corsHeaders padrão não o aceita e o preflight falha no navegador.
+const corsHeaders = { ...corsBase, "Access-Control-Allow-Headers": `${corsBase["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-region` };
 import { registrarTrilhaSafra, substituirTrilhaSafra } from "../_shared/safrapay-trilha.ts";
 
 const json = (body: unknown, status = 200) =>

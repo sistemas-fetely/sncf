@@ -3,7 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { baseSegura, entrada, lerCorpo, msgApi, qtdeItens, semSegredos, tentativas } from "./helpers.ts";
 
-const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-cron-secret` };
+// BUG 23/11/2026: front chama com region: SaEast1, que envia o header x-region;
+// sem ele no Allow-Headers o preflight falha no navegador.
+const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-cron-secret, x-region` };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
