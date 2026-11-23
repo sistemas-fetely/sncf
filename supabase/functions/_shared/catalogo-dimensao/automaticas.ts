@@ -1,9 +1,9 @@
 import { kindAutomaticoDoCampo } from './campos.ts';
 import type { ItemFop, ResultadoFop } from '../catalogo-planilha/aplicar-fop.ts';
 
-/** Comparison only: no fuzzy matching and no normalized spelling is ever written. */
+/** Comparação apenas: pontuação, espaços, acento e conectivo e/& não distinguem dimensões; nenhuma grafia normalizada é gravada. */
 export function chaveDimensao(nome: string): string {
-  const termos = nome.trim().replace(/\s+/g, ' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ (?:e|&) /g, ' ').split(' ').filter(Boolean);
+  const termos = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(t => t && t !== 'e');
   return JSON.stringify([...new Set(termos)].sort());
 }
 export const dimensaoAusente = (r: ResultadoFop) => r.status === 'erro' && /^Valor de dimensão não cadastrado: /.test(r.erro ?? '');

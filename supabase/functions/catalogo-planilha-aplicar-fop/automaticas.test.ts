@@ -6,7 +6,7 @@ const item = (id: string, nome: string, campo = 'cor'): ItemFop => ({ id, campo,
 const ausente = (i: ItemFop): ResultadoFop => ({ id: i.id, status: 'erro', erro: `Valor de dimensão não cadastrado: ${i.campo} = ${i.valor_novo}` });
 
 describe('dimensões automáticas estritas', () => {
-  for (const [a, b] of [['Branco e Azul', 'Azul e Branco'], ['Éclat Oro', 'Oro Éclat'], ['Bianco & Oro', 'bianco e oro'], ['  Éclat   Oro ', 'oro e eclat']]) {
+  for (const [a, b] of [['Branco e Azul', 'Azul e Branco'], ['Éclat Oro', 'Oro Éclat'], ['Bianco & Oro', 'bianco e oro'], ['  Éclat   Oro ', 'oro e eclat'], ['Butterfly - B&W', 'Butterfly -B&W'], ['Butterfly-B&W', 'Butterfly -B&W'], ['Pink & Cristal', 'Pink Cristal'], ['Rosé Doux - Éclat', 'Rosé Doux Éclat']]) {
     test(`equivalência ${a} / ${b}`, () => expect(chaveDimensao(a)).toBe(chaveDimensao(b)));
   }
   for (const [a, b] of [['Prata', 'Preto'], ['Dourado', 'Bordo'], ['Rose', 'Rosa']]) {
