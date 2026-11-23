@@ -1,3 +1,10 @@
+export function controlesCdLinhaVD(etapa: string | null | undefined, podeEditar: boolean, podeTrocar: boolean) {
+  return {
+    mostrarEscolha: podeEditar && etapa === "escolher_cd",
+    mostrarTroca: podeEditar && etapa !== "escolher_cd" && podeTrocar,
+  };
+}
+
 export function podeConfirmarCdVD(cd: string, transportadora: string | null, podeEditar: boolean, cotacaoOk: boolean) {
   return podeEditar && (cd === "SITE-SP" || (cd === "XPM-SC" && cotacaoOk && !!transportadora));
 }

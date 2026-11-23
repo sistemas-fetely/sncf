@@ -8,6 +8,8 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { TrocarCdVDDialog } from "@/components/venda-direta/TrocarCdVDDialog";
+import { EscolhaCdLinhaVD } from "@/components/venda-direta/EscolhaCdLinhaVD";
+import { controlesCdLinhaVD } from "@/components/venda-direta/escolherCdVD";
 import { podeTrocarCdVD } from "@/components/venda-direta/trocarCdVD";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -418,6 +420,7 @@ export default function VendaDiretaGestao() {
                 </TableHeader>
                 <TableBody>
                   {pag.map((l) => {
+                    const controlesCd = controlesCdLinhaVD(l.etapa, podeEditar, podeTrocarCdVD(l));
                     const etapa = acoesEtapa(l, false);
                     const aviso = avisoDe(l, true);
                     const devolucao = devolucaoPorPedido.get(l.id);
@@ -542,6 +545,7 @@ export default function VendaDiretaGestao() {
                             {l.proxima_acao && (
                               <div className="text-foreground">→ {l.proxima_acao}{l.responsavel_rotulo && <span className="text-muted-foreground"> · {l.responsavel_rotulo}</span>}</div>
                             )}
+                            {controlesCd.mostrarEscolha && <EscolhaCdLinhaVD pedido={l} podeEditar={podeEditar} />}
                             {temAlerta(l, ALERTA_FALTA) && (
                               <Tooltip>
                                 <TooltipTrigger asChild><span className="block cursor-help text-destructive-strong">Falta no Site SP</span></TooltipTrigger>
@@ -561,7 +565,7 @@ export default function VendaDiretaGestao() {
                           <div className="flex items-center justify-end gap-0.5">
                             {aviso}
                             {etapa.map((a) => <BotaoIcone key={a.k} a={a} />)}
-                            {podeEditar && podeTrocarCdVD(l) && <BotaoIcone a={{ k: "trocar-cd", label: "Trocar CD", icon: ArrowLeftRight, onClick: () => setTrocarCd(l) }} />}
+                            {controlesCd.mostrarTroca && <BotaoIcone a={{ k: "trocar-cd", label: "Trocar CD", icon: ArrowLeftRight, onClick: () => setTrocarCd(l) }} />}
                             {(aviso || etapa.length > 0) && <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />}
                             <BotaoIcone a={{ k: "itens", label: "Ver itens", icon: List, onClick: () => setGavetaId(l.id) }} />
                             <BotaoIcone a={{ k: "imprimir", label: "Imprimir", icon: Printer, onClick: () => abrirImpressaoVD(l.id) }} />

@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { argsEscolhaCdVD, podeConfirmarCdVD, podeDesfazerCdVD } from "./escolherCdVD";
+import { argsEscolhaCdVD, controlesCdLinhaVD, podeConfirmarCdVD, podeDesfazerCdVD } from "./escolherCdVD";
 
 describe("Escolha de CD VD", () => {
+  it("mostra escolha na linha só na etapa escolher_cd com edição", () => {
+    expect(controlesCdLinhaVD("escolher_cd", true, true)).toEqual({ mostrarEscolha: true, mostrarTroca: false });
+    expect(controlesCdLinhaVD("descendo_bling", true, true)).toEqual({ mostrarEscolha: false, mostrarTroca: true });
+    expect(controlesCdLinhaVD("escolher_cd", false, true)).toEqual({ mostrarEscolha: false, mostrarTroca: false });
+    expect(controlesCdLinhaVD(null, true, false)).toEqual({ mostrarEscolha: false, mostrarTroca: false });
+  });
+  it("esconde Trocar CD em escolher_cd e preserva a elegibilidade nas demais etapas", () => {
+    expect(controlesCdLinhaVD("escolher_cd", true, true).mostrarTroca).toBe(false);
+    expect(controlesCdLinhaVD("aguardando_nf", true, true).mostrarTroca).toBe(true);
+    expect(controlesCdLinhaVD("aguardando_nf", true, false).mostrarTroca).toBe(false);
+    expect(controlesCdLinhaVD("aguardando_nf", false, true).mostrarTroca).toBe(false);
+  });
   it("Site SP não exige transportadora nem motivo", () => {
     expect(podeConfirmarCdVD("SITE-SP", null, true, false)).toBe(true);
     expect(argsEscolhaCdVD("pedido", "SITE-SP", " ", "outra")).toEqual({ p_pedido_id: "pedido", p_centro_codigo: "SITE-SP", p_motivo: null, p_transportadora_id: null });
