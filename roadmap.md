@@ -1,4 +1,5 @@
 # Roadmap
+- [x] RENOMEAR DIMENSÃO auditoria: migração 0102 aplicada nas duas funções; usuário real ou NULL com nome preservado. 28 verificações SQL com FK e 40 testes Bun passaram; sem deploy.
 - [x] RENOMEAR DIMENSÃO: migrações 0100/0101 aplicadas; rotina preparada com prévias por categoria, compensação SNCF, espelho por id e inativação só dos valores antigos aplicados. 40 testes Bun + 24 Deno + 23 verificações SQL isoladas passaram; Deno check e compilação automática OK. Nenhum produto real alterado.
 - [ ] RENOMEAR DIMENSÃO deploy: aguarda Flávio confirmar que a porta catalogo-dimensao-ajustar do FOP está publicada; catalogo-planilha-aplicar-fop não implantada nesta frente.
 - [x] Casa dos Pedidos: placeholder mantém linhas esmaecidas com aviso no cabeçalho colado; clique no funil apenas filtra; tarja e prova das parcelas/diálogos dependem da liberação false. 24 testes e compilação automática aprovados; conta autenticada conferiu 20 linhas preservadas, nova lista de 1 pedido, somente fn_lista no clique e detalhe liberado sem tarja. Sem banco/views/RPCs ou alteração de pedidos.

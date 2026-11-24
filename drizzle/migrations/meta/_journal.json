@@ -715,6 +715,13 @@
       "when": 1795513424583,
       "tag": "0101_catalogo_dim_renomear_inativar_servico",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795514327353,
+      "tag": "0102_catalogo_dim_auditoria_rotina_diaria",
+      "breakpoints": true
     }
   ]
 }
