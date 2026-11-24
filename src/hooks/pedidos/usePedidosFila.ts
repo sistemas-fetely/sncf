@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fonteSituacaoFinanceira } from "@/lib/pedidos/fontePedido";
 import type { PedidoFilaItem, EstagioPedido, AreaPedido } from "@/types/pedido";
 
 import { useListaPaginada, type ParamsLista, type FiltroLista } from "@/lib/lista/useListaPaginada";
+
+/** Linha da foto de situação financeira lida pela fila (mesmas colunas da view viva). */
+type LinhaSituacaoFila = Partial<PedidoFilaItem> & { pedido_id: string };
 
 export interface Opts {
   pagina?: number;
@@ -81,17 +85,19 @@ export function usePedidosFila(opts: Opts = {}) {
     agregados: [{ id: "estagios", fn: "count", por: ["estagio"] },
       { id: "cds", fn: "count", por: ["cd_expedicao_codigo", "cd_expedicao_nome"], ignorar: ["cd_expedicao_codigo"] }],
   }, { enabled: !(termo.length >= 2 && !opts.comPagamentoSemVinculo && apelidos.isPending) && !(opts.comPagamentoSemVinculo && candidatos.isPending), debounceMs: 0 });
-  // Dados vivos complementares apenas para os pedidos da página.
+  // Complementos apenas para os pedidos da página: situação financeira lê a
+  // foto replicada a cada minuto; adiantamento continua na view viva.
   const ids = lista.data?.linhas.map(p => p.id) ?? [];
   const detalhes = useQuery({
     queryKey: ["pedidos-fila", "financeiro-pagina", ids], enabled: ids.length > 0,
     queryFn: async () => {
       const [sf, adv] = await Promise.all([
-        supabase.from("vw_pedido_situacao_financeira").select("*").in("pedido_id", ids),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from(fonteSituacaoFinanceira(true)).select("*").in("pedido_id", ids) as Promise<{ data: LinhaSituacaoFila[] | null; error: unknown }>,
         supabase.from("vw_pedido_adiantamento").select("*").in("pedido_id", ids),
       ]);
       if (sf.error) throw sf.error; if (adv.error) throw adv.error;
-      return { sf: new Map((sf.data ?? []).map(r => [r.pedido_id, r])), adv: new Map((adv.data ?? []).map(r => [r.pedido_id, r])) };
+      return { sf: new Map((sf.data ?? []).map((r): [string, LinhaSituacaoFila] => [r.pedido_id, r])), adv: new Map((adv.data ?? []).map(r => [r.pedido_id, r])) };
     },
   });
   return { ...lista, error: lista.error ?? apelidos.error ?? candidatos.error ?? detalhes.error,

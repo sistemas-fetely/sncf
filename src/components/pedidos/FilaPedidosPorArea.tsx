@@ -577,7 +577,7 @@ export function FilaPedidosPorArea({
 
   const pedidoIdsRelogio = data.map(p => p.id);
   const { data: relogioMap } = usePedidoRelogio(pedidoIdsRelogio);
-  const { data: riscoMap } = usePedidoRisco(pedidoIdsRelogio);
+  const { data: riscoMap } = usePedidoRisco(pedidoIdsRelogio, { foto: true });
 
   const parceiroIdsLista = useMemo(() => {
     const set = new Set<string>();
@@ -678,7 +678,9 @@ export function FilaPedidosPorArea({
     error: entregaErrorObj,
   } = usePedidosEntregaLote(pedidoIdsSaida);
 
-  const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
+  const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida, {
+    foto: true,
+  });
 
   const { data: coberturaMap } = useCoberturaPedidos(pedidoIdsSaida);
   const { data: politicaMap } = usePoliticaCobertura();

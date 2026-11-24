@@ -235,3 +235,4 @@
 - [x] VD endereço do cadastro: preencher endereço ao selecionar cliente e gravar no cadastro vazio ao salvar
 - [x] MP F3: aba Marketplace de recebíveis e valores reais na gaveta dos pedidos; ML-0004, indicadores e filtro vazio conferidos no computador e celular; 48 testes aprovados, sem banco ou publicação.
 - [x] PROCESSOS-VIVOS: rótulos de trecho/canal extraídos para `src/lib/processos/rotulosPasso.ts` (antes_nf, nf_nao_expedida, correcao_nf, "Todos os canais", "Site SP") e filtro de canal só de exibição acima da grade, com reordenar desabilitado durante o filtro; 9 testes novos, sem banco.
+- [x] PEDIDOS-SIMPLES-E-RAPIDO: fila lê as fotos de 1 min (risco, liberação, situação financeira) com a fonte resolvida em `src/lib/pedidos/fontePedido.ts`; detalhe, diálogo e decisão seguem na view viva; 5 testes novos, fila e detalhe conferidos no navegador, sem banco.

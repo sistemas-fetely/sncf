@@ -1,1 +1,2 @@
 - Menu badges (`fn_badges`) and Dash queues (`fn_inbox_filas`) read DB-side caches: their queries are `meta.pesada`, no window-focus refetch, polling ≥ 2 min, keys outside other prefixes, so mutations never re-read them.
+- Order lists read the per-minute snapshot relations (`vw_foto_*`); detail, dialogs and decisions read the live view. The relation name comes only from `src/lib/pedidos/fontePedido.ts`, so no screen hardcodes a snapshot name.

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fonteRisco, rotuloFontePedido } from "@/lib/pedidos/fontePedido";
 
 export interface RiscoMotivo {
   codigo: string;
@@ -20,19 +21,26 @@ export interface PedidoRisco {
   risco_motivos: RiscoMotivo[] | null;
 }
 
-/** Lê `vw_pedido_risco` e devolve um Map por pedido_id. FAIL-LOUD. */
-export function usePedidoRisco(pedidoIds: string[]) {
+/**
+ * Lê a view de risco e devolve um Map por pedido_id. FAIL-LOUD.
+ * `foto: true` lê a foto replicada a cada minuto (usada na LISTA); o padrão é a
+ * view viva, que detalhe, diálogo e decisão continuam lendo.
+ */
+export function usePedidoRisco(pedidoIds: string[], opts?: { foto?: boolean }) {
+  const foto = !!opts?.foto;
+  const relacao = fonteRisco(foto);
   const ids = [...new Set(pedidoIds)].sort();
   return useQuery({
-    queryKey: ["pedido-risco", ids],
+    queryKey: ["pedido-risco", rotuloFontePedido(foto), ids],
     enabled: ids.length > 0,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Map<string, PedidoRisco>> => {
       const data: PedidoRisco[] = [];
       for (let inicio = 0; inicio < ids.length; inicio += 200) {
         const lote = ids.slice(inicio, inicio + 200);
-        const { data: linhas, error } = await supabase
-          .from("vw_pedido_risco")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: linhas, error } = await (supabase as any)
+          .from(relacao)
           .select("pedido_id,id_externo,estagio,parceiro_razao,valor_liquido,dias_na_fase,risco_score,risco_faixa,risco_cor,risco_motivos")
           .in("pedido_id", lote);
         if (error) throw error;
