@@ -155,6 +155,8 @@ import { AlterarNaturezaDialog } from "@/components/pedidos/AlterarNaturezaDialo
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { SituacaoFinanceiraBloco } from "@/components/pedidos/SituacaoFinanceiraBloco";
 import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
+import { useLiberacaoExpedicaoLote } from "@/hooks/pedidos/useLiberacaoExpedicao";
+import { mostrarProvaOperacao } from "@/lib/pedidos/provaOperacao";
 import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
 
 
@@ -333,6 +335,7 @@ function BadgeEstadoParcela({
   eixos,
   dim,
   compacto,
+  mostrarProva,
 }: {
   titulo: TituloAReceber;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -340,6 +343,7 @@ function BadgeEstadoParcela({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dim: { prova: Record<string, any>; status: Record<string, any> } | undefined;
   compacto?: boolean;
+  mostrarProva: boolean;
 }) {
   const eixo = eixos?.[titulo.id];
   const statusDim = eixo?.eixo_status ? dim?.status?.[eixo.eixo_status] : null;
@@ -347,7 +351,7 @@ function BadgeEstadoParcela({
     return (
       <BadgeEixosTitulo
         status={statusDim}
-        prova={eixo?.eixo_prova ? dim?.prova?.[eixo.eixo_prova] : null}
+        prova={mostrarProva && eixo?.eixo_prova ? dim?.prova?.[eixo.eixo_prova] : null}
         compacto={compacto}
       />
     );
@@ -360,6 +364,7 @@ function BadgeEstadoParcela({
 }
 
 function ParcelasTab({ pedidoId }: { pedidoId: string }) {
+  const { data: liberacaoMap } = useLiberacaoExpedicaoLote([pedidoId]);
   const { data: titulos, isLoading } = usePedidoTitulos(pedidoId);
   const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
   const { data: eixos } = useTituloEixosPedido(pedidoId);
@@ -408,7 +413,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                 <TableCell className="font-medium">{fmtBRL.format(Number(t.valor_atual || 0))}</TableCell>
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
                 <TableCell>
-                  <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} />
+                  <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} mostrarProva={mostrarProvaOperacao(liberacaoMap?.get(pedidoId))} />
                   {(t.status === "pago" || t.status === "pago_com_atraso") && temNivel(3) && (
                     <button
                       onClick={() => setConvertendo({
@@ -875,7 +880,8 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
   const { data: plano } = usePlanoAbertoPedido(pedido.id);
   const { temNivel } = useNivel();
   const [confirmarAberto, setConfirmarAberto] = useState(false);
-  const usarSaldo = useUsarSaldoConta(pedido.id);
+  const { data: liberacaoMap } = useLiberacaoExpedicaoLote([pedido.id]);
+  const usarSaldo = useUsarSaldoConta(pedido.id, mostrarProvaOperacao(liberacaoMap?.get(pedido.id)));
   const { data: portaoAtual } = usePedidoPortaoAtual(pedido.id);
   const { data: cobConta } = useContaClienteCobertura(pedido.parceiro_id, pedido.id);
   const permDinheiro = usePermissaoAcaoOuSuperAdmin("acao.pedido_dinheiro");
@@ -1156,6 +1162,8 @@ export default function PedidoDetalhe() {
   const queryClient = useQueryClient();
   const { data, isLoading } = usePedidoDetalhe(id);
   const { data: prova } = useProvaPagamento(id);
+  const { data: liberacaoMap, error: liberacaoErro } = useLiberacaoExpedicaoLote(id ? [id] : []);
+  const mostrarProva = mostrarProvaOperacao(id ? liberacaoMap?.get(id) : undefined);
   const { data: priorizado } = usePedidoPriorizado(id);
   const atualizarUrgencia = useAtualizarUrgencia();
   const limparAtencao = useLimparAtencao();
@@ -1757,8 +1765,13 @@ export default function PedidoDetalhe() {
         <CondicaoPendenteCard pedido={pedido} />
       )}
 
-      {/* Prova de pagamento — só aparece quando existe algum recebimento registrado */}
-      {prova && prova.valor_recebido > 0 && (
+      {liberacaoErro && (
+        <div role="alert" className="mx-6 mb-3 text-sm text-destructive">
+          Erro ao consultar a liberação de expedição: {formatError(liberacaoErro)}
+        </div>
+      )}
+      {/* Prova na operação só quando o veredito de expedição é não liberado. */}
+      {mostrarProva && prova && prova.valor_recebido > 0 && (
         <div className="mx-6 mb-3">
           <ProvaPagamentoAlerta prova={prova} />
         </div>
@@ -2830,7 +2843,7 @@ export default function PedidoDetalhe() {
                             </div>
                             <div className="text-right shrink-0">
                               <p className="text-sm font-medium">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
-                              <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto />
+                              <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto mostrarProva={mostrarProva} />
                             </div>
                           </div>
                         ))}

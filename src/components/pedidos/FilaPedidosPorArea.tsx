@@ -1,4 +1,6 @@
 import { filtrosOrdemFila } from "@/lib/pedidos/filaLista";
+import { mostrarProvaOperacao } from "@/lib/pedidos/provaOperacao";
+import { AtualizacaoFila } from "@/components/pedidos/AtualizacaoFila";
 import { gruposAgregado } from "@/lib/lista/useListaPaginada";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -923,11 +925,14 @@ export function FilaPedidosPorArea({
               <CabecalhoOrdenavel rotulo="Estágio" className="w-[210px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
               <CabecalhoOrdenavel rotulo="Entrega" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
               <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px] whitespace-nowrap" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
-              <TableHead className="w-[136px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
+              <TableHead className="w-[136px] text-right text-[11px] text-muted-foreground">
+                <AtualizacaoFila isPlaceholderData={fila.isPlaceholderData} />
+                <span className="block">Ações</span>
+              </TableHead>
 
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody aria-busy={fila.isPlaceholderData} className={cn("transition-opacity duration-150 motion-reduce:transition-none", fila.isPlaceholderData && "opacity-50 pointer-events-none")}>
             {isLoading && (
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
@@ -1277,7 +1282,7 @@ function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
   );
 }
 
-function CelulaPagamento({
+export function CelulaPagamento({
   p,
   liberacao,
 }: {
@@ -1296,7 +1301,7 @@ function CelulaPagamento({
   })();
 
   const provaLine =
-    liberacao?.prova_rotulo && liberacao?.nivel_prova !== "sem_prova" ? (
+    mostrarProvaOperacao(liberacao) && liberacao?.prova_rotulo && liberacao?.nivel_prova !== "sem_prova" ? (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1323,7 +1328,7 @@ function CelulaPagamento({
         <TooltipContent>
           <div className="max-w-[320px] space-y-1">
             {liberacao.motivo && <p className="text-xs leading-tight">{liberacao.motivo}</p>}
-            {liberacao.prova_frase && (
+            {mostrarProvaOperacao(liberacao) && liberacao.prova_frase && (
               <p className="text-xs opacity-80 leading-tight">{liberacao.prova_frase}</p>
             )}
             {p.situacao_rotulo && (

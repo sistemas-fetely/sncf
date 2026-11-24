@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
-import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
@@ -27,7 +26,6 @@ type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const qc = useQueryClient();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const travadoParam = searchParams.get("travado") === "1";
   const abaParam = searchParams.get("aba");
@@ -110,12 +108,6 @@ export default function PedidosIndex() {
     setSearchParams(next);
   };
 
-  // O funil precisa se atualizar junto com a lista no MESMO clique.
-  const revalidarFunil = () => {
-    qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-    qc.invalidateQueries({ queryKey: ["mesa-comercial-contagem"] });
-  };
-
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
     next.delete("travado");
@@ -123,7 +115,6 @@ export default function PedidosIndex() {
     // CARD-TRAVADO (30/10/2026): um card ativo por vez; o estágio mostra todos
     // os seus pedidos, travados inclusive.
     setSearchParams(next);
-    revalidarFunil();
   };
 
   const handleTravadoClick = () => {
@@ -136,7 +127,6 @@ export default function PedidosIndex() {
       next.set("travado", "1");
     }
     setSearchParams(next);
-    revalidarFunil();
   };
 
   const handleLimparFiltro = () => {
@@ -144,7 +134,6 @@ export default function PedidosIndex() {
     next.delete("estagio");
     next.delete("travado");
     setSearchParams(next);
-    revalidarFunil();
   };
 
   return (

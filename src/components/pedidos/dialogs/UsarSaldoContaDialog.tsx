@@ -55,7 +55,7 @@ async function chamar(pedidoId: string, simular: boolean): Promise<RetornoQuitar
   return res;
 }
 
-export function useUsarSaldoConta(pedidoId: string) {
+export function useUsarSaldoConta(pedidoId: string, mostrarProva = true) {
   const qc = useQueryClient();
   const [previa, setPrevia] = useState<RetornoQuitar | null>(null);
   const [simulando, setSimulando] = useState(false);
@@ -109,8 +109,10 @@ export function useUsarSaldoConta(pedidoId: string) {
               <dd className="font-medium tabular-nums">{formatBRL(previa.valor_aberto ?? 0)}</dd>
               <dt className="text-muted-foreground">Lançamento</dt>
               <dd className="break-all">{previa.lancamento_chave ?? "—"}</dd>
-              <dt className="text-muted-foreground">Nível de prova</dt>
-              <dd>{previa.nivel_prova ?? "—"}</dd>
+              {mostrarProva && <>
+                <dt className="text-muted-foreground">Nível de prova</dt>
+                <dd>{previa.nivel_prova ?? "—"}</dd>
+              </>}
             </dl>
             {(previa.linhas ?? []).length > 0 && (
               <Table>

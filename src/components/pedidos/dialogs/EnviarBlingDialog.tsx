@@ -12,6 +12,9 @@ import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
 import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
+import { useLiberacaoExpedicaoLote } from "@/hooks/pedidos/useLiberacaoExpedicao";
+import { mostrarProvaOperacao } from "@/lib/pedidos/provaOperacao";
+import { formatError } from "@/lib/format-error";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -44,6 +47,8 @@ export function EnviarBlingDialog({
   // porta própria (EmpurrarXpmLinhaDialog) e vem antes, no pré-faturamento.
 
   const { data: prova, isLoading: checkingProva } = useProvaPagamento(pedido_id, open);
+  const { data: liberacaoMap, error: liberacaoErro } = useLiberacaoExpedicaoLote(open ? [pedido_id] : []);
+  const mostrarProva = mostrarProvaOperacao(liberacaoMap?.get(pedido_id));
   const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
   const travadoSemProva = !!prova && !prova.libera_despacho && !podeLiberarSemProva;
 
@@ -153,7 +158,7 @@ export function EnviarBlingDialog({
             <Alert>
               <Package className="h-4 w-4" />
               <AlertDescription>
-                Este pedido já tem {remessasAtivas!.length === 1 ? "1 tentativa de envio" : `${remessasAtivas!.length} tentativas de envio`} aguardando envio.
+                Este pedido já tem {remessasAtivas?.length === 1 ? "1 tentativa de envio" : `${remessasAtivas?.length} tentativas de envio`} aguardando envio.
                 Use a seção <strong>Envios ao Bling</strong> no detalhe do pedido para enviar ao Bling.
               </AlertDescription>
             </Alert>
@@ -190,8 +195,9 @@ export function EnviarBlingDialog({
           </div>
         ) : (
           <div className="space-y-3">
-            {prova && <ProvaPagamentoAlerta prova={prova} />}
-            {prova && !prova.libera_despacho && (
+            {liberacaoErro && <p role="alert" className="text-sm text-destructive">Erro ao consultar a liberação de expedição: {formatError(liberacaoErro)}</p>}
+            {mostrarProva && prova && <ProvaPagamentoAlerta prova={prova} />}
+            {mostrarProva && prova && !prova.libera_despacho && (
               podeLiberarSemProva ? (
                 <p className="text-xs text-muted-foreground leading-snug">
                   Você tem permissão para liberar sem confirmação bancária. A liberação
