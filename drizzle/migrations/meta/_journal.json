@@ -729,6 +729,13 @@
       "when": 1795514626839,
       "tag": "0103_catalogo_dim_destino_ignorar_propria_linha",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1795514888276,
+      "tag": "0104_catalogo_resolver_auditoria_rotina_diaria",
+      "breakpoints": true
     }
   ]
 }

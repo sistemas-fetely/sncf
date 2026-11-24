@@ -1,4 +1,5 @@
 # Roadmap
+- [x] RENOMEAR DIMENSÃO auditoria (cadastro automático e conclusão): edge grava user_id NULL para a rotina; migração 0104 em fn_catalogo_resolver (resolvido_por sem FK, mantido). Rotina conclui célula no SQL isolado (5 verificações) + 31 renomear, 42 Bun, 24 Deno e Deno check OK; sem deploy.
 - [x] RENOMEAR DIMENSÃO desfazer: migração 0103 ignora o próprio código na checagem de destino por rótulo/variantes; outra dimensão continua bloqueando. 31 verificações SQL e 40 testes Bun passaram; sem deploy.
 - [x] RENOMEAR DIMENSÃO auditoria: migração 0102 aplicada nas duas funções; usuário real ou NULL com nome preservado. 28 verificações SQL com FK e 40 testes Bun passaram; sem deploy.
 - [x] RENOMEAR DIMENSÃO: migrações 0100/0101 aplicadas; rotina preparada com prévias por categoria, compensação SNCF, espelho por id e inativação só dos valores antigos aplicados. 40 testes Bun + 24 Deno + 23 verificações SQL isoladas passaram; Deno check e compilação automática OK. Nenhum produto real alterado.

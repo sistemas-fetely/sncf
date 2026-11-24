@@ -11,6 +11,7 @@ import { agruparMensagens, ErroCatalogo } from "../_shared/catalogo-planilha/men
 import { criarAplicadorAutomatico, chaveDimensao } from '../_shared/catalogo-dimensao/automaticas.ts';
 import { cadastrarDimensao } from '../_shared/catalogo-dimensao/cadastrar.ts';
 import { aplicarComDimensoes, type ResultadoAjuste, type ResultadoSncf } from '../_shared/catalogo-dimensao/renomear.ts';
+import { ROTINA_CATALOGO, usuarioAuditoria } from '../_shared/catalogo-dimensao/auditoria.ts';
 import { normalizarCodigo } from '../_shared/catalogo-planilha/comparacao.ts';
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
@@ -18,7 +19,7 @@ const Body = z.object({ leitura_id: z.string().uuid(), ids: z.array(z.string().u
 // Daily cron (after the reading): applies on its own only clean changes (tipo mudanca, no error).
 // Conflicts and errors stay on the screen for a human.
 const BodyAutomatico = z.object({ automatico: z.literal(true) }).strict();
-const ROTINA = { id: "00000000-0000-4000-8000-00000000ca7a", nome: "Rotina diária do catálogo" };
+const ROTINA = ROTINA_CATALOGO;
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const kindOriginal = (campo: string) => campo === 'colecao' ? 'colecao' : campo === 'grupo' ? 'grupo' : 'cor';
 const normNome = (n: string) => n.trim().replace(/\s+/g, ' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -176,7 +177,7 @@ Deno.serve(async req => {
           const tabela = d.kind === 'cor' ? 'fop_cores' : d.kind === 'grupo' ? 'fop_grupos' : 'fop_colecoes';
           const r = await sb.from('dimensao_auto_provisionada').insert({ tabela, codigo: d.kind === 'grupo' ? d.id : d.nome, rotulo: d.nome, origem: 'planilha-catalogo', conferido: false }).select('id').single();
           if (r.error) throw new Error(`Dimensão cadastrada, mas registro automático falhou: ${r.error.message}`);
-          const a = await sb.from('audit_log').insert({ user_id: quem.id, user_nome: quem.nome, acao: 'catalogo_dimensao_automatica', tabela: 'dimensao_auto_provisionada', registro_id: String(r.data.id), dados_depois: { ...d, leitura_id }, justificativa: `Leitura ${leitura_id}` });
+          const a = await sb.from('audit_log').insert({ user_id: usuarioAuditoria(quem, !cron), user_nome: quem.nome, acao: 'catalogo_dimensao_automatica', tabela: 'dimensao_auto_provisionada', registro_id: String(r.data.id), dados_depois: { ...d, leitura_id }, justificativa: `Leitura ${leitura_id}` });
           if (a.error) throw new Error(`Dimensão cadastrada, mas auditoria da leitura falhou: ${a.error.message}`);
         },
       }, categoriaId),
