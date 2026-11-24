@@ -54,6 +54,8 @@ import { mostrarRessarcimentoExtrato } from "@/lib/devolucao/ressarcimentoExtrat
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
+import { DESFECHO_ROTULO } from "@/lib/devolucao/naoEntregue";
+import { NaoEntregueControle, TitulosPedidoDevolucao, useEstadoNaoEntregue } from "@/components/devolucao/NaoEntregueDevolucao";
 import { linhaTrsRetorno, type TrsRetorno } from "@/lib/devolucao/trsRetorno";
 import { CorrecoesNfLista, contarCorrecoesAbertas, useCorrecoesNf } from "@/components/devolucao/CorrecoesNfLista";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
@@ -84,7 +86,7 @@ type Funil = {
 type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean; campo_funil: string | null; nao_aplica_sem_retorno: boolean | null };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
-const DESFECHO_ROTULO: Record<string, string> = { reenvio: "Reenvio ao cliente", reembolso: "Reembolso", haver: "Haver", troca: "Troca", abater_divida: "Abater dívida", nenhum: "Sem decisão" };
+
 const DESFECHO_BOTOES: { codigo: string; rotulo: string; soB2b?: boolean }[] = [
   { codigo: "reenvio", rotulo: "Reenviar" }, { codigo: "reembolso", rotulo: "Reembolsar" }, { codigo: "haver", rotulo: "Gerar haver" }, { codigo: "troca", rotulo: "Troca" },
   { codigo: "abater_divida", rotulo: "Abater dívida", soB2b: true },
@@ -275,6 +277,7 @@ export default function RetornoDevolucao() {
       return data.pedido_id;
     },
   });
+  const naoEntregueQ = useEstadoNaoEntregue(expandido);
   const procTarefasQ = useProcessoTarefas();
   const procPorCaso = useMemo(() => agruparAbertasPorCaso(procTarefasQ.data), [procTarefasQ.data]);
   const setExpandido = (id: string | null) => setNav({ detalhe: id ?? "" });
@@ -588,9 +591,10 @@ export default function RetornoDevolucao() {
                                   <div className="font-mono">{d.rastreio_efetivo}</div>
                                   <div className="text-muted-foreground">{d.rastreio_status ?? "Sem status de rastreio"}{d.reversa_origem ? ` · ${d.reversa_origem}` : ""}</div>
                                 </>
-                              ) : (
+                              ) : naoEntregueQ.data?.nao_entregue ? null : (
                                 <Button size="sm" variant="outline" onClick={() => setReversa(d)}>Registrar etiqueta reversa</Button>
                               )}
+                              <div><NaoEntregueControle devolucaoId={d.id} estado={naoEntregueQ.data} /></div>
                               {d.frete_reverso_por_conta && <div className="text-xs text-muted-foreground">Frete por conta: {d.frete_reverso_por_conta}</div>}
                             </div>
                             <div className="space-y-1">
@@ -611,6 +615,7 @@ export default function RetornoDevolucao() {
                                 <BannerDivergenciaLoja devolucaoId={d.id} podeAjustar={editavel(d)} onAjustar={(itens) => setEditarDecl({ d, preenchido: itens })} />
                               )}
                               {d.desfecho && d.desfecho !== "nenhum" && <div className="text-xs text-muted-foreground">Desfecho: {DESFECHO_ROTULO[d.desfecho] ?? d.desfecho}</div>}
+                              <TitulosPedidoDevolucao pedidoId={naoEntregueQ.data?.pedido_id} />
                               {d.desfecho === "nenhum" && !["encerrada", "cancelada"].includes(d.status_efetivo ?? d.status ?? "") && (
                                 <div className="space-y-1 pt-1">
                                   <div className="text-xs font-medium">Decidir desfecho</div>
