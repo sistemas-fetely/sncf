@@ -701,6 +701,20 @@
       "when": 1795045566424,
       "tag": "0099_mesa_sp_aguardando_item",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1795513375663,
+      "tag": "0100_catalogo_dim_chave_ordenada",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1795513424583,
+      "tag": "0101_catalogo_dim_renomear_inativar_servico",
+      "breakpoints": true
     }
   ]
 }

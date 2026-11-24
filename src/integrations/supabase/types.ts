@@ -155753,14 +155753,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -156067,14 +156067,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -157431,13 +157431,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
@@ -157446,13 +157439,20 @@ export type Database = {
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_origem_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
@@ -165529,6 +165529,7 @@ export type Database = {
           risco_faixa: string | null
           risco_motivos: Json | null
           risco_score: number | null
+          situacao_financeira: string | null
           valor_liquido: number | null
         }
         Relationships: [
@@ -179841,14 +179842,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -190701,6 +190702,7 @@ export type Database = {
         Args: {
           p_colecao: string
           p_eixos: string[]
+          p_ignorar?: string[]
           p_sistema: string
           p_tipo: string
         }
@@ -190745,6 +190747,7 @@ export type Database = {
         Args: {
           p_colecao: string
           p_eixos?: string[]
+          p_ignorar?: string[]
           p_sistema: string
           p_tipo?: string
         }
@@ -190754,6 +190757,7 @@ export type Database = {
         Args: {
           p_colecao: string
           p_eixos?: string[]
+          p_ignorar?: string[]
           p_sistema: string
           p_tipo?: string
           p_titulos?: Json
@@ -191318,6 +191322,21 @@ export type Database = {
         }[]
       }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
+      fn_catalogo_dim_inativar_se_vazio_sncf: {
+        Args: { p_quem: Json; p_rotulo: string; p_tabela: string }
+        Returns: Json
+      }
+      fn_catalogo_dim_renomear_sncf: {
+        Args: {
+          p_cods: string[]
+          p_de: string
+          p_desfazer?: boolean
+          p_para: string
+          p_quem: Json
+          p_tabela: string
+        }
+        Returns: Json
+      }
       fn_catalogo_fop_registrar: { Args: { p_resultados: Json }; Returns: Json }
       fn_catalogo_fop_url_gravar: { Args: { p_url: string }; Returns: Json }
       fn_catalogo_leitura_concluir: {
@@ -192213,6 +192232,7 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: number
       }
+      fn_dim_chave: { Args: { x: string }; Returns: string }
       fn_dim_resolver: {
         Args: { p_extra?: Json; p_tabela: string; p_valor: string }
         Returns: string

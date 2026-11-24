@@ -4,12 +4,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { aplicarNoFop, type CelulaFop } from "../_shared/catalogo-planilha/aplicar-fop.ts";
+import { type CelulaFop, type ItemFop } from "../_shared/catalogo-planilha/aplicar-fop.ts";
 import { pegarTrava } from "../_shared/catalogo-planilha/trava.ts";
 import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { agruparMensagens, ErroCatalogo } from "../_shared/catalogo-planilha/mensagens.ts";
 import { criarAplicadorAutomatico, chaveDimensao } from '../_shared/catalogo-dimensao/automaticas.ts';
 import { cadastrarDimensao } from '../_shared/catalogo-dimensao/cadastrar.ts';
+import { aplicarComDimensoes, type ResultadoAjuste, type ResultadoSncf } from '../_shared/catalogo-dimensao/renomear.ts';
 import { normalizarCodigo } from '../_shared/catalogo-planilha/comparacao.ts';
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
@@ -102,6 +103,23 @@ Deno.serve(async req => {
         if (!r.ok) throw new Error(`HTTP ${r.status}${texto ? ` — ${texto.slice(0, 300)}` : ""}`);
         try { return JSON.parse(texto); } catch { throw new Error("FOP devolveu resposta que não é JSON"); }
     };
+    // Same category precedence for provisioning, rename subdivisions and post-application cleanup.
+    const categoria = async (item: ItemFop) => {
+      if (!categoriasFop) {
+        categoriasFop = new Map();
+        const r = await sb.from('fop_categorias').select('id,nome');
+        if (r.error) throw r.error;
+        for (const c of r.data ?? []) categoriasFop.set(normNome(c.nome), c.id);
+      }
+      const celula = celulas.find(c => c.cod_cadastro === item.cod_cadastro && c.campo === 'categoria');
+      let nome = typeof celula?.valor_planilha === 'string' && celula.valor_planilha.trim() ? celula.valor_planilha : undefined;
+      if (!nome) {
+        const p = await sb.from('sncf_produtos').select('categoria').eq('cod_cadastro', item.cod_cadastro).maybeSingle();
+        if (p.error) throw p.error;
+        nome = p.data?.categoria ?? undefined;
+      }
+      return nome ? categoriasFop.get(normNome(nome)) : undefined;
+    };
     const automatico = criarAplicadorAutomatico({
       enviar: itens => chamar('catalogo-planilha-aplicar', { quem, leitura_id, celulas: itens }),
       listar: async () => {
@@ -150,23 +168,7 @@ Deno.serve(async req => {
         if (!valor) throw new Error('Valor original da planilha não encontrado.');
         return valor;
       },
-      categoria: async item => {
-        if (!categoriasFop) {
-          categoriasFop = new Map();
-          const r = await sb.from('fop_categorias').select('id,nome');
-          if (r.error) throw r.error;
-          for (const c of r.data ?? []) categoriasFop.set(normNome(c.nome), c.id);
-        }
-        // Same precedence as the FOP: a category cell in this batch wins over the product's current category.
-        const celula = celulas.find(c => c.cod_cadastro === item.cod_cadastro && c.campo === 'categoria');
-        let nome = typeof celula?.valor_planilha === 'string' && celula.valor_planilha.trim() ? celula.valor_planilha : undefined;
-        if (!nome) {
-          const p = await sb.from('sncf_produtos').select('categoria').eq('cod_cadastro', item.cod_cadastro).maybeSingle();
-          if (p.error) throw p.error;
-          nome = p.data?.categoria ?? undefined;
-        }
-        return nome ? categoriasFop.get(normNome(nome)) : undefined;
-      },
+      categoria,
       cadastrar: (campo, nome, categoriaId) => cadastrarDimensao(campo, nome, quem, {
         chamarFop: corpo => chamar('catalogo-dimensao-cadastrar', corpo),
         auditar: async d => {
@@ -179,7 +181,28 @@ Deno.serve(async req => {
         },
       }, categoriaId),
     });
-    const resumo = await aplicarNoFop(celulas, ids, leitura_id, quem, {
+    const tabelaDimensao = (campo: 'grupo' | 'colecao') => campo === 'grupo' ? 'produto_grupo_dim' : 'produto_colecao_cad_dim';
+    const resumo = await aplicarComDimensoes(celulas, ids, leitura_id, quem, {
+      categoria,
+      ajustarFop: async corpo => await chamar('catalogo-dimensao-ajustar', corpo) as ResultadoAjuste,
+      renomearSncf: async (campo, de, para, cods, desfazer) => {
+        await trava?.verificar();
+        const r = await sb.rpc('fn_catalogo_dim_renomear_sncf', { p_tabela: tabelaDimensao(campo), p_de: de, p_para: para, p_cods: cods, p_quem: quem, p_desfazer: desfazer });
+        if (r.error) throw new Error(`Renomeação SNCF: ${r.error.message}`);
+        return r.data as ResultadoSncf;
+      },
+      inativarSncf: async (campo, nome) => {
+        await trava?.verificar();
+        const r = await sb.rpc('fn_catalogo_dim_inativar_se_vazio_sncf', { p_tabela: tabelaDimensao(campo), p_rotulo: nome, p_quem: quem });
+        if (r.error) throw new Error(`Inativação SNCF: ${r.error.message}`);
+        return r.data as ResultadoSncf;
+      },
+      espelhar: async (campo, id, nome) => {
+        await trava?.verificar();
+        const r = await sb.from(campo === 'grupo' ? 'fop_grupos' : 'fop_colecoes').update({ nome }).eq('id', id).select('id');
+        if (r.error) throw new Error(`FOP renomeou, mas o espelho não atualizou: ${r.error.message}`);
+        if (r.data?.length !== 1) throw new Error(`FOP renomeou, mas a dimensão ${id} não existe no espelho.`);
+      },
       chamarFop: corpo => automatico(corpo.celulas),
       concluir: async (lista, acao, dono) => {
         await trava?.verificar();
