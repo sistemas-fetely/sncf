@@ -662,8 +662,51 @@ Deno.serve(async (req) => {
             }
             transportadoraBlingVd = Number(transportadoraVd?.bling_id ?? 0);
             if (!Number.isFinite(transportadoraBlingVd) || transportadoraBlingVd <= 0) {
-              await falharVd(erroTransportadora);
-              continue;
+              // VD-TRANSPORTADORA-CORREIOS-AGENCIA: sede sem cadastro Bling usa a agência ativa do CD.
+              const { data: centroTransportadoraVd, error: eCentroTransportadoraVd } = await supabase
+                .from("centro_distribuicao")
+                .select("codigo")
+                .eq("id", item.centro_id_resolvido)
+                .maybeSingle();
+              if (eCentroTransportadoraVd) {
+                await falharVd(`ler centro_distribuicao: ${eCentroTransportadoraVd.message}`);
+                continue;
+              }
+              const codigoCentroTransportadoraVd = centroTransportadoraVd?.codigo ?? "(sem código)";
+              const erroAgenciaVd = `Pedido ${idExterno}: transportadora ${transportadoraVd?.razao_social ?? ped.transportadora_id} sem bling_id e sem agência ativa para o CD ${codigoCentroTransportadoraVd} em transportadora_agencia_cd — nada enviado.`;
+              if (!centroTransportadoraVd?.codigo) {
+                await falharVd(erroAgenciaVd);
+                continue;
+              }
+              const { data: vinculoAgenciaVd, error: eVinculoAgenciaVd } = await supabase
+                .from("transportadora_agencia_cd")
+                .select("agencia_id")
+                .eq("transportadora_id", ped.transportadora_id)
+                .eq("ativo", true)
+                .eq("centro_codigo", centroTransportadoraVd.codigo)
+                .maybeSingle();
+              if (eVinculoAgenciaVd) {
+                await falharVd(`ler transportadora_agencia_cd: ${eVinculoAgenciaVd.message}`);
+                continue;
+              }
+              if (!vinculoAgenciaVd?.agencia_id) {
+                await falharVd(erroAgenciaVd);
+                continue;
+              }
+              const { data: agenciaTransportadoraVd, error: eAgenciaTransportadoraVd } = await supabase
+                .from("parceiros_comerciais")
+                .select("bling_id")
+                .eq("id", vinculoAgenciaVd.agencia_id)
+                .maybeSingle();
+              if (eAgenciaTransportadoraVd) {
+                await falharVd(`ler agência em parceiros_comerciais: ${eAgenciaTransportadoraVd.message}`);
+                continue;
+              }
+              transportadoraBlingVd = Number(agenciaTransportadoraVd?.bling_id ?? 0);
+              if (!Number.isFinite(transportadoraBlingVd) || transportadoraBlingVd <= 0) {
+                await falharVd(erroAgenciaVd);
+                continue;
+              }
             }
           }
 
@@ -976,7 +1019,7 @@ Deno.serve(async (req) => {
             await falharVd(`Natureza B2C: ${(e as Error).message}`);
             continue;
           }
-          let transportadoraBlingIdVd: number | null = null;
+          let transportadoraBlingIdVd: number | null = viaTransportadora ? transportadoraBlingVd : null;
           if (!retirada && !freteFetely && !viaTransportadora) {
             try {
               transportadoraBlingIdVd = await resolverAgenciaCorreios(item.centro_id_resolvido);
