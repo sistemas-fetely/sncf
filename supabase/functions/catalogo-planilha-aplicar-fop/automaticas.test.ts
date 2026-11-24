@@ -6,10 +6,10 @@ const item = (id: string, nome: string, campo = 'cor'): ItemFop => ({ id, campo,
 const ausente = (i: ItemFop): ResultadoFop => ({ id: i.id, status: 'erro', erro: `Valor de dimensão não cadastrado: ${i.campo} = ${i.valor_novo}` });
 
 describe('dimensões automáticas estritas', () => {
-  for (const [a, b] of [['Branco e Azul', 'Azul e Branco'], ['Éclat Oro', 'Oro Éclat'], ['Bianco & Oro', 'bianco e oro'], ['  Éclat   Oro ', 'oro e eclat'], ['Butterfly - B&W', 'Butterfly -B&W'], ['Butterfly-B&W', 'Butterfly -B&W'], ['Pink & Cristal', 'Pink Cristal'], ['Rosé Doux - Éclat', 'Rosé Doux Éclat']]) {
+  for (const [a, b] of [['Bianco & Oro', 'bianco e oro'], ['  Éclat   Oro ', 'eclat e oro'], ['Butterfly - B&W', 'Butterfly -B&W'], ['Butterfly-B&W', 'Butterfly -B&W'], ['Pink & Cristal', 'Pink Cristal'], ['Rosé Doux - Éclat', 'Rosé Doux Éclat']]) {
     test(`equivalência ${a} / ${b}`, () => expect(chaveDimensao(a)).toBe(chaveDimensao(b)));
   }
-  for (const [a, b] of [['Prata', 'Preto'], ['Dourado', 'Bordo'], ['Rose', 'Rosa']]) {
+  for (const [a, b] of [['Prata', 'Preto'], ['Dourado', 'Bordo'], ['Rose', 'Rosa'], ['Branco e Azul', 'Azul e Branco'], ['Éclat Oro', 'Oro Éclat'], ['Dourado e Branco', 'Branco e Dourado']]) {
     test(`nunca aproximar ${a} / ${b}`, () => expect(chaveDimensao(a)).not.toBe(chaveDimensao(b)));
   }
   test('grafia existente prevalece, cadastro idempotente e um valor para cor/cor_nome', async () => {
@@ -21,8 +21,8 @@ describe('dimensões automáticas estritas', () => {
       cadastrar: async (_campo, nome) => { cadastros.push(nome); return { nome }; },
       enviar: async itens => { enviados.push(structuredClone(itens)); return { resultados: itens.map(i => i.valor_novo === 'Azul & Branco' ? { id: i.id, status: 'aplicada' } : ausente(i)) }; },
     });
-    await aplicar([item('1', 'Branco e Azul')]);
-    await aplicar([item('2', 'azul e branco', 'cor_nome')]);
+    await aplicar([item('1', 'azul e branco')]);
+    await aplicar([item('2', 'Azul e Branco', 'cor_nome')]);
     expect(cadastros).toEqual(['Azul & Branco']);
     expect(enviados[3][0].valor_novo).toBe('Azul & Branco');
   });
@@ -34,7 +34,7 @@ describe('dimensões automáticas estritas', () => {
       cadastrar: async (_campo, nome) => { criado = true; cadastros.push(nome); return { nome }; },
       enviar: async itens => ({ resultados: itens.map(i => criado ? { id: i.id, status: 'conflito', valor_atual: 'Outro' } : ausente(i)) }),
     });
-    const itens = [item('1', 'Éclat Oro'), item('2', 'Oro Éclat')];
+    const itens = [item('1', 'Éclat Oro'), item('2', 'éclat oro')];
     const r = await aplicar(itens) as { resultados: ResultadoFop[] };
     expect(cadastros).toEqual(['  Éclat   Oro  ']);
     expect(itens.map(i => i.valor_novo)).toEqual(['  Éclat   Oro  ', '  Éclat   Oro  ']);
