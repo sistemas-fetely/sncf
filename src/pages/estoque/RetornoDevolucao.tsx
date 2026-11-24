@@ -1,11 +1,11 @@
-import { useEstadoTela } from "@/lib/navegacao";
+import { useEstadoTela, useFocoAoVoltar } from "@/lib/navegacao";
 /**
  * FUNIL DE DEVOLUÇÕES (30/09/2026): uma linha por devolução, lida da view
  * canônica `vw_devolucao_funil`. As 7 etapas (e1–e7) têm rótulo e descrição
  * na dimensão `devolucao_etapa`. A conferência física é uma etapa do funil
  * (ConferirRetornoDialog, inalterado).
  */
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,9 @@ import { mostrarRessarcimentoExtrato } from "@/lib/devolucao/ressarcimentoExtrat
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ItensGavetaDevolucao } from "@/components/devolucao/ItensGavetaDevolucao";
+import { rotuloFinanceiroDevolucao } from "@/lib/devolucao/gavetaDevolucao";
 import { DESFECHO_ROTULO } from "@/lib/devolucao/naoEntregue";
 import { NaoEntregueControle, TitulosPedidoDevolucao, useEstadoNaoEntregue } from "@/components/devolucao/NaoEntregueDevolucao";
 import { linhaTrsRetorno, type TrsRetorno } from "@/lib/devolucao/trsRetorno";
@@ -256,7 +259,7 @@ export default function RetornoDevolucao() {
   const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: busca (`q`, link antigo), canal, só abertas e página na URL.
-  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1, cor: "abertas", detalhe: "" }, { replaceKeys: ["q"] });
+  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1, cor: "abertas", detalhe: "", tr_foco: "" }, { replaceKeys: ["q"] });
   const busca = nav.q;
   const setBusca = (v: string) => setNav({ q: v });
   const canal = nav.canal as "todos" | "b2b" | "b2c" | "site_sp";
@@ -280,7 +283,9 @@ export default function RetornoDevolucao() {
   const naoEntregueQ = useEstadoNaoEntregue(expandido);
   const procTarefasQ = useProcessoTarefas();
   const procPorCaso = useMemo(() => agruparAbertasPorCaso(procTarefasQ.data), [procTarefasQ.data]);
-  const setExpandido = (id: string | null) => setNav({ detalhe: id ?? "" });
+  const linhaAbertaRef = useRef<string | null>(null);
+  if (expandido) linhaAbertaRef.current = expandido;
+  const setExpandido = (id: string | null) => setNav({ detalhe: id ?? "", tr_foco: id ? "" : expandido ?? "" });
   const [conferirId, setConferirId] = useState<string | null>(null);
   const [receber, setReceber] = useState<Funil | null>(null);
   const [reversa, setReversa] = useState<Funil | null>(null);
@@ -363,7 +368,8 @@ export default function RetornoDevolucao() {
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const paginaItens = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
-  const blingIds = [...new Set([...paginaItens.map((d) => d.id), ...(reversa ? [reversa.id] : [])])].sort();
+  useFocoAoVoltar({ pronto: !expandido && !funilQ.isLoading, idsVisiveis: paginaItens.map((d) => d.id), focoParam: "tr_foco" });
+  const blingIds = [...new Set([...paginaItens.map((d) => d.id), ...(expandido ? [expandido] : []), ...(reversa ? [reversa.id] : [])])].sort();
   const blingNumerosQ = useQuery({
     queryKey: [...QK_FUNIL, "bling-pedido-numero", blingIds],
     enabled: blingIds.length > 0,
@@ -400,6 +406,189 @@ export default function RetornoDevolucao() {
 
   const conferir = conferirId ? pendMap.get(conferirId) ?? null : null;
   const isFetching = funilQ.isFetching || pendQ.isFetching;
+
+  const detalhe = (funilQ.data ?? []).find((d) => d.id === expandido);
+  const renderDetalhe = (d: Funil) => {
+    const p = pendMap.get(d.id);
+    return <>
+      <SheetHeader className="shrink-0 border-b px-4 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pr-12">
+        <SheetTitle className="flex flex-wrap items-center gap-2">
+          {d.numero ?? "Devolução"}<SeloProcessoTarefa tarefas={procPorCaso.get(`devolucao:${d.id}`) ?? []} />
+        </SheetTitle>
+        <SheetDescription className="break-words">Pedido {d.pedido_ref ?? "—"} · {d.cliente ?? "—"}</SheetDescription>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+          <span className="break-words">{d.motivo_exibicao ?? "—"}</span>
+          <span title={fmtDataHora(d.criado_em)}>{fmtDataCurta(d.criado_em)} · {formatNum(d.dias_desde)} d</span>
+          <FunilSteps d={d} etapas={etapas} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {!d.e3_recebida && ehAberta(d) ? (
+            <Button size="sm" className="gap-2" onClick={() => setReceber(d)}><PackageCheck className="h-4 w-4" />Receber</Button>
+          ) : d.e3_recebida && !d.e4_conferida ? (
+            <Button size="sm" className="gap-2" disabled={!p} title={p ? undefined : "Sem itens pendentes de conferência para esta devolução"}
+              onClick={() => setConferirId(d.id)}><Undo2 className="h-4 w-4" />Conferir</Button>
+          ) : null}
+        </div>
+      </SheetHeader>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+        <div className="grid min-w-0 grid-cols-1 gap-5 text-sm md:grid-cols-2">
+                            <div className="min-w-0 space-y-2 border-t pt-4">
+                              <div className="text-xs font-medium text-muted-foreground">Logística reversa</div>
+                              <PedidoBlingNumero numero={blingNumerosQ.data?.get(d.id)} />
+                              {d.rastreio_efetivo ? (
+                                <>
+                                  <div className="font-mono">{d.rastreio_efetivo}</div>
+                                  <div className="text-muted-foreground">{d.rastreio_status ?? "Sem status de rastreio"}{d.reversa_origem ? ` · ${d.reversa_origem}` : ""}</div>
+                                </>
+                              ) : naoEntregueQ.data?.nao_entregue ? null : (
+                                <Button size="sm" variant="outline" onClick={() => setReversa(d)}>Registrar etiqueta reversa</Button>
+                              )}
+                              <div><NaoEntregueControle devolucaoId={d.id} estado={naoEntregueQ.data} /></div>
+                              {d.frete_reverso_por_conta && <div className="text-xs text-muted-foreground">Frete por conta: {d.frete_reverso_por_conta}</div>}
+                            </div>
+                            <div className="min-w-0 space-y-2 border-t pt-4">
+                              <div className="text-xs font-medium text-muted-foreground">Financeiro</div>
+                              {d.desfecho === "sem_ressarcimento" ? (
+                                <div>{rotuloFinanceiroDevolucao(d.desfecho, d.e6_ressarcida)}</div>
+                              ) : d.canal === "site_sp" ? (
+                                <div className="text-muted-foreground">Ressarcimento abaixo · {rotuloStatus(d)}</div>
+                              ) : d.canal === "b2c" ? (
+                                d.refund_ok
+                                  ? <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">Reembolsado {formatBRL(d.refund_valor ?? 0)} na loja</Badge>
+                                  : <Badge variant="outline" className="bg-muted text-muted-foreground font-normal">Sem reembolso na loja</Badge>
+                              ) : (
+                                <>
+                                  <div>Crédito: {d.valor_credito != null ? formatBRL(d.valor_credito) : "—"}</div>
+                                  <div className="text-muted-foreground">Desfecho: {rotuloFinanceiroDevolucao(d.desfecho, d.e6_ressarcida)} · {rotuloStatus(d)}</div>
+                                </>
+                              )}
+                              {d.canal !== "b2b" && (
+                                <BannerDivergenciaLoja devolucaoId={d.id} podeAjustar={editavel(d)} onAjustar={(itens) => setEditarDecl({ d, preenchido: itens })} />
+                              )}
+                              {d.desfecho && d.desfecho !== "nenhum" && d.desfecho !== "sem_ressarcimento" && <div className="text-xs text-muted-foreground">Desfecho: {DESFECHO_ROTULO[d.desfecho] ?? d.desfecho}</div>}
+                              <TitulosPedidoDevolucao pedidoId={naoEntregueQ.data?.pedido_id} />
+                              {d.desfecho === "nenhum" && !["encerrada", "cancelada"].includes(d.status_efetivo ?? d.status ?? "") && (
+                                <div className="space-y-1 pt-1">
+                                  <div className="text-xs font-medium">Decidir desfecho</div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {DESFECHO_BOTOES.filter((b) => !b.soB2b || d.canal === "b2b").map((b) => (
+                                      <Button key={b.codigo} size="sm" variant="outline" onClick={() => setDecidir({ d, desfecho: b.codigo })}>{b.rotulo}</Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {d.canal === "site_sp" && <CancelamentoReembolsoPainel devolucaoId={d.id} aguardandoConferencia={!d.sem_retorno_fisico && !d.e4_conferida} />}
+                              {mostrarRessarcimentoExtrato(d) && <RessarcimentoExtrato key={d.id} devolucaoId={d.id} movimentoId={d.ressarcimento_mov_id ?? null} valor={d.valor_credito} />}
+                            </div>
+                            <div className="min-w-0 space-y-2 border-t pt-4">
+                              <div className="text-xs font-medium text-muted-foreground">Recebimento</div>
+                              {d.sem_retorno_fisico ? (
+                                <div className="text-muted-foreground">Sem retorno físico</div>
+                              ) : d.e3_recebida ? (
+                                <>
+                                  <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
+                                  {d.exige_transferencia_cd && d.recebido_em != null && trsQ.data?.get(d.id) && (() => {
+                                    const trs = trsQ.data?.get(d.id);
+                                    if (!trs) return null;
+                                    const l = linhaTrsRetorno(trs);
+                                    const cor = l.tom === "ok" ? "text-success" : l.tom === "erro" ? "text-destructive" : "text-warning";
+                                    return (
+                                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                        <span className={cor}>{l.texto}</span>
+                                        {l.podeTentar && (
+                                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={acaoId === d.id}
+                                            onClick={() => void acaoLinha(d.id, "fn_devolucao_trs_retorno_tentar", { p_devolucao_id: d.id }, "Transferência de retorno criada.")}>Tentar de novo</Button>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                  {d.exige_transferencia_cd && d.recebido_em != null && (
+                                    d.transferencia_ok ? (
+                                      <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">{d.transferencia_numero ?? "TRS"}</Badge>
+                                    ) : d.transferencia_pedido_id ? (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{d.transferencia_numero ?? "TRS"} vinculada · aguardando NF</Badge>
+                                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={acaoId === d.id}
+                                          onClick={() => void acaoLinha(d.id, "vincular_transferencia_devolucao", { p_devolucao_id: d.id, p_transferencia_pedido_id: null }, "Transferência desvinculada.")}>Desvincular</Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">Transferência CD pendente</Badge>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            Retorno físico no SITE-SP de venda emitida por SC — emitir transferência SC→SP (CFOP 6152) para fechar o fiscal.
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setVincular(d)}>Vincular transferência</Button>
+                                      </div>
+                                    )
+                                  )}
+                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setEstornar(d)}>Estornar recebimento</Button>
+                                </>
+                              ) : <div className="text-muted-foreground">Ainda não recebida</div>}
+                            </div>
+                              {(d.fiscal_acao || d.nf_vinculo_sugerido_id || d.nf_vinculo_confirmado) && (
+                                <div className="min-w-0 space-y-2 border-t pt-4">
+                                  <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
+                                  <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} vinculoSugeridoId={d.nf_vinculo_sugerido_id} nfRetornoSugerida={d.nf_retorno_sugerida} grauSugerido={d.grau_sugerido ?? null} onMudou={invalidar} />
+                                </div>
+                              )}
+                          {(procPorCaso.get(`devolucao:${d.id}`) ?? []).length > 0 && (
+                            <div className="min-w-0 space-y-2 border-t pt-4 text-sm">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">Processo</span>
+                                <Link to="/tarefas/fila" className="text-xs text-primary underline-offset-2 hover:underline">ver na fila</Link>
+                              </div>
+                              {(procPorCaso.get(`devolucao:${d.id}`) ?? []).map((p) => (
+                                <div key={p.tarefa_id} className={`flex flex-wrap gap-x-3 text-xs ${p.atrasada ? "text-destructive" : ""}`}>
+                                  <span className="font-medium">{p.passo_nome}</span>
+                                  <span>{p.area_nome ?? "—"}</span>
+                                  <span>prazo {fmtPrazoCurto(p.prazo_data)}{p.atrasada ? " · atrasada" : ""}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="min-w-0 space-y-2 border-t pt-4">
+                            <h3 className="text-xs font-medium text-muted-foreground">Andamento</h3>
+                            {pedidoAndamentoQ.isLoading ? <p className="text-xs text-muted-foreground">Carregando andamento…</p> : pedidoAndamentoQ.isError ?
+                              <p className="text-xs text-destructive">{formatError(pedidoAndamentoQ.error)}</p> :
+                              <AndamentoCaso caso={{ casoId: d.id, devolucaoId: d.id, pedidoId: pedidoAndamentoQ.data }} />}
+                          </div>
+
+        </div>
+        <div className="mt-5 space-y-5">
+          <ItensGavetaDevolucao key={d.id} itens={p?.itens ?? []} skus={d.skus} declarada={d.qtd_declarada} retornada={d.qtd_retornada}
+            acao={editavel(d) ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditarDecl({ d, preenchido: null })}>Editar declaração</Button> : undefined} />
+                          {ehAberta(d) && (
+                            <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-sm">
+                              <span className="text-xs font-medium text-muted-foreground">Para encerrar</span>
+                              <Badge variant="outline" className="font-normal">{rotuloStatus(d)}</Badge>
+                              {(d.pendencias_encerramento ?? []).map((pz) => (
+                                <Badge key={pz} variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{pz}</Badge>
+                              ))}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="ml-auto inline-flex">
+                                    <Button size="sm" variant="outline" className="h-7"
+                                      disabled={acaoId === d.id || (d.pendencias_encerramento ?? []).length > 0}
+                                      onClick={() => void acaoLinha(d.id, "encerrar_devolucao", { p_devolucao_id: d.id }, "Devolução encerrada.")}>
+                                      {acaoId === d.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Encerrar
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                {(d.pendencias_encerramento ?? []).length > 0 && (
+                                  <TooltipContent>Falta: {(d.pendencias_encerramento ?? []).join(" · ")}</TooltipContent>
+                                )}
+                              </Tooltip>
+                            </div>
+                          )}
+
+        </div>
+      </div>
+    </>;
+  };
 
   return (
     <PageShell variant="dados" className="animate-casa-fade-in">
@@ -509,7 +698,7 @@ export default function RetornoDevolucao() {
                               <span className="inline-block h-3 w-3 rounded-full border border-border bg-muted" aria-hidden />
                               <span>vazia = pendente.</span>
                             </div>
-                            <div>Retorno parcial é normal. A devolução encerra sozinha quando todas as obrigatórias fecham; o que falta aparece em 'Para encerrar' na linha expandida.</div>
+                            <div>Retorno parcial é normal. A devolução encerra sozinha quando todas as obrigatórias fecham; o que falta aparece em 'Para encerrar' no detalhe.</div>
                           </div>
                         </div>
                         <div>
@@ -534,8 +723,11 @@ export default function RetornoDevolucao() {
                 const dias = d.dias_desde ?? 0;
                 const p = pendMap.get(d.id);
                 return (
-                  <Fragment key={d.id}>
-                    <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : d.id)}>
+                  
+                    <TableRow key={d.id} data-foco-id={d.id} tabIndex={0} aria-label={`Abrir devolução ${d.numero ?? ""}`} aria-expanded={aberto}
+                      className={cn("cursor-pointer", aberto && "bg-primary/10 hover:bg-primary/10")}
+                      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setExpandido(d.id); } }}
+                      onClick={() => setExpandido(d.id)}>
                       <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
                       <TableCell>
                         <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
@@ -579,183 +771,7 @@ export default function RetornoDevolucao() {
                         )}
                       </TableCell>
                     </TableRow>
-                    {aberto && (
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={9}>
-                          <div className="grid gap-4 p-2 md:grid-cols-2 xl:grid-cols-4 text-sm">
-                            <div className="space-y-1">
-                              <div className="text-xs font-medium text-muted-foreground">Logística reversa</div>
-                              <PedidoBlingNumero numero={blingNumerosQ.data?.get(d.id)} />
-                              {d.rastreio_efetivo ? (
-                                <>
-                                  <div className="font-mono">{d.rastreio_efetivo}</div>
-                                  <div className="text-muted-foreground">{d.rastreio_status ?? "Sem status de rastreio"}{d.reversa_origem ? ` · ${d.reversa_origem}` : ""}</div>
-                                </>
-                              ) : naoEntregueQ.data?.nao_entregue ? null : (
-                                <Button size="sm" variant="outline" onClick={() => setReversa(d)}>Registrar etiqueta reversa</Button>
-                              )}
-                              <div><NaoEntregueControle devolucaoId={d.id} estado={naoEntregueQ.data} /></div>
-                              {d.frete_reverso_por_conta && <div className="text-xs text-muted-foreground">Frete por conta: {d.frete_reverso_por_conta}</div>}
-                            </div>
-                            <div className="space-y-1">
-                              <div className="text-xs font-medium text-muted-foreground">Financeiro</div>
-                              {d.canal === "site_sp" ? (
-                                <div className="text-muted-foreground">Ressarcimento abaixo · {rotuloStatus(d)}</div>
-                              ) : d.canal === "b2c" ? (
-                                d.refund_ok
-                                  ? <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">Reembolsado {formatBRL(d.refund_valor ?? 0)} na loja</Badge>
-                                  : <Badge variant="outline" className="bg-muted text-muted-foreground font-normal">Sem reembolso na loja</Badge>
-                              ) : (
-                                <>
-                                  <div>Crédito: {d.valor_credito != null ? formatBRL(d.valor_credito) : "—"}</div>
-                                  <div className="text-muted-foreground">Desfecho: {d.e6_ressarcida ? "ressarcida" : "pendente"} · {rotuloStatus(d)}</div>
-                                </>
-                              )}
-                              {d.canal !== "b2b" && (
-                                <BannerDivergenciaLoja devolucaoId={d.id} podeAjustar={editavel(d)} onAjustar={(itens) => setEditarDecl({ d, preenchido: itens })} />
-                              )}
-                              {d.desfecho && d.desfecho !== "nenhum" && <div className="text-xs text-muted-foreground">Desfecho: {DESFECHO_ROTULO[d.desfecho] ?? d.desfecho}</div>}
-                              <TitulosPedidoDevolucao pedidoId={naoEntregueQ.data?.pedido_id} />
-                              {d.desfecho === "nenhum" && !["encerrada", "cancelada"].includes(d.status_efetivo ?? d.status ?? "") && (
-                                <div className="space-y-1 pt-1">
-                                  <div className="text-xs font-medium">Decidir desfecho</div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {DESFECHO_BOTOES.filter((b) => !b.soB2b || d.canal === "b2b").map((b) => (
-                                      <Button key={b.codigo} size="sm" variant="outline" onClick={() => setDecidir({ d, desfecho: b.codigo })}>{b.rotulo}</Button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              <div className="text-xs font-medium text-muted-foreground">Recebimento</div>
-                              {d.sem_retorno_fisico ? (
-                                <div className="text-muted-foreground">Sem retorno físico</div>
-                              ) : d.e3_recebida ? (
-                                <>
-                                  <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
-                                  {d.exige_transferencia_cd && d.recebido_em != null && trsQ.data?.get(d.id) && (() => {
-                                    const l = linhaTrsRetorno(trsQ.data.get(d.id)!);
-                                    const cor = l.tom === "ok" ? "text-success" : l.tom === "erro" ? "text-destructive" : "text-warning";
-                                    return (
-                                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                                        <span className={cor}>{l.texto}</span>
-                                        {l.podeTentar && (
-                                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={acaoId === d.id}
-                                            onClick={() => void acaoLinha(d.id, "fn_devolucao_trs_retorno_tentar", { p_devolucao_id: d.id }, "Transferência de retorno criada.")}>Tentar de novo</Button>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
-                                  {d.exige_transferencia_cd && d.recebido_em != null && (
-                                    d.transferencia_ok ? (
-                                      <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">{d.transferencia_numero ?? "TRS"}</Badge>
-                                    ) : d.transferencia_pedido_id ? (
-                                      <div className="flex flex-wrap items-center gap-1.5">
-                                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{d.transferencia_numero ?? "TRS"} vinculada · aguardando NF</Badge>
-                                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={acaoId === d.id}
-                                          onClick={() => void acaoLinha(d.id, "vincular_transferencia_devolucao", { p_devolucao_id: d.id, p_transferencia_pedido_id: null }, "Transferência desvinculada.")}>Desvincular</Button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-wrap items-center gap-1.5">
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">Transferência CD pendente</Badge>
-                                          </TooltipTrigger>
-                                          <TooltipContent className="max-w-xs">
-                                            Retorno físico no SITE-SP de venda emitida por SC — emitir transferência SC→SP (CFOP 6152) para fechar o fiscal.
-                                          </TooltipContent>
-                                        </Tooltip>
-                                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setVincular(d)}>Vincular transferência</Button>
-                                      </div>
-                                    )
-                                  )}
-                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setEstornar(d)}>Estornar recebimento</Button>
-                                </>
-                              ) : <div className="text-muted-foreground">Ainda não recebida</div>}
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="text-xs font-medium text-muted-foreground">Itens</div>
-                                {editavel(d) && (
-                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditarDecl({ d, preenchido: null })}>Editar declaração</Button>
-                                )}
-                              </div>
-                              <div>Declarado {formatNum(d.qtd_declarada)} × retornado {formatNum(d.qtd_retornada)} · {formatNum(d.skus)} SKU(s)</div>
-                              {p && (
-                                <ul className="text-xs text-muted-foreground space-y-0.5">
-                                  {p.itens.map((i) => (
-                                    <li key={i.sku}><CodProduto chave={i.sku} variant="compacto" /> {i.nome_comercial ?? ""} — saiu {formatNum(i.qtd_saiu)}, voltou {formatNum(i.qtd_ja_retornada)}, pendente {formatNum(i.qtd_pendente)}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          </div>
-                          {(d.fiscal_acao || d.nf_vinculo_sugerido_id || d.nf_vinculo_confirmado || d.canal === "site_sp") && (
-                            <div className="mx-2 mb-2 grid gap-3 md:grid-cols-2">
-                              {(d.fiscal_acao || d.nf_vinculo_sugerido_id || d.nf_vinculo_confirmado) && (
-                                <div className="space-y-2 rounded-md border bg-card p-3">
-                                  <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
-                                  <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} vinculoSugeridoId={d.nf_vinculo_sugerido_id} nfRetornoSugerida={d.nf_retorno_sugerida} grauSugerido={d.grau_sugerido ?? null} onMudou={invalidar} />
-                                </div>
-                              )}
-                              {d.canal === "site_sp" && (
-                                <div className="space-y-2 rounded-md border bg-card p-3">
-                                  <div className="text-xs font-medium text-muted-foreground">Ressarcimento</div>
-                                  <CancelamentoReembolsoPainel devolucaoId={d.id} aguardandoConferencia={!d.sem_retorno_fisico && !d.e4_conferida} />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {(procPorCaso.get(`devolucao:${d.id}`) ?? []).length > 0 && (
-                            <div className="mx-2 mb-2 space-y-1 rounded-md border bg-card px-3 py-2 text-sm">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-medium text-muted-foreground">Processo</span>
-                                <Link to="/tarefas/fila" className="text-xs text-primary underline-offset-2 hover:underline">ver na fila</Link>
-                              </div>
-                              {(procPorCaso.get(`devolucao:${d.id}`) ?? []).map((p) => (
-                                <div key={p.tarefa_id} className={`flex flex-wrap gap-x-3 text-xs ${p.atrasada ? "text-destructive" : ""}`}>
-                                  <span className="font-medium">{p.passo_nome}</span>
-                                  <span>{p.area_nome ?? "—"}</span>
-                                  <span>prazo {fmtPrazoCurto(p.prazo_data)}{p.atrasada ? " · atrasada" : ""}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div className="mx-2 mb-2 space-y-2 px-3 py-2">
-                            <h3 className="text-xs font-medium text-muted-foreground">Andamento</h3>
-                            {pedidoAndamentoQ.isLoading ? <p className="text-xs text-muted-foreground">Carregando andamento…</p> : pedidoAndamentoQ.isError ?
-                              <p className="text-xs text-destructive">{formatError(pedidoAndamentoQ.error)}</p> :
-                              <AndamentoCaso caso={{ casoId: d.id, devolucaoId: d.id, pedidoId: pedidoAndamentoQ.data }} />}
-                          </div>
-                          {mostrarRessarcimentoExtrato(d) && <RessarcimentoExtrato key={d.id} devolucaoId={d.id} movimentoId={d.ressarcimento_mov_id ?? null} valor={d.valor_credito} />}
-                          {ehAberta(d) && (
-                            <div className="mx-2 mb-2 flex flex-wrap items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
-                              <span className="text-xs font-medium text-muted-foreground">Para encerrar</span>
-                              <Badge variant="outline" className="font-normal">{rotuloStatus(d)}</Badge>
-                              {(d.pendencias_encerramento ?? []).map((pz) => (
-                                <Badge key={pz} variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{pz}</Badge>
-                              ))}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="ml-auto inline-flex">
-                                    <Button size="sm" variant="outline" className="h-7"
-                                      disabled={acaoId === d.id || (d.pendencias_encerramento ?? []).length > 0}
-                                      onClick={() => void acaoLinha(d.id, "encerrar_devolucao", { p_devolucao_id: d.id }, "Devolução encerrada.")}>
-                                      {acaoId === d.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Encerrar
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                {(d.pendencias_encerramento ?? []).length > 0 && (
-                                  <TooltipContent>Falta: {(d.pendencias_encerramento ?? []).join(" · ")}</TooltipContent>
-                                )}
-                              </Tooltip>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
+                  
                 );
               })}
             </TableBody>
@@ -789,6 +805,21 @@ export default function RetornoDevolucao() {
           </TabsContent>
         </Tabs>
       </div>
+      <Sheet open={!!expandido} onOpenChange={(open) => { if (!open) setExpandido(null); }}>
+        <SheetContent side="right" className="superficie-tabelas flex w-full flex-col gap-0 overflow-hidden p-0 sm:w-[66vw] sm:min-w-[min(42rem,100vw)] sm:max-w-[66vw]"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            const id = linhaAbertaRef.current;
+            if (!id) return;
+            const linha = document.querySelector<HTMLElement>(`[data-foco-id="${CSS.escape(id)}"]`);
+            linha?.focus({ preventScroll: true });
+          }}>
+          {detalhe ? renderDetalhe(detalhe) : <>
+            <SheetHeader className="p-6"><SheetTitle>Devolução</SheetTitle><SheetDescription>Detalhe da devolução</SheetDescription></SheetHeader>
+            <p className="px-6 text-sm text-muted-foreground">{funilQ.isLoading ? "Carregando…" : funilQ.isError ? formatError(funilQ.error) : "Devolução não encontrada."}</p>
+          </>}
+        </SheetContent>
+      </Sheet>
       </TooltipProvider>
 
       <ConferirRetornoDialog open={!!conferir} onOpenChange={(v) => { if (!v) { setConferirId(null); void invalidar(); } }} devolucao={conferir} />

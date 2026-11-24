@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Devoluções: detalhe URL em gaveta lateral com blocos/ações preservados, tabela de itens filtrável e sem_ressarcimento corrigido; 30 testes e gate/build OK. DEV-2366 real (42 SKUs, 169 unidades) conferida por linha e link direto, fechamento com foco, busca/pendências/cabeçalho fixo, títulos e NF cliente preservados em computador/celular sem gravação; sem banco/RPCs/publicação.
 - [x] RENOMEAR DIMENSÃO auditoria (cadastro automático e conclusão): edge grava user_id NULL para a rotina; migração 0104 em fn_catalogo_resolver (resolvido_por sem FK, mantido). Rotina conclui célula no SQL isolado (5 verificações) + 31 renomear, 42 Bun, 24 Deno e Deno check OK; sem deploy.
 - [x] RENOMEAR DIMENSÃO desfazer: migração 0103 ignora o próprio código na checagem de destino por rótulo/variantes; outra dimensão continua bloqueando. 31 verificações SQL e 40 testes Bun passaram; sem deploy.
 - [x] RENOMEAR DIMENSÃO auditoria: migração 0102 aplicada nas duas funções; usuário real ou NULL com nome preservado. 28 verificações SQL com FK e 40 testes Bun passaram; sem deploy.
