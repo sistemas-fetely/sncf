@@ -31,6 +31,7 @@ ALTER TABLE public.dimensao_auto_provisionada ENABLE ROW LEVEL SECURITY;
 \ir ../../../drizzle/migrations/0100_catalogo_dim_chave_ordenada.sql
 \ir ../../../drizzle/migrations/0101_catalogo_dim_renomear_inativar_servico.sql
 \ir ../../../drizzle/migrations/0102_catalogo_dim_auditoria_rotina_diaria.sql
+\ir ../../../drizzle/migrations/0103_catalogo_dim_destino_ignorar_propria_linha.sql
 
 CREATE FUNCTION public.verificar(condicao boolean,cenario text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN IF condicao IS DISTINCT FROM true THEN RAISE EXCEPTION 'FALHOU: %',cenario; END IF; RAISE NOTICE 'PASSOU: %',cenario; END $$;
@@ -57,6 +58,10 @@ BEGIN
   r := public.fn_catalogo_dim_renomear_sncf('produto_grupo_dim','Travessa','bandeja',ARRAY['1','2'],quem);
   PERFORM public.verificar(r->>'motivo'='destino_existe','destino equivalente mesmo inativo impede fusão');
   DELETE FROM produto_grupo_dim WHERE codigo='destino';
+  INSERT INTO produto_grupo_dim VALUES ('destino_variante','Outro nome',ARRAY['Bandeja'],true,0,null);
+  r := public.fn_catalogo_dim_renomear_sncf('produto_grupo_dim','Travessa','bandeja',ARRAY['1','2'],quem);
+  PERFORM public.verificar(r->>'motivo'='destino_existe','variante de outra linha impede fusão');
+  DELETE FROM produto_grupo_dim WHERE codigo='destino_variante';
   r := public.fn_catalogo_dim_renomear_sncf('produto_grupo_dim','Travessa','Bandeja',ARRAY['2','1','1'],quem);
   PERFORM public.verificar((r->>'renomeado')::boolean AND (r->>'produtos')::int=2,'conjunto de códigos ignora ordem/duplicatas');
   PERFORM public.verificar((SELECT count(*)=2 FROM sncf_produtos WHERE grupo='Bandeja'),'FK atualiza produtos em cascata');
@@ -86,6 +91,16 @@ BEGIN
     recusada := true;
   END;
   PERFORM public.verificar(recusada,'tabela fora da allowlist recusada');
+END $$;
+DO $$
+DECLARE quem jsonb := '{"id":"00000000-0000-4000-8000-000000000001","nome":"Teste isolado"}'; r jsonb;
+BEGIN
+  INSERT INTO produto_grupo_dim VALUES ('g_seq','Bandeja',ARRAY['louça'],true,0,null);
+  INSERT INTO sncf_produtos VALUES ('seq1','Bandeja',null),('seq2','Bandeja',null);
+  r := public.fn_catalogo_dim_renomear_sncf('produto_grupo_dim','Bandeja','Bandeja Teste',ARRAY['seq1','seq2'],quem);
+  PERFORM public.verificar((r->>'renomeado')::boolean AND (SELECT variantes=ARRAY['louça','bandeja'] FROM produto_grupo_dim WHERE codigo='g_seq'),'renomeação guarda variante antiga na própria linha');
+  r := public.fn_catalogo_dim_renomear_sncf('produto_grupo_dim','Bandeja','Bandeja Teste',ARRAY['seq1','seq2'],quem,true);
+  PERFORM public.verificar((r->>'renomeado')::boolean AND (SELECT rotulo='Bandeja' AND variantes=ARRAY['louça'] FROM produto_grupo_dim WHERE codigo='g_seq') AND (SELECT array_agg(cod_cadastro ORDER BY cod_cadastro)=ARRAY['seq1','seq2'] FROM sncf_produtos WHERE grupo='Bandeja'),'renomear e desfazer restauram rótulo, variantes e produtos');
 END $$;
 DO $$
 DECLARE quem jsonb := '{"id":"00000000-0000-4000-8000-00000000ca7a","nome":"Rotina diária do catálogo"}'; r jsonb;
