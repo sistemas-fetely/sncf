@@ -5,7 +5,7 @@ import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 import { origensFiscaisCadastro } from "../_shared/bling/origem-fiscal.ts";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
-import { CNPJ_MATRIZ, gerarTrs, recusaTrs, transporteTi, type DadosTrs, type Registro } from "./gerar.ts";
+import { CNPJ_MATRIZ, gerarTrs, recusaTrs, transporteTi, transporteFisica, observacaoFisica, type DadosTrs, type Registro } from "./gerar.ts";
 import { transmitirTrs } from "./transmitir.ts";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -27,7 +27,7 @@ Deno.serve(async req => {
     const parsed = z.object({ pedido_id: z.string().uuid() }).strict().safeParse(await req.json().catch(() => null));
     if (!parsed.success) return json({ ok: false, erro: "pedido_id deve ser um UUID válido" }, 400);
     const pedidoId = parsed.data.pedido_id;
-    const { data: pedido, error: pedErro } = await db.from("pedidos").select("id,id_externo,parceiro_id,natureza_operacao_id,bling_id_destino,transferencia_finalidade_id,origem_centro_id").eq("id", pedidoId).maybeSingle();
+    const { data: pedido, error: pedErro } = await db.from("pedidos").select("id,id_externo,parceiro_id,natureza_operacao_id,bling_id_destino,transferencia_finalidade_id,origem_centro_id,estagio,frete_tipo,destino_centro_id").eq("id", pedidoId).maybeSingle();
     if (pedErro) throw pedErro;
     if (!pedido) return json({ ok: false, erro: "Pedido não encontrado" }, 404);
     const { data: ti, error: tiErro } = await db.rpc("fn_ti_exige_nf", { p_pedido_id: pedidoId });
@@ -57,6 +57,39 @@ Deno.serve(async req => {
     if (ne || de || ae) throw ne ?? de ?? ae;
     const recusa = recusaTrs(nat, dim?.gera_nf_direta === true, pedido.bling_id_destino, ti);
     if (recusa) return json({ ok: false, erro: recusa }, 409);
+    let observacao: string | undefined;
+    if (!ti && nat?.exige_expedicao === true) {
+      // TRS-FISICA-NF-DIRETA (25/11/2026): conferência da XPM é a porta; tudo antes do claim e do Bling.
+      if (pedido.estagio !== "pre_faturamento") return json({ ok: false, erro: "TRS física só gera NF em pré-faturamento (a XPM ainda não conferiu a expedição)." }, 409);
+      const { data: conf, error: ec } = await db.rpc("fn_pedido_pre_faturamento_checklist", { p_pedido_id: pedidoId });
+      if (ec) throw ec;
+      // deno-lint-ignore no-explicit-any
+      const c: any = conf ?? {};
+      if (c.pode_enviar !== true) {
+        // deno-lint-ignore no-explicit-any
+        const duros = (Array.isArray(c.itens) ? c.itens : []).filter((i: any) => i?.bloqueia === true && i?.ok === false).map((i: any) => String(i?.rotulo ?? i?.codigo ?? "item"));
+        return json({ ok: false, erro: `Conferência de pré-faturamento bloqueia a NF: ${duros.join(" · ") || "bloqueio não identificado"}` }, 409);
+      }
+      const [{ data: pesoReal, error: pre }, { data: transp, error: tre }, { data: frete, error: fre }, { data: centros, error: cde }] = await Promise.all([
+        db.rpc("fn_pedido_peso_real", { p_pedido_id: pedidoId }),
+        db.rpc("fn_pedido_transportadora_efetiva", { p_pedido_id: pedidoId }),
+        pedido.frete_tipo ? db.from("frete_tipos").select("mod_frete_nf").eq("codigo", pedido.frete_tipo).maybeSingle() : Promise.resolve({ data: null, error: null }),
+        db.from("centro_distribuicao").select("id,codigo").in("id", [pedido.origem_centro_id, pedido.destino_centro_id].filter(Boolean)),
+      ]);
+      if (pre || tre || fre || cde) throw pre ?? tre ?? fre ?? cde;
+      const pr = Array.isArray(pesoReal) ? pesoReal[0] : pesoReal;
+      const tr = Array.isArray(transp) ? transp[0] : transp;
+      if (pr?.fonte !== "xpm") return json({ ok: false, erro: "A XPM ainda não informou volumes e peso desta TRS." }, 409);
+      try { transporte = transporteFisica({ modFrete: frete?.mod_frete_nf, transportadoraBlingId: tr?.bling_id, volumes: pr?.volumes ?? pr?.n_volumes, peso: pr?.peso_kg ?? pr?.peso }); }
+      catch (e) { return json({ ok: false, erro: msg(e) }, 409); }
+      const codigoDe = (id: string | null) => centros?.find(c => c.id === id)?.codigo;
+      if (pedido.origem_centro_id) {
+        const origem = codigoDe(pedido.origem_centro_id);
+        if (!origem) return json({ ok: false, erro: "CD de origem da TRS sem configuração. Nada foi criado." }, 409);
+        centroCodigo = origem;
+      }
+      observacao = observacaoFisica(pedido.id_externo, codigoDe(pedido.destino_centro_id) ?? "destino");
+    }
     if (ti) {
       const { data: embalagem, error: ee } = await db.from("pedido_eventos").select("metadata").eq("pedido_id", pedidoId).eq("tipo_evento", "mesa_embalado").order("criado_em", { ascending: false }).order("id", { ascending: false }).limit(1).maybeSingle();
       if (ee) throw ee;
@@ -136,7 +169,7 @@ Deno.serve(async req => {
         resolvidos.push({ sku: produto.sku ?? item.sku, descricao: item.descricao ?? item.sku, quantidade: Number(item.quantidade), valor: Number(item.valor_unitario), produtoId: Number(produto.bling_id), origem });
       }
       const bling = makeBlingClient(db, cfg, await ensureFreshToken(db, cfg));
-      const rascunho = await gerarTrs({ codigo: pedido.id_externo, naturezaId: Number(nat.bling_natureza_id), lojaId: Number(sc.loja_bling_id), contato: { id: Number(parceiro.bling_id), numeroDocumento: CNPJ_MATRIZ }, itens: resolvidos, ...(ti ? { transporte, observacao: `Remessa para venda fora do estabelecimento ${pedido.id_externo} via SNCF — transmitir no Bling após conferência.` } : {}) }, anterior?.status === "erro" || anterior?.status === "gerando", { bling, registrar, evento, criadoEm: anterior?.criado_em ?? lease });
+      const rascunho = await gerarTrs({ codigo: pedido.id_externo, naturezaId: Number(nat.bling_natureza_id), lojaId: Number(sc.loja_bling_id), contato: { id: Number(parceiro.bling_id), numeroDocumento: CNPJ_MATRIZ }, itens: resolvidos, ...(observacao ? { transporte, observacao } : {}), ...(ti ? { transporte, observacao: `Remessa para venda fora do estabelecimento ${pedido.id_externo} via SNCF — transmitir no Bling após conferência.` } : {}) }, anterior?.status === "erro" || anterior?.status === "gerando", { bling, registrar, evento, criadoEm: anterior?.criado_em ?? lease });
       // Falhas de transmissão nunca passam pelo catch de geração (que limparia a reserva).
       try { return json(dim?.transmite_automatico === true ? await transmitir({ ...rascunho, erro: null }) : rascunho); }
       catch (e) { return json({ ok: false, erro: msg(e) }, 502); }

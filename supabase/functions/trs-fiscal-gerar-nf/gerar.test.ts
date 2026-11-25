@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { CNPJ_MATRIZ, desdeRecuperacao, gerarTrs, payloadTrs, recuperarNfDireta, recusaTrs, transporteTi, valorTrs, type DadosTrs, type Registro } from "./gerar.ts";
+import { CNPJ_MATRIZ, desdeRecuperacao, gerarTrs, payloadTrs, recuperarNfDireta, recusaTrs, transporteTi, transporteFisica, observacaoFisica, valorTrs, type DadosTrs, type Registro } from "./gerar.ts";
 import { assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 const d: DadosTrs = { codigo: "TRS-0020", naturezaId: 15110073811, lojaId: 206045757, contato: { id: 18041940230, numeroDocumento: CNPJ_MATRIZ }, itens: [{ sku: "CL-EH-SAC-15-HAL", descricao: "Item", produtoId: 123, quantidade: 3, valor: 12.5, origem: 2 }] };
 for (let origem = 0; origem <= 8; origem++) {
@@ -35,7 +35,17 @@ Deno.test("TI sem id da natureza no Bling informa Eva", () => assertEquals(recus
 Deno.test("TI habilitada aceita natureza da finalidade com expedição", () => assertEquals(recusaTrs({ ...nat, familia_processo: "remessa", exige_expedicao: true }, true, null, true), null));
 Deno.test("payload referencia canônica da captura", () => assertEquals(payloadTrs(d).numeroPedidoLoja, "TRS-0020"));
 Deno.test("payload itens a custo sem duplicatas", () => { assertEquals(payloadTrs(d).itens[0].valor, 12.5); assertEquals(valorTrs(d), 37.5); assertEquals(payloadTrs(d).parcelas, []); });
-Deno.test("recusa transferência física", () => assertStringIncludes(recusaTrs({ ...nat, exige_expedicao: true }, true, null) ?? "", "física"));
+Deno.test("recusa transferência física sem habilitação", () => assertEquals(recusaTrs({ ...nat, exige_expedicao: true }, false, null), "Transferência física: mantenha o envio por pedido de venda ao Bling."));
+Deno.test("aceita transferência física habilitada", () => assertEquals(recusaTrs({ ...nat, exige_expedicao: true }, true, null), null));
+Deno.test("física sem modalidade de frete", () => { assertThrows(() => transporteFisica({ modFrete: null, transportadoraBlingId: 5, volumes: 2, peso: 3 }), Error, "Tipo de frete da TRS sem modalidade de NF (frete_tipos)."); });
+Deno.test("física sem transportadora no Bling", () => { assertThrows(() => transporteFisica({ modFrete: 0, transportadoraBlingId: null, volumes: 2, peso: 3 }), Error, "Transportadora da TRS sem contato no Bling — sincronize antes."); });
+for (const [volumes, peso] of [[0, 3], [1.5, 3], [2, 0], [2, null]]) Deno.test(`física sem volumes/peso ${volumes}/${peso}`, () => { assertThrows(() => transporteFisica({ modFrete: 0, transportadoraBlingId: 5, volumes, peso }), Error, "A XPM ainda não informou volumes e peso desta TRS."); });
+Deno.test("física com transporte completo vai em transporte.contato", () => {
+  const t = transporteFisica({ modFrete: "0", transportadoraBlingId: "777", volumes: 4, peso: 12.34567 });
+  assertEquals(t, { fretePorConta: 0, contato: { id: 777 }, quantidadeVolumes: 4, pesoBruto: 12.346 });
+  const p = payloadTrs({ ...d, transporte: t, observacao: observacaoFisica("TRS-0020", "SITE-SP") });
+  assertEquals((p.transporte as { contato?: unknown }).contato, { id: 777 }); assertStringIncludes(p.observacoes, "TRS-0020"); assertEquals(p.observacoes, "Transferência TRS-0020 XPM-SC → SITE-SP via SNCF.");
+});
 Deno.test("recusa sem natureza", () => assertStringIncludes(recusaTrs(null, true, null) ?? "", "natureza"));
 Deno.test("recusa sem natureza Bling", () => assertStringIncludes(recusaTrs({ ...nat, bling_natureza_id: null }, true, null) ?? "", "fiscal"));
 Deno.test("recusa não habilitada", () => assertStringIncludes(recusaTrs(nat, false, null) ?? "", "habilitada"));

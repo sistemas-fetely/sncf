@@ -86,7 +86,6 @@ export function PreFaturamentoCard({
   const { permitido: podeGerar } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
   const fiscal = useQuery({
     queryKey: ["trs-nf-direta", pedidoId],
-    enabled: !exigeExpedicao,
     refetchInterval: 15000,
     queryFn: async () => {
       const { data: p, error: pe } = await supabase.from("pedidos").select("natureza_operacao_id").eq("id", pedidoId).single();
@@ -156,7 +155,8 @@ export function PreFaturamentoCard({
     return <div className="w-full rounded-md border p-3 space-y-3">
       <div className="text-sm font-medium">NF de transferência</div>
       {blingIdDestino != null ? <p className="text-sm text-warning">Já enviada por pedido de venda ao Bling (id {blingIdDestino}) — emitir a NF lá.</p>
-        : rascunho ? <p className="text-sm text-success">Rascunho nº {registro.numero ?? "não informado"} — transmitir no Bling</p>
+        : registro?.status === "transmitida" ? <p className="text-sm text-success">NF nº {registro.numero ?? "não informado"} autorizada.</p>
+        : rascunho ? <p className="text-sm text-success">Rascunho nº {registro.numero ?? "não informado"} — transmitir no Bling{exigeExpedicao ? ". A XPM recebe a NF quando ela for autorizada." : ""}</p>
         : ocupado ? <p className="text-sm text-muted-foreground">Gerando rascunho da NF...</p>
         : registro?.status === "erro" ? <p className="text-sm text-destructive break-words">{registro.erro ?? "Falha ao gerar NF de transferência"}</p> : null}
       {registro?.bling_nfe_id && !registro.natureza_conferida && <p className="text-sm text-warning">Natureza não conferida — confira no Bling antes de transmitir.</p>}

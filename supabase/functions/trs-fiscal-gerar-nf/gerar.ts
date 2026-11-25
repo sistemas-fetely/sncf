@@ -5,7 +5,8 @@ export type NaturezaFiscal = { familia_processo: string; exige_expedicao: boolea
 export function recusaTrs(natureza: NaturezaFiscal | null, direta: boolean, blingPedidoId: unknown, ti = false): string | null {
   if (blingPedidoId != null) return "Transferência já enviada por pedido de venda ao Bling — não é permitido criar NF direta.";
   if (!natureza || (!ti && natureza.familia_processo !== "transferencia")) return "Pedido não é uma transferência com natureza de operação definida.";
-  if (!ti && natureza.exige_expedicao !== false) return "Transferência física: mantenha o envio por pedido de venda ao Bling.";
+  // TRS-FISICA-NF-DIRETA (25/11/2026): física só sai por NF direta quando a natureza está habilitada.
+  if (!ti && natureza.exige_expedicao !== false && !direta) return "Transferência física: mantenha o envio por pedido de venda ao Bling.";
   if (ti && natureza.bling_natureza_id == null) return "Natureza da NF de remessa sem id no Bling — a Eva precisa cadastrar a natureza no Bling com o CFOP indicado pelo contador. Nada foi criado.";
   if (!direta) return "Natureza não habilitada para gerar NF direta.";
   if (!Number.isSafeInteger(Number(natureza.bling_natureza_id)) || Number(natureza.bling_natureza_id) <= 0) return "Natureza sem natureza fiscal do Bling configurada.";
@@ -15,7 +16,7 @@ export type DadosTrs = {
   codigo: string; naturezaId: number; lojaId: number;
   contato: { id: number; numeroDocumento: string };
   itens: Array<{ sku: string; descricao: string; quantidade: number; valor: number; produtoId: number; origem: number }>;
-  transporte?: { fretePorConta: number; quantidadeVolumes: number; pesoBruto: number };
+  transporte?: { fretePorConta: number; contato?: { id: number }; quantidadeVolumes: number; pesoBruto: number };
   observacao?: string;
 };
 export function transporteTi(metadata: unknown): NonNullable<DadosTrs["transporte"]> {
@@ -24,6 +25,17 @@ export function transporteTi(metadata: unknown): NonNullable<DadosTrs["transport
   if (!Number.isSafeInteger(volumes) || volumes < 1 || !Number.isFinite(peso) || peso <= 0) throw new Error("Registre a embalagem na Mesa SP antes de gerar a NF de remessa.");
   return { fretePorConta: 3, quantidadeVolumes: volumes, pesoBruto: peso };
 }
+// Bling v3: transportadora vive em transporte.contato. Peso/volumes sempre os informados pela XPM.
+export function transporteFisica(x: { modFrete: unknown; transportadoraBlingId: unknown; volumes: unknown; peso: unknown }): NonNullable<DadosTrs["transporte"]> {
+  const mod = x.modFrete == null || x.modFrete === "" ? NaN : Number(x.modFrete);
+  if (!Number.isInteger(mod) || mod < 0) throw new Error("Tipo de frete da TRS sem modalidade de NF (frete_tipos).");
+  const tid = x.transportadoraBlingId == null || x.transportadoraBlingId === "" ? NaN : Number(x.transportadoraBlingId);
+  if (!Number.isSafeInteger(tid) || tid <= 0) throw new Error("Transportadora da TRS sem contato no Bling — sincronize antes.");
+  const volumes = x.volumes == null ? NaN : Number(x.volumes), peso = x.peso == null ? NaN : Number(x.peso);
+  if (!Number.isSafeInteger(volumes) || volumes < 1 || !Number.isFinite(peso) || peso <= 0) throw new Error("A XPM ainda não informou volumes e peso desta TRS.");
+  return { fretePorConta: mod, contato: { id: tid }, quantidadeVolumes: volumes, pesoBruto: Math.round(peso * 1000) / 1000 };
+}
+export const observacaoFisica = (codigo: string, destino: string) => `Transferência ${codigo} XPM-SC → ${destino} via SNCF.`;
 export function payloadTrs(d: DadosTrs, agora = new Date()) {
   if (!d.codigo.trim() || !d.naturezaId || !d.lojaId || !d.contato.id || d.contato.numeroDocumento.replace(/\D/g, "") !== CNPJ_MATRIZ) throw new Error("NF de transferência sem código, natureza, filial SC ou destinatário matriz válido.");
   if (!d.itens.length || d.itens.some(i => !i.sku || !Number.isSafeInteger(i.produtoId) || i.produtoId <= 0 || !Number.isFinite(i.quantidade) || i.quantidade <= 0 || !Number.isFinite(i.valor) || i.valor < 0)) throw new Error("Itens da transferência com produto, quantidade ou custo inválidos.");
