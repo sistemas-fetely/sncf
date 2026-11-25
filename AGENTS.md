@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Hoje queues read only the user-scoped view through a dedicated query; tested pure selectors sort/filter and summarize without changing task hooks. Only the requested empty-queue preference uses localStorage `sncf.hoje.filas-vazias`.
 - Returns detail is a URL-controlled right Sheet reusing existing blocks and actions; item filters and reimbursement labels are pure tested selectors, so changing the container never changes fiscal or financial rules.
 - Operational order proof visibility uses only the shared dispatch-release verdict selector; gate detail banners and title proof separately from financial status, leaving accounting proof and payment actions unchanged. Queue placeholders retain rows with a sticky updating status; pipeline clicks only change URL filters.
 - SC exit quotes optionally merge an independent read-only Correios volume quote; service-qualified selection keys distinguish PAC/SEDEX sharing a carrier ID, preserve the RPC recommendation and send the chosen price/service without changing unrelated CD dialogs.

@@ -7653,6 +7653,585 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_dev2380_devolucao_20261125: {
+        Row: {
+          bling_pedido_numero: string | null
+          canal: string | null
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          cancelado_por: string | null
+          centro_nf_nova: string | null
+          chamado_id: string | null
+          criado_em: string | null
+          criado_por: string | null
+          desfecho: string | null
+          destino_retorno: string | null
+          encerrado_em: string | null
+          encerrado_por: string | null
+          finalidade: string | null
+          fiscal_acao: string | null
+          haver_id: string | null
+          id: string | null
+          motivo_categoria: string | null
+          motivo_codigo: string | null
+          motivo_texto: string | null
+          nao_entregue: boolean | null
+          nao_entregue_em: string | null
+          nao_entregue_por: string | null
+          nf_dev_atualizado_em: string | null
+          nf_dev_bling_id: number | null
+          nf_dev_erro: string | null
+          nf_dev_numero: string | null
+          nf_dev_status: string | null
+          nf_devolucao: string | null
+          nf_original_id: string | null
+          nf_sub_atualizado_em: string | null
+          nf_sub_bling_id: number | null
+          nf_sub_erro: string | null
+          nf_sub_numero: string | null
+          nf_sub_status: string | null
+          nf_substituta_id: string | null
+          numero: string | null
+          observacao: string | null
+          parceiro_id: string | null
+          pedido_id: string | null
+          rastreio_reverso: string | null
+          recebido_em: string | null
+          recebido_por: string | null
+          reenvio_em: string | null
+          reenvio_erro: string | null
+          reenvio_status: string | null
+          ressarcimento_mov_id: string | null
+          ressarcimento_vinculado_em: string | null
+          ressarcimento_vinculado_por: string | null
+          reversa_origem: string | null
+          sem_retorno_fisico: boolean | null
+          shopify_pedido_id: string | null
+          snapshot_id: string | null
+          status: string | null
+          tipo: string | null
+          transferencia_pedido_id: string | null
+          valor_credito: number | null
+        }
+        Insert: {
+          bling_pedido_numero?: string | null
+          canal?: string | null
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por?: string | null
+          centro_nf_nova?: string | null
+          chamado_id?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          desfecho?: string | null
+          destino_retorno?: string | null
+          encerrado_em?: string | null
+          encerrado_por?: string | null
+          finalidade?: string | null
+          fiscal_acao?: string | null
+          haver_id?: string | null
+          id?: string | null
+          motivo_categoria?: string | null
+          motivo_codigo?: string | null
+          motivo_texto?: string | null
+          nao_entregue?: boolean | null
+          nao_entregue_em?: string | null
+          nao_entregue_por?: string | null
+          nf_dev_atualizado_em?: string | null
+          nf_dev_bling_id?: number | null
+          nf_dev_erro?: string | null
+          nf_dev_numero?: string | null
+          nf_dev_status?: string | null
+          nf_devolucao?: string | null
+          nf_original_id?: string | null
+          nf_sub_atualizado_em?: string | null
+          nf_sub_bling_id?: number | null
+          nf_sub_erro?: string | null
+          nf_sub_numero?: string | null
+          nf_sub_status?: string | null
+          nf_substituta_id?: string | null
+          numero?: string | null
+          observacao?: string | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          rastreio_reverso?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
+          reenvio_em?: string | null
+          reenvio_erro?: string | null
+          reenvio_status?: string | null
+          ressarcimento_mov_id?: string | null
+          ressarcimento_vinculado_em?: string | null
+          ressarcimento_vinculado_por?: string | null
+          reversa_origem?: string | null
+          sem_retorno_fisico?: boolean | null
+          shopify_pedido_id?: string | null
+          snapshot_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          transferencia_pedido_id?: string | null
+          valor_credito?: number | null
+        }
+        Update: {
+          bling_pedido_numero?: string | null
+          canal?: string | null
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por?: string | null
+          centro_nf_nova?: string | null
+          chamado_id?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          desfecho?: string | null
+          destino_retorno?: string | null
+          encerrado_em?: string | null
+          encerrado_por?: string | null
+          finalidade?: string | null
+          fiscal_acao?: string | null
+          haver_id?: string | null
+          id?: string | null
+          motivo_categoria?: string | null
+          motivo_codigo?: string | null
+          motivo_texto?: string | null
+          nao_entregue?: boolean | null
+          nao_entregue_em?: string | null
+          nao_entregue_por?: string | null
+          nf_dev_atualizado_em?: string | null
+          nf_dev_bling_id?: number | null
+          nf_dev_erro?: string | null
+          nf_dev_numero?: string | null
+          nf_dev_status?: string | null
+          nf_devolucao?: string | null
+          nf_original_id?: string | null
+          nf_sub_atualizado_em?: string | null
+          nf_sub_bling_id?: number | null
+          nf_sub_erro?: string | null
+          nf_sub_numero?: string | null
+          nf_sub_status?: string | null
+          nf_substituta_id?: string | null
+          numero?: string | null
+          observacao?: string | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          rastreio_reverso?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
+          reenvio_em?: string | null
+          reenvio_erro?: string | null
+          reenvio_status?: string | null
+          ressarcimento_mov_id?: string | null
+          ressarcimento_vinculado_em?: string | null
+          ressarcimento_vinculado_por?: string | null
+          reversa_origem?: string | null
+          sem_retorno_fisico?: boolean | null
+          shopify_pedido_id?: string | null
+          snapshot_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          transferencia_pedido_id?: string | null
+          valor_credito?: number | null
+        }
+        Relationships: []
+      }
+      backup_dev2380_movs_20261125: {
+        Row: {
+          centro_custo_id: string | null
+          centro_id: string | null
+          classe: string | null
+          condicao: string | null
+          criado_em: string | null
+          criado_por: string | null
+          custo_unitario: number | null
+          data_mov: string | null
+          devolucao_id: string | null
+          doc_numero: string | null
+          doc_tipo: string | null
+          id: string | null
+          importacao_pedido_id: number | null
+          motivo: string | null
+          nf_entrada_id: number | null
+          nf_saida_id: string | null
+          obs: string | null
+          origem: string | null
+          par_transferencia_id: string | null
+          pedido_id: string | null
+          quantidade: number | null
+          referencia: string | null
+          sku: string | null
+          tipo: string | null
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          centro_id?: string | null
+          classe?: string | null
+          condicao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          custo_unitario?: number | null
+          data_mov?: string | null
+          devolucao_id?: string | null
+          doc_numero?: string | null
+          doc_tipo?: string | null
+          id?: string | null
+          importacao_pedido_id?: number | null
+          motivo?: string | null
+          nf_entrada_id?: number | null
+          nf_saida_id?: string | null
+          obs?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          referencia?: string | null
+          sku?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          centro_custo_id?: string | null
+          centro_id?: string | null
+          classe?: string | null
+          condicao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          custo_unitario?: number | null
+          data_mov?: string | null
+          devolucao_id?: string | null
+          doc_numero?: string | null
+          doc_tipo?: string | null
+          id?: string | null
+          importacao_pedido_id?: number | null
+          motivo?: string | null
+          nf_entrada_id?: number | null
+          nf_saida_id?: string | null
+          obs?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          referencia?: string | null
+          sku?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
+      backup_dev2380_titulos_20261125: {
+        Row: {
+          acordo_id: string | null
+          analise_credito_id: string | null
+          autorizacao_cartao: string | null
+          baixa_remessa_id: string | null
+          banco_recebimento_id: string | null
+          boleto_codigo_rejeicao: string | null
+          boleto_enviado_em: string | null
+          boleto_status: string | null
+          captura_id: string | null
+          carteira_id: string | null
+          chave_pix: string | null
+          codigo_barras_boleto: string | null
+          condicao_pagamento: string | null
+          conta_id: string | null
+          created_at: string | null
+          created_by: string | null
+          data_criacao: string | null
+          data_emissao_nf: string | null
+          data_liquidacao_prevista: string | null
+          data_pagamento: string | null
+          data_pagamento_banco: string | null
+          data_proxima_acao_regua: string | null
+          data_vencimento_atual: string | null
+          data_vencimento_nf: string | null
+          data_vencimento_original: string | null
+          eh_entrada: boolean | null
+          email_cobranca_enviado_em: string | null
+          flag_bandeira_amarela: boolean | null
+          flag_grupo_economico_inadimplente: boolean | null
+          forma_pagamento_id: string | null
+          id: string | null
+          justificativa_renegociacao: string | null
+          linha_digitavel: string | null
+          link_pagamento: string | null
+          modalidade_renegociacao: number | null
+          movimentacao_baixa_id: string | null
+          nf_devolucao: string | null
+          nf_id: string | null
+          nivel_prova: string | null
+          nosso_numero_safra: string | null
+          nosso_numero_seq: string | null
+          numero_parcela: number | null
+          numero_titulo: string | null
+          parceiro_id: string | null
+          pausa_regua_automatica: boolean | null
+          pedido_id: string | null
+          pix_a_prazo: boolean | null
+          pix_qr_url: string | null
+          pix_token: string | null
+          pix_txid: string | null
+          prazo_dias: number | null
+          prorrogacao_confirmada_em: string | null
+          prorrogacao_nova_data: string | null
+          prorrogacao_solicitada_em: string | null
+          prorrogacao_venc_anterior: string | null
+          provisao_id: string | null
+          raia_codigo: string | null
+          raia_responsavel_user_id: string | null
+          raia_retorno_em: string | null
+          reemissao_aplicada_em: string | null
+          reemissao_motivo: string | null
+          reemissao_nova_data: string | null
+          reemissao_novo_valor: number | null
+          remessa_safra_id: string | null
+          status: string | null
+          subestado_atraso: string | null
+          taxa_adquirente_prevista: number | null
+          tipo_pagamento: string | null
+          titulo_pai_id: string | null
+          titulo_renegociado_origem_id: string | null
+          total_parcelas: number | null
+          updated_at: string | null
+          valor_atual: number | null
+          valor_bruto: number | null
+          valor_correcao: number | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_juros_cartao: number | null
+          valor_multa: number | null
+          valor_taxa_adquirente: number | null
+          vip_relacionamento: boolean | null
+        }
+        Insert: {
+          acordo_id?: string | null
+          analise_credito_id?: string | null
+          autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
+          banco_recebimento_id?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
+          captura_id?: string | null
+          carteira_id?: string | null
+          chave_pix?: string | null
+          codigo_barras_boleto?: string | null
+          condicao_pagamento?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_criacao?: string | null
+          data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
+          data_pagamento?: string | null
+          data_pagamento_banco?: string | null
+          data_proxima_acao_regua?: string | null
+          data_vencimento_atual?: string | null
+          data_vencimento_nf?: string | null
+          data_vencimento_original?: string | null
+          eh_entrada?: boolean | null
+          email_cobranca_enviado_em?: string | null
+          flag_bandeira_amarela?: boolean | null
+          flag_grupo_economico_inadimplente?: boolean | null
+          forma_pagamento_id?: string | null
+          id?: string | null
+          justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
+          link_pagamento?: string | null
+          modalidade_renegociacao?: number | null
+          movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
+          nf_id?: string | null
+          nivel_prova?: string | null
+          nosso_numero_safra?: string | null
+          nosso_numero_seq?: string | null
+          numero_parcela?: number | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          pausa_regua_automatica?: boolean | null
+          pedido_id?: string | null
+          pix_a_prazo?: boolean | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
+          prazo_dias?: number | null
+          prorrogacao_confirmada_em?: string | null
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
+          prorrogacao_venc_anterior?: string | null
+          provisao_id?: string | null
+          raia_codigo?: string | null
+          raia_responsavel_user_id?: string | null
+          raia_retorno_em?: string | null
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
+          remessa_safra_id?: string | null
+          status?: string | null
+          subestado_atraso?: string | null
+          taxa_adquirente_prevista?: number | null
+          tipo_pagamento?: string | null
+          titulo_pai_id?: string | null
+          titulo_renegociado_origem_id?: string | null
+          total_parcelas?: number | null
+          updated_at?: string | null
+          valor_atual?: number | null
+          valor_bruto?: number | null
+          valor_correcao?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_juros_cartao?: number | null
+          valor_multa?: number | null
+          valor_taxa_adquirente?: number | null
+          vip_relacionamento?: boolean | null
+        }
+        Update: {
+          acordo_id?: string | null
+          analise_credito_id?: string | null
+          autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
+          banco_recebimento_id?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
+          captura_id?: string | null
+          carteira_id?: string | null
+          chave_pix?: string | null
+          codigo_barras_boleto?: string | null
+          condicao_pagamento?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_criacao?: string | null
+          data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
+          data_pagamento?: string | null
+          data_pagamento_banco?: string | null
+          data_proxima_acao_regua?: string | null
+          data_vencimento_atual?: string | null
+          data_vencimento_nf?: string | null
+          data_vencimento_original?: string | null
+          eh_entrada?: boolean | null
+          email_cobranca_enviado_em?: string | null
+          flag_bandeira_amarela?: boolean | null
+          flag_grupo_economico_inadimplente?: boolean | null
+          forma_pagamento_id?: string | null
+          id?: string | null
+          justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
+          link_pagamento?: string | null
+          modalidade_renegociacao?: number | null
+          movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
+          nf_id?: string | null
+          nivel_prova?: string | null
+          nosso_numero_safra?: string | null
+          nosso_numero_seq?: string | null
+          numero_parcela?: number | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          pausa_regua_automatica?: boolean | null
+          pedido_id?: string | null
+          pix_a_prazo?: boolean | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
+          prazo_dias?: number | null
+          prorrogacao_confirmada_em?: string | null
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
+          prorrogacao_venc_anterior?: string | null
+          provisao_id?: string | null
+          raia_codigo?: string | null
+          raia_responsavel_user_id?: string | null
+          raia_retorno_em?: string | null
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
+          remessa_safra_id?: string | null
+          status?: string | null
+          subestado_atraso?: string | null
+          taxa_adquirente_prevista?: number | null
+          tipo_pagamento?: string | null
+          titulo_pai_id?: string | null
+          titulo_renegociado_origem_id?: string | null
+          total_parcelas?: number | null
+          updated_at?: string | null
+          valor_atual?: number | null
+          valor_bruto?: number | null
+          valor_correcao?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_juros_cartao?: number | null
+          valor_multa?: number | null
+          valor_taxa_adquirente?: number | null
+          vip_relacionamento?: boolean | null
+        }
+        Relationships: []
+      }
+      backup_dev2380_vinculo_20261125: {
+        Row: {
+          chave_referenciada: string | null
+          classe: string | null
+          confirmado_em: string | null
+          confirmado_por: string | null
+          confirmado_por_nome: string | null
+          criado_em: string | null
+          devolucao_id: string | null
+          grau: string | null
+          grau_sugerido: string | null
+          id: string | null
+          itens: Json | null
+          motivo: string | null
+          nf_saida_id: string | null
+          nfs_stage_id: string | null
+          pct_devolvido: number | null
+          status: string | null
+          updated_at: string | null
+          valor_devolvido: number | null
+          valor_nota_saida: number | null
+        }
+        Insert: {
+          chave_referenciada?: string | null
+          classe?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          confirmado_por_nome?: string | null
+          criado_em?: string | null
+          devolucao_id?: string | null
+          grau?: string | null
+          grau_sugerido?: string | null
+          id?: string | null
+          itens?: Json | null
+          motivo?: string | null
+          nf_saida_id?: string | null
+          nfs_stage_id?: string | null
+          pct_devolvido?: number | null
+          status?: string | null
+          updated_at?: string | null
+          valor_devolvido?: number | null
+          valor_nota_saida?: number | null
+        }
+        Update: {
+          chave_referenciada?: string | null
+          classe?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          confirmado_por_nome?: string | null
+          criado_em?: string | null
+          devolucao_id?: string | null
+          grau?: string | null
+          grau_sugerido?: string | null
+          id?: string | null
+          itens?: Json | null
+          motivo?: string | null
+          nf_saida_id?: string | null
+          nfs_stage_id?: string | null
+          pct_devolvido?: number | null
+          status?: string | null
+          updated_at?: string | null
+          valor_devolvido?: number | null
+          valor_nota_saida?: number | null
+        }
+        Relationships: []
+      }
       backup_embalagens_expedicao_20261025: {
         Row: {
           altura_cm: number
@@ -7782,6 +8361,24 @@ export type Database = {
         Update: {
           def?: string | null
           em?: string | null
+        }
+        Relationships: []
+      }
+      backup_fn_xpm_nf_represa_20261125: {
+        Row: {
+          def: string | null
+          proname: unknown
+          salvo_em: string | null
+        }
+        Insert: {
+          def?: string | null
+          proname?: unknown
+          salvo_em?: string | null
+        }
+        Update: {
+          def?: string | null
+          proname?: unknown
+          salvo_em?: string | null
         }
         Relationships: []
       }
@@ -37302,6 +37899,107 @@ export type Database = {
           },
         ]
       }
+      devolucao_nf_envio: {
+        Row: {
+          atualizado_em: string
+          auto: boolean
+          bling_nfe_id: number | null
+          devolucao_id: string
+          envio_em: string | null
+          erro: string | null
+          resultado: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          auto?: boolean
+          bling_nfe_id?: number | null
+          devolucao_id: string
+          envio_em?: string | null
+          erro?: string | null
+          resultado?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          auto?: boolean
+          bling_nfe_id?: number | null
+          devolucao_id?: string
+          envio_em?: string | null
+          erro?: string | null
+          resultado?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_devolucao_retorno_pendente"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_devolucao_trs_retorno"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_devolucao_trs_retorno"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_fila_devolucao_trs_retorno"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_fila_devolucao_trs_retorno"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_envio_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_reembolso_loja"
+            referencedColumns: ["devolucao_id"]
+          },
+        ]
+      }
       devolucao_status: {
         Row: {
           ativo: boolean
@@ -53526,6 +54224,57 @@ export type Database = {
           },
         ]
       }
+      monitor_banco_snapshot: {
+        Row: {
+          aguardando_lock: number | null
+          ativas: number | null
+          ativas_app: number | null
+          banco_iniciado_em: string | null
+          blks_read: number | null
+          conns: number | null
+          em: string
+          idle_em_transacao: number | null
+          mais_longa_s: number | null
+          pesadas: Json | null
+          temp_bytes: number | null
+          temp_files: number | null
+          xact_commit: number | null
+          xact_rollback: number | null
+        }
+        Insert: {
+          aguardando_lock?: number | null
+          ativas?: number | null
+          ativas_app?: number | null
+          banco_iniciado_em?: string | null
+          blks_read?: number | null
+          conns?: number | null
+          em?: string
+          idle_em_transacao?: number | null
+          mais_longa_s?: number | null
+          pesadas?: Json | null
+          temp_bytes?: number | null
+          temp_files?: number | null
+          xact_commit?: number | null
+          xact_rollback?: number | null
+        }
+        Update: {
+          aguardando_lock?: number | null
+          ativas?: number | null
+          ativas_app?: number | null
+          banco_iniciado_em?: string | null
+          blks_read?: number | null
+          conns?: number | null
+          em?: string
+          idle_em_transacao?: number | null
+          mais_longa_s?: number | null
+          pesadas?: Json | null
+          temp_bytes?: number | null
+          temp_files?: number | null
+          xact_commit?: number | null
+          xact_rollback?: number | null
+        }
+        Relationships: []
+      }
       motivos_concessao: {
         Row: {
           ativo: boolean
@@ -56176,6 +56925,36 @@ export type Database = {
           tipo?: string
           titulo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      natureza_cd_transmissao_auto: {
+        Row: {
+          canal: string
+          centro_codigo: string
+          definido_em: string
+          definido_por: string | null
+          natureza_codigo: string
+          observacao: string | null
+          transmite_automatico: boolean
+        }
+        Insert: {
+          canal: string
+          centro_codigo: string
+          definido_em?: string
+          definido_por?: string | null
+          natureza_codigo: string
+          observacao?: string | null
+          transmite_automatico?: boolean
+        }
+        Update: {
+          canal?: string
+          centro_codigo?: string
+          definido_em?: string
+          definido_por?: string | null
+          natureza_codigo?: string
+          observacao?: string | null
+          transmite_automatico?: boolean
         }
         Relationships: []
       }
@@ -158212,6 +158991,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_minhas_filas_hoje: {
+        Row: {
+          area_nome: string | null
+          fila_chave: string | null
+          fila_nome: string | null
+          itens_divida: number | null
+          itens_no_prazo: number | null
+          itens_total: number | null
+          itens_vencidos: number | null
+          prazo_dias: number | null
+          rota: string | null
+          severidade: string | null
+          tem_relogio: boolean | null
+          vencimento_mais_antigo: string | null
+        }
+        Relationships: []
+      }
       vw_motor_fila_por_cnpj: {
         Row: {
           entrada: string | null
@@ -161333,14 +162129,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -162742,13 +163538,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
@@ -162757,13 +163546,20 @@ export type Database = {
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
@@ -165740,14 +166536,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -198766,6 +199562,15 @@ export type Database = {
           valor_unitario: number
         }[]
       }
+      fn_devolucao_nf_auto: { Args: { p_devolucao_id: string }; Returns: Json }
+      fn_devolucao_nf_auto_fila: {
+        Args: never
+        Returns: {
+          acao: string
+          devolucao_id: string
+          numero: string
+        }[]
+      }
       fn_devolucao_nf_cliente_confirmada: {
         Args: { p_devolucao_id: string; p_nf_original_id: string }
         Returns: boolean
@@ -199717,6 +200522,7 @@ export type Database = {
       fn_meu_cadastro_autodeclarar: { Args: { p_dados: Json }; Returns: Json }
       fn_meu_vinculo: { Args: never; Returns: string }
       fn_migra_lote: { Args: { p_limite?: number }; Returns: number }
+      fn_monitor_banco_snapshot: { Args: never; Returns: undefined }
       fn_montar_condicao: {
         Args: { p_dias: number[]; p_forma: string }
         Returns: Json
@@ -199904,6 +200710,7 @@ export type Database = {
         Returns: string
       }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
+      fn_nf_itens_normaliza_sku: { Args: { p: Json }; Returns: Json }
       fn_nf_natureza_divergente: { Args: { p_nf_id: string }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
       fn_nf_titulo_automatico: { Args: { p_nf_id: string }; Returns: Json }
@@ -200757,6 +201564,7 @@ export type Database = {
         Args: { p_parceiro_id: string }
         Returns: string
       }
+      fn_sku_canonico: { Args: { p_cod: string }; Returns: string }
       fn_sku_tem_historico: { Args: { p_sku: string }; Returns: boolean }
       fn_snapshot_coerente: { Args: { p_snap: Json }; Returns: Json }
       fn_split_all_delete: { Args: { p_limite?: number }; Returns: number }
@@ -201243,6 +202051,7 @@ export type Database = {
       fn_xpm_expedicao_viva: { Args: { p_id_externo: string }; Returns: string }
       fn_xpm_fatura_conferir: { Args: { p_fatura_id: string }; Returns: Json }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
+      fn_xpm_nf_fila_liberar: { Args: never; Returns: number }
       fn_xpm_nf_ja_no_espelho: {
         Args: { p_codigo: string; p_nf_id: string }
         Returns: boolean

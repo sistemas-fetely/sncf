@@ -17,6 +17,7 @@ import {
 } from "@/hooks/tarefas/useTarefas";
 import { useRespondoPor } from "@/hooks/tarefas/useMinhasTarefasPapel";
 import { idsDeContainer, semContainers } from "@/lib/tarefas/containers";
+import { MinhasFilasHoje } from "@/components/tarefas/MinhasFilasHoje";
 
 function Vazio({ texto }: { texto: string }) {
   return <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>;
@@ -95,6 +96,7 @@ function TarefasHojeConteudo() {
         </TabsList>
 
         <TabsContent value="hoje" className="space-y-6 pt-4">
+          <MinhasFilasHoje />
           {respondoPorFiltrado.length > 0 && (
             <section className="space-y-2">
               <h2 className="text-sm font-medium">Respondo por ({respondoPorFiltrado.length})</h2>
