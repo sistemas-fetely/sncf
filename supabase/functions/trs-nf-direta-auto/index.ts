@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const transmite = new Map(dims.map((d: any) => [d.natureza_operacao_id, d.transmite_automatico === true]));
     const { data: pedidos, error: pe } = await db.from("pedidos").select("id,id_externo,natureza_operacao_id")
       .in("natureza_operacao_id", [...transmite.keys()]).eq("estagio", "pre_faturamento")
-      .is("bling_id_destino", null).is("cancelado_em", null).order("criado_em", { ascending: true }).limit(200);
+      .is("bling_id_destino", null).is("cancelado_em", null).order("recebido_em", { ascending: true }).limit(200);
     if (pe) throw pe;
     const ids = (pedidos ?? []).map((p: any) => p.id);
     const { data: regs, error: re } = ids.length ? await db.from("trs_nf_direta").select("pedido_id,status,tentativas").in("pedido_id", ids) : { data: [], error: null };
