@@ -47,6 +47,7 @@ import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import { useItensDevolucao } from "@/hooks/estoque/useItensDevolucao";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
 import { RessarcimentoExtrato } from "@/components/devolucao/RessarcimentoExtrato";
@@ -281,6 +282,7 @@ export default function RetornoDevolucao() {
     },
   });
   const naoEntregueQ = useEstadoNaoEntregue(expandido);
+  const itensGavetaQ = useItensDevolucao(expandido);
   const procTarefasQ = useProcessoTarefas();
   const procPorCaso = useMemo(() => agruparAbertasPorCaso(procTarefasQ.data), [procTarefasQ.data]);
   const linhaAbertaRef = useRef<string | null>(null);
@@ -409,7 +411,7 @@ export default function RetornoDevolucao() {
 
   const detalhe = (funilQ.data ?? []).find((d) => d.id === expandido);
   const renderDetalhe = (d: Funil) => {
-    const p = pendMap.get(d.id);
+    const p = pendMap.get(d.id); // botão Conferir: continua na view de pendência
     return <>
       <SheetHeader className="shrink-0 border-b px-4 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pr-12">
         <SheetTitle className="flex flex-wrap items-center gap-2">
@@ -559,7 +561,7 @@ export default function RetornoDevolucao() {
 
         </div>
         <div className="mt-5 space-y-5">
-          <ItensGavetaDevolucao key={d.id} itens={p?.itens ?? []} skus={d.skus} declarada={d.qtd_declarada} retornada={d.qtd_retornada}
+          <ItensGavetaDevolucao key={d.id} itens={itensGavetaQ.data ?? []} skus={d.skus} declarada={d.qtd_declarada} retornada={d.qtd_retornada}
             acao={editavel(d) ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditarDecl({ d, preenchido: null })}>Editar declaração</Button> : undefined} />
                           {ehAberta(d) && (
                             <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-sm">
