@@ -36,7 +36,7 @@ async function executar(edge: string, options: { meio?: string; pix?: boolean; s
   };
   const source = readFileSync(`supabase/functions/${edge}/index.ts`, "utf8").replace(/^import .*;$/gm, "");
   runInNewContext(ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText, {
-    createClient: () => client, corsHeaders: {}, Response, console, Deno: { env: { get: () => "mock" }, serve: (fn: typeof handler) => { handler = fn; } },
+    createClient: () => client, corsHeaders: {}, corsBase: {}, registrarTrilhaSafra: async () => {}, substituirTrilhaSafra: async () => {}, Response, console, Deno: { env: { get: () => "mock" }, serve: (fn: typeof handler) => { handler = fn; } },
     fetch: async (url: string, init?: RequestInit) => {
       const payload = init?.body ? JSON.parse(String(init.body)) : null;
       if (payload) payloads.push(payload);

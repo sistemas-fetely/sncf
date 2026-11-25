@@ -21,6 +21,11 @@ import { useEnviarNfXpm } from "@/hooks/pedidos/useEnviarNfXpm";
 import { useZenlogModoNf } from "@/hooks/integracoes/useZenlogModoNf";
 import { Selo } from "@/components/ui/selo";
 import { remessaStatusMeta } from "@/lib/remessaStatus";
+import {
+  nfFilaApareceNaTrilha,
+  nfFilaPodeReenviar,
+  nfFilaStatusMeta,
+} from "@/lib/pedidos/nfFilaStatus";
 import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import type { EstagioPedido } from "@/types/pedido";
@@ -137,8 +142,8 @@ function GrupoEnviosXpm({ pedido_id }: { pedido_id: string }) {
   const { data: modoNf } = useZenlogModoNf();
   const enviarNf = useEnviarNfXpm(pedido_id);
 
-  const pendentes = (fila ?? []).filter((f) => f.status === "pendente" || f.status === "erro");
-  if (!envios?.length && !pendentes.length) return null;
+  const linhasFila = (fila ?? []).filter((f) => nfFilaApareceNaTrilha(f.status));
+  if (!envios?.length && !linhasFila.length) return null;
 
   let nCreate = 0;
   let nNf = 0;
@@ -154,12 +159,22 @@ function GrupoEnviosXpm({ pedido_id }: { pedido_id: string }) {
         )}
       </div>
 
-      {pendentes.length > 0 && (
+      {linhasFila.length > 0 && (
         <div className="space-y-1 pb-1">
-          {pendentes.map((f) => {
+          {linhasFila.map((f) => {
             const tentativas = Number(f.tentativas ?? 0);
             const insistindo = f.status === "erro" && tentativas >= 8;
             const nf = f.nf?.numero ? `NF ${f.nf.numero}` : "NF";
+            const meta = nfFilaStatusMeta(f.status);
+            // Espera da XPM: selo informativo, sem botão — a NF sai sozinha.
+            if (meta && !nfFilaPodeReenviar(f.status)) {
+              return (
+                <div key={f.id} className="flex flex-wrap items-center gap-2 text-xs" title={meta.tooltip}>
+                  <span className="text-muted-foreground tabular-nums">{nf}</span>
+                  <Selo estado={meta.estado}>{meta.rotulo}</Selo>
+                </div>
+              );
+            }
             return (
               <div key={f.id} className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-muted-foreground tabular-nums">{nf}</span>
@@ -183,7 +198,7 @@ function GrupoEnviosXpm({ pedido_id }: { pedido_id: string }) {
       )}
       <div className="space-y-1">
 
-        {envios.map((e) => {
+        {(envios ?? []).map((e) => {
           const ehNf = e.operacao === "atribui_nf";
           const rotulo = ehNf ? `NF tentativa ${++nNf}` : `tentativa ${++nCreate}`;
           const data = e.tentativa_em ? fmtDataCurta.format(new Date(e.tentativa_em)) : null;
