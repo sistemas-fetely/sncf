@@ -63,6 +63,27 @@ async function tratarTrsRetorno(db: any): Promise<any[]> {
   return out;
 }
 
+// DEV-NF-AUTO (25/11/2026): devoluções com chave de transmissão ligada — gera e/ou transmite via edge.
+const LIMITE_NF_AUTO = 10;
+async function tratarNfAuto(db: any): Promise<any[]> {
+  const { data: fila, error } = await db.rpc("fn_devolucao_nf_auto_fila");
+  if (error) return [{ resultado: "falha", erro: `fn_devolucao_nf_auto_fila: ${error.message}` }];
+  const out: any[] = [];
+  for (const f of (fila ?? []).slice(0, LIMITE_NF_AUTO)) {
+    try {
+      const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/devolucao-gerar-rascunho-nf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+        body: JSON.stringify({ devolucao_id: f.devolucao_id, acao: f.acao }),
+      });
+      const j: any = await r.json().catch(() => ({}));
+      out.push({ devolucao: f.numero, acao: f.acao, http: r.status, ok: r.ok && j?.ok !== false, transmissao: j?.transmissao ?? null, erro: j?.erro });
+    } catch (e) { out.push({ devolucao: f.numero, acao: f.acao, resultado: "falha", erro: msg(e) }); }
+    await new Promise((r) => setTimeout(r, PAUSA_MS));
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -91,9 +112,10 @@ Deno.serve(async (req) => {
       await new Promise((r) => setTimeout(r, PAUSA_MS));
     }
     }
+    const nf_auto = await tratarNfAuto(db);
     const trs = await tratarTrsRetorno(db);
-    console.log("devolucao-nf-verifica", JSON.stringify({ itens, trs }));
-    return json({ ok: true, tratadas: itens.length, itens, trs });
+    console.log("devolucao-nf-verifica", JSON.stringify({ itens, nf_auto, trs }));
+    return json({ ok: true, tratadas: itens.length, itens, nf_auto, trs });
   } catch (e) {
     console.error("devolucao-nf-verifica:", msg(e));
     return json({ ok: false, erro: msg(e) }, 500);

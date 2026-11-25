@@ -4,6 +4,8 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { digitos } from "../_shared/bling/conferir-nfe-retorno.ts";
 import { verificarNfDevolucao } from "../_shared/devolucao/verificar-nf-dev.ts";
+import { transmitirNfDev } from "../_shared/devolucao/transmitir-nf-dev.ts";
+import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 
 // deno-lint-ignore-file no-explicit-any
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -48,13 +50,20 @@ serve(async (req) => {
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !anon || !service) return json({ ok: false, erro: "Configuração interna incompleta" }, 500);
-  const jwtClient = createClient(url, anon, { global: { headers: { Authorization: auth } } });
-  const { data: claims, error: authError } = await jwtClient.auth.getClaims(auth.slice(7));
-  const userId = claims?.claims?.sub;
-  if (authError || !userId) return json({ ok: false, erro: "Não autorizado" }, 401);
-  const { data: permitido, error: permError } = await jwtClient.rpc("tem_permissao", { p_slug: "tela.devolucoes", p_user: userId });
-  if (permError) return json({ ok: false, erro: permError.message }, 500);
-  if (!permitido) return json({ ok: false, erro: "Sem permissão para devoluções" }, 403);
+  // DEV-NF-AUTO: sistema (service role / cron) ou usuário com tela.devolucoes.
+  const db0 = createClient(url, service);
+  const sistema = auth === `Bearer ${service}` || !!req.headers.get("x-cron-secret");
+  if (sistema) {
+    if (req.headers.get("x-cron-secret")) { const negado = await gateCronOuSessao(req, db0, corsHeaders); if (negado) return negado; }
+  } else {
+    const jwtClient = createClient(url, anon, { global: { headers: { Authorization: auth } } });
+    const { data: claims, error: authError } = await jwtClient.auth.getClaims(auth.slice(7));
+    const userId = claims?.claims?.sub;
+    if (authError || !userId) return json({ ok: false, erro: "Não autorizado" }, 401);
+    const { data: permitido, error: permError } = await jwtClient.rpc("tem_permissao", { p_slug: "tela.devolucoes", p_user: userId });
+    if (permError) return json({ ok: false, erro: permError.message }, 500);
+    if (!permitido) return json({ ok: false, erro: "Sem permissão para devoluções" }, 403);
+  }
 
   let devId = ""; let acao = "";
   try {
@@ -63,9 +72,9 @@ serve(async (req) => {
     acao = body?.acao;
   } catch { return json({ ok: false, erro: "Corpo JSON malformado" }, 400); }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(devId)) return json({ ok: false, erro: "devolucao_id inválido" }, 400);
-  if (acao !== "gerar" && acao !== "verificar") return json({ ok: false, erro: "acao deve ser 'gerar' ou 'verificar'" }, 400);
+  if (acao !== "gerar" && acao !== "verificar" && acao !== "transmitir") return json({ ok: false, erro: "acao deve ser 'gerar', 'verificar' ou 'transmitir'" }, 400);
 
-  const db = createClient(url, service);
+  const db = db0;
   const registrar = async (status: string, blingId: number | null = null, numero: string | null = null, erro: string | null = null, chave: string | null = null) => {
     const { data, error } = await db.rpc("fn_devolucao_nf_registrar", { p_devolucao_id: devId, p_status: status, p_bling_id: blingId, p_numero: numero, p_erro: erro, p_chave: chave });
     if (error) throw error; return data;
@@ -76,6 +85,53 @@ serve(async (req) => {
     if (!cfg?.access_token) throw new Error("Bling não conectado.");
     return makeBlingClient(db, cfg, await ensureFreshToken(db, cfg));
   };
+
+  // DEV-NF-AUTO: transmite só se a chave natureza_cd_transmissao_auto estiver ligada; null = desligada.
+  const transmitirSeLigado = async (bling: any, blingId: number, numero: string | null, naturezaId: number | null, valor: number) => {
+    const { data: auto, error: ae } = await db.rpc("fn_devolucao_nf_auto", { p_devolucao_id: devId });
+    if (ae) throw ae;
+    if ((auto as any)?.ligado !== true) return null;
+    const agoraIso = () => new Date().toISOString();
+    return await transmitirNfDev({ blingNfeId: blingId, naturezaId, valorEsperado: valor, numero }, {
+      bling,
+      reservar: async () => {
+        const { data: ins, error: ie } = await db.from("devolucao_nf_envio")
+          .upsert({ devolucao_id: devId, bling_nfe_id: blingId, envio_em: agoraIso(), auto: true, atualizado_em: agoraIso() }, { onConflict: "devolucao_id", ignoreDuplicates: true }).select("devolucao_id");
+        if (ie) throw ie;
+        if (ins?.length) return true;
+        const { data: up, error: ue } = await db.from("devolucao_nf_envio")
+          .update({ envio_em: agoraIso(), bling_nfe_id: blingId, auto: true, erro: null, atualizado_em: agoraIso() })
+          .eq("devolucao_id", devId).is("envio_em", null).select("devolucao_id");
+        if (ue) throw ue;
+        return !!up?.length;
+      },
+      registrar: async (status, num, erro, chave) => { await registrar(status, blingId, num, erro, chave); },
+      gravarEnvio: async (resultado, erro) => {
+        const { data: up, error: ue } = await db.from("devolucao_nf_envio").update({ resultado, erro, bling_nfe_id: blingId, atualizado_em: agoraIso() }).eq("devolucao_id", devId).select("devolucao_id");
+        if (ue) throw ue;
+        if (!up?.length) {
+          const { error: ie } = await db.from("devolucao_nf_envio").insert({ devolucao_id: devId, bling_nfe_id: blingId, auto: true, resultado, erro, atualizado_em: agoraIso() });
+          if (ie) throw ie;
+        }
+      },
+    });
+  };
+
+  if (acao === "transmitir") {
+    try {
+      const { data: dev, error: de } = await db.from("devolucao").select("nf_dev_status,nf_dev_bling_id,nf_dev_numero,nf_dev_erro").eq("id", devId).single();
+      if (de) throw de;
+      if (dev.nf_dev_status !== "rascunho" || !dev.nf_dev_bling_id) return json({ ok: false, erro: "Devolução sem rascunho de NF no Bling para transmitir." }, 409);
+      if (dev.nf_dev_erro) return json({ ok: false, erro: `Rascunho com aviso — não transmite automaticamente: ${dev.nf_dev_erro}` }, 409);
+      const { data: dd, error: dde } = await db.rpc("fn_devolucao_dados_nf", { p_devolucao_id: devId });
+      if (dde) throw dde;
+      const d = dd as Dados;
+      const t = await transmitirSeLigado(await blingCliente(), Number(dev.nf_dev_bling_id), dev.nf_dev_numero, d.natureza_bling_id, Number(d.valor ?? 0));
+      if (!t) return json({ ok: true, transmissao: null, desligado: true });
+      console.log(`transmitir ${devId}:`, JSON.stringify(t));
+      return json({ ok: t.resultado !== "erro", transmissao: t, erro: t.erro });
+    } catch (e) { console.error(`transmitir ${devId}:`, mensagem(e)); return json({ ok: false, erro: mensagem(e) }, 502); }
+  }
 
   if (acao === "verificar") {
     // Regra única compartilhada com a rotina automática devolucao-nf-verifica.
@@ -179,7 +235,12 @@ serve(async (req) => {
     } catch (ge) { console.warn(`[devolucao-gerar-rascunho-nf] leitura de volta da NF ${blingId} falhou: ${mensagem(ge)}`); }
     await registrar("rascunho", blingId, numero || null, avisoValor);
     if (avisoValor) { console.warn(`[devolucao-gerar-rascunho-nf] ${devId}: ${avisoValor}`); alertas.push(avisoValor); }
-    return json({ ok: true, numero: numero || null, bling_nfe_id: blingId, documento: rotulo, alertas }, 201);
+    let transmissao: unknown = null;
+    if (!avisoValor) {
+      try { transmissao = await transmitirSeLigado(bling, blingId, numero || null, d.natureza_bling_id, Number(d.valor ?? 0)); }
+      catch (te) { console.error(`[devolucao-gerar-rascunho-nf] transmissão ${devId}: ${mensagem(te)}`); transmissao = { resultado: "erro", erro: mensagem(te) }; }
+    }
+    return json({ ok: true, numero: numero || null, bling_nfe_id: blingId, documento: rotulo, alertas, transmissao }, 201);
   } catch (e) {
     const erro = mensagem(e);
     try { await registrar("erro", null, null, erro); } catch (re) { return json({ ok: false, erro: `${erro} · Falha ao registrar o erro: ${mensagem(re)}` }, 502); }
