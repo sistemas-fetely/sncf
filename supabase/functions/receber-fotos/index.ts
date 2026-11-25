@@ -1,5 +1,5 @@
 // receber-fotos — recebe do FOP o espelho da tabela `photos`.
-// Escrita SOMENTE em fop_foto — nunca em sncf_produtos, nunca no FOP.
+// Escrita SOMENTE em fop_foto e fop_foto_vinculo — nunca em sncf_produtos, nunca no FOP.
 // Padrão: receber-precos (CORS, FOP_INBOUND_TOKEN no vault, service role,
 // resposta com contagem). Foto órfã (colecao/cor/categoria nulas) grava igual.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
     const erros: ErroBloco[] = [];
     let errosOmitidos = 0;
     let gravadasFotos = 0;
+    let gravadosVinculos = 0;
 
     const registrarErro = (tabela: string, ids: string[], erro: unknown) => {
       console.error(`[receber-fotos] falha no upsert de ${tabela}`, { ids, erro });
@@ -101,7 +102,8 @@ Deno.serve(async (req) => {
 
     // ── Fotos: upsert por id (uuid do FOP), blocos de 500 ──
     for (let i = 0; i < fotos.length; i += TAMANHO_BLOCO) {
-      const bloco = fotos.slice(i, i + TAMANHO_BLOCO).map((f: any) => ({
+      const fotosBloco = fotos.slice(i, i + TAMANHO_BLOCO);
+      const bloco = fotosBloco.map((f: any) => ({
         id: f.id,
         kind: f.kind,
         colecao: f.colecao ?? null,
@@ -121,11 +123,51 @@ Deno.serve(async (req) => {
         registrarErro("fop_foto", bloco.map((f: any) => String(f.id)), error);
       } else {
         gravadasFotos += bloco.length;
+        const ids = bloco.map((f: any) => String(f.id));
+        try {
+          const { error: erroApagar } = await supabase
+            .from("fop_foto_vinculo")
+            .delete()
+            .in("foto_id", ids);
+          if (erroApagar) {
+            registrarErro("fop_foto_vinculo", ids, erroApagar);
+            continue;
+          }
+
+          const vinculos = fotosBloco.flatMap((f: any) => {
+            const codigos = Array.isArray(f.cod_cadastros)
+              ? [...new Set<string>(f.cod_cadastros
+                .filter((codigo: unknown): codigo is string => typeof codigo === "string")
+                .map((codigo: string) => codigo.trim())
+                .filter((codigo: string) => codigo.length > 0))]
+              : [];
+            return codigos.map((codigo) => ({
+              foto_id: f.id,
+              cod_cadastro: codigo,
+              qtd_cods: codigos.length,
+              foto_updated_at: f.updated_at ?? null,
+            }));
+          });
+
+          for (let j = 0; j < vinculos.length; j += 1000) {
+            const lote = vinculos.slice(j, j + 1000);
+            const { error: erroInserir } = await supabase
+              .from("fop_foto_vinculo")
+              .insert(lote);
+            if (erroInserir) {
+              registrarErro("fop_foto_vinculo", [...new Set<string>(lote.map((v: any) => String(v.foto_id)))], erroInserir);
+            } else {
+              gravadosVinculos += lote.length;
+            }
+          }
+        } catch (erroVinculo) {
+          registrarErro("fop_foto_vinculo", ids, erroVinculo);
+        }
       }
     }
 
     console.log(
-      `[receber-fotos] fotos=${gravadasFotos}/${fotos.length} erros=${erros.length + errosOmitidos}`
+      `[receber-fotos] fotos=${gravadasFotos}/${fotos.length} vinculos=${gravadosVinculos} erros=${erros.length + errosOmitidos}`
     );
 
     if (gravadasFotos === 0) {
@@ -133,6 +175,7 @@ Deno.serve(async (req) => {
         ok: false,
         error: "Nada foi gravado",
         fotos: 0,
+        vinculos: gravadosVinculos,
         erros,
         erros_omitidos: errosOmitidos,
       });
@@ -142,6 +185,7 @@ Deno.serve(async (req) => {
       return jsonResponse(200, {
         ok: false,
         fotos: gravadasFotos,
+        vinculos: gravadosVinculos,
         erros,
         erros_omitidos: errosOmitidos,
       });
@@ -150,6 +194,7 @@ Deno.serve(async (req) => {
     return jsonResponse(200, {
       ok: true,
       fotos: gravadasFotos,
+      vinculos: gravadosVinculos,
     });
   } catch (err) {
     console.error("[receber-fotos] Erro inesperado", err);

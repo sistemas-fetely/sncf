@@ -42697,6 +42697,33 @@ export type Database = {
         }
         Relationships: []
       }
+      fop_foto_vinculo: {
+        Row: {
+          cod_cadastro: string
+          espelhado_em: string
+          exata: boolean | null
+          foto_id: string
+          foto_updated_at: string | null
+          qtd_cods: number
+        }
+        Insert: {
+          cod_cadastro: string
+          espelhado_em?: string
+          exata?: boolean | null
+          foto_id: string
+          foto_updated_at?: string | null
+          qtd_cods: number
+        }
+        Update: {
+          cod_cadastro?: string
+          espelhado_em?: string
+          exata?: boolean | null
+          foto_id?: string
+          foto_updated_at?: string | null
+          qtd_cods?: number
+        }
+        Relationships: []
+      }
       fop_grupos: {
         Row: {
           criado_em: string | null
