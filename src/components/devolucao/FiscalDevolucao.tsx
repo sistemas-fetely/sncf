@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, RefreshCw } from "lucide-react";
+import { useVerificarNfBling } from "@/hooks/bling/useVerificarNfBling";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +22,7 @@ import { linhaTrsRetorno, type TrsRetorno } from "@/lib/devolucao/trsRetorno";
 
 type FiscalDevolucao = {
   id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | "nota_credito" | null; pedido_ref: string | null;
-  nf_numero: string | null; nf_situacao: string | null; prazo: string | null;
+  nf_numero: string | null; nf_bling_id: string | null; nf_situacao: string | null; prazo: string | null;
   finalidade: string | null; nf_sub_status: StatusNfSub; nf_sub_erro: string | null;
   nf_sub_numero: string | null; nf_original_anulada: boolean; encerrada: boolean; chamado_id: string | null;
 };
@@ -39,7 +40,7 @@ export function useFiscalDevolucao(devolucaoId: string) {
       if (error) throw error;
       if (!d) throw new Error("Devolução não encontrada.");
       const [nfR, pedR, funilR, statusR] = await Promise.all([
-        d.nf_original_id ? sb.from("nfs_emitidas").select("numero,situacao,anulada_por_devolucao_em,autorizada_em,emitida_em,data_emissao").eq("id", d.nf_original_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+        d.nf_original_id ? sb.from("nfs_emitidas").select("numero,bling_id,situacao,anulada_por_devolucao_em,autorizada_em,emitida_em,data_emissao").eq("id", d.nf_original_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         d.pedido_id ? sb.from("pedidos").select("id_externo").eq("id", d.pedido_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         sb.from("vw_devolucao_funil").select("e7_encerrada,status_efetivo,status").eq("id", devolucaoId).single(),
         sb.from("devolucao_status").select("codigo,eh_final"),
@@ -52,13 +53,33 @@ export function useFiscalDevolucao(devolucaoId: string) {
       // CORRIGIR-NF (27/10/2026): o prazo de 24h conta da emissão da NF original (fallback autorização, depois data de emissão).
       const base = nf?.emitida_em ?? nf?.autorizada_em ?? nf?.data_emissao ?? null;
       const prazo = d.fiscal_acao === "cancelar_nf" && base ? new Date(new Date(base).getTime() + 24 * 3600_000).toISOString() : null;
-      return { id: d.id, fiscal_acao: d.fiscal_acao, pedido_ref: pedR.data?.id_externo ?? null, nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_situacao: nf?.situacao ?? null, prazo,
+      return { id: d.id, fiscal_acao: d.fiscal_acao, pedido_ref: pedR.data?.id_externo ?? null, nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_bling_id: nf?.bling_id != null && String(nf.bling_id) !== "0" ? String(nf.bling_id) : null, nf_situacao: nf?.situacao ?? null, prazo,
         finalidade: d.finalidade ?? null, nf_sub_status: d.nf_sub_status ?? null, nf_sub_erro: d.nf_sub_erro ?? null,
         nf_sub_numero: d.nf_sub_numero ?? null, nf_original_anulada: nf?.situacao === "cancelada" || !!nf?.anulada_por_devolucao_em,
         encerrada: !!funilR.data?.e7_encerrada || (statusR.data ?? []).some((s: any) => s.codigo === (funilR.data?.status_efetivo ?? funilR.data?.status) && s.eh_final === true),
         chamado_id: d.chamado_id ?? null };
     },
   });
+}
+
+// CORRECAO-NF-VERIFICAR-BLING: pede ao Bling o status atual da NF original (modo dirigido do nfe-reconferir).
+export function VerificarNfBlingBotao({ blingId, nfNumero, refaturar, icone, onFeito }: {
+  blingId: string; nfNumero: string | null; refaturar?: boolean; icone?: boolean; onFeito?: () => Promise<void> | void;
+}) {
+  const v = useVerificarNfBling({ silencioso: true });
+  const nf = `NF nº ${nfNumero ?? "?"}`;
+  const rodar = async () => {
+    try {
+      const r = await v.mutateAsync({ bling_ids: [blingId] });
+      const res = r.resultados.find((x) => String(x.bling_id) === String(blingId)) ?? r.resultados[0];
+      if (res?.para === "cancelada" || res?.para === "excluida") toast.success(refaturar ? `${nf} cancelada ✓ — já pode gerar a NF nova` : `${nf} cancelada ✓`);
+      else if (!r.erros.length) toast.info(`${nf} ainda autorizada no Bling`);
+      await onFeito?.();
+    } catch { /* o hook já mostrou o erro */ }
+  };
+  const loader = v.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />;
+  if (icone) return <Button size="icon" variant="outline" className="h-7 w-7" aria-label="Verificar no Bling" title="Verificar no Bling" disabled={v.isPending} onClick={(e) => { e.stopPropagation(); void rodar(); }}>{loader}</Button>;
+  return <Button size="sm" variant="outline" disabled={v.isPending} onClick={() => void rodar()}><span className="mr-2">{loader}</span>Verificar no Bling</Button>;
 }
 
 type PropsBloco = {
@@ -157,7 +178,8 @@ export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida, vinculoSugerido
             <span className="flex-1 text-xs">{just}</span>
             <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copiar justificativa" onClick={async () => { try { await navigator.clipboard.writeText(just); toast.success("Justificativa copiada"); } catch (e) { toast.error(rawMessage(e)); } }}><Copy className="h-3.5 w-3.5" /></Button>
           </div>
-          <div className="text-xs text-muted-foreground">A etapa se resolve sozinha quando a NF aparecer cancelada no SNCF.</div>
+          {!f.encerrada && f.nf_bling_id && <VerificarNfBlingBotao blingId={f.nf_bling_id} nfNumero={f.nf_numero} onFeito={mudou} />}
+          <div className="text-xs text-muted-foreground">A etapa se resolve sozinha (busca a cada 30 min) — ou clique em Verificar no Bling.</div>
           {expirou && <Alert variant="destructive"><AlertDescription>Prazo de cancelamento expirou — emitir NF de devolução</AlertDescription></Alert>}
         </>}
       </div>
@@ -239,6 +261,7 @@ function BlocoRefaturar({ f, nfResolvida, mudou }: { f: FiscalDevolucao; nfResol
         ? <div className="text-success">NF nº {nf} cancelada.</div>
         : <>
             <div><span className="font-medium">Fiscal:</span> cancelar a NF nº {nf} no Bling até {f.prazo ? ddMMHHmm(f.prazo) : "—"}</div>
+            {!f.encerrada && f.nf_bling_id && <VerificarNfBlingBotao blingId={f.nf_bling_id} nfNumero={f.nf_numero} refaturar onFeito={mudou} />}
             {expirou && (
               <div className="space-y-2">
                 <Alert variant="destructive"><AlertDescription>Prazo de cancelamento vencido.</AlertDescription></Alert>

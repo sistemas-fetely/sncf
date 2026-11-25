@@ -57,14 +57,15 @@ Deno.serve(async (req) => {
     if (!r) {
       if (!dirigido) return json({ ok: false, erro: "Apenas super_admin." }, 403);
       const us = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-      const [a, b, c] = await Promise.all([
+      const [a, b, c, d] = await Promise.all([
         us.rpc("tem_permissao", { p_slug: "tela.regularizacao_estoque" } as any),
         us.rpc("usuario_tem_acao", { p_slug: "acao.estoque_contagem_registrar" } as any),
         us.rpc("usuario_tem_acao", { p_slug: "acao.expedicao_sp_operar" } as any),
+        us.rpc("tem_permissao", { p_slug: "tela.devolucoes" } as any),
       ]);
-      const errs = [a.error, b.error, c.error].filter(Boolean);
-      if (errs.length && !(a.data || b.data || c.data)) return json({ ok: false, erro: `Falha ao checar permissão: ${errs[0]!.message}` }, 500);
-      if (!(a.data === true || b.data === true || c.data === true)) return json({ ok: false, erro: "Sem permissão para verificar NFs no Bling." }, 403);
+      const errs = [a.error, b.error, c.error, d.error].filter(Boolean);
+      if (errs.length && !(a.data || b.data || c.data || d.data)) return json({ ok: false, erro: `Falha ao checar permissão: ${errs[0]!.message}` }, 500);
+      if (!(a.data === true || b.data === true || c.data === true || d.data === true)) return json({ ok: false, erro: "Sem permissão para verificar NFs no Bling." }, 403);
     }
   }
 

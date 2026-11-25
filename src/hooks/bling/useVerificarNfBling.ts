@@ -5,10 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 export type ResultadoVerificacao = { bling_id: string; numero: string | null; de: string | null; para: string | null };
 type Alvo = { bling_ids: string[] } | { pedido_bling_id: string };
 
-function mensagem(r: ResultadoVerificacao): string {
+export function mensagem(r: ResultadoVerificacao): string {
   const nf = r.numero ? `NF ${r.numero}` : `NF (id ${r.bling_id})`;
+  if (r.para === "autorizada" && r.de === "autorizada") return `${nf} ainda autorizada no Bling`;
   if (r.para === "autorizada") return `${nf} autorizada ✓`;
-  if (r.para === "excluida" || r.para === "cancelada") return `${nf}: Excluída no Bling`;
+  if (r.para === "cancelada") return `${nf}: cancelada no Bling`;
+  if (r.para === "excluida") return `${nf}: Excluída no Bling`;
   return `${nf}: Ainda pendente no Bling`;
 }
 
@@ -24,7 +26,8 @@ async function chamar(body: Record<string, unknown>) {
 }
 
 /** Pede ao Bling o status atual de NFs (até 10 por chamada; chama em lotes). */
-export function useVerificarNfBling() {
+/** `silencioso`: quem chama mostra os próprios toasts de resultado (erros continuam aqui). */
+export function useVerificarNfBling(opts: { silencioso?: boolean } = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (alvo: Alvo) => {
@@ -46,6 +49,7 @@ export function useVerificarNfBling() {
       return { resultados, erros, pedido: "pedido_bling_id" in alvo };
     },
     onSuccess: async ({ resultados, erros, pedido }) => {
+      if (opts.silencioso) { for (const e of erros) toast.error(e); await qc.invalidateQueries(); return; }
       if (!resultados.length && !erros.length) toast.info(pedido ? "Nenhuma NF desse pedido no Bling ainda." : "Ainda pendente no Bling");
       for (const r of resultados) {
         const m = mensagem(r);

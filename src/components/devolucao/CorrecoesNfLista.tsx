@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { BlocoFiscalDevolucao } from "./FiscalDevolucao";
+import { BlocoFiscalDevolucao, VerificarNfBlingBotao } from "./FiscalDevolucao";
 import { ordenarCorrecoes, prazoCancelamento, textoReenvio, type StatusNfSub } from "./correcaoNf";
 
 const sb = supabase as any;
@@ -18,7 +18,7 @@ const ddMMHHmm = (v: string) => new Date(v).toLocaleString("pt-BR", { timeZone: 
 
 type Linha = {
   id: string; numero: string | null; status: string | null; fiscal_acao: string | null; pedido_ref: string | null;
-  nf_numero: string | null; nf_cancelada: boolean; prazo: string | null; nf_sub_status: StatusNfSub; nf_sub_erro: string | null;
+  nf_numero: string | null; nf_bling_id: string | null; nf_cancelada: boolean; prazo: string | null; nf_sub_status: StatusNfSub; nf_sub_erro: string | null;
   nf_nova: string | null; chamado_id: string | null; criado_em: string | null;
 };
 
@@ -44,7 +44,7 @@ export function useCorrecoesNf() {
       const nfIds = [...new Set(ds.map((d) => d.nf_original_id).filter(Boolean))] as string[];
       const pedIds = [...new Set(ds.map((d) => d.pedido_id).filter(Boolean))] as string[];
       const [nfs, peds] = await Promise.all([
-        emBlocos<any>("nfs_emitidas", "id,numero,situacao,anulada_por_devolucao_em,emitida_em,autorizada_em,data_emissao", nfIds),
+        emBlocos<any>("nfs_emitidas", "id,numero,bling_id,situacao,anulada_por_devolucao_em,emitida_em,autorizada_em,data_emissao", nfIds),
         emBlocos<any>("pedidos", "id,id_externo", pedIds),
       ]);
       const nfMap = new Map(nfs.map((n) => [n.id, n]));
@@ -54,7 +54,7 @@ export function useCorrecoesNf() {
         return {
           id: d.id, numero: d.numero ?? null, status: d.status ?? null, fiscal_acao: d.fiscal_acao ?? null,
           pedido_ref: d.pedido_id ? pedMap.get(d.pedido_id) ?? null : null,
-          nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_cancelada: nf?.situacao === "cancelada" || !!nf?.anulada_por_devolucao_em,
+          nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_bling_id: nf?.bling_id != null && String(nf.bling_id) !== "0" ? String(nf.bling_id) : null, nf_cancelada: nf?.situacao === "cancelada" || !!nf?.anulada_por_devolucao_em,
           prazo: prazoCancelamento(d.fiscal_acao, nf), nf_sub_status: d.nf_sub_status ?? null, nf_sub_erro: d.nf_sub_erro ?? null,
           nf_nova: d.nf_sub_numero ?? null, chamado_id: d.chamado_id ?? null, criado_em: d.criado_em ?? null,
         };
@@ -128,7 +128,10 @@ export function CorrecoesNfLista({ ehFinal, nfResolvida, filtro, setFiltro, onMu
                     <TableCell className="font-medium">{l.numero ?? "—"}</TableCell>
                     <TableCell className="text-sm">{l.pedido_ref ?? "—"}</TableCell>
                     <TableCell className="text-sm tabular-nums">{l.nf_numero ? `nº ${l.nf_numero}` : "—"}</TableCell>
-                    <TableCell className={cn("text-sm", vencido(l) && "text-destructive")}>{caminho(l)}{vencido(l) && " · vencido"}</TableCell>
+                    <TableCell className={cn("text-sm", vencido(l) && "text-destructive")}><div className="flex items-center gap-2"><span>{caminho(l)}{vencido(l) && " · vencido"}</span>
+                      {l.aberta && l.fiscal_acao === "cancelar_nf" && !l.nf_cancelada && !nfResolvida(l.id) && l.nf_bling_id && (
+                        <span onClick={(e) => e.stopPropagation()}><VerificarNfBlingBotao icone blingId={l.nf_bling_id} nfNumero={l.nf_numero} refaturar onFeito={async () => { await q.refetch(); await onMudou(); }} /></span>
+                      )}</div></TableCell>
                     <TableCell className={cn("text-sm", l.nf_sub_status === "erro" ? "text-destructive" : l.nf_sub_status === "autorizada" ? "text-success" : "")}>
                       <span className="line-clamp-2">{st ?? "—"}</span>
                     </TableCell>
