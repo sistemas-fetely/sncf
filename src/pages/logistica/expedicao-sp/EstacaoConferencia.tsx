@@ -63,11 +63,7 @@ const FONTE_FOTO: Record<string, { atencao: "discreta" | "forte"; tooltip: strin
     atencao: "forte",
     tooltip: "foto da coleção — confira pelo código, não pela foto",
   },
-  produto: {
-    atencao: "discreta",
-    tooltip: "foto principal do produto — pode não ser desta cor",
-  },
-  galeria: {
+  produto_shopify: {
     atencao: "discreta",
     tooltip: "foto principal do produto — pode não ser desta cor",
   },
