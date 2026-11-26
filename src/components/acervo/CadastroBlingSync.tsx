@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useEstadoTela } from "@/lib/navegacao";
 import { formatError } from "@/lib/format-error";
+import { campoDeMedida, numeroMedida } from "@/lib/acervo/numeroMedida";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,12 @@ const sb = supabase as unknown as SupabaseClient;
 type Resumo = { total: number; lidos: number; restantes: number; produtos_divergentes: number; campos_divergentes: number; sem_vinculo: number; sem_peso: number; sem_dimensao: number; erros: number; pendentes: number; por_campo: Record<string, number> };
 const exibir = (v: unknown) => v == null ? "—" : String(v);
 const exibirCampo = (campo: string | undefined) => campo === "unidadeMedida" ? "Unidade de medida" : campo ?? "—";
-const exibirValor = (campo: string | undefined, v: unknown) => campo === "unidadeMedida" && Number(v) === 1 ? "1 (cm)" : exibir(v);
+// Só exibição: a comparação e o envio ao Bling seguem usando os valores originais.
+const exibirValor = (campo: string | undefined, v: unknown) => {
+  if (campo === "unidadeMedida" && Number(v) === 1) return "1 (cm)";
+  if (campoDeMedida(campo)) { const f = numeroMedida(v); if (f !== null) return f; }
+  return exibir(v);
+};
 async function chamar(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("bling-produto-sync", { body });
   if (error) {

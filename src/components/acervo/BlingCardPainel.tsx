@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { numeroMedida } from "@/lib/acervo/numeroMedida";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,8 +125,10 @@ function formatBRL(v: number | null): string {
   return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function med(v: number | null): string {
-  return v === null || v === undefined ? "—" : String(v).replace(".", ",");
+function med(v: number | null, casas?: number): string {
+  if (v === null || v === undefined) return "—";
+  if (casas === undefined) return String(v).replace(".", ",");
+  return numeroMedida(v, casas) ?? String(v).replace(".", ",");
 }
 
 interface Previa {
@@ -704,7 +707,7 @@ export function BlingCardPainel() {
                         </TableCell>
                         <TableCell className="font-mono text-xs">{l.cest ?? "—"}</TableCell>
                         <TableCell className={`text-right text-xs tabular-nums ${l.peso_g ? "" : vazio}`}>
-                          {l.peso_g ? `${l.peso_g} g` : "—"}
+                          {l.peso_g ? `${med(l.peso_g, 1)} g` : "—"}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums whitespace-nowrap">
                           {med(l.largura_cm)} × {med(l.altura_cm)} × {med(l.profundidade_cm)} cm
