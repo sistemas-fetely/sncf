@@ -1,7 +1,9 @@
 // Nascimento de produto no Bling (POST /produtos v3).
 // Mesmo padrão de `atualizar-nomes-bling`: auth por sessão + client Bling com refresh de token,
 // throttle de 350ms, dry-run por padrão.
-// Dois portões: ficha furada (vw_produto_ficha_pendencias) e duplicidade (bling_produtos_cache).
+// Portões: ficha (vw_produto_ficha_pendencias), duplicidade (bling_produtos_cache) e validação do
+// cadastro por destino (vw_produto_destino_pendencia, regras em produto_campo_destino.exigencia —
+// nada de regra de campo escrita no código).
 // Nunca assume origem fiscal: é decisão humana/contador.
 
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
@@ -155,54 +157,19 @@ serve(async (req) => {
       }
     }
 
-    // ---- PORTÃO 3: nome repetido (Bling espelho, outros SNCF, mesmo lote) ----
-    const norm = (s: unknown) => String(s ?? "").trim().toLowerCase();
-    const escLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
-    const nomesLote = new Map<string, string[]>(); // nome normalizado -> skus do lote
-    for (const sku of skus) {
-      const n = norm(porSku.get(sku)?.nome_operacional);
-      if (!n) continue;
-      nomesLote.set(n, [...(nomesLote.get(n) ?? []), sku]);
-    }
-    const repetidoCom = new Map<string, Set<string>>(); // nome normalizado -> códigos conflitantes
-    const addConf = (n: string, cod: string) => {
-      const s = repetidoCom.get(n) ?? new Set<string>();
-      s.add(cod);
-      repetidoCom.set(n, s);
-    };
-    try {
-      await Promise.all(
-        [...nomesLote.keys()].map(async (n) => {
-          const padrao = `%${escLike(n)}%`;
-          const [rb, rs] = await Promise.all([
-            supabase.from("produtos").select("codigo, nome").ilike("nome", padrao),
-            supabase
-              .from("sncf_produtos")
-              .select("sku, nome_operacional, fase")
-              .ilike("nome_operacional", padrao)
-              .in("fase", ["ativo", "pre_venda", "inativo"]),
-          ]);
-          if (rb.error) throw new Error(`Falha ao ler produtos: ${rb.error.message}`);
-          if (rs.error) throw new Error(`Falha ao ler sncf_produtos (nomes): ${rs.error.message}`);
-          for (const p of (rb.data ?? []) as any[]) {
-            if (norm(p.nome) === n && p.codigo) addConf(n, String(p.codigo));
-          }
-          for (const p of (rs.data ?? []) as any[]) {
-            if (norm(p.nome_operacional) === n) addConf(n, String(p.sku));
-          }
-        }),
-      );
-    } catch (e) {
-      return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
-    }
-    function conflitosDe(sku: string): string[] {
-      const n = norm(porSku.get(sku)?.nome_operacional);
-      if (!n) return [];
-      const out = new Set<string>();
-      const proprio = String(porSku.get(sku)?.codigo_externo ?? "").trim();
-      for (const c of repetidoCom.get(n) ?? []) if (c !== sku && c !== proprio) out.add(c);
-      for (const c of nomesLote.get(n) ?? []) if (c !== sku) out.add(c);
-      return [...out];
+    // ---- PORTÃO 3: validação do cadastro por destino (regras em produto_campo_destino.exigencia) ----
+    const { data: destPend, error: destPendErr } = await supabase
+      .from("vw_produto_destino_pendencia")
+      .select("sku, pendencia")
+      .eq("sistema", "Bling")
+      .eq("nivel", "trava")
+      .in("sku", skus);
+    if (destPendErr) return json({ ok: false, erro: `Falha ao ler vw_produto_destino_pendencia: ${destPendErr.message}` }, 500);
+    const destPendPorSku = new Map<string, string[]>();
+    for (const r of (destPend || []) as any[]) {
+      const lista = destPendPorSku.get(r.sku) ?? [];
+      if (r.pendencia && !lista.includes(r.pendencia)) lista.push(r.pendencia);
+      destPendPorSku.set(r.sku, lista);
     }
 
     const recusados: { sku: string; motivo: string }[] = [];
@@ -234,25 +201,18 @@ serve(async (req) => {
         console.log(`[criar-produto-bling] ${sku}: recusado — ficha pendente (${faltando.join(", ")})`);
         continue;
       }
+      const pendCadastro = destPendPorSku.get(sku);
+      if (pendCadastro && pendCadastro.length > 0) {
+        recusados.push({ sku, motivo: `pendência de cadastro: ${pendCadastro.join(", ")}` });
+        console.log(`[criar-produto-bling] ${sku}: recusado — pendência de cadastro (${pendCadastro.join(", ")})`);
+        continue;
+      }
       const nome = texto(f.nome_operacional);
       if (!nome) {
         recusados.push({ sku, motivo: "nome_operacional vazio" });
         console.log(`[criar-produto-bling] ${sku}: recusado — nome_operacional vazio`);
         continue;
       }
-      const conf = conflitosDe(sku);
-      if (conf.length > 0) {
-        recusados.push({ sku, motivo: `nome repetido: igual a ${conf.join(", ")}` });
-        console.log(`[criar-produto-bling] ${sku}: recusado — nome repetido (${conf.join(", ")})`);
-        continue;
-      }
-
-      if (!texto(f.ncm)) {
-        recusados.push({ sku, motivo: "sem NCM (decisão fiscal)" });
-        console.log(`[criar-produto-bling] ${sku}: recusado — sem NCM`);
-        continue;
-      }
-
       let situacaoCard: string;
       try { situacaoCard = situacaoPelaFase(faseDestino, f.fase); } catch (e) {
         if (!(e instanceof FaseSemRegra)) throw e;

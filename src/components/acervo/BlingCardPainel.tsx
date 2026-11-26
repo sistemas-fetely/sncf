@@ -115,7 +115,7 @@ interface LinhaFila {
 }
 
 function rotuloFalta(f: string): string {
-  if (f === "nome repetido" || f === "nome malformado") return f.charAt(0).toUpperCase() + f.slice(1);
+  if (f === "nome repetido" || f === "nome malformado" || f.includes(":")) return f.charAt(0).toUpperCase() + f.slice(1);
   return `Falta ${f}`;
 }
 
