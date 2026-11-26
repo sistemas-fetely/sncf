@@ -743,6 +743,13 @@
       "when": 1795664381115,
       "tag": "0105_protect_selected_internal_backup_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1795664803007,
+      "tag": "0106_bling_card_canonico_no_nascimento",
+      "breakpoints": true
     }
   ]
 }
