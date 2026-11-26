@@ -11,27 +11,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * CORRIGIR NO BLING PELA MATRIZ (23/09/2026) — espelho do CorrigirXpmLote.
  * SISTEMA SUGERE / HUMANO DECIDE: abre em dry-run, mostra o de-para e só envia no Aplicar.
- * A edge corrigir-produto-bling faz GET antes do PUT (o PUT do Bling substitui tudo).
- * Levas sequenciais de 50 (teto da edge); falha de leva preserva o que já voltou.
+ * BLING-MOTOR-UNICO-2 (26/11/2026): usa o motor único bling-produto-sync — `previa` para Comparar,
+ * `corrigir` para Aplicar (GET antes, PATCH só dos campos divergentes, GET de confirmação).
+ * Situação do card é um campo normal do de-para. Levas sequenciais de 20; falha de leva preserva o que já voltou.
  */
 
 export type ProdutoBling = { sku: string; cod_cadastro: string | null };
 
-type DePara = { campo: string; bling: unknown; novo: unknown };
-type Resultado = { sku: string; status: string; de_para?: DePara[]; bloqueios?: string[]; erro?: string };
+type DePara = { campo: string; rotulo?: string; bling: unknown; sncf: unknown };
+type Resultado = { sku: string; status: string; de_para?: DePara[]; bloqueios?: string[]; avisos?: string[]; aplicados?: string[]; erro?: string };
 
-// Teto da edge corrigir-produto-bling = 50 SKUs por chamada.
+// Teto das ações previa/corrigir do motor = 20 SKUs por chamada.
 const TETO = 20;
 
 type Progresso = { leva: number; total: number };
 type Chamada = { resultados: Resultado[]; levaFalha: number | null; erroLeva: string | null };
 
-async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, onProgresso?: (p: Progresso) => void): Promise<Chamada> {
+async function chamar(skus: string[], acao: "previa" | "corrigir", onProgresso?: (p: Progresso) => void): Promise<Chamada> {
   const levas: string[][] = [];
   for (let i = 0; i < skus.length; i += TETO) levas.push(skus.slice(i, i + TETO));
   const total = levas.length;
@@ -40,10 +41,14 @@ async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, on
   for (let i = 0; i < total; i++) {
     onProgresso?.({ leva: i + 1, total });
     try {
-      const { data, error } = await supabase.functions.invoke("corrigir-produto-bling", {
-        body: { skus: levas[i], dry_run, ativar_card },
+      const { data, error } = await supabase.functions.invoke("bling-produto-sync", {
+        body: { acao, skus: levas[i] },
       });
-      if (error) throw error;
+      if (error) {
+        const ctx = (error as { context?: unknown }).context;
+        const corpo = ctx instanceof Response ? await ctx.clone().json().catch(() => null) : null;
+        throw corpo?.erro ? new Error(String(corpo.erro)) : error;
+      }
       if (!data || data.ok !== true) throw data ?? new Error("Resposta vazia da função");
       resultados.push(...((data.resultados ?? []) as Resultado[]));
     } catch (e) {
@@ -54,7 +59,8 @@ async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, on
   return { resultados, levaFalha: null, erroLeva: null };
 }
 
-export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, sugerirCard = false, rotuloBotao }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean; sugerirCard?: boolean; rotuloBotao?: string }) {
+// `sugerirCard` segue aceita por compatibilidade e não tem efeito: situação do card agora é campo do de-para.
+export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, rotuloBotao }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean; sugerirCard?: boolean; rotuloBotao?: string }) {
   const perm = usePermissaoAcaoOuSuperAdmin("acao.produto_corrigir_externo");
   const semPerm = perm.carregando || !perm.permitido;
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.produto_corrigir_externo" : undefined;
@@ -65,7 +71,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
   const [final, setFinal] = useState<Resultado[] | null>(null);
   const [progresso, setProgresso] = useState<Progresso | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [ativarCard, setAtivarCard] = useState(false);
+  const qc = useQueryClient();
 
   const cod = (sku: string) => produtos.find(p => p.sku === sku)?.cod_cadastro ?? sku;
 
@@ -74,31 +80,30 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
   const semCadastro = (previa ?? []).filter(r => r.status === "sem_cadastro_no_bling");
   const incompletos = (previa ?? []).filter(r => r.status === "matriz_incompleta");
   const outros = (previa ?? []).filter(r => !["tem_diferenca", "sem_diferenca", "sem_cadastro_no_bling", "matriz_incompleta"].includes(r.status));
-  // Tudo que foi para o Bling (diferença ou já igual): o edge atualiza o espelho mesmo sem diferença.
-  const aplicaveis = [...comDiferenca, ...semDiferenca];
+  // Só os com diferença vão ao Bling; a prévia já atualizou o espelho dos demais.
+  const aplicaveis = comDiferenca;
 
   const zerar = () => { setPrevia(null); setFinal(null); setCarregando(false); setAplicando(false); setProgresso(null); setAviso(null); };
-  const recomparar = (v: boolean) => { setAtivarCard(v); void comparar(v); };
+  const invalidar = () => Promise.all([qc.invalidateQueries({ queryKey: ["conciliacao-fila"] }), qc.invalidateQueries({ queryKey: ["bling-cadastro-depara"] })]);
 
-  // JANELA-PARADA (29/09/2026): abre sem comparar — a opção do card é decidida
-  // antes, e a comparação só roda no clique explícito em "Comparar".
+  // JANELA-PARADA (29/09/2026): abre sem comparar — a comparação só roda no clique explícito em "Comparar".
   function abrir() {
     zerar();
-    setAtivarCard(sugerirCard);
     setAberto(true);
   }
 
-  async function comparar(ativar: boolean) {
+  async function comparar() {
     setPrevia(null); setAviso(null);
     setCarregando(true);
     try {
-      const res = await chamar(produtos.map(p => p.sku), true, ativar, setProgresso);
+      const res = await chamar(produtos.map(p => p.sku), "previa", setProgresso);
       setPrevia(res.resultados);
       if (res.erroLeva) setAviso(`comparação incompleta: leva ${res.levaFalha} falhou — ${res.erroLeva}`);
     } catch (e) {
       toast.error("Não foi possível comparar com o Bling", { description: formatError(e) });
       setAberto(false);
     } finally {
+      void invalidar();
       setCarregando(false);
       setProgresso(null);
     }
@@ -109,13 +114,14 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
     if (!skus.length) return;
     setAplicando(true);
     try {
-      const res = await chamar(skus, false, ativarCard, setProgresso);
+      const res = await chamar(skus, "corrigir", setProgresso);
       setFinal(res.resultados);
       if (res.erroLeva) setAviso(`comparação incompleta: leva ${res.levaFalha} falhou — ${res.erroLeva}`);
       const oks = res.resultados.filter(r => r.status === "ok").length;
       const falhas = res.resultados.filter(r => r.status !== "ok");
       if (falhas.length) toast.error(`${oks} corrigidos no Bling · ${falhas.length} falharam`, { description: "Veja a lista de falhas no diálogo." });
       else toast.success(`${oks} produtos corrigidos no Bling`);
+      await invalidar();
       onFeito();
     } catch (e) {
       toast.error("A correção no Bling falhou", { description: formatError(e) });
@@ -147,15 +153,10 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
           <DialogDescription>Nada é enviado antes de você clicar em Aplicar. O sistema só mostra o que mudaria.</DialogDescription>
         </DialogHeader>
 
-        {!final && <label className="flex items-start gap-2 text-sm">
-          <Checkbox checked={ativarCard} disabled={carregando || aplicando} onCheckedChange={v => recomparar(v === true)} className="mt-0.5" />
-          <span>Também ligar/desligar o card conforme a fase (Ativo = card ligado)
-            <span className="block text-xs text-muted-foreground">Resolve as linhas de "Card ativo antes da hora".</span></span>
-        </label>}
 
         {!carregando && !final && !previa && <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">Escolha a opção acima e clique em Comparar. Nada é enviado antes do Aplicar.</p>
-          <Button onClick={() => void comparar(ativarCard)} disabled={semPerm} title={tituloPerm}>
+          <p className="text-xs text-muted-foreground">Clique em Comparar. Nada é enviado antes do Aplicar.</p>
+          <Button onClick={() => void comparar()} disabled={semPerm} title={tituloPerm}>
             <RefreshCw className="mr-2 h-4 w-4" />Comparar
           </Button>
         </div>}
@@ -190,8 +191,9 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
             {comDiferenca.map(r => <div key={r.sku} className="space-y-1 rounded-md border p-2">
               <p className="text-sm font-medium"><CodProduto chave={r.sku} variant="compacto" /></p>
               {(r.de_para ?? []).map(d => <p key={d.campo} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{rotulos[d.campo] ?? d.campo}</span>: {mostrarCampo(d.campo, d.bling)} → <span className="text-foreground">{mostrarCampo(d.campo, d.novo)}</span>
+                <span className="font-medium text-foreground">{rotulos[d.campo] ?? d.rotulo ?? d.campo}</span>: {mostrarCampo(d.campo, d.bling)} → <span className="text-foreground">{mostrarCampo(d.campo, d.sncf)}</span>
               </p>)}
+              {(r.avisos ?? []).map(a => <p key={a} className="text-xs text-warning">{a}</p>)}
             </div>)}
 
             {semDiferenca.length > 0 && <div className="space-y-1">
@@ -229,7 +231,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
               <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>
               <Button disabled={carregando || aplicando || aplicaveis.length === 0 || semPerm} title={tituloPerm} onClick={() => void aplicar()}>
                 {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {comDiferenca.length > 0 ? `Aplicar ${comDiferenca.length} correções` : `Atualizar espelho (${semDiferenca.length} já iguais)`}
+                {`Aplicar ${comDiferenca.length} correções`}
               </Button>
             </>
             : <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>}
@@ -251,6 +253,9 @@ const rotulos: Record<string, string> = {
   ncm: "NCM",
   cest: "CEST",
   situacao: "Situação do card",
+  grupoTributario: "Grupo tributário",
+  origem: "Origem fiscal",
+  marca: "Marca",
   unidadeMedida: "Unidade das medidas",
   gtinEmbalagem: "DUN (GTIN da caixa)",
   itensPorCaixa: "Itens por caixa",

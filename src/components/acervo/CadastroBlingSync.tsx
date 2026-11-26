@@ -31,6 +31,7 @@ export function BlingSyncControle() {
   const [progresso, setProgresso] = useState<Resumo | null>(null);
   const [verErros, setVerErros] = useState(false);
   const configQ = useQuery({ queryKey: ["bling-sync", "config"], queryFn: async () => { const r = await sb.from("bling_produto_sync_config").select("*").eq("id", true).single(); if (r.error) throw r.error; return r.data; } });
+  const emMassaQ = useQuery({ queryKey: ["bling-sync", "campos-em-massa"], queryFn: async () => { const r = await sb.from("produto_campo_destino").select("campo,rotulo_tela").eq("sistema", "Bling").eq("ativo", true).eq("na_correcao", true).eq("sobrescreve", true).order("rotulo_tela"); if (r.error) throw r.error; return (r.data ?? []) as { campo: string; rotulo_tela: string | null }[]; } });
   const execQ = useQuery({ queryKey: ["bling-sync", "execucoes"], refetchInterval: ocupado ? 3000 : false, queryFn: async () => { const r = await sb.from("bling_produto_sync_execucao").select("*").order("criado_em", { ascending: false }).limit(1); if (r.error) throw r.error; return r.data; } });
   const execucao = execQ.data?.[0];
   const id: string = execucao?.id ?? "";
@@ -99,7 +100,11 @@ export function BlingSyncControle() {
       </div>
     </div>
     {falha && <p role="alert" className="whitespace-pre-wrap break-words text-sm text-destructive">{falha}</p>}
-    <AlertDialog open={confirmar} onOpenChange={setConfirmar}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Enviar cadastro ao Bling?</AlertDialogTitle><AlertDialogDescription>{resumo?.produtos_divergentes} produtos · {resumo?.pendentes} campos pendentes.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><Button onClick={() => void executar("aplicar")}>Enviar ao Bling</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    <AlertDialog open={confirmar} onOpenChange={setConfirmar}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Enviar cadastro ao Bling?</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-2">
+      <p>{resumo?.produtos_divergentes} produtos · {resumo?.pendentes} campos pendentes.</p>
+      <p>Vão só os campos marcados para envio em massa{emMassaQ.data ? <>: <span className="text-foreground">{[...emMassaQ.data.map((c) => c.rotulo_tela || c.campo), "Origem fiscal (regra fiscal fixa)"].join(", ")}</span></> : "…"}. Os demais ficam para correção produto a produto.</p>
+      {emMassaQ.error && <p role="alert" className="text-destructive">{formatError(emMassaQ.error)}</p>}
+    </div></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><Button disabled={!emMassaQ.data} onClick={() => void executar("aplicar")}>Enviar ao Bling</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <Dialog open={verErros} onOpenChange={setVerErros}><DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader><DialogTitle>Erros da última leitura do Bling</DialogTitle></DialogHeader>
       {errosQ.error ? <p role="alert" className="text-sm text-destructive">{formatError(errosQ.error)}</p>

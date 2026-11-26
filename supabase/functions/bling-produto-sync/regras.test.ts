@@ -30,7 +30,7 @@ describe("Cadastro SNCF → Bling F1", () => {
   test("envio restrito a itensPorCaixa exclui cest e dimensões", () => { const i = comparar({ inner_qtd: 24, inner_confirmado: true, cest: "2800100", altura_cm: 2 }, {}, campos).filter((d) => dentroDoFiltro({ sku: "A", campo: d.campo }, { campos: ["itensPorCaixa"] })); expect(montarPatch(i)).toEqual({ itensPorCaixa: 24 }); });
   test("vazio/nulo/zero nunca apagam Bling", () => { for (const v of [null, "", "  ", 0, "0"]) expect(comparar(Object.fromEntries(campos.map((c) => [c.origem, v])), { pesoBruto: 12, gtin: "123" }, campos)).toEqual([]); });
   test("tolerância numérica 0,001", () => { expect(comparar({ peso_g: 1000 }, { pesoBruto: 1.001, pesoLiquido: 1.001 }, campos)).toEqual([]); expect(comparar({ peso_g: 1000 }, { pesoBruto: 1.002, pesoLiquido: 1 }, campos)).toHaveLength(1); });
-  test("campos proibidos nunca entram em PATCH", () => { expect(() => montarPatch([{ campo: "nome", destino: "nome", valor_sncf: "A", valor_bling: "B" }])).toThrow("fora da Fase 1"); });
+  test("campos fora do motor nunca entram em PATCH", () => { expect(() => montarPatch([{ campo: "descricaoCurta", destino: "descricaoCurta", valor_sncf: "A", valor_bling: "B" }])).toThrow("fora do motor"); });
   test("escrita desligada impede aplicação", () => { expect(() => exigirEscrita({ escrita_habilitada: false })).toThrow("Nenhum produto foi enviado"); expect(() => exigirEscrita({ escrita_habilitada: true })).not.toThrow(); });
   test("21.2/6.9/3.1 iguais com unidade 2 divergem só em unidadeMedida", () => {
     const d = comparar({ altura_cm: 21.2, largura_cm: 6.9, profundidade_cm: 3.1 }, { dimensoes: { altura: 21.2, largura: 6.9, profundidade: 3.1, unidadeMedida: 2 } }, campos);

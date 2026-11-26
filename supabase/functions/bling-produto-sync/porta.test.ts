@@ -6,3 +6,7 @@ test("porta x-cron-secret aceita só diff com execucao_id", () => {
   for (const acao of ["aplicar", "automatico", "consultar"]) expect(portaCronPermite({ acao, execucao_id: "x" })).toBe(false);
   expect(portaCronPermite(null)).toBe(false);
 });
+test("porta x-cron-secret aceita incremental e recusa previa/corrigir/aplicar/consultar", () => {
+  expect(portaCronPermite({ acao: "incremental" })).toBe(true);
+  for (const acao of ["previa", "corrigir", "aplicar", "consultar"]) expect(portaCronPermite({ acao })).toBe(false);
+});
