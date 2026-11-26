@@ -49,10 +49,10 @@ export function usePendenciaRoteamento(pedidoId: string) {
     queryFn: async (): Promise<PendenciaRoteamento | null> => {
       const { data, error } = await supabase
         .from("pedido_eventos")
-        .select("tipo_evento, descricao, metadata, created_at")
+        .select("tipo_evento, descricao, metadata, criado_em")
         .eq("pedido_id", pedidoId)
         .or("tipo_evento.eq.erro_automacao,metadata->>acao.eq.roteamento_pendente")
-        .order("created_at", { ascending: false })
+        .order("criado_em", { ascending: false })
         .limit(1);
       if (error) throw error;
       const ev = data?.[0] as any;
