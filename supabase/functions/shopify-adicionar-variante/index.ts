@@ -1,12 +1,13 @@
 // shopify-adicionar-variante — adiciona SKU do SNCF como VARIANTE de um produto agrupado já existente no Shopify.
 // Mapa: sncf_documentacao slug `mapa-shopify-adicionar-variante-v1`.
-// modo "sugerir": lê o produto-alvo AO VIVO e sugere o valor de cada opção a partir da variante-irmã.
+// modo "sugerir": aprende cada opção pelo cadastro das variantes-irmãs do produto AO VIVO.
 // modo "adicionar" (dry_run default true): valida e cria via productVariantsBulkCreate, estoque 0 em todos
 // os locais com centro; "reter" (default true) abre shopify_estoque_retencao → push ignora até liberar.
 // FAIL-LOUD: cada SKU volta com status próprio; rodada real grava integracoes_sync_log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
 import { mapaCodigoExterno, exigirCodigoExterno, mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
+import { aprenderOpcoes, CAMPOS_CADASTRO, norm, sugerirOpcao } from "./sugestao.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +40,6 @@ const M_CRIAR = `mutation($p: ID!, $v: [ProductVariantsBulkInput!]!) {
   }
 }`;
 
-const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const segs = (sku: string) => String(sku ?? "").toUpperCase().split(/[./]/);
 // Parecença entre SKUs: segmentos iguais na mesma posição (VNVPM.SC.5.0 x VNAPM.SC.5.0 = 3).
 const parecenca = (a: string, b: string) => {
@@ -48,8 +48,6 @@ const parecenca = (a: string, b: string) => {
   for (let i = 0; i < Math.min(x.length, y.length); i++) if (x[i] === y[i]) n++;
   return n;
 };
-// Campos do SNCF que podem alimentar uma opção do Shopify.
-const CAMPOS = ["cor", "estampa", "familia"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -111,28 +109,27 @@ Deno.serve(async (req) => {
   const skuDaVariante = (v: Linha): string | null => internosPorCodigo.get(String(v.sku ?? "").trim()) ?? null;
   const codigosPorSku = await mapaCodigoExterno(supabase, skus);
     const { data: cad, error: cErr } = await supabase
-      .from("sncf_produtos").select(`sku, ${CAMPOS.join(", ")}`).in("sku", [...skus, ...skusLoja]);
+      .from("sncf_produtos").select(`sku, ${CAMPOS_CADASTRO.join(", ")}`).in("sku", [...skus, ...skusLoja]);
     if (cErr) throw new Error(`leitura do cadastro falhou: ${cErr.message}`);
     const cadPorSku = new Map((cad ?? []).map((c: Linha) => [String(c.sku).toUpperCase(), c]));
 
     if (modo === "sugerir") {
+      const irmas = variantes.flatMap((v) => {
+        const sku = skuDaVariante(v);
+        const cadastro = sku ? cadPorSku.get(sku.toUpperCase()) : undefined;
+        return sku && cadastro ? [{ sku, cadastro, opcoes: v.selectedOptions ?? [], variante: v }] : [];
+      });
+      const aprendizado = aprenderOpcoes(opcoes.map((o) => o.name), irmas);
       const sugestoes = skus.map((sku) => {
         const novo = cadPorSku.get(sku.toUpperCase()) ?? {};
-        const irma = variantes
-          .filter((v) => { const i = skuDaVariante(v); return i !== null && cadPorSku.has(i.toUpperCase()); })
-          .map((v) => ({ v, n: parecenca(sku, skuDaVariante(v)!) }))
+        const irma = irmas
+          .map((i) => ({ v: i.variante, n: parecenca(sku, i.sku) }))
           .sort((a, b) => b.n - a.n)[0]?.v;
         if (!irma) return { sku, erro: "Nenhuma variante-irmã do produto está no cadastro do SNCF — preencha as opções manualmente.", opcoes: opcoes.map((o) => ({ nome: o.name, valor: "", origem: "manual" })) };
-        const cadIrma = cadPorSku.get(skuDaVariante(irma)!.toUpperCase()) ?? {};
         const sel = new Map((irma.selectedOptions ?? []).map((s: Linha) => [s.name, s.value]));
         return {
           sku, irma_sku: skuDaVariante(irma), irma_codigo_externo: irma.sku,
-          opcoes: opcoes.map((o) => {
-            const valorIrma = String(sel.get(o.name) ?? "");
-            const campo = CAMPOS.find((c) => cadIrma[c] && norm(cadIrma[c]) === norm(valorIrma));
-            if (campo && novo[campo]) return { nome: o.name, valor: String(novo[campo]).trim(), origem: `campo ${campo}` };
-            return { nome: o.name, valor: valorIrma, origem: "igual à irmã" };
-          }),
+          opcoes: opcoes.map((o) => sugerirOpcao(o.name, sku, novo, aprendizado, String(sel.get(o.name) ?? ""))),
         };
       });
       return json(200, { ok: true, modo, produto: { id: prod.id, titulo: prod.title, status: prod.status, opcoes }, sugestoes });

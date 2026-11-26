@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Shopify variant suggestions learn normalized conflict-free attribute-to-option maps from registered siblings in a tested local helper; similarity identifies the response sibling only and is a flagged fallback, so store wording is preserved without copying another color.
 - Gate statement stamping is owned by the advance bank-link trigger; conflicts keep bank facts intact and create a durable order alert with divergent proof. Payment-date guards live on proof/plan writes, so every caller shares them.
 - Bank-file completion invokes one service-only SQL dedup/matching function; preserve source multiplicity and protected financial links before reciprocal-unique pairing, retain manual classes and audit before/after rows for reversal without changing the MP withdrawal rule.
 - Shopify registration and grouping share normalized collection discovery/creation and reference-channel publication; dry runs never write, collection failures isolate dependent products, and measurement eligibility reads the field catalog in the queue view.
