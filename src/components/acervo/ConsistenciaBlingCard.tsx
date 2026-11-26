@@ -17,13 +17,14 @@ import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 
-export type SistemaVarredura = "Bling" | "XPM" | "Shopify";
+// 26/11/2026 (BLING-MOTOR-UNICO-2): varredura do Bling aposentada — Bling usa bling-produto-sync.
+export type SistemaVarredura = "XPM" | "Shopify";
 
 const SLUG_POR_SISTEMA: Record<SistemaVarredura, string> = {
-  Bling: "acao.varrer_bling", XPM: "acao.varrer_xpm", Shopify: "acao.varrer_shopify",
+  XPM: "acao.varrer_xpm", Shopify: "acao.varrer_shopify",
 };
 const EDGE_POR_SISTEMA: Record<SistemaVarredura, string> = {
-  Bling: "varrer-divergencia-bling", XPM: "varrer-divergencia-xpm", Shopify: "varrer-divergencia-shopify",
+  XPM: "varrer-divergencia-xpm", Shopify: "varrer-divergencia-shopify",
 };
 /** Lote sem conclusão há mais que isto = cadeia interrompida; não trava os botões. */
 const LIMITE_LOTE_MS = 30 * 60 * 1000;
@@ -54,7 +55,7 @@ async function invocar(fn: string, body: Record<string, unknown>) {
  * Cada sistema chama a sua edge (detectar/corrigir); chips por campo vêm de produto_destino_divergencia.
  */
 export function VarreduraSistemaCard({
-  sistema = "Bling", titulo, colapsavel = false, compacto = false, onRodando,
+  sistema = "XPM", titulo, colapsavel = false, compacto = false, onRodando,
 }: {
   sistema?: SistemaVarredura; titulo?: string; colapsavel?: boolean; compacto?: boolean;
   onRodando?: (rodando: boolean) => void;
@@ -64,8 +65,7 @@ export function VarreduraSistemaCard({
   const qc = useQueryClient();
   const [confirmar, setConfirmar] = useState(false);
   const [disparando, setDisparando] = useState(false);
-  const ehBling = sistema === "Bling";
-  const rotulo = titulo ?? (ehBling ? "Consistência Bling" : sistema);
+  const rotulo = titulo ?? sistema;
 
   const lote = useQuery({
     queryKey: ["consistencia-bling", "ultimo-lote", sistema],
@@ -233,10 +233,9 @@ export function VarreduraSistemaCard({
 
 /** Seção "Varredura": uma linha compacta por sistema; abre sozinha se qualquer um estiver em andamento. */
 export function SecaoVarredura() {
-  const bling = usePermissaoAcaoOuSuperAdmin(SLUG_POR_SISTEMA.Bling).permitido;
   const xpm = usePermissaoAcaoOuSuperAdmin(SLUG_POR_SISTEMA.XPM).permitido;
   const shopify = usePermissaoAcaoOuSuperAdmin(SLUG_POR_SISTEMA.Shopify).permitido;
-  const permitido = bling || xpm || shopify;
+  const permitido = xpm || shopify;
   const [aberto, setAberto] = useState(false);
   const [rodando, setRodando] = useState<Record<string, boolean>>({});
   const algum = Object.values(rodando).some(Boolean);
@@ -254,7 +253,6 @@ export function SecaoVarredura() {
         </div>
         {/* forceMount: as linhas precisam montar fechadas para o "abre sozinha" enxergar o andamento */}
         <CollapsibleContent forceMount className={cn("divide-y", !aberto && "hidden")}>
-          <VarreduraSistemaCard sistema="Bling" compacto onRodando={marca("Bling")} />
           <VarreduraSistemaCard sistema="XPM" compacto onRodando={marca("XPM")} />
           <VarreduraSistemaCard sistema="Shopify" compacto onRodando={marca("Shopify")} />
         </CollapsibleContent>
