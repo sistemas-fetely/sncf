@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
-import { useFotosPrincipais } from "@/hooks/useFotosProduto";
+import { useImagensPorCod } from "@/hooks/useImagemProduto";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL } from "@/lib/format-currency";
@@ -80,7 +80,7 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
   });
   const itens = q.data ?? [];
   const cabecalho = itens[0];
-  const fotosQ = useFotosPrincipais(itens.map((i) => i.cod_cadastro));
+  const fotosQ = useImagensPorCod(itens.map((i) => i.cod_cadastro));
   const skus = [...new Set(itens.flatMap((item) => item.sku ? [item.sku] : []))].sort();
   const saldoOrigemQ = useQuery({
     queryKey: ["ti-estoque-origem-atual", linha?.origem_codigo, skus],
@@ -229,7 +229,7 @@ export function GavetaTransferenciaTi({ linha, onClose }: { linha: LinhaTi | nul
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <MiniaturaProduto url={i.cod_cadastro ? fotosQ.data?.get(i.cod_cadastro) : null} nome={i.nome_comercial} />
+                            <MiniaturaProduto url={i.cod_cadastro ? fotosQ.data?.get(i.cod_cadastro)?.imagem_url : null} nome={i.nome_comercial} />
                             <span className="text-sm">{i.nome_comercial ?? "—"}</span>
                           </div>
                         </TableCell>

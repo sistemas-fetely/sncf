@@ -249,18 +249,17 @@ export interface CancelamentoMesa {
 }
 
 /**
- * Foto de conferência visual (`vw_produto_imagem`). `fonte` diz de onde a URL
- * veio — a cascata de quatro degraus: 'variante' (cor certa), 'produto'
- * (principal do Shopify), 'galeria' (primeira da galeria) e 'cor' (foto do FOP
- * da coleção+cor — NÃO é foto do produto). A foto genérica da coleção ficou de
- * fora de propósito: em conferência ela induz o conferente a validar errado.
+ * Foto de conferência visual (`vw_produto_imagem_final`). `origem` identifica
+ * a fonte escolhida e `imagem_do_produto` distingue a foto exata de referências
+ * de cor/coleção. A prioridade é aplicada exclusivamente pela view.
  * A foto é CONFERÊNCIA VISUAL, nunca critério de aceite — quem valida a peça
  * continua sendo o EAN.
  */
 export interface ImagemProdutoMesa {
   sku: string;
   imagem_url: string;
-  fonte: "propria" | "variante" | "produto" | "galeria" | "cor";
+  origem: string | null;
+  imagem_do_produto: boolean | null;
 }
 
 export interface ModalEntrega {

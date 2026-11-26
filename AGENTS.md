@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Product thumbnails batch-read vw_produto_imagem_final through useImagemProduto; the view owns priority and exact-photo flags, while Mesa alone catches photo failures to keep operations unblocked and photo management retains produto_foto.
 - New Bling cards register their canonical SKU through the produtos insert/code-ID update trigger with conflict DO NOTHING; preserve raw codes and existing manual/rule choices so daily duplicate resolution remains authoritative.
 - Mesa SP moves use local typed RPC contracts, server-owned destinations and explicit label-cancellation confirmation; await order/board refresh and divergence registration before moving so no client-side phase rules or false success can bypass the database.
 - Hoje queues read only the user-scoped view through a dedicated query; tested pure selectors sort/filter and summarize without changing task hooks. Only the requested empty-queue preference uses localStorage `sncf.hoje.filas-vazias`.

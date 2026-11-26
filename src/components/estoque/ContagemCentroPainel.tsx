@@ -17,7 +17,7 @@ import { formatError } from "@/lib/format-error";
 import { hojeISO, fmtData } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { useFotosPrincipais } from "@/hooks/useFotosProduto";
+import { useImagensPorCod } from "@/hooks/useImagemProduto";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { ImportarContagemDialog, type ModoImportacao } from "@/components/estoque/ImportarContagemDialog";
 import { X } from "lucide-react";
@@ -234,7 +234,7 @@ export function ContagemCentroPainel() {
     if (fora.length > 0 && catalogoQ.data) toast.warning(`${fora.length} SKU(s) não encontrados no catálogo: ${fora.slice(0, 5).join(", ")}${fora.length > 5 ? "…" : ""}`);
   }
 
-  const fotosQ = useFotosPrincipais([...contadas, ...(nav.aba === "prazo" ? noPrazo.map((u) => linhaDe(u.sku)) : pendentesVisiveis)].map((l) => l.cod_cadastro));
+  const fotosQ = useImagensPorCod([...contadas, ...(nav.aba === "prazo" ? noPrazo.map((u) => linhaDe(u.sku)) : pendentesVisiveis)].map((l) => l.cod_cadastro));
 
   const validos = preenchidos(sessao);
   const n = validos.length;
@@ -275,7 +275,7 @@ export function ContagemCentroPainel() {
 
   const celulaProduto = (l: Linha) => (
     <div className="flex items-center gap-2">
-      <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro) : null} nome={l.nome_comercial} />
+      <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro)?.imagem_url : null} nome={l.nome_comercial} />
       <div className="min-w-0 max-w-[360px]">
         <div className="flex items-center gap-2 truncate">{l.nome_comercial ?? "—"}{l.achado && <Badge variant="outline" className="border-warning text-warning">Achado</Badge>}</div>
         {l.cor_nome && <div className="text-[11px] text-muted-foreground">{l.cor_nome}</div>}

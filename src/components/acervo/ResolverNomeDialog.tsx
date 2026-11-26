@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { useImagensPorCod } from "@/hooks/useImagemProduto";
 
 export interface LinhaConflito {
   sku: string;
@@ -33,7 +34,6 @@ interface Extra {
   estampa: string | null;
   cor_nome: string | null;
   nome_comercial: string | null;
-  foto: string | null;
 }
 
 interface Retorno {
@@ -66,6 +66,11 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
   const [concluido, setConcluido] = useState(false);
   const [fop, setFop] = useState<Record<string, string>>({});
   const abertoRef = useRef(aberto);
+  const fotosQ = useImagensPorCod(aberto ? linhas.map((l) => l.cod_cadastro) : []);
+
+  useEffect(() => {
+    if (aberto && fotosQ.isError) toast.error(formatError(fotosQ.error));
+  }, [aberto, fotosQ.isError, fotosQ.error]);
 
   useEffect(() => {
     abertoRef.current = aberto;
@@ -77,19 +82,9 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
     setFop({});
     setConcluido(false);
     const skus = linhas.map((l) => l.sku);
-    const cods = linhas.map((l) => l.cod_cadastro).filter(Boolean) as string[];
     (async () => {
-      const [p, f] = await Promise.all([
-        (supabase as any).from("sncf_produtos").select("sku, cod_cadastro, ean, estampa, cor_nome, nome_comercial").in("sku", skus),
-        cods.length
-          ? (supabase as any).from("produto_foto").select("cod_cadastro, url, principal, ordem").in("cod_cadastro", cods)
-              .order("principal", { ascending: false }).order("ordem", { ascending: true })
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+      const p = await (supabase as any).from("sncf_produtos").select("sku, cod_cadastro, ean, estampa, cor_nome, nome_comercial").in("sku", skus);
       if (p.error) { toast.error(formatError(p.error)); return; }
-      if (f.error) { toast.error(formatError(f.error)); return; }
-      const fotoPor = new Map<string, string>();
-      for (const r of f.data ?? []) if (!fotoPor.has(r.cod_cadastro)) fotoPor.set(r.cod_cadastro, r.url);
       const ex: Record<string, Extra> = {};
       const es: Record<string, string> = {};
       const no: Record<string, string> = {};
@@ -98,7 +93,6 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
         ex[l.sku] = {
           ean: r?.ean ?? null, estampa: r?.estampa ?? null, cor_nome: r?.cor_nome ?? null,
           nome_comercial: r?.nome_comercial ?? l.nome_comercial,
-          foto: l.cod_cadastro ? fotoPor.get(l.cod_cadastro) ?? null : null,
         };
         es[l.sku] = r?.estampa ?? "";
         no[l.sku] = r?.nome_comercial ?? l.nome_comercial ?? "";
@@ -221,13 +215,14 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
         <div className="grid gap-4 md:grid-cols-2">
           {linhas.map((l) => {
             const ex = extras[l.sku];
+            const foto = l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro)?.imagem_url : null;
             const res = conferido?.resultado?.find((x) => x.sku === l.sku);
             const fopMsg = l.cod_cadastro ? fop[l.cod_cadastro] : undefined;
             return (
               <div key={l.sku} className="space-y-3 rounded-md border p-3">
                 <div className="flex gap-3">
-                  {ex?.foto ? (
-                    <img src={ex.foto} alt={l.sku} className="h-20 w-20 shrink-0 rounded object-cover" />
+                  {foto ? (
+                    <img src={foto} alt={l.sku} className="h-20 w-20 shrink-0 rounded object-cover" />
                   ) : (
                     <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded border border-dashed text-[10px] text-muted-foreground">sem foto</div>
                   )}

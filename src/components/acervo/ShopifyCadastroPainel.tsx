@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { FiltroColecao, gravarColecoesUrl, lerColecoesUrl } from "@/components/acervo/BlingCardPainel";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { useImagensPorCod } from "@/hooks/useImagemProduto";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { AlertTriangle, ChevronDown, Eye, ImageOff, Layers, Loader2, Send } from "lucide-react";
 
@@ -50,11 +51,6 @@ interface LinhaFila {
   modo: "ativo" | "rascunho_antecipado" | null;
   chegada_prevista: string | null;
   colecao: string | null;
-}
-
-interface FotoPrincipal {
-  cod_cadastro: string;
-  url: string | null;
 }
 
 interface ResultadoSku {
@@ -173,24 +169,7 @@ export function ShopifyCadastroPainel() {
     () => [...new Set(linhas.map((l) => l.cod_cadastro).filter((c): c is string => !!c))],
     [linhas],
   );
-  const qFotos = useQuery({
-    queryKey: ["shopify-cadastro-fotos-principais", codigos],
-    enabled: codigos.length > 0,
-    queryFn: async (): Promise<FotoPrincipal[]> => {
-      const { data, error } = await (supabase as any)
-        .from("produto_foto")
-        .select("cod_cadastro, url")
-        .eq("principal", true)
-        .in("cod_cadastro", codigos);
-      if (error) throw error;
-      return (data ?? []) as FotoPrincipal[];
-    },
-  });
-  const fotos = useMemo(() => {
-    const mapa = new Map<string, string>();
-    for (const foto of qFotos.data ?? []) if (foto.url) mapa.set(foto.cod_cadastro, foto.url);
-    return mapa;
-  }, [qFotos.data]);
+  const qFotos = useImagensPorCod(codigos);
 
   const [colecaoUrl, setColecaoUrl] = useAbaUrl("", undefined, "colecao");
   const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
@@ -496,7 +475,7 @@ export function ShopifyCadastroPainel() {
                 </TableHeader>
                 <TableBody>
                   {filtradas.map((linha) => {
-                    const urlFoto = linha.cod_cadastro ? fotos.get(linha.cod_cadastro) : undefined;
+                    const urlFoto = linha.cod_cadastro ? qFotos.data?.get(linha.cod_cadastro)?.imagem_url : undefined;
                     return (
                       <TableRow key={linha.sku ?? linha.cod_cadastro ?? ""}>
                         <TableCell>

@@ -9,6 +9,7 @@ import { etiquetaSncfASubstituir, motivoSubstituicaoAgencia, normalizarBipe } fr
 import { supabase } from "@/integrations/supabase/client";
 import type { PedidoAChegar } from "./aChegar";
 import { formatError } from "@/lib/format-error";
+import { buscarImagensProdutos } from "@/hooks/useImagemProduto";
 import { executarInstrucaoRpc } from "@/lib/pedidos/instrucaoExpedicao";
 import { transportadoraNfDiverge } from "@/lib/logistica/trocaModalMesa";
 import type { DanfeEtiqueta } from "./impressaoMesa";
@@ -201,8 +202,8 @@ export function useIdentidadesMesaSp(pedidoIds: string[]) {
  * Picking list do pedido: itens + EAN.
  * O EAN não mora em `pedido_itens` — vem do espelho `sncf_produtos` pelo SKU,
  * que é a fonte canônica de cadastro (cobertura hoje: 100% dos SKUs do B2C).
- * Foto de produto NÃO mora aqui: ela vem de `vw_produto_imagem` pelo hook
- * `useImagensProdutosMesa` (a view resolve variante → produto → galeria), e
+ * Foto de produto NÃO mora aqui: ela vem de `vw_produto_imagem_final` pelo hook
+ * `useImagensProdutosMesa` (a view resolve a prioridade única de fotos), e
  * entra na conferência como conferência visual, nunca como dado do item.
  */
 export function useItensPedidoMesa(pedidoId: string | null) {
@@ -248,32 +249,28 @@ export function useItensPedidoMesa(pedidoId: string | null) {
 }
 
 /**
- * Fotos de conferência visual dos SKUs pedidos (`vw_produto_imagem`). A view já
- * resolve a prioridade variante → produto → galeria, então aqui é uma leitura
- * por `in`. FOTO-NÃO-É-CAMINHO-CRÍTICO: se a leitura falhar, a estação segue
+ * Fotos de conferência visual dos SKUs pedidos (`vw_produto_imagem_final`). A view
+ * resolve a prioridade única; o leitor compartilhado consulta por SKU em fatias
+ * de 300. FOTO-NÃO-É-CAMINHO-CRÍTICO: se a leitura falhar, a estação segue
  * sem fotos e sem erro na cara do operador — por isso o erro vira mapa vazio
  * com aviso no console, nunca throw.
  */
 export function useImagensProdutosMesa(skus: string[]) {
   const chave = [...new Set(skus)].sort().join(",");
   return useQuery({
-    queryKey: ["mesa-sp", "imagens-produtos", chave],
+    queryKey: ["mesa-sp", "imagens-produtos-final", chave],
     enabled: chave !== "",
     staleTime: 10 * 60 * 1000,
     queryFn: async (): Promise<Map<string, ImagemProdutoMesa>> => {
-      const { data, error } = await supabaseMesa
-        .from("vw_produto_imagem")
-        .select("sku, imagem_url, fonte")
-        .in("sku", [...new Set(skus)]);
-      if (error) {
+      try {
+        const imagens = await buscarImagensProdutos("sku", skus);
+        const mapa = new Map<string, ImagemProdutoMesa>();
+        for (const [sku, imagem] of imagens) mapa.set(sku, { sku, ...imagem });
+        return mapa;
+      } catch (error) {
         console.warn(`fotos dos produtos indisponíveis: ${mensagemErro(error)}`);
         return new Map();
       }
-      const mapa = new Map<string, ImagemProdutoMesa>();
-      for (const linha of (data ?? []) as ImagemProdutoMesa[]) {
-        if (linha.sku && linha.imagem_url) mapa.set(linha.sku, linha);
-      }
-      return mapa;
     },
   });
 }

@@ -11,7 +11,7 @@ import { SeloEstagioTransferencia } from "@/components/transferencias/SeloEstagi
 import { TimelineTransferencia } from "@/components/transferencias/TimelineTransferencia";
 import { destinoDetalheTransferencia } from "@/components/transferencias/painelRegras";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
-import { useFotosPrincipais } from "@/hooks/useFotosProduto";
+import { useImagensPorCod } from "@/hooks/useImagemProduto";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
 import { formatBRL as formatCurrency } from "@/lib/format-currency";
@@ -72,7 +72,7 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
     },
   });
   const d = q.data;
-  const fotos = useFotosPrincipais((d?.itens ?? []).map((i: any) => i.prod?.cod_cadastro));
+  const fotos = useImagensPorCod((d?.itens ?? []).map((i: any) => i.prod?.cod_cadastro));
   const v = d?.v;
   const rot = (c: string | null) => (c ? d?.rotulos.get(c) ?? c : null);
   const pecas = (d?.itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
@@ -166,7 +166,7 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
                   <TableBody>
                     {d.itens.map((i: any) => (
                       <TableRow key={i.id}>
-                        <TableCell><MiniaturaProduto url={i.prod?.cod_cadastro ? fotos.data?.get(i.prod.cod_cadastro) : null} nome={i.prod?.nome_comercial ?? i.descricao} /></TableCell>
+                        <TableCell><MiniaturaProduto url={i.prod?.cod_cadastro ? fotos.data?.get(i.prod.cod_cadastro)?.imagem_url : null} nome={i.prod?.nome_comercial ?? i.descricao} /></TableCell>
                         <TableCell><CodProduto chave={i.sku} /></TableCell>
                         <TableCell>{i.prod?.nome_comercial ?? i.descricao ?? "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">{Number(i.quantidade ?? 0)}</TableCell>

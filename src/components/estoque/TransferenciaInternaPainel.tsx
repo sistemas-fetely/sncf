@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CodProduto } from "@/components/produto/CodProduto";
 import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
-import { useFotosPrincipais } from "@/hooks/useFotosProduto";
+import { useImagensPorCod } from "@/hooks/useImagemProduto";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useEstadoTela } from "@/lib/navegacao";
 import { formatError } from "@/lib/format-error";
@@ -127,7 +127,7 @@ export function TransferenciaInternaPainel({
     },
   });
 
-  const fotosQ = useFotosPrincipais(itens.map((i) => i.cod_cadastro));
+  const fotosQ = useImagensPorCod(itens.map((i) => i.cod_cadastro));
 
   function somar(p: { sku: string; cod_cadastro: string | null; nome: string | null }, delta: number) {
     setItens((lista) => {
@@ -291,7 +291,7 @@ export function TransferenciaInternaPainel({
                     <TableCell><CodProduto chave={i.sku} /></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <MiniaturaProduto url={i.cod_cadastro ? fotosQ.data?.get(i.cod_cadastro) : null} nome={i.nome} />
+                        <MiniaturaProduto url={i.cod_cadastro ? fotosQ.data?.get(i.cod_cadastro)?.imagem_url : null} nome={i.nome} />
                         <span className="truncate">{i.nome ?? "—"}</span>
                       </div>
                     </TableCell>

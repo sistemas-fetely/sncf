@@ -53,12 +53,16 @@ function tocarAlerta() {
 }
 
 /**
- * Grau de confiança da foto por `fonte` (`vw_produto_imagem`). A fonte é o que
+ * Atenção da foto por `origem` (`vw_produto_imagem_final`). A origem é o que
  * muda o tratamento visual — nunca o critério de aceite, que segue sendo o EAN.
  * Fonte desconhecida cai no tratamento de atenção com o próprio slug no
  * tooltip — NUNCA no tratamento de confiança.
  */
 const FONTE_FOTO: Record<string, { atencao: "discreta" | "forte"; tooltip: string }> = {
+  colecao: {
+    atencao: "forte",
+    tooltip: "foto da coleção — confira pelo código, não pela foto",
+  },
   produto: {
     atencao: "discreta",
     tooltip: "foto principal do produto — pode não ser desta cor",
@@ -89,11 +93,9 @@ function tratamentoFoto(fonte: string | null | undefined) {
 
 /**
  * Foto do produto — CONFERÊNCIA VISUAL, nunca critério de aceite (quem valida
- * é o EAN). A `fonte` vira marca de atenção sobre a imagem: 'variante' e
- * 'propria' (base própria do SNCF) são a foto do produto — sem marca;
- * 'produto'/'galeria' podem não ser desta cor (marca
- * discreta); 'cor' é foto da coleção, não do produto (borda tracejada — mais
- * visível, porque é ali que o conferente decide). Sem foto ou falha de rede:
+ * é o EAN). `imagem_do_produto` vem da view e dispensa a marca de atenção
+ * quando true; as outras fotos mostram atenção conforme sua `origem`.
+ * Sem foto ou falha de rede:
  * placeholder neutro com pacote — nunca um quadrado quebrado na frente do
  * operador.
  */
@@ -113,9 +115,8 @@ function FotoItem({
       </span>
     );
   }
-  // 'variante' e 'propria' não entram no mapa de atenção: são os casos bons,
-  // sem marca. 'propria' é a base própria do SNCF (identifica o produto).
-  const tratamento = imagem?.fonte === "variante" || imagem?.fonte === "propria" ? null : tratamentoFoto(imagem?.fonte);
+  // A view decide se a imagem identifica o produto; nunca inferir pela origem.
+  const tratamento = imagem?.imagem_do_produto === true ? null : tratamentoFoto(imagem?.origem);
   const emblema = tamanho >= 100 ? 24 : 14; // na confirmação do bipe a marca precisa ser clara
   return (
     <Tooltip>
@@ -216,7 +217,7 @@ function LinhaItem({
 interface Props {
   pedidoId: string;
   itens: ItemPedidoMesa[];
-  /** Fotos por SKU (`vw_produto_imagem`) — conferência visual, nunca aceite. */
+  /** Fotos por SKU (`vw_produto_imagem_final`) — conferência visual, nunca aceite. */
   imagens: Map<string, ImagemProdutoMesa>;
   carregando: boolean;
   registrando: boolean;
