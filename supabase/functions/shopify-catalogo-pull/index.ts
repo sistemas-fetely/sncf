@@ -204,6 +204,157 @@ Deno.serve(async (req) => {
       return json(200, { criado: true, webhook: payload?.webhookSubscription ?? null });
     }
 
+    if (body?.kits_componentes === true) {
+      const queryKits = `
+query($cursor: String, $pageSize: Int!) {
+  products(first: $pageSize, after: $cursor, query: "status:active OR status:draft") {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id title status hasVariantsThatRequiresComponents
+      variants(first: 20) {
+        nodes {
+          id sku
+          productVariantComponents(first: 50) {
+            pageInfo { hasNextPage }
+            nodes {
+              quantity
+              productVariant { id sku barcode title product { id title } }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+      const pullEm = new Date().toISOString();
+      const kitsLidos = new Set<string>();
+      const kitsSemComponente: { shopify_id: string; title: string | null }[] = [];
+      const linhas: {
+        kit_shopify_id: string;
+        kit_variant_id: string;
+        componente_variant_id: string;
+        componente_shopify_id: string;
+        componente_sku: string | null;
+        componente_barcode: string | null;
+        componente_titulo: string | null;
+        quantidade: number;
+        lido_em: string;
+      }[] = [];
+      let cursor: string | null = null;
+      let paginas = 0;
+      let pageSize = 25;
+
+      // Completar e validar toda a leitura antes de qualquer gravação.
+      while (true) {
+        if (paginas >= MAX_PAGES) {
+          throw new Error(`kits_componentes: limite de ${MAX_PAGES} paginas atingido — nada gravado`);
+        }
+        const res = await gqlWithRetry(domain, token, queryKits, { cursor, pageSize });
+        if (custoExcedido(res.body) && pageSize > 1) {
+          pageSize = Math.max(1, Math.floor(pageSize / 2));
+          console.warn("Shopify custo da query excedido; reduzindo produtos por página", pageSize);
+          continue;
+        }
+        if (res.status !== 200 || res.body?.errors) {
+          throw new Error(`kits_componentes graphql falhou: status=${res.status} errors=${JSON.stringify(res.body?.errors ?? res.body).slice(0, 500)}`);
+        }
+        paginas++;
+        const products = res.body?.data?.products;
+        if (!Array.isArray(products?.nodes) || !products?.pageInfo) {
+          throw new Error("kits_componentes: resposta Shopify sem products/nodes/pageInfo — nada gravado");
+        }
+        for (const product of products.nodes) {
+          if (product?.hasVariantsThatRequiresComponents !== true) continue;
+          const kitId = extrairIdNumerico(product.id);
+          if (!kitId) throw new Error(`kits_componentes: id de kit invalido: ${product.id}`);
+          kitsLidos.add(kitId);
+          const antes = linhas.length;
+          for (const variant of product.variants?.nodes ?? []) {
+            const variantId = extrairIdNumerico(variant?.id);
+            if (!variantId) throw new Error(`kits_componentes: id de variante invalido no kit ${kitId}: ${variant?.id}`);
+            const components = variant.productVariantComponents;
+            if (components?.pageInfo?.hasNextPage === true) {
+              throw new Error(`kits_componentes: kit ${kitId}, variante ${variantId} tem mais de 50 componentes — nada gravado`);
+            }
+            if (!Array.isArray(components?.nodes) || !components?.pageInfo) {
+              throw new Error(`kits_componentes: componentes ausentes na variante ${variantId} — nada gravado`);
+            }
+            for (const comp of components.nodes) {
+              const componenteVariantId = extrairIdNumerico(comp?.productVariant?.id);
+              const componenteId = extrairIdNumerico(comp?.productVariant?.product?.id);
+              if (!componenteVariantId || !componenteId) {
+                throw new Error(`kits_componentes: id de componente invalido na variante ${variantId}`);
+              }
+              if (!Number.isInteger(comp.quantity) || comp.quantity <= 0) {
+                throw new Error(`kits_componentes: quantidade invalida na variante ${variantId}, componente ${componenteVariantId}: ${comp.quantity}`);
+              }
+              linhas.push({
+                kit_shopify_id: kitId,
+                kit_variant_id: variantId,
+                componente_variant_id: componenteVariantId,
+                componente_shopify_id: componenteId,
+                componente_sku: comp.productVariant.sku ?? null,
+                componente_barcode: comp.productVariant.barcode ?? null,
+                componente_titulo: comp.productVariant.product.title ?? null,
+                quantidade: comp.quantity,
+                lido_em: pullEm,
+              });
+            }
+          }
+          if (linhas.length === antes) {
+            kitsSemComponente.push({ shopify_id: kitId, title: product.title ?? null });
+          }
+        }
+        const throttle = res.body?.extensions?.cost?.throttleStatus;
+        if (throttle) {
+          const available = Number(throttle.currentlyAvailable ?? 0);
+          const restore = Number(throttle.restoreRate ?? 50);
+          if (available < COST_MIN_AVAILABLE && restore > 0) {
+            const waitMs = Math.ceil((COST_MIN_AVAILABLE - available) / restore) * 1000;
+            await new Promise((r) => setTimeout(r, waitMs));
+          }
+        }
+        if (!products.pageInfo.hasNextPage) break;
+        const proximoCursor = products.pageInfo.endCursor;
+        if (!proximoCursor || proximoCursor === cursor) {
+          throw new Error("kits_componentes: cursor de paginacao invalido — nada gravado");
+        }
+        cursor = proximoCursor;
+      }
+
+      let gravadas = 0;
+      let removidasAntigas = 0;
+      if (!dryRun) {
+        for (let i = 0; i < linhas.length; i += 500) {
+          const lote = linhas.slice(i, i + 500);
+          const { error } = await supabase.from("shopify_kit_componente")
+            .upsert(lote, { onConflict: "kit_variant_id,componente_variant_id" });
+          if (error) throw new Error(`kits_componentes upsert falhou: ${error.message}`);
+          gravadas += lote.length;
+        }
+        const ids = [...kitsLidos];
+        for (let i = 0; i < ids.length; i += 200) {
+          const { count, error } = await supabase.from("shopify_kit_componente")
+            .delete({ count: "exact" })
+            .in("kit_shopify_id", ids.slice(i, i + 200))
+            .lt("lido_em", pullEm);
+          if (error) throw new Error(`kits_componentes delete antigo falhou: ${error.message}`);
+          removidasAntigas += count ?? 0;
+        }
+      }
+      return json(200, {
+        modo: "kits_componentes",
+        dry_run: dryRun,
+        kits_lidos: kitsLidos.size,
+        kits_sem_componente: kitsSemComponente,
+        linhas: linhas.length,
+        gravadas,
+        removidas_antigas: removidasAntigas,
+        duracao_ms: Date.now() - inicio,
+        amostra: linhas.slice(0, 5),
+      });
+    }
+
     const vistos = new Set<string>();
 
     const pullLote = crypto.randomUUID();
