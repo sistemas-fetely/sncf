@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ehTransferenciaMesa, mensagemEntregaTi, type EntregaTransferencia } from "./transferenciaInterna";
+import { useMoverMesaSp } from "./useMoverMesaSp";
 import { dadosDaPrepostagem, montarEtiquetaCorreiosZpl } from "@/lib/logistica/etiquetaCorreiosZpl";
 import { escolherImpressora, imprimirZpl, listarImpressoras, qzDisponivel } from "@/lib/impressao/qz";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -672,10 +673,7 @@ export function useItemChegouMesa() {
 }
 
 export function useVoltarSeparacao() {
-  return useRpcMesa<{ p_pedido_id: string }>(
-    "fn_mesa_sp_voltar_separacao",
-    () => "Pedido voltou para separação.",
-  );
+  return useMoverMesaSp("Pedido voltou para separação.");
 }
 
 export function useRegistrarConferencia() {
@@ -908,10 +906,7 @@ export function useCancelamentosMesaSp(pedidoIds: string[]) {
 }
 
 export function useDevolverFila() {
-  return useRpcMesa<{ p_pedido_id: string; p_motivo: string }>(
-    "fn_mesa_sp_devolver_fila",
-    () => "Pedido devolvido para a fila.",
-  );
+  return useMoverMesaSp("Pedido devolvido para a fila.");
 }
 
 /** Encerra pedido com cancelamento solicitado: itens voltaram à prateleira e o pedido sai da mesa como cancelado. */

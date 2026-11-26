@@ -45,6 +45,8 @@ import { AguardandoItemMesa, SeloItensFaltantes } from "./expedicao-sp/Aguardand
 import { FaixaInstrucaoExpedicao, SeloInstrucaoExpedicao } from "./expedicao-sp/FaixaInstrucaoExpedicao";
 import { bloqueiaAvancoInstrucao } from "@/lib/pedidos/instrucaoExpedicao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
+import { ConfirmacaoMovimentoMesa, MoverPedidoMesa } from "./expedicao-sp/MoverPedidoMesa";
+import { podeConfirmarMovimento, respostasMovimento } from "./expedicao-sp/moverMesa";
 import { SolicitacaoNf } from "./expedicao-sp/SolicitacaoNf";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
@@ -136,6 +138,8 @@ export default function ExpedicaoSp() {
   );
   const [devolverAberto, setDevolverAberto] = useState(false);
   const [motivoDevolver, setMotivoDevolver] = useState("");
+  const [perguntaDevolver, setPerguntaDevolver] = useState<string | null>(null);
+  const [confirmadoDevolver, setConfirmadoDevolver] = useState(false);
   const [encerrarAberto, setEncerrarAberto] = useState(false);
 
   const [selecionadoId, setSelecionadoId] = useState<string | null>(navMesa.pedido || null);
@@ -287,10 +291,10 @@ export default function ExpedicaoSp() {
   const iniciarConferencia = useIniciarConferencia();
   const voltarSeparacao = useVoltarSeparacao();
 
-  function registrarConferencia(itens: ItemConferido[], ok: boolean, motivo: string | null) {
+  async function registrarConferencia(itens: ItemConferido[], ok: boolean, motivo: string | null) {
     if (!selecionado) return;
     const pedidoId = selecionado.id;
-    conferir.mutate(
+    await conferir.mutateAsync(
       { p_pedido_id: pedidoId, p_itens: itens, p_ok: ok, p_motivo: motivo },
     );
   }
@@ -596,11 +600,12 @@ export default function ExpedicaoSp() {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <MoverPedidoMesa key={selecionado.id} pedidoId={selecionado.id} bloqueado={bloqueado} />
                     {podeDevolver && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => { setMotivoDevolver(""); setDevolverAberto(true); }}
+                        onClick={() => { setMotivoDevolver(""); setPerguntaDevolver(null); setConfirmadoDevolver(false); setDevolverAberto(true); }}
                         disabled={devolver.isPending}
                       >
                         <Undo2 aria-hidden="true" />
@@ -671,7 +676,7 @@ export default function ExpedicaoSp() {
                 </AlertDialog>
               )}
 
-              <Dialog open={devolverAberto} onOpenChange={setDevolverAberto}>
+              <Dialog open={devolverAberto} onOpenChange={(open) => { if (!devolver.isPending) setDevolverAberto(open); }}>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Devolver {selecionado.id_externo} para a fila</DialogTitle>
@@ -685,22 +690,20 @@ export default function ExpedicaoSp() {
                     placeholder="Motivo da devolução"
                     rows={3}
                   />
+                  {perguntaDevolver && <ConfirmacaoMovimentoMesa texto={perguntaDevolver} confirmado={confirmadoDevolver} onChange={setConfirmadoDevolver} disabled={devolver.isPending} />}
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setDevolverAberto(false)} disabled={devolver.isPending}>
                       Voltar
                     </Button>
                     <Button
-                      disabled={motivoDevolver.trim() === "" || devolver.isPending}
-                      onClick={() => {
+                      disabled={!podeConfirmarMovimento(true, motivoDevolver, perguntaDevolver, confirmadoDevolver) || devolver.isPending}
+                      onClick={async () => {
                         const pedidoId = selecionado.id;
-                        devolver.mutate(
-                          { p_pedido_id: pedidoId, p_motivo: motivoDevolver.trim() },
-                          {
-                            onSuccess: () => {
-                              setDevolverAberto(false);
-                            },
-                          },
-                        );
+                        try {
+                          const r = await devolver.mutateAsync({ p_pedido_id: pedidoId, p_para: "fila", p_motivo: motivoDevolver.trim(), p_respostas: respostasMovimento(confirmadoDevolver) });
+                          if (r.ok === false) { setPerguntaDevolver(r.texto); setConfirmadoDevolver(false); return; }
+                          setDevolverAberto(false);
+                        } catch { /* mensagem real exibida pela mutation */ }
                       }}
                     >
                       {devolver.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
@@ -808,9 +811,9 @@ export default function ExpedicaoSp() {
                   itens={itensQ.data ?? []}
                   imagens={imagensQ.data ?? new Map()}
                   carregando={itensQ.isLoading}
-                  registrando={conferir.isPending}
+                  registrando={conferir.isPending || voltarSeparacao.isPending}
                   onRegistrar={registrarConferencia}
-                  onVoltarSeparacao={() => voltarSeparacao.mutate({ p_pedido_id: selecionado.id })}
+                  onVoltarSeparacao={(motivo, confirmado) => voltarSeparacao.mutateAsync({ p_pedido_id: selecionado.id, p_para: "separacao", p_motivo: motivo, p_respostas: respostasMovimento(confirmado) })}
                   bloqueado={bloqueado}
                 />
               )}

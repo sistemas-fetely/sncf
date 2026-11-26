@@ -1,4 +1,6 @@
 import { CodProduto } from "@/components/produto/CodProduto";
+import { ConfirmacaoMovimentoMesa } from "./MoverPedidoMesa";
+import type { ResultadoMoverMesa } from "./moverMesa";
 import { consolidarItensPorProduto, itensConsolidadosParaConferencia } from "./consolidarItensPorProduto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, Package, ScanBarcode } from "lucide-react";
@@ -218,8 +220,8 @@ interface Props {
   imagens: Map<string, ImagemProdutoMesa>;
   carregando: boolean;
   registrando: boolean;
-  onRegistrar: (itens: ItemConferido[], ok: boolean, motivo: string | null) => void;
-  onVoltarSeparacao: () => void;
+  onRegistrar: (itens: ItemConferido[], ok: boolean, motivo: string | null) => Promise<void>;
+  onVoltarSeparacao: (motivo: string, confirmado: boolean) => Promise<ResultadoMoverMesa>;
   /** Cancelamento solicitado: não registra conferência. */
   bloqueado?: boolean;
 }
@@ -236,6 +238,8 @@ export function EstacaoConferencia({
   const [alerta, setAlerta] = useState<string | null>(null);
   const [dialogDivergencia, setDialogDivergencia] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const [perguntaMovimento, setPerguntaMovimento] = useState<string | null>(null);
+  const [confirmadoMovimento, setConfirmadoMovimento] = useState(false);
   /** Item que ACABOU de receber um bipe — realce de ~1,5s no bloco Conferidos. */
   const [realce, setRealce] = useState<string | null>(null);
   /**
@@ -300,7 +304,7 @@ export function EstacaoConferencia({
   useEffect(() => {
     if (!completo || jaRegistrou.current || registrando || bloqueado) return;
     jaRegistrou.current = true;
-    onRegistrar(paraRpc(), true, null);
+    void onRegistrar(paraRpc(), true, null).catch(() => { /* mensagem real exibida pela mutation */ });
   }, [completo, registrando, bloqueado, onRegistrar, paraRpc]);
 
   function processar(codigoBruto: string) {
@@ -357,12 +361,15 @@ export function EstacaoConferencia({
     timerBipe.current = window.setTimeout(() => setUltimoBipe(null), 3000);
   }
 
-  function confirmarDivergencia() {
+  async function confirmarDivergencia() {
     const texto = motivo.trim();
     if (texto === "") return; // a RPC também recusa, mas não faz sentido chamá-la
-    setDialogDivergencia(false);
-    onRegistrar(paraRpc(), false, texto);
-    onVoltarSeparacao();
+    try {
+      if (!perguntaMovimento) await onRegistrar(paraRpc(), false, texto);
+      const r = await onVoltarSeparacao(texto, confirmadoMovimento);
+      if (r.ok === false) { setPerguntaMovimento(r.texto); setConfirmadoMovimento(false); return; }
+      setDialogDivergencia(false);
+    } catch { /* erro real exibido pela mutation; motivo preservado */ }
   }
 
   if (carregando) {
@@ -534,7 +541,7 @@ export function EstacaoConferencia({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => setDialogDivergencia(true)} disabled={registrando || bloqueado}>
+          <Button variant="outline" onClick={() => { setPerguntaMovimento(null); setConfirmadoMovimento(false); setDialogDivergencia(true); }} disabled={registrando || bloqueado}>
             Registrar divergência
           </Button>
           {registrando && (
@@ -569,6 +576,7 @@ export function EstacaoConferencia({
               placeholder="Ex.: faltou 1 un do SKU X na caixa"
             />
           </div>
+          {perguntaMovimento && <ConfirmacaoMovimentoMesa texto={perguntaMovimento} confirmado={confirmadoMovimento} onChange={setConfirmadoMovimento} disabled={registrando} />}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogDivergencia(false)}>
               Cancelar
@@ -576,7 +584,7 @@ export function EstacaoConferencia({
             <Button
               variant="destructive"
               onClick={confirmarDivergencia}
-              disabled={motivo.trim() === ""}
+              disabled={motivo.trim() === "" || registrando || (!!perguntaMovimento && !confirmadoMovimento)}
             >
               Registrar divergência
             </Button>
