@@ -6,6 +6,7 @@ export const ABAS = [
   { rotulo: "Conciliação", to: "/vendas/produto/conciliacao", busca: "q" },
   { rotulo: "Destinos", to: "/vendas/produto/estoque/destinos", busca: "q" },
   { rotulo: "Fotos", to: "/vendas/produto/fotos", busca: "busca" },
+  { rotulo: "Kits", to: "/vendas/produto/kits", busca: "busca" },
   { rotulo: "Preço", to: "/vendas/produto/precos", busca: "busca" },
 ];
 

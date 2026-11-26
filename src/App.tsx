@@ -137,6 +137,7 @@ const MesaProduto = lazy(() => import("@/pages/acervo/MesaProduto"));
 const FichaProduto = lazy(() => import("@/pages/acervo/FichaProduto"));
 const TabelaPreco = lazy(() => import("@/pages/acervo/TabelaPreco"));
 const FotosProduto = lazy(() => import("@/pages/acervo/FotosProduto"));
+const KitsProduto = lazy(() => import("@/pages/acervo/KitsProduto"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
@@ -486,6 +487,11 @@ const App = () => (
                 <Route path="/vendas/produto/fotos" element={
                   <ProtectedRoute>
                     <FotosProduto />
+                  </ProtectedRoute>
+                } />
+                <Route path="/vendas/produto/kits" element={
+                  <ProtectedRoute>
+                    <KitsProduto />
                   </ProtectedRoute>
                 } />
                 <Route path="/vendas/produto/cartorio" element={

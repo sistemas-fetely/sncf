@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ABAS, destinoProduto } from "./ProdutoAbas";
 
 describe("navegação da Central do Produto", () => {
-  it("mantém a ordem e as rotas das cinco telas", () => {
+  it("mantém a ordem e as rotas das seis telas", () => {
     expect(ABAS.map(aba => aba.to)).toEqual([
       "/vendas/produto/mesa", "/vendas/produto/conciliacao", "/vendas/produto/estoque/destinos",
-      "/vendas/produto/fotos", "/vendas/produto/precos",
+      "/vendas/produto/fotos", "/vendas/produto/kits", "/vendas/produto/precos",
     ]);
   });
 
