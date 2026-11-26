@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
-import { fmtData } from "@/lib/data";
+import { fmtData, fmtDataHora } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 // 20/10/2026: aposentado — porta única é a planilha de cadastro
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
@@ -31,7 +31,9 @@ import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFase
 import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
 import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
 // 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro
-import { SecaoVarredura } from "@/components/acervo/ConsistenciaBlingCard";
+import { VarreduraSistemaCard } from "@/components/acervo/ConsistenciaBlingCard";
+import { BlingSyncControle } from "@/components/acervo/CadastroBlingSync";
+import { agruparPorProduto, ordenarProdutos, regrasDoProduto, resumoCampos, contarPorCanal, type ProdutoFila } from "@/lib/acervo/conciliacaoProdutos";
 import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
 // 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
@@ -72,28 +74,37 @@ type FilaLinha = {
 type Grupo = "camada" | "onde" | "regra" | "fase" | "colecao";
 const PARAMS: Grupo[] = ["camada", "onde", "regra", "fase", "colecao"];
 
-type ColDef = { key: keyof FilaLinha | "onde" | "matriz" | "destino"; rotulo: string; ordenavel?: boolean };
+type ColDef = { key: "cod_cadastro" | "sku" | "nome_comercial" | "fase" | "divergencias" | "campos"; rotulo: string; ordenavel?: boolean; largura: string };
 const COLUNAS: ColDef[] = [
-  { key: "cod_cadastro", rotulo: "Cód. cadastro", ordenavel: true },
-  { key: "sku", rotulo: "SKU", ordenavel: true },
-  { key: "nome_comercial", rotulo: "Nome", ordenavel: true },
-  { key: "fase", rotulo: "Fase", ordenavel: true },
-  { key: "regra", rotulo: "Regra", ordenavel: true },
-  { key: "camada_nome", rotulo: "Camada", ordenavel: true },
-  { key: "matriz", rotulo: "Matriz", ordenavel: true },
-  { key: "destino", rotulo: "Destino", ordenavel: true },
-  { key: "onde", rotulo: "Onde resolver", ordenavel: true },
-  { key: "o_que_fazer", rotulo: "O que fazer" },
+  { key: "cod_cadastro", rotulo: "Cód. cadastro", ordenavel: true, largura: "w-28" },
+  { key: "sku", rotulo: "SKU", ordenavel: true, largura: "w-32" },
+  { key: "nome_comercial", rotulo: "Nome", ordenavel: true, largura: "w-[20%]" },
+  { key: "fase", rotulo: "Fase", ordenavel: true, largura: "w-20" },
+  { key: "divergencias", rotulo: "Divergências", ordenavel: true, largura: "w-[22%]" },
+  { key: "campos", rotulo: "Campos", largura: "" },
 ];
 
-/** Valor usado na ordenação — vazio sempre vai para o fim, nos dois sentidos. */
-function chaveOrdem(l: FilaLinha, coluna: string): string | number | null {
-  if (coluna === "matriz") return l.valor_matriz;
-  if (coluna === "destino") return l.valor_destino;
-  if (coluna === "onde") return l.onde_resolver;
-  if (coluna === "regra") return l.regra_nome ?? l.regra;
-  if (coluna === "camada_nome") return l.camada_ordem;
-  return (l as unknown as Record<string, string | number | null>)[coluna] ?? null;
+/** Bling — campo a campo (vw_bling_cadastro_depara), carregado só ao expandir. */
+function DeParaBling({ sku }: { sku: string }) {
+  const q = useQuery({
+    queryKey: ["bling-cadastro-depara", sku],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vw_bling_cadastro_depara" as never).select("campo, rotulo, valor_bling, valor_sncf, lido_em, regra, ordem")
+        .eq("sku", sku).order("regra").order("ordem");
+      if (error) throw error;
+      return (data ?? []) as { campo: string; rotulo: string | null; valor_bling: string | null; valor_sncf: string | null; lido_em: string | null }[];
+    },
+  });
+  if (q.isLoading) return <Skeleton className="h-16 w-full" />;
+  if (q.error) return <Alert variant="destructive"><AlertDescription>Não foi possível ler o de-para do Bling: {(q.error as Error).message}</AlertDescription></Alert>;
+  const ls = q.data ?? [];
+  if (!ls.length) return <p className="text-xs text-muted-foreground">Nenhum campo divergente no último card lido.</p>;
+  const lido = ls.map(l => l.lido_em).filter(Boolean).sort().at(-1);
+  return <div className="space-y-1">
+    <div className="overflow-hidden rounded-md border bg-card"><Table className="text-xs"><TableHeader><TableRow><TableHead>Campo</TableHead><TableHead>Bling atual</TableHead><TableHead>SNCF</TableHead></TableRow></TableHeader>
+      <TableBody>{ls.map((l, i) => <TableRow key={`${l.campo}-${i}`}><TableCell>{l.rotulo ?? l.campo}</TableCell><TableCell className="break-all">{l.valor_bling ?? <span className="text-muted-foreground">vazio</span>}</TableCell><TableCell className="break-all">{l.valor_sncf ?? "—"}</TableCell></TableRow>)}</TableBody></Table></div>
+    {lido && <p className="text-[11px] text-muted-foreground">Lido do Bling em {fmtDataHora(lido)}</p>}
+  </div>;
 }
 
 function csvCelula(v: unknown): string {
@@ -140,7 +151,7 @@ export default function ConciliacaoFila() {
   const location = useLocation();
   const catalogo = useCatalogoLeitura();
   // TELA-LEMBRA-ONDE-EU-ESTAVA: página e ordem também na URL (filtros já moravam lá).
-  const [nav, setNav] = useEstadoTela({ pagina: 1, ordem: "regra:asc" });
+  const [nav, setNav] = useEstadoTela({ pagina: 1, ordem: "cod_cadastro:asc" });
   const pagina = nav.pagina;
   const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -149,7 +160,7 @@ export default function ConciliacaoFila() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const ordem = useMemo(() => {
     const [coluna, dir] = nav.ordem.split(":");
-    return { coluna: coluna || "regra", dir: (dir === "desc" ? "desc" : "asc") as "asc" | "desc" };
+    return { coluna: coluna || "cod_cadastro", dir: (dir === "desc" ? "desc" : "asc") as "asc" | "desc" };
   }, [nav.ordem]);
   const setOrdem = (v: SetStateAction<{ coluna: string; dir: "asc" | "desc" }>) => {
     const o = resolverAcao(v, ordem);
@@ -198,23 +209,14 @@ export default function ConciliacaoFila() {
   // 1.000 com ordem única e estável (linha_id) até a página vir incompleta.
   // (sku, regra) não é único — a mesma regra emite duas linhas do mesmo produto
   // e o corte na borda da página podia duplicar/omitir linha.
+  // Uma chamada: fn_conciliacao_fila() devolve TODAS as linhas de vw_conciliacao_fila (sem corte de 1.000).
   const fila = useQuery({
     queryKey: ["conciliacao-fila"],
     queryFn: async () => {
-      const PAGINA = 1000;
-      const todas: FilaLinha[] = [];
-      for (let de = 0; ; de += PAGINA) {
-        const { data, error } = await supabase
-          .from("vw_conciliacao_fila" as never)
-          .select("*")
-          .order("linha_id")
-          .range(de, de + PAGINA - 1);
-        if (error) throw error;
-        const pagina = (data ?? []) as FilaLinha[];
-        todas.push(...pagina);
-        if (pagina.length < PAGINA) break;
-      }
-      return todas;
+      const { data, error } = await supabase.rpc("fn_conciliacao_fila" as never);
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error("fn_conciliacao_fila não devolveu uma lista.");
+      return data as unknown as FilaLinha[];
     },
   });
   // IDENTIDADE-POR-SISTEMA (23/09/2026): cor e ordem dos cards "onde resolver"
@@ -267,24 +269,10 @@ export default function ConciliacaoFila() {
     return true;
   };
 
-  const recorte = useMemo(() => {
-    const base = linhas.filter(l => aplica(l));
-    const mult = ordem.dir === "asc" ? 1 : -1;
-    return [...base].sort((a, b) => {
-      const va = chaveOrdem(a, ordem.coluna), vb = chaveOrdem(b, ordem.coluna);
-      const vazioA = va === null || va === undefined || String(va).trim() === "";
-      const vazioB = vb === null || vb === undefined || String(vb).trim() === "";
-      if (vazioA && vazioB) return 0;
-      if (vazioA) return 1;
-      if (vazioB) return -1;
-      const cmp = typeof va === "number" && typeof vb === "number"
-        ? va - vb
-        : String(va).localeCompare(String(vb), "pt-BR", { numeric: true });
-      if (cmp !== 0) return cmp * mult;
-      return String(a.cod_cadastro ?? "").localeCompare(String(b.cod_cadastro ?? ""), "pt-BR", { numeric: true });
-    });
+  const recorte = useMemo(() => linhas.filter(l => aplica(l)),
   // aplica depende dos parâmetros da URL, que entram na dependência via `sp`
-  }, [linhas, ordem, sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  [linhas, sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  const produtosRecorte = useMemo(() => ordenarProdutos(agruparPorProduto(recorte), ordem.coluna, ordem.dir), [recorte, ordem]);
 
   const chaveFiltros = [...PARAMS, "q", "sem_produto"].map((k) => sp.get(k) ?? "").join("|");
   const primeiraRender = useRef(true);
@@ -304,6 +292,7 @@ export default function ConciliacaoFila() {
 
   const cards = useMemo(() => {
     const base = linhas.filter(l => aplica(l, "onde"));
+    const contagem = contarPorCanal(base);
     const medir = (onde: string) => {
       const ls = base.filter(l => (l.onde_resolver ?? "__sem__") === onde);
       const porRegra = new Map<string, { nome: string; n: number }>();
@@ -312,7 +301,8 @@ export default function ConciliacaoFila() {
         porRegra.set(l.regra, { nome: l.regra_nome ?? l.regra, n: (atual?.n ?? 0) + 1 });
       }
       const quebra = [...porRegra.values()].sort((a, b) => b.n - a.n).map(x => `${x.n} ${x.nome.toLocaleLowerCase("pt-BR")}`).join(" · ");
-      return { n: ls.length, quebra };
+      const c = contagem.get(onde);
+      return { n: c?.produtos ?? 0, divergencias: c?.divergencias ?? 0, quebra };
     };
     const dim = (sistemasDim.data ?? []).slice().sort((a, b) => (a.ordem ?? 9999) - (b.ordem ?? 9999));
     const dimSlugs = new Set(dim.map(d => d.slug));
@@ -334,9 +324,8 @@ export default function ConciliacaoFila() {
       const k = l.camada ?? "__sem__";
       if (!m.has(k)) m.set(k, { nome: l.camada_nome ?? k, ordem: l.camada_ordem });
     }
-    return [...m.entries()].sort((a, b) => (a[1].ordem ?? 9999) - (b[1].ordem ?? 9999) || a[1].nome.localeCompare(b[1].nome, "pt-BR")).map(([valor, v]) => ({ valor, rotulo: valor === "__sem__" ? "Sem camada" : v.nome }));
+    return [...m.entries()].sort((a, b) => a[1].nome.localeCompare(b[1].nome, "pt-BR")).map(([valor, v]) => ({ valor, rotulo: valor === "__sem__" ? "Sem camada" : v.nome }));
   }, [linhas]);
-  const opcoesOnde = useMemo(() => [...new Set(linhas.map(l => l.onde_resolver ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem destino" : v })), [linhas]);
   const opcoesRegra = useMemo(() => {
     const m = new Map<string, string>();
     for (const l of linhas) if (!m.has(l.regra)) m.set(l.regra, l.regra_nome ?? l.regra);
@@ -346,12 +335,12 @@ export default function ConciliacaoFila() {
   const opcoesColecao = useMemo(() => [...new Set(linhas.map(l => l.colecao ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem coleção" : v })), [linhas]);
 
   const filtrosAtivos = (busca ? 1 : 0) + (semProduto ? 1 : 0) + PARAMS.reduce((n, g) => n + lista(g).length, 0);
-  const paginas = Math.max(1, Math.ceil(recorte.length / tamanho));
+  const paginas = Math.max(1, Math.ceil(produtosRecorte.length / tamanho));
   const paginaAtual = Math.min(pagina, paginas);
-  const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
-  useFocoAoVoltar({ pronto: !carregando, idsVisiveis: paginaLinhas.map((l) => l.cod_cadastro ?? l.sku).filter(Boolean).map(String) });
+  const paginaProdutos = produtosRecorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  useFocoAoVoltar({ pronto: !carregando, idsVisiveis: paginaProdutos.map((l) => l.cod_cadastro ?? l.sku).filter(Boolean).map(String) });
   useRestaurarScroll(null, !carregando);
-  const produtos = new Set(recorte.map(l => l.sku)).size;
+  const produtos = produtosRecorte.length;
   // CICLO-PLANILHA: produtos do recorte com a regra de cadastro incompleto.
   const codsIncompletos = useMemo(
     () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
@@ -418,8 +407,12 @@ export default function ConciliacaoFila() {
     for (const s of skusRecorte) { if (marcar) novo.add(s); else novo.delete(s); }
     return novo;
   });
+  // Canal selecionado nos cards (filtro `onde` com um único valor).
+  const canalSel = lista("onde").length === 1 ? lista("onde")[0] : null;
+  // Com card: só a ação daquele canal (VoltarFase em SNCF ou sem card). Sem card: ações com ao menos 1 produto pendente.
+  const mostrarAcao = (canal: string, n: number) => canalSel ? canalSel === canal : n > 0;
   const estado = <>
-    {carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`}
+    {carregando ? "Carregando divergências…" : `${produtos} produto(s) · ${recorte.length} divergência(s)`}
     {" · "}
     <Link to="/vendas/produto/estoque/nomes-bling" className="underline-offset-2 hover:underline hover:text-foreground">Histórico de nomes no Bling</Link>
   </>;
@@ -445,27 +438,25 @@ export default function ConciliacaoFila() {
 
   const celulaVazia = <span className="text-muted-foreground">—</span>;
 
-  function celula(l: FilaLinha, c: ColDef) {
-    if (c.key === "cod_cadastro") return l.cod_cadastro
-      ? <Link to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`} state={{ from: montarFrom(location.pathname, location.search, l.cod_cadastro), fromLabel: "Conciliação de Cadastro" }} className="font-medium hover:underline">{l.cod_cadastro}</Link>
+  function celula(p: ProdutoFila<FilaLinha>, c: ColDef) {
+    if (c.key === "cod_cadastro") return p.cod_cadastro
+      ? <Link to={`/vendas/produto/ficha/${encodeURIComponent(p.cod_cadastro)}`} state={{ from: montarFrom(location.pathname, location.search, p.cod_cadastro), fromLabel: "Conciliação de Cadastro" }} className="font-medium hover:underline">{p.cod_cadastro}</Link>
       : celulaVazia;
-    if (c.key === "sku") return <span>{l.sku}</span>;
-    if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
-    if (c.key === "fase") return <Badge variant="outline" className="font-normal">{l.fase ?? "—"}</Badge>;
-    if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="whitespace-nowrap font-normal">{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
-    if (c.key === "camada_nome") return <span className="whitespace-nowrap">{l.camada_nome ?? l.camada ?? "—"}</span>;
-    if (c.key === "matriz" || c.key === "destino") {
-      const campo = c.key === "matriz" ? l.campo_matriz : l.campo_destino;
-      const valor = c.key === "matriz" ? l.valor_matriz : l.valor_destino;
-      if (!temValor(campo) && !temValor(valor)) return celulaVazia;
-      return <span className="block max-w-48"><span className="block truncate">{temValor(valor) ? String(valor) : "—"}</span>{temValor(campo) && <span className="block truncate text-[10px] text-muted-foreground">{campo}</span>}</span>;
-    }
-    if (c.key === "onde") {
+    if (c.key === "sku") return <span className="block truncate" title={p.sku}>{p.sku}</span>;
+    if (c.key === "nome_comercial") return temValor(p.nome_comercial)
+      ? <Tooltip><TooltipTrigger asChild><span className="block truncate">{p.nome_comercial}</span></TooltipTrigger><TooltipContent className="max-w-sm">{p.nome_comercial}</TooltipContent></Tooltip>
+      : celulaVazia;
+    if (c.key === "fase") return <Badge variant="outline" className="font-normal">{p.fase ?? "—"}</Badge>;
+    const doRecorte = p.linhas;
+    if (c.key === "divergencias") return <span className="flex flex-wrap gap-1">{regrasDoProduto(p).map(l => {
       const cor = corPorSistema.get(l.onde_resolver ?? "");
-      return <span className="whitespace-nowrap"><span style={cor ? { color: cor } : undefined}>{l.onde_resolver ?? "—"}</span>{temValor(l.rota_resolver) && <> <Link to={String(l.rota_resolver)} className="hover:underline">abrir tela →</Link></>}</span>;
-    }
-    if (!temValor(l.o_que_fazer)) return celulaVazia;
-    return <Tooltip><TooltipTrigger asChild><span className="block max-w-64 truncate text-left">{l.o_que_fazer}</span></TooltipTrigger><TooltipContent className="max-w-sm">{l.o_que_fazer}</TooltipContent></Tooltip>;
+      return <Tooltip key={l.regra}><TooltipTrigger asChild><Badge variant="outline" className="gap-1 font-normal" style={cor ? { borderColor: cor } : undefined}>
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground" style={cor ? { background: cor } : undefined} />{l.regra_nome ?? l.regra}</Badge></TooltipTrigger>
+        <TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
+    })}</span>;
+    const txt = resumoCampos(doRecorte);
+    if (!txt) return celulaVazia;
+    return <Tooltip><TooltipTrigger asChild><span className="block truncate text-left">{txt}</span></TooltipTrigger><TooltipContent className="max-w-sm">{txt}</TooltipContent></Tooltip>;
   }
 
   return <TooltipProvider delayDuration={200}><PageShell>
@@ -487,12 +478,6 @@ export default function ConciliacaoFila() {
         </DropdownMenu>
       </> : <>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-        {/* 20/10/2026: aposentado — porta única é a planilha de cadastro */}
-        {false && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />}
-        <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} sempreVisivel />
-        <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel abrirSinal={sinalXpm} />
-        <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel sugerirCard={sugerirCardBling} />
-        <CorrigirShopifyLote produtos={selecionadosProdutosShopify} onFeito={() => { void fila.refetch(); }} sempreVisivel abrirSinal={sinalShopify} />
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
@@ -521,7 +506,7 @@ export default function ConciliacaoFila() {
         const botao = <Button
           variant="outline"
           disabled={zera}
-          className={cn("h-20 items-start justify-center border border-l-4 p-3 text-left", zera && "opacity-50", selecionado && !cor && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
+          className={cn("h-auto min-h-20 items-start justify-center border border-l-4 p-3 text-left", zera && "opacity-50", selecionado && !cor && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
           style={{
             ...(selecionado && cor ? { borderColor: cor, background: `${cor}1A` } : {}),
             ...(cor ? { borderLeftColor: cor } : {}),
@@ -531,13 +516,16 @@ export default function ConciliacaoFila() {
           <span className="flex w-full flex-col">
             <span className="truncate text-[11px] font-normal" style={cor ? { color: cor } : undefined}>{c.label}</span>
             <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span>
+            <span className="text-[11px] font-normal text-muted-foreground">{c.divergencias} divergências</span>
           </span>
         </Button>;
         return <Tooltip key={c.onde}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.quebra || "Nenhuma divergência neste recorte."}</TooltipContent></Tooltip>;
       })}
     </section>
-    {/* 20/10/2026 (Flavio): Corrigir da Varredura usa a edge própria de cada sistema; o diálogo da barra segue para correção por seleção */}
-    <SecaoVarredura />
+    {/* Faixa do canal selecionado: Bling = motor de cadastro; XPM/Shopify = varredura compacta. SNCF/nenhum = sem faixa. */}
+    {canalSel && ["Bling", "XPM", "Shopify"].includes(canalSel) && <section className="rounded-md border bg-card p-3" aria-label={`Controle ${canalSel}`}>
+      {canalSel === "Bling" ? <BlingSyncControle /> : <VarreduraSistemaCard sistema={canalSel as "XPM" | "Shopify"} compacto />}
+    </section>}
 
     <section className="flex flex-wrap items-center gap-2 border-y py-3">
       <div className="relative min-w-64 flex-1">
@@ -545,7 +533,6 @@ export default function ConciliacaoFila() {
         <Input value={busca} onChange={e => setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU ou nome" />
       </div>
       <FiltroFacetado label="Camada" selecionados={lista("camada")} onChange={v => setLista("camada", v)} opcoes={facet("camada", opcoesCamada, l => l.camada ?? "__sem__")} />
-      <FiltroFacetado label="Onde resolver" selecionados={lista("onde")} onChange={v => setLista("onde", v)} opcoes={facet("onde", opcoesOnde, l => l.onde_resolver ?? "__sem__")} />
       <FiltroFacetado label="Regra" selecionados={lista("regra")} onChange={v => setLista("regra", v)} opcoes={facet("regra", opcoesRegra, l => l.regra)} />
       <FiltroFacetado label="Fase" selecionados={lista("fase")} onChange={v => setLista("fase", v)} opcoes={facet("fase", opcoesFase, l => l.fase ?? "__sem__")} />
       <FiltroFacetado label="Coleção" selecionados={lista("colecao")} onChange={v => setLista("colecao", v)} opcoes={facet("colecao", opcoesColecao, l => l.colecao ?? "__sem__")} />
@@ -561,8 +548,14 @@ export default function ConciliacaoFila() {
         {selecionadosForaDoRecorte > 0 && <span className="text-muted-foreground">({selecionadosForaDoRecorte} fora do recorte atual)</span>}
         {selecionadosForaDeAtivo > 0 && <span className="text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          {mostrarAcao("SNCF", selecionadosAtivos.length) && <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />}
+          {mostrarAcao("XPM", selecionadosProdutosXpm.length) && <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} abrirSinal={sinalXpm} />}
+          {mostrarAcao("Bling", selecionadosProdutosBling.length) && <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sugerirCard={sugerirCardBling} />}
+          {mostrarAcao("Shopify", selecionadosProdutosShopify.length) && <CorrigirShopifyLote produtos={selecionadosProdutosShopify} onFeito={() => { void fila.refetch(); }} abrirSinal={sinalShopify} />}
+        </span>
       </div>}
-      <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
+      <Table className="table-fixed text-xs" containerClassName="max-h-[min(62vh,46rem)]">
         <TableHeader><TableRow>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted">
             <Checkbox
@@ -572,33 +565,31 @@ export default function ConciliacaoFila() {
             />
           </TableHead>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
-          {COLUNAS.map(c => <TableHead key={String(c.key)} className="sticky top-0 z-40 whitespace-nowrap bg-muted font-medium" aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
-            {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
+          {COLUNAS.map(c => <TableHead key={c.key} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted font-medium", c.largura)} aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
+            {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(c.key)}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
           </TableHead>)}
         </TableRow></TableHeader>
-        <TableBody>{paginaLinhas.map(l => <Fragment key={l.linha_id}>
-          <TableRow className="border-b" data-foco-id={String(l.cod_cadastro ?? l.sku)}>
+        <TableBody>{paginaProdutos.map(p => <Fragment key={p.sku}>
+          <TableRow className="border-b" data-foco-id={String(p.cod_cadastro ?? p.sku)}>
             <TableCell className="py-2.5 align-top">
-              <Checkbox
-                aria-label={`Selecionar ${l.cod_cadastro ?? l.sku}`}
-                checked={temValor(l.sku) && selecionados.has(String(l.sku))}
-                disabled={!temValor(l.sku)}
-                onCheckedChange={() => { if (temValor(l.sku)) alternarProduto(String(l.sku)); }}
-              />
+              <Checkbox aria-label={`Selecionar ${p.cod_cadastro ?? p.sku}`} checked={selecionados.has(p.sku)} onCheckedChange={() => alternarProduto(p.sku)} />
             </TableCell>
             <TableCell className="py-2.5 align-top">
-              <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido === l.sku ? `Recolher ${l.sku}` : `Expandir ${l.sku}`} onClick={() => setExpandido(e => e === l.sku ? null : l.sku)}>
-                {expandido === l.sku ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido === p.sku ? `Recolher ${p.sku}` : `Expandir ${p.sku}`} onClick={() => setExpandido(e => e === p.sku ? null : p.sku)}>
+                {expandido === p.sku ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               </Button>
             </TableCell>
-            {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
+            {COLUNAS.map(c => <TableCell key={c.key} className="py-2.5 align-top">{celula(p, c)}</TableCell>)}
           </TableRow>
-          {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
-            <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={x.linha_id} l={x} />)}</div>
+          {expandido === p.sku && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
+            <div className="space-y-4">
+              <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">O que fazer</p>{linhas.filter(x => x.sku === p.sku).map(x => <BlocoProblema key={x.linha_id} l={x} />)}</div>
+              {linhas.some(x => x.sku === p.sku && x.onde_resolver === "Bling") && <div className="space-y-2"><p className="text-xs font-medium text-muted-foreground">Bling — campo a campo</p><DeParaBling sku={p.sku} /></div>}
+            </div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
       </Table>
-      <RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_cadastro" onPagina={setPagina} onTamanhoPagina={setTamanho} />
+      <RodapePaginacao total={produtosRecorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_cadastro" onPagina={setPagina} onTamanhoPagina={setTamanho} />
     </div>}
       </TabsContent>
     </Tabs>
