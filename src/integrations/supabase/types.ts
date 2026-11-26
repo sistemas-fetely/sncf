@@ -9123,6 +9123,135 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_mov_dedup_pares_20261126: {
+        Row: {
+          cartao_id: string | null
+          casada_com_id: string | null
+          categoria_inconsistente: boolean
+          centro_custo_id: string | null
+          classe: string | null
+          classe_definida_por: string | null
+          classe_nota: string | null
+          conciliado: boolean | null
+          conciliado_em: string | null
+          conciliado_por: string | null
+          conta_bancaria_id: string | null
+          conta_pagar_id: string | null
+          contraparte_documento: string | null
+          contraparte_nome: string | null
+          created_at: string | null
+          data_hora: string | null
+          data_transacao: string
+          descricao: string
+          doc_solicitado_em: string | null
+          doc_solicitado_nota: string | null
+          doc_solicitado_por: string | null
+          duplicada_de: string | null
+          fonte_importacao_id: string | null
+          hash_unico: string | null
+          id: string
+          id_transacao_banco: string | null
+          inconsistencia_motivo: string | null
+          itau_planilha_id: string | null
+          ofx_transacao_id: string | null
+          origem: string | null
+          par_transferencia_id: string | null
+          pg_em: string | null
+          plano_contas_id: string | null
+          referencia_pedido: string | null
+          regra_aplicada_id: string | null
+          saldo_pos_transacao: number | null
+          tipo: string | null
+          tipo_meio: string | null
+          tipo_pagamento: string | null
+          valor: number
+        }
+        Insert: {
+          cartao_id?: string | null
+          casada_com_id?: string | null
+          categoria_inconsistente: boolean
+          centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
+          classe_nota?: string | null
+          conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
+          created_at?: string | null
+          data_hora?: string | null
+          data_transacao: string
+          descricao: string
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
+          duplicada_de?: string | null
+          fonte_importacao_id?: string | null
+          hash_unico?: string | null
+          id: string
+          id_transacao_banco?: string | null
+          inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
+          ofx_transacao_id?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pg_em?: string | null
+          plano_contas_id?: string | null
+          referencia_pedido?: string | null
+          regra_aplicada_id?: string | null
+          saldo_pos_transacao?: number | null
+          tipo?: string | null
+          tipo_meio?: string | null
+          tipo_pagamento?: string | null
+          valor: number
+        }
+        Update: {
+          cartao_id?: string | null
+          casada_com_id?: string | null
+          categoria_inconsistente?: boolean
+          centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
+          classe_nota?: string | null
+          conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
+          created_at?: string | null
+          data_hora?: string | null
+          data_transacao?: string
+          descricao?: string
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
+          duplicada_de?: string | null
+          fonte_importacao_id?: string | null
+          hash_unico?: string | null
+          id?: string
+          id_transacao_banco?: string | null
+          inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
+          ofx_transacao_id?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pg_em?: string | null
+          plano_contas_id?: string | null
+          referencia_pedido?: string | null
+          regra_aplicada_id?: string | null
+          saldo_pos_transacao?: number | null
+          tipo?: string | null
+          tipo_meio?: string | null
+          tipo_pagamento?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       backup_mov_itau_na_safra_20260929: {
         Row: {
           cartao_id: string | null
@@ -40157,6 +40286,36 @@ export type Database = {
             referencedColumns: ["conta_bancaria_id"]
           },
         ]
+      }
+      extrato_dedup_pares_execucao: {
+        Row: {
+          conta_id: string | null
+          criado_em: string
+          data_fim: string
+          data_ini: string
+          id: string
+          regra: string
+          resultado: Json
+        }
+        Insert: {
+          conta_id?: string | null
+          criado_em?: string
+          data_fim: string
+          data_ini: string
+          id?: string
+          regra?: string
+          resultado: Json
+        }
+        Update: {
+          conta_id?: string | null
+          criado_em?: string
+          data_fim?: string
+          data_ini?: string
+          id?: string
+          regra?: string
+          resultado?: Json
+        }
+        Relationships: []
       }
       extrato_duplicada_consolidada_log: {
         Row: {
@@ -200895,6 +201054,10 @@ export type Database = {
       }
       fn_extrato_classificar_manual: {
         Args: { p_classe: string; p_mov_id: string; p_nota?: string }
+        Returns: Json
+      }
+      fn_extrato_dedup_e_pares: {
+        Args: { p_conta_id?: string; p_data_fim?: string; p_data_ini?: string }
         Returns: Json
       }
       fn_extrato_desfazer_classe: { Args: { p_mov_id: string }; Returns: Json }

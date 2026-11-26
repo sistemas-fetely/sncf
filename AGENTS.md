@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Bank-file completion invokes one service-only SQL dedup/matching function; preserve source multiplicity and protected financial links before reciprocal-unique pairing, retain manual classes and audit before/after rows for reversal without changing the MP withdrawal rule.
 - Shopify registration and grouping share normalized collection discovery/creation and reference-channel publication; dry runs never write, collection failures isolate dependent products, and measurement eligibility reads the field catalog in the queue view.
 - Product thumbnails batch-read vw_produto_imagem_final through useImagemProduto; the view owns priority and exact-photo flags, while Mesa alone catches photo failures to keep operations unblocked and photo management retains produto_foto.
 - New Bling cards register their canonical SKU through the produtos insert/code-ID update trigger with conflict DO NOTHING; preserve raw codes and existing manual/rule choices so daily duplicate resolution remains authoritative.

@@ -757,6 +757,34 @@
       "when": 1795665426366,
       "tag": "0107_shopify_fila_medicao_parametrizada",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1795665977402,
+      "tag": "0108_extrato_dedup_e_pares",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1795666124955,
+      "tag": "0109_extrato_pares_unicidade_completa",
+      "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1795666199028,
+      "tag": "0110_extrato_pares_alias_grupo",
+      "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1795666358595,
+      "tag": "0111_extrato_pares_fechamento_cnab",
+      "breakpoints": true
     }
   ]
 }
