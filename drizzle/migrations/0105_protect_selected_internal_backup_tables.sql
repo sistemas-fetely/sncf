@@ -1,0 +1,16 @@
+ALTER TABLE public.backup_dev2380_vinculo_20261125 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_d008_sncf_produtos_20261118 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_d008_xpm_categoria_map_20261118 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_d008_importacao_linha_20261118b ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_dev2380_devolucao_20261125 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_d008_nf_linha_sku_20261118b ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_d008_xpm_medida_ref_20261118 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_parceiros_dedup_gabriela_20261118 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_dev2380_titulos_20261125 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_d008_invoice_linha_20261118 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_dev2380_movs_20261125 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_vw_reposicao_sp_20261118 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_vw_recebivel_b2c_pedido_20261119 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_vw_logistica_fila_atencao_20261119 ENABLE ROW LEVEL SECURITY;
+REVOKE ALL PRIVILEGES ON TABLE public.backup_dev2380_vinculo_20261125, public.backup_d008_sncf_produtos_20261118, public.backup_d008_xpm_categoria_map_20261118, public.backup_d008_importacao_linha_20261118b, public.backup_dev2380_devolucao_20261125, public.backup_d008_nf_linha_sku_20261118b, public.backup_d008_xpm_medida_ref_20261118, public.backup_parceiros_dedup_gabriela_20261118, public.backup_dev2380_titulos_20261125, public.backup_d008_invoice_linha_20261118, public.backup_dev2380_movs_20261125, public.backup_vw_reposicao_sp_20261118, public.backup_vw_recebivel_b2c_pedido_20261119, public.backup_vw_logistica_fila_atencao_20261119 FROM PUBLIC, anon, authenticated;
+GRANT ALL PRIVILEGES ON TABLE public.backup_dev2380_vinculo_20261125, public.backup_d008_sncf_produtos_20261118, public.backup_d008_xpm_categoria_map_20261118, public.backup_d008_importacao_linha_20261118b, public.backup_dev2380_devolucao_20261125, public.backup_d008_nf_linha_sku_20261118b, public.backup_d008_xpm_medida_ref_20261118, public.backup_parceiros_dedup_gabriela_20261118, public.backup_dev2380_titulos_20261125, public.backup_d008_invoice_linha_20261118, public.backup_dev2380_movs_20261125, public.backup_vw_reposicao_sp_20261118, public.backup_vw_recebivel_b2c_pedido_20261119, public.backup_vw_logistica_fila_atencao_20261119 TO service_role;

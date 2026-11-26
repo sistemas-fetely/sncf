@@ -8349,6 +8349,24 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_fn_baixa_origem_20261126: {
+        Row: {
+          def: string | null
+          nome: string | null
+          salvo_em: string | null
+        }
+        Insert: {
+          def?: string | null
+          nome?: string | null
+          salvo_em?: string | null
+        }
+        Update: {
+          def?: string | null
+          nome?: string | null
+          salvo_em?: string | null
+        }
+        Relationships: []
+      }
       backup_fn_lastro_lote_20261026: {
         Row: {
           def: string | null
@@ -14326,6 +14344,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: true
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -43306,6 +43331,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -48939,6 +48971,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -49462,6 +49501,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -50679,6 +50725,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -51581,6 +51634,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -54046,6 +54106,45 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      mesa_sp_transicao: {
+        Row: {
+          ativo: boolean
+          canal: string
+          de: string
+          descricao: string | null
+          efeitos: string[]
+          exige_motivo: boolean
+          id: string
+          ordem: number
+          para: string
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          canal?: string
+          de: string
+          descricao?: string | null
+          efeitos?: string[]
+          exige_motivo?: boolean
+          id?: string
+          ordem?: number
+          para: string
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          canal?: string
+          de?: string
+          descricao?: string | null
+          efeitos?: string[]
+          exige_motivo?: boolean
+          id?: string
+          ordem?: number
+          para?: string
+          rotulo?: string
+        }
+        Relationships: []
       }
       mesa_sp_transportadora_modal: {
         Row: {
@@ -85143,6 +85242,13 @@ export type Database = {
             foreignKeyName: "produto_agrupamento_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_agrupamento_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -85488,6 +85594,8 @@ export type Database = {
           campo_destino: string
           conversao: string | null
           criado_em: string
+          exigencia: string | null
+          exigencia_rotulo: string | null
           id: number
           na_correcao: boolean
           na_criacao: boolean
@@ -85502,6 +85610,8 @@ export type Database = {
           campo_destino: string
           conversao?: string | null
           criado_em?: string
+          exigencia?: string | null
+          exigencia_rotulo?: string | null
           id?: number
           na_correcao?: boolean
           na_criacao?: boolean
@@ -85516,6 +85626,8 @@ export type Database = {
           campo_destino?: string
           conversao?: string | null
           criado_em?: string
+          exigencia?: string | null
+          exigencia_rotulo?: string | null
           id?: number
           na_correcao?: boolean
           na_criacao?: boolean
@@ -86213,6 +86325,467 @@ export type Database = {
           rotulo?: string
           tipo_no_nome_operacional?: boolean
           variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_kit: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          bling_produto_id: number | null
+          criado_em: string
+          criado_por: string | null
+          nome: string
+          preco_venda: number | null
+          shopify_product_id: number | null
+          shopify_variant_id: number | null
+          sku: string
+          tipo_estoque: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          bling_produto_id?: number | null
+          criado_em?: string
+          criado_por?: string | null
+          nome: string
+          preco_venda?: number | null
+          shopify_product_id?: number | null
+          shopify_variant_id?: number | null
+          sku: string
+          tipo_estoque?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          bling_produto_id?: number | null
+          criado_em?: string
+          criado_por?: string | null
+          nome?: string
+          preco_venda?: number | null
+          shopify_product_id?: number | null
+          shopify_variant_id?: number | null
+          sku?: string
+          tipo_estoque?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_kit_tipo_estoque_fkey"
+            columns: ["tipo_estoque"]
+            isOneToOne: false
+            referencedRelation: "produto_kit_estoque_tipo_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      produto_kit_componente: {
+        Row: {
+          componente_sku: string
+          kit_sku: string
+          quantidade: number
+        }
+        Insert: {
+          componente_sku: string
+          kit_sku: string
+          quantidade: number
+        }
+        Update: {
+          componente_sku?: string
+          kit_sku?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "ic_vw_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_alerta_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_bloqueio_venda"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao_360"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_formato_alerta"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_imagem_final"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_classe_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sp"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_kit_sku_fkey"
+            columns: ["kit_sku"]
+            isOneToOne: false
+            referencedRelation: "produto_kit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_kit_sku_fkey"
+            columns: ["kit_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_kit_lista"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
+      produto_kit_estoque_tipo_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      produto_kit_evento: {
+        Row: {
+          detalhe: Json
+          em: string
+          id: string
+          kit_sku: string
+          por: string | null
+          por_nome: string | null
+          tipo: string
+        }
+        Insert: {
+          detalhe?: Json
+          em?: string
+          id?: string
+          kit_sku: string
+          por?: string | null
+          por_nome?: string | null
+          tipo: string
+        }
+        Update: {
+          detalhe?: Json
+          em?: string
+          id?: string
+          kit_sku?: string
+          por?: string | null
+          por_nome?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_kit_evento_tipo_fkey"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_kit_evento_tipo_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      produto_kit_evento_tipo_dim: {
+        Row: {
+          codigo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          ordem?: number
+          rotulo?: string
         }
         Relationships: []
       }
@@ -90026,6 +90599,13 @@ export type Database = {
             foreignKeyName: "regularizacao_item_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -91293,6 +91873,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -95829,6 +96416,42 @@ export type Database = {
           },
         ]
       }
+      shopify_kit_componente: {
+        Row: {
+          componente_barcode: string | null
+          componente_shopify_id: string | null
+          componente_sku: string | null
+          componente_titulo: string | null
+          componente_variant_id: string
+          kit_shopify_id: string
+          kit_variant_id: string
+          lido_em: string
+          quantidade: number
+        }
+        Insert: {
+          componente_barcode?: string | null
+          componente_shopify_id?: string | null
+          componente_sku?: string | null
+          componente_titulo?: string | null
+          componente_variant_id: string
+          kit_shopify_id: string
+          kit_variant_id: string
+          lido_em?: string
+          quantidade: number
+        }
+        Update: {
+          componente_barcode?: string | null
+          componente_shopify_id?: string | null
+          componente_sku?: string | null
+          componente_titulo?: string | null
+          componente_variant_id?: string
+          kit_shopify_id?: string
+          kit_variant_id?: string
+          lido_em?: string
+          quantidade?: number
+        }
+        Relationships: []
+      }
       shopify_location: {
         Row: {
           ativo_shopify: boolean | null
@@ -96543,6 +97166,13 @@ export type Database = {
             columns: ["sku_canonico"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -121718,6 +122348,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -126595,6 +127232,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tipos_vinculo"
             referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      vw_bling_cadastro_depara: {
+        Row: {
+          bling_id: string | null
+          campo: string | null
+          campo_matriz: string | null
+          cod_cadastro: string | null
+          destino: string | null
+          fase: string | null
+          lido_em: string | null
+          no_motor: boolean | null
+          ordem: number | null
+          regra: string | null
+          rotulo: string | null
+          sku: string | null
+          sobrescreve: boolean | null
+          valor_bling: string | null
+          valor_sncf: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_fase"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -134091,6 +134756,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -146265,6 +146937,14 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_fila_banco_reiniciou: {
+        Row: {
+          desde: string | null
+          erro: string | null
+          id: string | null
+        }
+        Relationships: []
+      }
       vw_fila_braspress_rastreio: {
         Row: {
           chave_acesso: string | null
@@ -151755,6 +152435,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -155195,6 +155882,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -155636,6 +156330,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -155951,6 +156652,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -162156,14 +162864,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -175620,6 +176328,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_produto_destino_pendencia: {
+        Row: {
+          campo: string | null
+          cod_cadastro: string | null
+          nivel: string | null
+          origem: string | null
+          pendencia: string | null
+          sistema: string | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_produto_divergencia_bling: {
         Row: {
           acao: string | null
@@ -176156,6 +176876,364 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+        ]
+      }
+      vw_produto_kit_componente: {
+        Row: {
+          cod_cadastro: string | null
+          componente_ativo: boolean | null
+          componente_sku: string | null
+          disponivel: number | null
+          kit_sku: string | null
+          nome: string | null
+          preco_ref: number | null
+          quantidade: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "ic_vw_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_alerta_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_bloqueio_venda"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao_360"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_formato_alerta"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_imagem_final"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_classe_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sp"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_kit_sku_fkey"
+            columns: ["kit_sku"]
+            isOneToOne: false
+            referencedRelation: "produto_kit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_kit_sku_fkey"
+            columns: ["kit_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_kit_lista"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
+      vw_produto_kit_lista: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          bling_produto_id: number | null
+          componentes_inativos: number | null
+          criado_em: string | null
+          disponivel: number | null
+          n_componentes: number | null
+          no_bling: boolean | null
+          no_shopify: boolean | null
+          nome: string | null
+          preco_venda: number | null
+          shopify_product_id: number | null
+          shopify_variant_id: number | null
+          sku: string | null
+          soma_componentes: number | null
+          tipo_estoque: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_kit_tipo_estoque_fkey"
+            columns: ["tipo_estoque"]
+            isOneToOne: false
+            referencedRelation: "produto_kit_estoque_tipo_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -187049,14 +188127,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -195213,6 +196291,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_bling_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -196265,6 +197350,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
             referencedColumns: ["sku"]
           },
           {
@@ -198448,6 +199540,10 @@ export type Database = {
           vencimento: string
         }[]
       }
+      fn_baixa_nf_centro_origem: {
+        Args: { p_centro_parceiro: string; p_cfop: string; p_nf_id: string }
+        Returns: string
+      }
       fn_baixa_pendente_diagnostico: {
         Args: { p_pendencia_id: string }
         Returns: Json
@@ -198968,6 +200064,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_conciliacao_fila: { Args: never; Returns: Json }
       fn_conciliar_cartao_lote_auto: {
         Args: { p_dry_run?: boolean }
         Returns: Json
@@ -200195,6 +201292,21 @@ export type Database = {
       fn_invoice_aplicar_iv: { Args: { p_invoice_id: number }; Returns: Json }
       fn_invoice_reresolver: { Args: { p_invoice_id: number }; Returns: Json }
       fn_itau_pagamentos_para_itens: { Args: never; Returns: Json }
+      fn_kit_definir_ativo: {
+        Args: { p_ativo: boolean; p_motivo?: string; p_sku: string }
+        Returns: Json
+      }
+      fn_kit_explodir_itens: { Args: { p_itens: Json }; Returns: Json }
+      fn_kit_salvar: {
+        Args: {
+          p_componentes: Json
+          p_nome: string
+          p_preco: number
+          p_sku: string
+          p_sku_original?: string
+        }
+        Returns: Json
+      }
       fn_lancamento_vincular_prova: {
         Args: {
           p_lancamento_id: string
@@ -200486,6 +201598,16 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_mesa_sp_mover: {
+        Args: {
+          p_motivo?: string
+          p_para: string
+          p_pedido_id: string
+          p_respostas?: Json
+        }
+        Returns: Json
+      }
+      fn_mesa_sp_nf_emitida: { Args: { p_pedido_id: string }; Returns: string }
       fn_mesa_sp_peso_estimado: {
         Args: {
           p_caixa_codigo?: string
@@ -200519,6 +201641,18 @@ export type Database = {
       fn_mesa_sp_solicitar_nf: {
         Args: { p_observacao?: string; p_pedido_id: string }
         Returns: Json
+      }
+      fn_mesa_sp_transicoes: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          bloqueio: string
+          descricao: string
+          exige_motivo: boolean
+          para: string
+          pergunta: string
+          permitido: boolean
+          rotulo: string
+        }[]
       }
       fn_mesa_sp_trava_cancelamento: {
         Args: { p_pedido_id: string }

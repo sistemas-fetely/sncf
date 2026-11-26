@@ -736,6 +736,13 @@
       "when": 1795514888276,
       "tag": "0104_catalogo_resolver_auditoria_rotina_diaria",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1795664381115,
+      "tag": "0105_protect_selected_internal_backup_tables",
+      "breakpoints": true
     }
   ]
 }
