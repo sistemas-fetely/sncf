@@ -100,14 +100,40 @@ serve(async (req) => {
       }
     }
 
-    // ---- fichas ----
+    // ---- fichas: a prévia pode devolver o SKU real ou o codigo_externo ----
+    const valorPostgrest = (valor: string) => `"${valor.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+    const listaIdentificadores = skus.map(valorPostgrest).join(",");
     const { data: fichas, error: fichaErr } = await supabase
       .from("sncf_produtos")
       .select("*")
-      .in("sku", skus);
+      .or(`sku.in.(${listaIdentificadores}),codigo_externo.in.(${listaIdentificadores})`);
     if (fichaErr) return json({ ok: false, erro: `Falha ao ler sncf_produtos: ${fichaErr.message}` }, 500);
     const porSku = new Map<string, any>();
-    for (const f of fichas || []) porSku.set(f.sku, f);
+    const fichaPorIdentificador = new Map<string, any>();
+    for (const f of fichas || []) {
+      porSku.set(f.sku, f);
+      const codigoExterno = String(f.codigo_externo ?? "").trim().toLowerCase();
+      if (codigoExterno) fichaPorIdentificador.set(codigoExterno, f);
+    }
+    // O SKU exato tem precedência se coincidir com o código externo de outra ficha.
+    for (const f of fichas || []) fichaPorIdentificador.set(f.sku, f);
+
+    const recusados: { sku: string; motivo: string }[] = [];
+    const skusReais: string[] = [];
+    const skusVistos = new Set<string>();
+    for (const identificador of skus) {
+      const ficha = fichaPorIdentificador.get(identificador) ?? fichaPorIdentificador.get(identificador.toLowerCase());
+      if (!ficha) {
+        recusados.push({ sku: identificador, motivo: "não encontrado em sncf_produtos" });
+        console.log(`[criar-produto-bling] ${identificador}: recusado — sem ficha`);
+        continue;
+      }
+      if (!skusVistos.has(ficha.sku)) {
+        skusVistos.add(ficha.sku);
+        skusReais.push(ficha.sku);
+      }
+    }
+    skus = skusReais;
 
     // ---- PORTÃO 1: pendências de ficha (ignora 'ficha_bling') ----
     const { data: pend, error: pendErr } = await supabase
@@ -172,7 +198,6 @@ serve(async (req) => {
       destPendPorSku.set(r.sku, lista);
     }
 
-    const recusados: { sku: string; motivo: string }[] = [];
     const criar: { sku: string; payload: any; grupo: string }[] = [];
 
 
@@ -257,7 +282,7 @@ serve(async (req) => {
       return json({
         ok: true,
         dry_run: true,
-        criar: criar.map((c) => ({ ...c.payload, grupo_tributario: c.grupo })),
+        criar: criar.map((c) => ({ sku: c.sku, ...c.payload, grupo_tributario: c.grupo })),
         recusados,
       });
     }
