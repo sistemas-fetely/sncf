@@ -1,9 +1,14 @@
 import { expect, test } from "bun:test";
 import { resolverProduto, codigoBling } from "./resolver.ts";
-test("prioriza cache atual sem alterar o vínculo original", async () => {
+test("canônico primeiro: 1 GET quando o canônico confere", async () => {
   const chamadas: string[] = [];
-  const r = await resolverProduto("VNOUM.GL.7.4", 16661151871, "16641076798", async (p) => { chamadas.push(p); return { data: { id: 16661151871, codigo: "VNOUM.GL.7.4" } }; });
-  expect(chamadas).toEqual(["/produtos/16661151871"]); expect(r.bling_id).toBe("16661151871"); expect(r.resolucao.id_desatualizado).toBe(true);
+  const r = await resolverProduto("VNOUM.GL.7.4", 16661151871, "16641076798", async (p) => { chamadas.push(p); return { data: { id: 16641076798, codigo: "VNOUM.GL.7.4" } }; });
+  expect(chamadas).toEqual(["/produtos/16641076798"]); expect(r.bling_id).toBe("16641076798"); expect(r.resolucao.fonte).toBe("canonico"); expect(r.resolucao.id_desatualizado).toBe(false);
+});
+test("canônico de outro card cai para o cache e marca id desatualizado", async () => {
+  const chamadas: string[] = [];
+  const r = await resolverProduto("ABC", 2, "1", async (p) => { chamadas.push(p); return { data: p === "/produtos/1" ? { id: 1, codigo: "XYZ" } : { id: 2, codigo: "ABC" } }; });
+  expect(chamadas).toEqual(["/produtos/1", "/produtos/2"]); expect(r.resolucao.fonte).toBe("bling_produtos_cache"); expect(r.resolucao.id_desatualizado).toBe(true);
 });
 test("404 procura código exato e lê detalhe fresco", async () => {
   const chamadas: string[] = [];

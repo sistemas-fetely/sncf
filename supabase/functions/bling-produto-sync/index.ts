@@ -5,6 +5,8 @@ import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bl
 import { comparar, montarPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, type Campo } from "./regras.ts";
 import { resolverProduto, codigoBling } from "./resolver.ts";
 import { fonteComInner } from "./inner.ts";
+import { portaCronPermite } from "./porta.ts";
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const Body = z.object({ acao: z.enum(["diff", "aplicar", "automatico", "consultar"]).default("diff"), execucao_id: z.string().uuid().optional(), skus: z.array(z.string().min(1).max(255)).max(1000).optional(), campos: z.array(z.string().min(1).max(255)).max(100).optional() });
 const msg = (e: unknown) => {
@@ -18,17 +20,28 @@ Deno.serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) return json({ ok: false, erro: "Configuração ausente." }, 500);
   const sb = createClient(url, key);
-  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return json({ ok: false, erro: "Sessão necessária." }, 401);
-  const { data: auth, error: authErr } = await sb.auth.getUser(token);
-  if (authErr || !auth.user) return json({ ok: false, erro: "Sessão inválida." }, 401);
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return json({ ok: false, erro: parsed.error.flatten() }, 400);
   const body = parsed.data;
-  const slug = body.acao === "diff" ? "acao.varrer_bling" : "acao.produto_corrigir_externo";
-  const { data: pode, error: permErr } = await sb.rpc("usuario_tem_acao", { p_slug: slug, p_user_id: auth.user.id });
-  if (permErr) return json({ ok: false, erro: permErr.message }, 500);
-  if (!pode) return json({ ok: false, erro: `Sem permissão (${slug}).` }, 403);
+  // Porta dupla (molde varrer-divergencia-bling): x-cron-secret só continua comparação; o resto exige sessão.
+  const { data: segredo, error: segErr } = await sb.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+  if (segErr || !segredo) return json({ ok: false, erro: `Não foi possível ler o SYNC_CRON_SECRET: ${segErr?.message ?? "vazio"}` }, 500);
+  const segredoRecebido = req.headers.get("x-cron-secret");
+  let usuarioId: string | null = null;
+  if (segredoRecebido) {
+    if (segredoRecebido !== segredo) return json({ ok: false, erro: "x-cron-secret inválido." }, 401);
+    if (!portaCronPermite(body)) return json({ ok: false, erro: "Pela porta x-cron-secret só é permitido diff com execucao_id." }, 403);
+  } else {
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+    if (!token) return json({ ok: false, erro: "Sessão necessária." }, 401);
+    const { data: auth, error: authErr } = await sb.auth.getUser(token);
+    if (authErr || !auth.user) return json({ ok: false, erro: "Sessão inválida." }, 401);
+    usuarioId = auth.user.id;
+    const slug = body.acao === "diff" ? "acao.varrer_bling" : "acao.produto_corrigir_externo";
+    const { data: pode, error: permErr } = await sb.rpc("usuario_tem_acao", { p_slug: slug, p_user_id: usuarioId });
+    if (permErr) return json({ ok: false, erro: permErr.message }, 500);
+    if (!pode) return json({ ok: false, erro: `Sem permissão (${slug}).` }, 403);
+  }
   const lease = crypto.randomUUID(); let locked = false;
   const check = (r: { error?: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); };
   let execucaoId = body.execucao_id;
@@ -63,7 +76,7 @@ Deno.serve(async (req) => {
         const f = await sb.from("bling_produto_sync_fila").select("sku,versao").eq("status", "pendente").order("enfileirado_em").limit(20); check(f); fila = f.data ?? [];
         if (!fila.length) return json({ ok: true, vazio: true });
       }
-      const inicio = await sb.rpc("fn_bling_produto_sync_iniciar", { p_usuario: auth.user.id, p_skus: body.acao === "automatico" ? fila.map((f) => f.sku) : null, p_origem: body.acao === "automatico" ? "automatico" : "manual" }); check(inicio);
+      const inicio = await sb.rpc("fn_bling_produto_sync_iniciar", { p_usuario: usuarioId, p_skus: body.acao === "automatico" ? fila.map((f) => f.sku) : null, p_origem: body.acao === "automatico" ? "automatico" : "manual" }); check(inicio);
       execucaoId = inicio.data;
     }
     const execR = await sb.from("bling_produto_sync_execucao").select("*").eq("id", execucaoId).single(); check(execR);
@@ -103,7 +116,21 @@ Deno.serve(async (req) => {
       resumoR.data.comparados = (produtosR.data ?? []).filter((p: any) => p.status === "comparado").length;
       resumoR.data.ids_desatualizados = (produtosR.data ?? []).filter((p: any) => p.fonte?.resolucao_bling?.id_desatualizado).length;
       if (resumoR.data.restantes === 0) check(await sb.from("bling_produto_sync_execucao").update({ status: "comparado", atualizado_em: new Date().toISOString() }).eq("id", execucaoId));
-      if (body.acao === "diff") return json({ ok: true, execucao_id: execucaoId, concluido: resumoR.data.restantes === 0, resumo: resumoR.data });
+      if (body.acao === "diff") {
+        if (resumoR.data.restantes > 0) {
+          // Libera a trava ANTES de encadear a continuação; o finally não libera de novo.
+          const lib = await sb.rpc("fn_bling_produto_sync_lease", { p_token: lease, p_liberar: true }); check(lib);
+          locked = false;
+          const continuar = fetch(`${url}/functions/v1/bling-produto-sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-cron-secret": String(segredo), Authorization: `Bearer ${key}` },
+            body: JSON.stringify({ acao: "diff", execucao_id: execucaoId }),
+          }).then(async (r) => { const t = await r.text(); if (!r.ok) console.error("Continuação da comparação falhou:", r.status, t); })
+            .catch((e) => console.error("Continuação da comparação falhou:", msg(e)));
+          EdgeRuntime.waitUntil(continuar);
+        }
+        return json({ ok: true, execucao_id: execucaoId, concluido: resumoR.data.restantes === 0, resumo: resumoR.data });
+      }
     }
     const statusR = await sb.from("bling_produto_sync_execucao").select("status").eq("id", execucaoId).single(); check(statusR);
     if (statusR.data?.status !== "comparado" && statusR.data?.status !== "aplicando") throw new Error("Conclua a comparação antes de enviar.");

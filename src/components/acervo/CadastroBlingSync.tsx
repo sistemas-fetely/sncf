@@ -24,11 +24,13 @@ const exibirValor = (campo: string | undefined, v: unknown) => {
   if (campoDeMedida(campo)) { const f = numeroMedida(v); if (f !== null) return f; }
   return exibir(v);
 };
+class ErroChamada extends Error { constructor(m: string, public status?: number) { super(m); } }
 async function chamar(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("bling-produto-sync", { body });
   if (error) {
-    const r = error.context instanceof Response ? await error.context.clone().json().catch(() => null) : null;
-    throw new Error(r?.erro ?? formatError(error));
+    const ctx = error.context instanceof Response ? error.context : null;
+    const r = ctx ? await ctx.clone().json().catch(() => null) : null;
+    throw new ErroChamada(r?.erro ?? formatError(error), ctx?.status);
   }
   if (!data?.ok) throw new Error(data?.erro ?? "Falha na comparação.");
   return data;
@@ -57,13 +59,44 @@ export function CadastroBlingSync() {
     setOcupado(true); setErro(null); setProgresso(null); setConfirmar(false);
     let atual: string | undefined = continuar || acao === "aplicar" ? id : undefined;
     try {
+      if (acao === "diff") {
+        // Uma chamada; a continuação roda em segundo plano na própria função. Aqui só acompanha.
+        let concluido = false;
+        try {
+          const r = await chamar({ acao, ...(atual ? { execucao_id: atual } : {}) });
+          atual = r.execucao_id; setEstado({ execucao: atual ?? "", pagina: 1 }); setProgresso(r.resumo); concluido = r.concluido;
+        } catch (e) {
+          if (!(e instanceof ErroChamada && e.status === 409)) throw e;
+          toast.info("A comparação já está rodando em segundo plano.");
+        }
+        if (!concluido) {
+          if (!atual) throw new Error("Comparação em andamento sem execução identificada; recarregue a página.");
+          let ultimoLido = "", marco = Date.now();
+          for (;;) {
+            await new Promise((res) => setTimeout(res, 3000));
+            const [ex, lido] = await Promise.all([
+              sb.from("bling_produto_sync_execucao").select("status").eq("id", atual).single(),
+              sb.from("bling_produto_sync_produto").select("lido_em").eq("execucao_id", atual).not("lido_em", "is", null).order("lido_em", { ascending: false }).limit(1).maybeSingle(),
+            ]);
+            if (ex.error) throw ex.error; if (lido.error) throw lido.error;
+            if (ex.data?.status !== "comparando") break;
+            const l = lido.data?.lido_em ?? "";
+            if (l !== ultimoLido) { ultimoLido = l; marco = Date.now(); }
+            else if (Date.now() - marco > 120000) throw new Error("Comparação parou; use Continuar comparação.");
+            await qc.invalidateQueries({ queryKey: ["bling-sync"] });
+          }
+        }
+        setProgresso(null);
+        toast.success("Comparação concluída.");
+        return;
+      }
       let concluido = false;
       while (!concluido) {
         const r = await chamar({ acao, ...(atual ? { execucao_id: atual } : {}) });
         atual = r.execucao_id; setEstado({ execucao: atual ?? "", pagina: 1 }); setProgresso(r.resumo); concluido = r.concluido;
         await qc.invalidateQueries({ queryKey: ["bling-sync"] });
       }
-      toast.success(acao === "diff" ? "Comparação concluída." : "Envio concluído.");
+      toast.success("Envio concluído.");
     } catch (e) { const mensagem = formatError(e); setErro(mensagem); toast.error(mensagem); }
     finally { setOcupado(false); await qc.invalidateQueries({ queryKey: ["bling-sync"] }); }
   }

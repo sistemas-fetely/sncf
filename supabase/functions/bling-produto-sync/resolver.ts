@@ -4,7 +4,7 @@ export function codigoBling(fonte: { sku: string; codigo_externo?: unknown }): s
 }
 export function erro404(e: unknown): boolean { return typeof e === "object" && e !== null && "status" in e && e.status === 404; }
 export async function resolverProduto(sku: string, idCache: unknown, idOriginal: unknown, get: Consulta) {
-  const candidatos = [...new Set([idCache, idOriginal].filter((id) => id != null && String(id) !== "").map(String))];
+  const candidatos = [...new Set([idOriginal, idCache].filter((id) => id != null && String(id) !== "").map(String))];
   let detalhe: Record<string, any> | null = null;
   let fonte = "codigo_exato";
   for (const id of candidatos) {
@@ -12,7 +12,7 @@ export async function resolverProduto(sku: string, idCache: unknown, idOriginal:
       const d = (await get(`/produtos/${encodeURIComponent(id)}`))?.data;
       if (!d?.id) throw new Error("Bling retornou detalhe vazio.");
       if (String(d.codigo ?? "") !== sku) continue;
-      detalhe = d; fonte = id === String(idCache) ? "bling_produtos_cache" : "produtos"; break;
+      detalhe = d; fonte = idOriginal != null && id === String(idOriginal) ? "canonico" : "bling_produtos_cache"; break;
     } catch (e) { if (!erro404(e)) throw e; }
   }
   if (!detalhe) {
