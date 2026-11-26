@@ -175,7 +175,10 @@ export function ShopifyCadastroPainel() {
 
   const [colecaoUrl, setColecaoUrl] = useAbaUrl("", undefined, "colecao");
   const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
-  const setColecaoFiltro = (next: string[]) => setColecaoUrl(gravarColecoesUrl(next));
+  const setColecaoFiltro = (next: string[]) => {
+    setColecaoUrl(gravarColecoesUrl(next));
+    setSelecionados([]);
+  };
   const colecoes = useMemo(() => {
     const contagem = new Map<string, number>();
     for (const linha of linhas) {
@@ -231,14 +234,33 @@ export function ShopifyCadastroPainel() {
     return porColecao;
   }, [filtro, porColecao]);
 
-  const prontosVisiveis = filtradas.filter((l) => l.pode_enviar && l.sku);
+  // Linha é marcável quando pode ser enviada OU pode virar variante de um produto já existente.
+  const selecionaveisVisiveis = useMemo(
+    () => filtradas.filter((l) => l.sku && (l.pode_enviar || l.pode_adicionar_variante)),
+    [filtradas],
+  );
+  const skusSelecionaveis = selecionaveisVisiveis.map((l) => l.sku as string);
   const selecionadasVisiveis = useMemo(
     () => filtradas.filter((l) => l.pode_enviar && l.sku && selecionados.includes(l.sku)).map((l) => l.sku as string),
     [filtradas, selecionados],
   );
-  const todosProntosMarcados = prontosVisiveis.length > 0 && prontosVisiveis.every((l) => selecionados.includes(l.sku as string));
+  // Contagem da seleção visível (prontos + "adicionar variante"), não só dos prontos.
+  const selecaoVisivel = useMemo(
+    () => filtradas.filter((l) => l.sku && selecionados.includes(l.sku)).length,
+    [filtradas, selecionados],
+  );
+  const todosSelecionaveisMarcados =
+    selecionaveisVisiveis.length > 0 && selecionaveisVisiveis.every((l) => selecionados.includes(l.sku as string));
   const linhasSel = linhas.filter((l) => l.sku && selecionados.includes(l.sku));
   const todosVariante = linhasSel.length > 0 && linhasSel.every((l) => l.pode_adicionar_variante) && new Set(linhasSel.map((l) => l.produto_agrupado_id)).size === 1;
+  const demaisSelecionados = selecionados.length > LEVA;
+  const tituloVariante = !liberado
+    ? tituloSemPermissao
+    : demaisSelecionados
+      ? "Máximo de 10 SKUs por envio"
+      : selecionados.length > 0 && !todosVariante
+        ? "Selecione só SKUs com 'Adicionar variante' do mesmo produto"
+        : undefined;
 
   function mudouSelecao(next: string[] | ((prev: string[]) => string[])) {
     setSelecionados(next);
@@ -362,7 +384,10 @@ export function ShopifyCadastroPainel() {
                   <button
                     key={cartao.chave}
                     type="button"
-                    onClick={() => setFiltro(ativo || cartao.chave === "todos" ? "todos" : cartao.chave)}
+                    onClick={() => {
+                      setFiltro(ativo || cartao.chave === "todos" ? "todos" : cartao.chave);
+                      setSelecionados([]);
+                    }}
                     className={`rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted/50 ${ativo ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border"}`}
                   >
                     <div className={`text-xl font-semibold tabular-nums ${cor}`}>{cartao.qtd}</div>
@@ -387,7 +412,7 @@ export function ShopifyCadastroPainel() {
               <p className="text-xs font-medium">Coleção</p>
               <FiltroColecao colecoes={colecoes} selecionadas={colecaoFiltro} onChange={setColecaoFiltro} />
             </div>
-            <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
+            <Badge variant="outline">{selecaoVisivel} selecionado(s)</Badge>
             <BotaoGuardado
               slug={SLUG_CADASTRO}
               rotuloAcao="Prévia do cadastro no Shopify"
@@ -415,8 +440,8 @@ export function ShopifyCadastroPainel() {
               size="sm"
               variant="outline"
               className="gap-2"
-              disabled={selecionados.length === 0 || !todosVariante || !liberado}
-              title={!liberado ? tituloSemPermissao : undefined}
+              disabled={selecionados.length === 0 || !todosVariante || demaisSelecionados || !liberado}
+              title={tituloVariante}
               onClick={() => setVarAberto(true)}
             >
               <Layers className="h-3.5 w-3.5" />
@@ -457,10 +482,14 @@ export function ShopifyCadastroPainel() {
                   <TableRow>
                     <TableHead className="w-10">
                       <Checkbox
-                        checked={todosProntosMarcados}
-                        disabled={prontosVisiveis.length === 0}
-                        onCheckedChange={() => mudouSelecao(todosProntosMarcados ? [] : prontosVisiveis.map((l) => l.sku as string))}
-                        aria-label="Selecionar todos os prontos"
+                        checked={todosSelecionaveisMarcados}
+                        disabled={selecionaveisVisiveis.length === 0}
+                        onCheckedChange={() => mudouSelecao((prev) =>
+                          todosSelecionaveisMarcados
+                            ? prev.filter((sku) => !skusSelecionaveis.includes(sku))
+                            : [...new Set([...prev, ...skusSelecionaveis])],
+                        )}
+                        aria-label="Selecionar todos os selecionáveis"
                       />
                     </TableHead>
                     <TableHead>Foto</TableHead>
@@ -484,7 +513,7 @@ export function ShopifyCadastroPainel() {
                         <TableCell>
                           <Checkbox
                             checked={!!linha.sku && selecionados.includes(linha.sku)}
-                            disabled={!linha.pode_enviar || !linha.sku}
+                            disabled={!linha.sku || !(linha.pode_enviar || linha.pode_adicionar_variante)}
                             onCheckedChange={() => mudouSelecao((prev) => prev.includes(linha.sku as string) ? prev.filter((s) => s !== linha.sku) : [...prev, linha.sku as string])}
                             aria-label={`Selecionar ${linha.sku ?? linha.cod_cadastro ?? "produto"}`}
                           />
