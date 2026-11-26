@@ -17,11 +17,9 @@ import {
 import { Check, ChevronDown, Copy, CreditCard, Link2, Loader2, RefreshCw, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
-import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { usePixSafrapayAtivo } from "@/hooks/pagamentos/usePixSafrapayAtivo";
 import { usePixNoLink } from "@/hooks/pagamentos/usePixNoLink";
 import { rotuloMeioLink } from "@/lib/pagamentos/meioLink";
-import { linhasQrPixVisiveis } from "@/lib/pedidos/pixQrContexto";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { hojeISO } from "@/lib/data";
 import {
@@ -107,18 +105,16 @@ function UrlCopiavel({ url, className }: { url: string; className?: string }) {
 }
 
 /**
- * esconderQrPix (23/11/2026): no pedido B2B fica só o "Gerar link PIX Safra".
- * O bloco "PIX na hora (QR)" sai das parcelas PIX pendentes; um QR já gerado
+ * PIX-SO-SAFRA (26/11/2026): o QR local saiu de todos os canais; o único PIX é o Safra.
+ *
  * antes continua no card, em modo leitura, sem botão de gerar.
  */
 export function LinkPagamentoCard({
   pedidoId,
   className,
-  esconderQrPix = false,
 }: {
   pedidoId: string;
   className?: string;
-  esconderQrPix?: boolean;
 }) {
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -150,8 +146,6 @@ export function LinkPagamentoCard({
   // PIX só tem QR enquanto a provisão está "prevista". "consumida" já virou título
   // depois da NF — a cobrança mora no título, não aqui.
   const linhasPix = abertas.filter((p) => p.tipo_pagamento === "pix" && p.status === "prevista");
-  // B2B: só as parcelas que já têm QR seguem no card — e em modo leitura.
-  const linhasQr = linhasQrPixVisiveis(linhasPix, esconderQrPix);
   const temCartao = abertas.some((p) => p.eh_portao === true && p.tipo_pagamento === "cartao");
   const temPixPortao = linhasPix.some((p) => p.eh_portao === true);
   const linksVisiveis = (linksApiQ.data ?? []).filter((l) => l.status === "aberto" || l.status === "pago");
@@ -291,16 +285,6 @@ export function LinkPagamentoCard({
           )}
         </div>
         {linksApiQ.isLoading && <Skeleton className="h-12 w-full" />}
-        {!pixAtivo && linhasQr.map((p) => (
-          <div key={p.id} className="border-t pt-2 space-y-1">
-            {linhasQr.length > 1 && (
-              <p className="text-xs font-medium">PIX na hora (QR) · parcela {p.numero_parcela ?? "—"} · {formatBRL(Number(p.valor ?? 0))}</p>
-            )}
-            <PixQrCode provisaoId={p.id} pedidoId={p.pedido_id} tipoPagamento="pix"
-              linkPagamento={p.link_pagamento} pixTxid={p.pix_txid} valor={Number(p.valor ?? 0)}
-              somenteLeitura={esconderQrPix} />
-          </div>
-        ))}
         {linksVisiveis.map((l) => (
           <div key={l.id} className="border-t pt-2 space-y-1">
             <div className="flex flex-wrap items-center gap-2">

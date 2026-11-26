@@ -786,7 +786,7 @@ export function FilaPedidosPorArea({
           <SelectContent>
             <SelectItem value="todas">Pagamento: Todos</SelectItem>
             <SelectItem value="boleto">Boleto</SelectItem>
-            <SelectItem value="pix">PIX na hora (QR)</SelectItem>
+            <SelectItem value="pix">PIX (link Safra)</SelectItem>
             <SelectItem value="cartao">Cartão</SelectItem>
             {formasPgtoDisponiveis
               .filter((f) => !["boleto", "pix", "cartao"].includes(f))

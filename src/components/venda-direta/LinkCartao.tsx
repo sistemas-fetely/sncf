@@ -18,7 +18,6 @@ import {
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { SeloConfirmacaoAutomatica } from "@/components/venda-direta/PixSafrapay";
-import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 
 export type MeioLink = "pix" | "cartao";
 
@@ -143,10 +142,10 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa, meio, email }: { url: strin
 export const AVISO_409 = "Link de pagamento indisponível — integração Safrapay aguardando ativação. O Financeiro confirma o pagamento manualmente.";
 
 /** Painel da tela Novo pedido: gera o link automaticamente. */
-export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone, maxParcelas, meio = "cartao", pixLocal }: {
+export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone, maxParcelas, meio = "cartao" }: {
   pedidoId: string; idExterno: string | null; total: number | null; clienteNome: string | null; telefone: string | null; maxParcelas?: number;
   meio?: MeioLink;
-  /** PIX: QR local (chave da Fetely) — recolhido quando o link sai; aberto como fallback se falhar. */
+  /** PIX-SO-SAFRA: QR local aposentado; aceito e ignorado para não quebrar chamadas antigas. */
   pixLocal?: { payload: string | null; link: string | null };
 }) {
   const qc = useQueryClient();
@@ -175,23 +174,6 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
   const emailCtx: EmailPagamentoCtx = { pedidoId, idExterno, total, clienteNome };
   if (estado.fase === "carregando")
     return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Gerando link de pagamento…</p>;
-  const nome = (clienteNome ?? "").trim().split(/\s+/)[0] ?? "";
-  const tel = (telefone ?? "").replace(/\D/g, "");
-  const waLocal = pixLocal?.link && tel.length >= 10
-    ? `https://wa.me/${tel.length <= 11 ? `55${tel}` : tel}?text=${encodeURIComponent(`Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX na hora (QR) nesta página: ${pixLocal.link}`)}`
-    : null;
-  if (meio === "pix" && pixLocal && estado.fase !== "ok") {
-    const msg = estado.fase === "off" ? "integração aguardando ativação" : estado.msg;
-    return (
-      <div className="space-y-3">
-        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning-strong">
-          Link PIX Safra indisponível ({msg}) — usando PIX na hora (QR); confirmação pelo comprovante/extrato.
-        </div>
-        <Button variant="outline" size="sm" onClick={gerar}><RefreshCw className="h-4 w-4" /> Tentar o link de novo</Button>
-        <PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} email={emailCtx} />
-      </div>
-    );
-  }
   if (estado.fase === "off") return <p className="text-sm text-warning">{AVISO_409}</p>;
   if (estado.fase === "erro")
     return (
@@ -202,16 +184,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
     );
   const r = estado.r;
   const bloco = <LinkBloco meio={meio} url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url, meio)} email={emailCtx} />;
-  if (meio !== "pix" || !pixLocal) return bloco;
-  return (
-    <div className="space-y-4">
-      {bloco}
-      <details className="rounded-md border bg-card p-3">
-        <summary className="cursor-pointer text-sm text-muted-foreground">QR direto na conta da Fetely (sem confirmação automática)</summary>
-        <div className="pt-3"><PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} email={emailCtx} /></div>
-      </details>
-    </div>
-  );
+  return bloco;
 }
 
 interface PagamentoLink {

@@ -3,7 +3,7 @@
 export type MeioVD = "pix" | "pix_safra" | "cartao" | "cartao_maquininha";
 
 export const ROTULO_MEIO_VD: Record<MeioVD, string> = {
-  pix: "PIX na hora (QR)",
+  pix: "PIX QR (antigo)",
   pix_safra: "Link PIX Safra (confirma sozinho)",
   cartao: "Cartão (link)",
   cartao_maquininha: "Cartão maquininha",

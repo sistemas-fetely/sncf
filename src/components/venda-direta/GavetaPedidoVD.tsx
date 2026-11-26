@@ -279,7 +279,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
               {l.pagamento === "pix" && !linkQ.data && (pixSafraQ.data ? (
                 <Par k="Link PIX Safra" v={<SeloConfirmacaoAutomatica />} />
               ) : (
-                <Par k="PIX na hora (QR)" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir página do QR</a> : "—"} />
+                <Par k="PIX QR (antigo)" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir página do QR</a> : "—"} />
               ))}
             </Secao>
 

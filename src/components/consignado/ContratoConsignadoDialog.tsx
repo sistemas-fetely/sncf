@@ -258,7 +258,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="padrao">Padrão (boleto)</SelectItem>
-                    <SelectItem value="pix">PIX na hora (QR)</SelectItem>
+                    <SelectItem value="pix">PIX (link Safra)</SelectItem>
                     <SelectItem value="boleto">Boleto</SelectItem>
                   </SelectContent>
                 </Select>

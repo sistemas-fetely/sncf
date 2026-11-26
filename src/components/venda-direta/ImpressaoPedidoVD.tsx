@@ -78,7 +78,7 @@ export default function ImpressaoPedidoVD() {
   const desconto = Math.max(valorItens + frete - total, 0);
   const pago = !!g.pagamento_confirmado_em;
   const meioCod = g.pagamento ?? p.forma_solicitada;
-  const meio = meioCod === "pix" ? "PIX na hora (QR)" : meioCod === "pix_safra" ? "Link PIX Safra" : meioCod === "cartao_maquininha" ? "Cartão maquininha" : "Cartão";
+  const meio = meioCod === "pix" ? "PIX QR (antigo)" : meioCod === "pix_safra" ? "Link PIX Safra" : meioCod === "cartao_maquininha" ? "Cartão maquininha" : "Cartão";
   const data = p.data_pedido ? new Date(p.data_pedido).toLocaleDateString("pt-BR") : "—";
   const mapaImg = img.data;
 

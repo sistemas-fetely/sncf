@@ -10,7 +10,6 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
-import { canalEscondeQrPixNovo } from "@/lib/pedidos/pixQrContexto";
 import { podeAcionarPagamento } from "@/lib/pedidos/acoesPagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { temCondicaoPendente } from "@/lib/pedidos/condicaoPendente";
@@ -165,7 +164,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
 const fmtDateTime = (s: string | null | undefined) => s ? new Date(s).toLocaleString("pt-BR") : "—";
 
-const TIPO_LABEL: Record<TipoTituloPagamento, string> = { boleto: "Boleto", pix: "PIX na hora (QR)", cartao: "Cartão", troca_mercadoria: "Troca" };
+const TIPO_LABEL: Record<TipoTituloPagamento, string> = { boleto: "Boleto", pix: "PIX (link Safra)", cartao: "Cartão", troca_mercadoria: "Troca" };
 const STATUS_CORES: Record<StatusTitulo, string> = {
   aguardando_pagamento: "bg-warning text-white border-0", aberto: "bg-info text-white border-0",
   aguardando_emissao_nf: "bg-info text-white border-0", vigente: "bg-info text-white border-0",
@@ -3255,7 +3254,7 @@ export default function PedidoDetalhe() {
                   />
 
                   {podeAcionarPagamento(pedido.estagio, pedido.cancelado_em) ? (
-                    <LinkPagamentoCard pedidoId={pedido.id} esconderQrPix={canalEscondeQrPixNovo(pedido.canal)} />
+                    <LinkPagamentoCard pedidoId={pedido.id} />
                   ) : (
                     <p className="text-xs text-muted-foreground" role="status">
                       {pedido.cancelado_em || estagio === "cancelado" ? "Pagamento indisponível" : ["pre_separacao", "aguardando_estoque", "em_separacao", "pre_faturamento", "faturado", "em_transporte", "entregue"].includes(estagio) ? "Pagamento resolvido" : "Pagamento indisponível neste estágio"} — pedido em {(ESTAGIO_LABELS[estagio] ?? estagio).toLocaleLowerCase("pt-BR")}

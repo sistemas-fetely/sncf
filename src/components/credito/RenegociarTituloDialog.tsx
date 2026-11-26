@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Trash2, Copy, Settings2, ExternalLink } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -161,14 +160,6 @@ function motivoProrrogarBloqueado(titulo: TituloCobranca): string | null {
 }
 
 function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(inst.payload);
-      toast.success("Código PIX copiado.");
-    } catch {
-      toast.error("Não foi possível copiar — selecione o código manualmente.");
-    }
-  };
   return (
     <div className="rounded-md border p-3 space-y-3">
       <div>
@@ -181,25 +172,6 @@ function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
             Vence {formatDateBR(inst.vencimento)}
           </p>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs">PIX na hora (QR) · copia e cola</Label>
-        <div className="rounded-md border bg-muted/50 p-2 max-h-24 overflow-y-auto">
-          <code className="text-[11px] font-mono break-all leading-relaxed">
-            {inst.payload}
-          </code>
-        </div>
-        <Button size="sm" onClick={copiar}>
-          <Copy className="h-3.5 w-3.5 mr-1" /> Copiar código
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs">QR Code</Label>
-        <div className="inline-flex rounded-md border bg-white p-2">
-          <QRCodeSVG value={inst.payload} size={168} level="M" marginSize={1} bgColor="#FFFFFF" />
-        </div>
       </div>
 
       {(inst.beneficiario || inst.banco) && (
@@ -797,7 +769,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                     <Select value={novoInstrumento} onValueChange={(v) => setNovoInstrumento(v as NovoInstrumento)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pix">PIX na hora (QR)</SelectItem>
+                        <SelectItem value="pix">PIX (link Safra)</SelectItem>
                         <SelectItem value="cartao">Cartão (link SafraPay)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -882,7 +854,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                           <SelectTrigger className="w-28" aria-label={`Meio da parcela ${i + 1}`}><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="boleto">Boleto</SelectItem>
-                            <SelectItem value="pix">PIX na hora (QR)</SelectItem>
+                            <SelectItem value="pix">PIX (link Safra)</SelectItem>
                             <SelectItem value="cartao">Cartão</SelectItem>
                           </SelectContent>
                         </Select>

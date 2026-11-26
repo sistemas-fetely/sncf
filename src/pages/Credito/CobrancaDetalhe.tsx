@@ -1553,7 +1553,7 @@ export default function CobrancaDetalhe() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="pix">PIX na hora (QR)</SelectItem>
+                              <SelectItem value="pix">PIX (link Safra)</SelectItem>
                               <SelectItem value="boleto">Boleto</SelectItem>
                               <SelectItem value="cartao">Cartão</SelectItem>
                               <SelectItem value="conta_corrente">Conta Corrente (Parceiro)</SelectItem>

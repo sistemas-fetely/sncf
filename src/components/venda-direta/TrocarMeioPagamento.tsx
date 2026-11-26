@@ -14,7 +14,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
-import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 
 interface TrocaResultado {
   ok?: boolean; erro?: string;
@@ -123,7 +122,8 @@ export function TrocarMeioPagamentoDialog({ linha, onClose }: { linha: LinhaVD |
             <LinkCartaoPainel meio="pix" pedidoId={linha.id} idExterno={linha.id_externo} total={valor}
               clienteNome={linha.cliente_nome} telefone={linha.cliente_telefone ?? null} />
           ) : (
-            <PixPagamento payload={res.pix_copia_cola} link={res.link_pagamento} />
+            <LinkCartaoPainel meio="pix" pedidoId={linha.id} idExterno={linha.id_externo} total={valor}
+              clienteNome={linha.cliente_nome} telefone={linha.cliente_telefone ?? null} />
           )
         )}
 

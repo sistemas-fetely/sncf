@@ -42,7 +42,7 @@ export function PixPagamento({ payload, link, whatsappUrl, email, pixToken }: Pi
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium">PIX na hora (QR)</p>
+      <p className="text-sm font-medium">PIX · copia e cola</p>
       <p className="text-xs text-muted-foreground">Gerado pelo SNCF na chave da Fetely. Confirmação pelo comprovante/extrato.</p>
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
       <div className="flex shrink-0 flex-col items-center gap-2">

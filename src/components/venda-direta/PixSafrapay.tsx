@@ -55,7 +55,7 @@ interface Props {
   auto?: boolean;
 }
 
-export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, telefone, fallbackPayload, fallbackLink, auto, pixToken }: Props) {
+export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, telefone, auto }: Props) {
   const qc = useQueryClient();
   const pixQ = usePixSafrapay(pedidoId);
   const ativoQ = usePixSafrapayAtivo();
@@ -102,11 +102,8 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
     return <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Gerando PIX…</div>;
   }
 
-  const tel0 = tel;
   if (!pixAtivo && !safra) {
-    const m = `Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${fallbackLink ?? ""}`;
-    const w = fallbackLink && tel0.length >= 10 ? `https://wa.me/${telWa}?text=${encodeURIComponent(m)}` : null;
-    return <PixPagamento payload={fallbackPayload} link={fallbackLink} pixToken={pixToken} whatsappUrl={w} email={{ pedidoId, idExterno, total, clienteNome }} />;
+    return <p className="text-sm text-warning">PIX Safra desligado — integração aguardando ativação. O Financeiro confirma o pagamento manualmente.</p>;
   }
 
   const botaoNovo = (
@@ -129,18 +126,10 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
     );
   }
 
-  const msgFb = `Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${fallbackLink ?? ""}`;
-  const waFb = fallbackLink && tel.length >= 10 ? `https://wa.me/${telWa}?text=${encodeURIComponent(msgFb)}` : null;
   return (
     <div className="space-y-3">
-      {(falhou || pixQ.isError) && (
-        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-          PIX sem confirmação automática — o pagamento será reconhecido pela conciliação do extrato.
-          <div className="mt-1 text-xs text-muted-foreground">{falhou ?? rawMessage(pixQ.error)}</div>
-        </div>
-      )}
+      <p className="text-sm text-destructive">{falhou ?? (pixQ.isError ? rawMessage(pixQ.error) : "PIX Safra ainda não gerado.")}</p>
       <div className="flex justify-end">{botaoNovo}</div>
-      <PixPagamento payload={fallbackPayload} link={fallbackLink} pixToken={pixToken} whatsappUrl={waFb} email={{ pedidoId, idExterno, total, clienteNome }} />
     </div>
   );
 }

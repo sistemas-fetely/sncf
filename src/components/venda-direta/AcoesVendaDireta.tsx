@@ -17,8 +17,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { PixPagamento } from "@/components/venda-direta/PixPagamento";
-import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
 export { QK_VD_GESTAO } from "@/components/venda-direta/queryKeys";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
@@ -34,57 +32,6 @@ export interface LinhaVD {
   provisao_id?: string | null;
   link_pagamento?: string | null;
   pagamento?: "pix" | "cartao" | "cartao_maquininha" | string | null;
-}
-
-export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD | null; onClose: () => void; payloadNovo?: string | null }) {
-  const pixQ = useQuery({
-    queryKey: ["venda-direta-pix", linha?.provisao_id],
-    enabled: !!linha?.provisao_id && !payloadNovo,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("provisao_recebimento" as never)
-        .select("link_pagamento, pix_token")
-        .eq("id", linha?.provisao_id as string)
-        .maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as unknown as { link_pagamento: string | null; pix_token: string | null } | null;
-    },
-  });
-  const telefone = (linha?.cliente_telefone ?? "").replace(/\D/g, "");
-  const tel = telefone.length <= 11 ? `55${telefone}` : telefone;
-  const nome = (linha?.cliente_nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const mensagem = linha ? `Olá ${nome}! Seu pedido ${linha.id_externo} na Fetely ficou em ${formatBRL(linha.valor_liquido)}. Pague pelo PIX na hora (QR) nesta página: ${linha.link_pagamento ?? ""}` : "";
-  const whatsappUrl = linha?.link_pagamento && telefone.length >= 10 ? `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}` : null;
-
-  return (
-    <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>PIX na hora (QR) · {linha?.id_externo}</DialogTitle>
-          <DialogDescription>{linha?.cliente_nome}</DialogDescription>
-        </DialogHeader>
-        {payloadNovo ? (
-          <PixPagamento payload={payloadNovo} link={linha?.link_pagamento ?? null} whatsappUrl={whatsappUrl} email={linha ? { pedidoId: linha.id, idExterno: linha.id_externo, total: linha.valor_liquido, clienteNome: linha.cliente_nome } : undefined} />
-        ) : pixQ.isLoading ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
-        ) : pixQ.isError ? (
-          <p className="text-sm text-destructive">{rawMessage(pixQ.error)}</p>
-        ) : linha ? (
-          <PixSafrapayPainel
-            pedidoId={linha.id}
-            idExterno={linha.id_externo}
-            total={linha.valor_liquido}
-            clienteNome={linha.cliente_nome}
-            telefone={linha.cliente_telefone ?? null}
-            fallbackPayload={pixQ.data?.link_pagamento ?? null}
-            fallbackLink={linha.link_pagamento ?? null}
-            pixToken={pixQ.data?.pix_token ?? null}
-          />
-        ) : null}
-        <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 }
 
 export function RegistrarRetiradaDialog({ linha, onClose, onRegistrada }: { linha: LinhaVD | null; onClose: () => void; onRegistrada?: () => void }) {

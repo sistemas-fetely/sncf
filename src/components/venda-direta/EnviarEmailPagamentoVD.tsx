@@ -32,7 +32,7 @@ const fmtDH = (s: string | null | undefined) => {
 };
 
 export function EnviarEmailPagamentoVD({
-  ctx, meio, link, expiraEm, rotuloPix = "PIX na hora (QR)",
+  ctx, meio, link, expiraEm, rotuloPix = "PIX (link Safra)",
 }: { ctx: EmailPagamentoCtx; meio: "pix" | "cartao"; link: string | null; expiraEm?: string | null; rotuloPix?: string }) {
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);

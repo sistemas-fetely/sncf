@@ -75,7 +75,6 @@ import { CriarAcordoDialog, tituloElegivelAcordo } from "@/components/credito/Cr
 import { useAcordosTitulos } from "@/hooks/credito/useAcordosTitulos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TituloTarefasBloco } from "@/components/credito/TituloTarefasBloco";
-import { PixTituloBloco } from "@/components/credito/PixTituloBloco";
 import { CartaoTituloBloco } from "@/components/credito/CartaoTituloBloco";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -324,7 +323,7 @@ function KpiCard({
 function tipoLabel(t: string): string {
   const map: Record<string, string> = {
     boleto: "Boleto",
-    pix: "PIX na hora (QR)",
+    pix: "PIX (link Safra)",
     cartao: "Cartão",
     cartao_credito: "Cartão",
     cartao_debito: "Cartão",
@@ -1586,7 +1585,6 @@ export default function TitulosTab() {
                     <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                       PIX
                     </h4>
-                    <PixTituloBloco tituloId={detalhe.id} />
                     <div className="mt-2">
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}

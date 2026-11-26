@@ -54,7 +54,7 @@ import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import { reprocessarFilaB2c } from "@/hooks/vendas/useB2c";
 import {
-  RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, type LinhaVD,
+  RegistrarRetiradaDialog, RegistrarEntregaDialog, type LinhaVD,
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
@@ -101,7 +101,7 @@ const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
 };
 const modalLabel = (m: string | null) => (m ? (MODAL_LABEL[m] ?? m) : "—");
-const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX na hora (QR)" : p === "pix_safra" ? "Link PIX Safra" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : p === "bonificacao" ? "Bonificação" : "—";
+const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX QR (antigo)" : p === "pix_safra" ? "Link PIX Safra" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : p === "bonificacao" ? "Bonificação" : "—";
 const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
 
 
@@ -178,7 +178,6 @@ export default function VendaDiretaGestao() {
   const [confManual, setConfManual] = useState<Linha | null>(null);
   const [retirada, setRetirada] = useState<Linha | null>(null);
   const [entrega, setEntrega] = useState<Linha | null>(null);
-  const [pix, setPix] = useState<Linha | null>(null);
   const [linkCartao, setLinkCartao] = useState<Linha | null>(null);
   const [remontar, setRemontar] = useState<Linha | null>(null);
   const [trocarMeio, setTrocarMeio] = useState<Linha | null>(null);
@@ -301,7 +300,6 @@ export default function VendaDiretaGestao() {
     if (l.situacao === "aguardando_pagamento") {
       if (l.pagamento === "cartao_maquininha") a.push({ k: "conf", label: "Anexar comprovante", icon: Paperclip, onClick: () => setConfManual(l) });
       if (l.pagamento === "cartao" || l.pagamento === "pix_safra") a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
-      if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX na hora (QR)", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l), disabled: !l.provisao_id });
     }
@@ -572,11 +570,10 @@ export default function VendaDiretaGestao() {
       <RegistrarRetiradaDialog linha={retirada} onClose={fechar(setRetirada)} />
       {trocarCd && <TrocarCdVDDialog pedido={trocarCd} onClose={() => setTrocarCd(null)} />}
       <RegistrarEntregaDialog linha={entrega} onClose={fechar(setEntrega)} />
-      <VerPixDialog linha={pix} payloadNovo={pixNovo} onClose={() => { setPix(null); setPixNovo(null); void invalidarVendaDireta(qc); }} />
       <RemontarPagamentoDialog
         linha={remontar}
         onClose={fechar(setRemontar)}
-        onPix={(l, payload) => { setPixNovo(payload); setPix(l); }}
+        onPix={() => { void invalidarVendaDireta(qc); }}
         onCartao={(l) => setLinkCartao(l)}
       />
       {confManual && (
