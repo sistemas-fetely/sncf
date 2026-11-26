@@ -6954,6 +6954,81 @@ export type Database = {
           },
         ]
       }
+      backup_adiant_ped2375_20261126: {
+        Row: {
+          adiantamento_pai_id: string | null
+          convertido_haver_id: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          forma_pagamento: string | null
+          id: string | null
+          movimentacao_origem_id: string | null
+          nivel_prova: string | null
+          origem: string | null
+          origem_haver_id: string | null
+          pago_em: string | null
+          parceiro_id: string | null
+          pedido_id: string | null
+          portao_id: string | null
+          provisao_id: string | null
+          recebido_em: string | null
+          safrapay_nsu: string | null
+          saldo: number | null
+          status: string | null
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          adiantamento_pai_id?: string | null
+          convertido_haver_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          forma_pagamento?: string | null
+          id?: string | null
+          movimentacao_origem_id?: string | null
+          nivel_prova?: string | null
+          origem?: string | null
+          origem_haver_id?: string | null
+          pago_em?: string | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          portao_id?: string | null
+          provisao_id?: string | null
+          recebido_em?: string | null
+          safrapay_nsu?: string | null
+          saldo?: number | null
+          status?: string | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          adiantamento_pai_id?: string | null
+          convertido_haver_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          forma_pagamento?: string | null
+          id?: string | null
+          movimentacao_origem_id?: string | null
+          nivel_prova?: string | null
+          origem?: string | null
+          origem_haver_id?: string | null
+          pago_em?: string | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          portao_id?: string | null
+          provisao_id?: string | null
+          recebido_em?: string | null
+          safrapay_nsu?: string | null
+          saldo?: number | null
+          status?: string | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       backup_campo_destino_bloco_20261020: {
         Row: {
           ativo: boolean | null
@@ -9378,6 +9453,135 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_mov_portao_carimbo_20261126: {
+        Row: {
+          cartao_id: string | null
+          casada_com_id: string | null
+          categoria_inconsistente: boolean | null
+          centro_custo_id: string | null
+          classe: string | null
+          classe_definida_por: string | null
+          classe_nota: string | null
+          conciliado: boolean | null
+          conciliado_em: string | null
+          conciliado_por: string | null
+          conta_bancaria_id: string | null
+          conta_pagar_id: string | null
+          contraparte_documento: string | null
+          contraparte_nome: string | null
+          created_at: string | null
+          data_hora: string | null
+          data_transacao: string | null
+          descricao: string | null
+          doc_solicitado_em: string | null
+          doc_solicitado_nota: string | null
+          doc_solicitado_por: string | null
+          duplicada_de: string | null
+          fonte_importacao_id: string | null
+          hash_unico: string | null
+          id: string | null
+          id_transacao_banco: string | null
+          inconsistencia_motivo: string | null
+          itau_planilha_id: string | null
+          ofx_transacao_id: string | null
+          origem: string | null
+          par_transferencia_id: string | null
+          pg_em: string | null
+          plano_contas_id: string | null
+          referencia_pedido: string | null
+          regra_aplicada_id: string | null
+          saldo_pos_transacao: number | null
+          tipo: string | null
+          tipo_meio: string | null
+          tipo_pagamento: string | null
+          valor: number | null
+        }
+        Insert: {
+          cartao_id?: string | null
+          casada_com_id?: string | null
+          categoria_inconsistente?: boolean | null
+          centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
+          classe_nota?: string | null
+          conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
+          created_at?: string | null
+          data_hora?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
+          duplicada_de?: string | null
+          fonte_importacao_id?: string | null
+          hash_unico?: string | null
+          id?: string | null
+          id_transacao_banco?: string | null
+          inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
+          ofx_transacao_id?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pg_em?: string | null
+          plano_contas_id?: string | null
+          referencia_pedido?: string | null
+          regra_aplicada_id?: string | null
+          saldo_pos_transacao?: number | null
+          tipo?: string | null
+          tipo_meio?: string | null
+          tipo_pagamento?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cartao_id?: string | null
+          casada_com_id?: string | null
+          categoria_inconsistente?: boolean | null
+          centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
+          classe_nota?: string | null
+          conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
+          created_at?: string | null
+          data_hora?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
+          duplicada_de?: string | null
+          fonte_importacao_id?: string | null
+          hash_unico?: string | null
+          id?: string | null
+          id_transacao_banco?: string | null
+          inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
+          ofx_transacao_id?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pg_em?: string | null
+          plano_contas_id?: string | null
+          referencia_pedido?: string | null
+          regra_aplicada_id?: string | null
+          saldo_pos_transacao?: number | null
+          tipo?: string | null
+          tipo_meio?: string | null
+          tipo_pagamento?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       backup_movest_trs0002_20261023: {
         Row: {
           centro_custo_id: string | null
@@ -9831,6 +10035,258 @@ export type Database = {
           backup_em?: string | null
           id?: string | null
           uf?: string | null
+        }
+        Relationships: []
+      }
+      backup_ped2176_titulos_20261126: {
+        Row: {
+          acordo_id: string | null
+          analise_credito_id: string | null
+          autorizacao_cartao: string | null
+          baixa_remessa_id: string | null
+          banco_recebimento_id: string | null
+          boleto_codigo_rejeicao: string | null
+          boleto_enviado_em: string | null
+          boleto_status: string | null
+          captura_id: string | null
+          carteira_id: string | null
+          chave_pix: string | null
+          codigo_barras_boleto: string | null
+          condicao_pagamento: string | null
+          conta_id: string | null
+          created_at: string | null
+          created_by: string | null
+          data_criacao: string | null
+          data_emissao_nf: string | null
+          data_liquidacao_prevista: string | null
+          data_pagamento: string | null
+          data_pagamento_banco: string | null
+          data_proxima_acao_regua: string | null
+          data_vencimento_atual: string | null
+          data_vencimento_nf: string | null
+          data_vencimento_original: string | null
+          eh_entrada: boolean | null
+          email_cobranca_enviado_em: string | null
+          flag_bandeira_amarela: boolean | null
+          flag_grupo_economico_inadimplente: boolean | null
+          forma_pagamento_id: string | null
+          id: string | null
+          justificativa_renegociacao: string | null
+          linha_digitavel: string | null
+          link_pagamento: string | null
+          modalidade_renegociacao: number | null
+          movimentacao_baixa_id: string | null
+          nf_devolucao: string | null
+          nf_id: string | null
+          nivel_prova: string | null
+          nosso_numero_safra: string | null
+          nosso_numero_seq: string | null
+          numero_parcela: number | null
+          numero_titulo: string | null
+          parceiro_id: string | null
+          pausa_regua_automatica: boolean | null
+          pedido_id: string | null
+          pix_a_prazo: boolean | null
+          pix_qr_url: string | null
+          pix_token: string | null
+          pix_txid: string | null
+          prazo_dias: number | null
+          prorrogacao_confirmada_em: string | null
+          prorrogacao_nova_data: string | null
+          prorrogacao_solicitada_em: string | null
+          prorrogacao_venc_anterior: string | null
+          provisao_id: string | null
+          raia_codigo: string | null
+          raia_responsavel_user_id: string | null
+          raia_retorno_em: string | null
+          reemissao_aplicada_em: string | null
+          reemissao_motivo: string | null
+          reemissao_nova_data: string | null
+          reemissao_novo_valor: number | null
+          remessa_safra_id: string | null
+          status: string | null
+          subestado_atraso: string | null
+          taxa_adquirente_prevista: number | null
+          tipo_pagamento: string | null
+          titulo_pai_id: string | null
+          titulo_renegociado_origem_id: string | null
+          total_parcelas: number | null
+          updated_at: string | null
+          valor_atual: number | null
+          valor_bruto: number | null
+          valor_correcao: number | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_juros_cartao: number | null
+          valor_multa: number | null
+          valor_taxa_adquirente: number | null
+          vip_relacionamento: boolean | null
+        }
+        Insert: {
+          acordo_id?: string | null
+          analise_credito_id?: string | null
+          autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
+          banco_recebimento_id?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
+          captura_id?: string | null
+          carteira_id?: string | null
+          chave_pix?: string | null
+          codigo_barras_boleto?: string | null
+          condicao_pagamento?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_criacao?: string | null
+          data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
+          data_pagamento?: string | null
+          data_pagamento_banco?: string | null
+          data_proxima_acao_regua?: string | null
+          data_vencimento_atual?: string | null
+          data_vencimento_nf?: string | null
+          data_vencimento_original?: string | null
+          eh_entrada?: boolean | null
+          email_cobranca_enviado_em?: string | null
+          flag_bandeira_amarela?: boolean | null
+          flag_grupo_economico_inadimplente?: boolean | null
+          forma_pagamento_id?: string | null
+          id?: string | null
+          justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
+          link_pagamento?: string | null
+          modalidade_renegociacao?: number | null
+          movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
+          nf_id?: string | null
+          nivel_prova?: string | null
+          nosso_numero_safra?: string | null
+          nosso_numero_seq?: string | null
+          numero_parcela?: number | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          pausa_regua_automatica?: boolean | null
+          pedido_id?: string | null
+          pix_a_prazo?: boolean | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
+          prazo_dias?: number | null
+          prorrogacao_confirmada_em?: string | null
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
+          prorrogacao_venc_anterior?: string | null
+          provisao_id?: string | null
+          raia_codigo?: string | null
+          raia_responsavel_user_id?: string | null
+          raia_retorno_em?: string | null
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
+          remessa_safra_id?: string | null
+          status?: string | null
+          subestado_atraso?: string | null
+          taxa_adquirente_prevista?: number | null
+          tipo_pagamento?: string | null
+          titulo_pai_id?: string | null
+          titulo_renegociado_origem_id?: string | null
+          total_parcelas?: number | null
+          updated_at?: string | null
+          valor_atual?: number | null
+          valor_bruto?: number | null
+          valor_correcao?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_juros_cartao?: number | null
+          valor_multa?: number | null
+          valor_taxa_adquirente?: number | null
+          vip_relacionamento?: boolean | null
+        }
+        Update: {
+          acordo_id?: string | null
+          analise_credito_id?: string | null
+          autorizacao_cartao?: string | null
+          baixa_remessa_id?: string | null
+          banco_recebimento_id?: string | null
+          boleto_codigo_rejeicao?: string | null
+          boleto_enviado_em?: string | null
+          boleto_status?: string | null
+          captura_id?: string | null
+          carteira_id?: string | null
+          chave_pix?: string | null
+          codigo_barras_boleto?: string | null
+          condicao_pagamento?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_criacao?: string | null
+          data_emissao_nf?: string | null
+          data_liquidacao_prevista?: string | null
+          data_pagamento?: string | null
+          data_pagamento_banco?: string | null
+          data_proxima_acao_regua?: string | null
+          data_vencimento_atual?: string | null
+          data_vencimento_nf?: string | null
+          data_vencimento_original?: string | null
+          eh_entrada?: boolean | null
+          email_cobranca_enviado_em?: string | null
+          flag_bandeira_amarela?: boolean | null
+          flag_grupo_economico_inadimplente?: boolean | null
+          forma_pagamento_id?: string | null
+          id?: string | null
+          justificativa_renegociacao?: string | null
+          linha_digitavel?: string | null
+          link_pagamento?: string | null
+          modalidade_renegociacao?: number | null
+          movimentacao_baixa_id?: string | null
+          nf_devolucao?: string | null
+          nf_id?: string | null
+          nivel_prova?: string | null
+          nosso_numero_safra?: string | null
+          nosso_numero_seq?: string | null
+          numero_parcela?: number | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          pausa_regua_automatica?: boolean | null
+          pedido_id?: string | null
+          pix_a_prazo?: boolean | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
+          prazo_dias?: number | null
+          prorrogacao_confirmada_em?: string | null
+          prorrogacao_nova_data?: string | null
+          prorrogacao_solicitada_em?: string | null
+          prorrogacao_venc_anterior?: string | null
+          provisao_id?: string | null
+          raia_codigo?: string | null
+          raia_responsavel_user_id?: string | null
+          raia_retorno_em?: string | null
+          reemissao_aplicada_em?: string | null
+          reemissao_motivo?: string | null
+          reemissao_nova_data?: string | null
+          reemissao_novo_valor?: number | null
+          remessa_safra_id?: string | null
+          status?: string | null
+          subestado_atraso?: string | null
+          taxa_adquirente_prevista?: number | null
+          tipo_pagamento?: string | null
+          titulo_pai_id?: string | null
+          titulo_renegociado_origem_id?: string | null
+          total_parcelas?: number | null
+          updated_at?: string | null
+          valor_atual?: number | null
+          valor_bruto?: number | null
+          valor_correcao?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_juros_cartao?: number | null
+          valor_multa?: number | null
+          valor_taxa_adquirente?: number | null
+          vip_relacionamento?: boolean | null
         }
         Relationships: []
       }

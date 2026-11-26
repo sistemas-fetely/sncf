@@ -785,6 +785,13 @@
       "when": 1795666358595,
       "tag": "0111_extrato_pares_fechamento_cnab",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1795687084788,
+      "tag": "0112_portao_carimba_extrato_e_valida_datas",
+      "breakpoints": true
     }
   ]
 }
