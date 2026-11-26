@@ -750,6 +750,13 @@
       "when": 1795664803007,
       "tag": "0106_bling_card_canonico_no_nascimento",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1795665426366,
+      "tag": "0107_shopify_fila_medicao_parametrizada",
+      "breakpoints": true
     }
   ]
 }

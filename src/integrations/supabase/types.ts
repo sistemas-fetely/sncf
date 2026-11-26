@@ -8382,6 +8382,24 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_fn_trg_baixa_estoque_nf_20261126: {
+        Row: {
+          def: string | null
+          nome: string | null
+          salvo_em: string | null
+        }
+        Insert: {
+          def?: string | null
+          nome?: string | null
+          salvo_em?: string | null
+        }
+        Update: {
+          def?: string | null
+          nome?: string | null
+          salvo_em?: string | null
+        }
+        Relationships: []
+      }
       backup_fn_xpm_nf_represa_20261125: {
         Row: {
           def: string | null
@@ -162550,14 +162568,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -164273,13 +164291,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
@@ -164288,13 +164299,20 @@ export type Database = {
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_origem_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
@@ -167271,14 +167289,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

@@ -31,6 +31,7 @@ export function titulosAlterados(pais: PaiAgrupamento[], edicoes: Record<string,
 
 export interface ProdutoSolto { id?: string; titulo: string; status: string; skus: string[] }
 export interface ResultadoPublicacao {
+  colecoes_a_criar?: string[];
   ok: boolean; dry_run?: boolean; bloqueado?: boolean; erro?: string; status?: string;
   variantes?: number; opcoes?: { name: string; values: { name: string }[] }[];
   remover?: ProdutoSolto[]; bloqueios?: { erro: string; produto?: ProdutoSolto }[];

@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Shopify registration and grouping share normalized collection discovery/creation and reference-channel publication; dry runs never write, collection failures isolate dependent products, and measurement eligibility reads the field catalog in the queue view.
 - Product thumbnails batch-read vw_produto_imagem_final through useImagemProduto; the view owns priority and exact-photo flags, while Mesa alone catches photo failures to keep operations unblocked and photo management retains produto_foto.
 - New Bling cards register their canonical SKU through the produtos insert/code-ID update trigger with conflict DO NOTHING; preserve raw codes and existing manual/rule choices so daily duplicate resolution remains authoritative.
 - Mesa SP moves use local typed RPC contracts, server-owned destinations and explicit label-cancellation confirmation; await order/board refresh and divergence registration before moving so no client-side phase rules or false success can bypass the database.

@@ -9,6 +9,7 @@
 // FAIL-LOUD: rodada real grava integracoes_sync_log tipo `publicar_agrupamento`.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
+import { colecoesFaltantes, garantirColecoesCadastro, lerColecoesCadastro, type ColecaoCriada } from "../_shared/shopify/colecoes-cadastro.ts";
 import { mapaCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const cors = {
@@ -33,7 +34,6 @@ const Q_BUSCA = `query($q: String!) {
 const Q_PRODUTO = `query($id: ID!) {
   product(id: $id) { id title status handle variants(first: 250) { nodes { id sku barcode } } }
 }`;
-const Q_COLECOES = `{ collections(first: 250) { nodes { id title } } }`;
 const M_SET = `mutation($input: ProductSetInput!) {
   productSet(synchronous: true, input: $input) {
     product { id handle status variants(first: 250) { nodes { id sku inventoryItem { id } } } }
@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json(400, { ok: false, erro: "Corpo JSON inválido." }); }
   const agrupamentoId = String(body.agrupamento_id ?? "").trim();
   const dry_run = body.dry_run !== false;
+  const colecoesCriadas: ColecaoCriada[] = [];
   if (!agrupamentoId) return json(400, { ok: false, erro: "agrupamento_id não informado." });
 
   const log = async (status: string, criados: number, erros: number, detalhes: unknown) => {
@@ -157,13 +158,9 @@ Deno.serve(async (req) => {
     const locais = (locs ?? []).map((x: Linha) => String(x.location_id));
     if (!locais.length) throw new Error("nenhum local Shopify amarrado a centro em shopify_location");
 
-    const qc = await shop.gql<Linha>(Q_COLECOES, {});
-    if (qc.status !== 200 || qc.errors) throw new Error(`leitura de coleções falhou: ${JSON.stringify(qc.errors ?? qc.body).slice(0, 300)}`);
-    const colecaoPorNome = new Map<string, string>();
-    for (const c of qc.data?.collections?.nodes ?? []) { const k = norm(c.title); if (k && !colecaoPorNome.has(k)) colecaoPorNome.set(k, c.id); }
+    const colecaoPorNome = await lerColecoesCadastro(shop);
     const titulosColecao = [...new Set(skus.flatMap((s) => (atrPorSku.get(s)?.colecoes_shopify ?? []) as string[]))];
-    const faltaColecao = titulosColecao.filter((t) => !colecaoPorNome.has(norm(t)));
-    if (faltaColecao.length) bloqueios.push({ sku: null, erro: `Coleção não existe na loja: ${faltaColecao.join(", ")}. Crie no Shopify Admin antes.` });
+    const faltaColecao = colecoesFaltantes(titulosColecao, colecaoPorNome);
 
     // ---- produtos soltos AO VIVO (por SKU interno, código externo e EAN) ----
     const doGrupo = new Set<string>();
@@ -246,16 +243,26 @@ Deno.serve(async (req) => {
     const colecaoIds = titulosColecao.map((t) => colecaoPorNome.get(norm(t))).filter(Boolean);
     if (colecaoIds.length) input.collections = colecaoIds;
 
-    const resumo = { agrupamento: { id: ag.id, titulo: ag.titulo, colecao: ag.colecao }, variantes: variants.length, opcoes: productOptions, remover, bloqueios };
+    const resumo = { agrupamento: { id: ag.id, titulo: ag.titulo, colecao: ag.colecao }, variantes: variants.length, opcoes: productOptions, remover, bloqueios, colecoes_a_criar: faltaColecao };
     if (bloqueios.length) return json(200, { ok: false, dry_run, bloqueado: true, ...resumo, erro: `${bloqueios.length} bloqueio(s) — nada foi enviado ao Shopify.` });
     if (dry_run) return json(200, { ok: true, dry_run: true, ...resumo, payload: input });
+
+    const colecoes = await garantirColecoesCadastro(shop, titulosColecao, colecoesCriadas);
+    if (colecoes.erros.size) {
+      const erro = [...colecoes.erros.values()].join(" · ");
+      const resultados = skus.map((sku) => ({ sku, status: "erro", etapa: "criar_colecao", erro }));
+      const detalhes = { ...resumo, etapa: "criar_colecao", erro, resultados, colecoes_criadas: colecoesCriadas };
+      await log("erro", 0, skus.length, detalhes);
+      return json(200, { ok: false, status: "erro", ...detalhes });
+    }
+    input.collections = titulosColecao.flatMap((t) => { const id = colecoes.mapa.get(norm(t)); return id ? [id] : []; });
 
     // ---- escrita: 1) cria o pai; 2) espelho de estoque; 3) remove soltos; 4) marca publicado ----
     const r = await shop.gql<Linha>(M_SET, { input });
     const ue = r.data?.productSet?.userErrors ?? [];
     if (r.status !== 200 || r.errors || ue.length || !r.data?.productSet?.product) {
       const erro = JSON.stringify(r.errors ?? ue ?? r.body).slice(0, 800);
-      await log("erro", 0, 1, { ...resumo, etapa: "productSet", erro });
+      await log("erro", 0, 1, { ...resumo, etapa: "productSet", erro, colecoes_criadas: colecoesCriadas });
       return json(500, { ok: false, etapa: "productSet", erro: `Shopify recusou a criação (nada foi removido): ${erro}` });
     }
     const p = r.data.productSet.product;
@@ -264,7 +271,7 @@ Deno.serve(async (req) => {
       const itemId = String(v.inventoryItem?.id ?? "").split("/").pop() ?? "";
       return itemId ? locais.map((loc) => ({ inventory_item_id: itemId, location_id: loc, available: 0, updated_at: agora })) : [];
     });
-    const avisos: string[] = [];
+    const avisos: string[] = [...colecoes.avisos.values()];
     if (linhasEstoque.length) {
       const { error: esErr } = await supabase.from("shopify_estoque").upsert(linhasEstoque, { onConflict: "inventory_item_id,location_id" });
       if (esErr) avisos.push(`espelho de estoque falhou: ${esErr.message}`);
@@ -281,13 +288,13 @@ Deno.serve(async (req) => {
     if (pubErr) avisos.push(`produto criado, mas o agrupamento não foi marcado como publicado: ${pubErr.message}`);
 
     const status = naoRemovidos.length || avisos.length ? "parcial" : "sucesso";
-    const detalhes = { ...resumo, produto: { id: p.id, handle: p.handle, status: p.status }, removidos, nao_removidos: naoRemovidos, avisos };
+    const detalhes = { ...resumo, produto: { id: p.id, handle: p.handle, status: p.status }, removidos, nao_removidos: naoRemovidos, avisos, colecoes_criadas: colecoesCriadas };
     const logErr = await log(status, 1, naoRemovidos.length + avisos.length, detalhes);
     if (logErr) avisos.push(`log falhou: ${logErr.message}`);
     return json(200, { ok: status === "sucesso", dry_run: false, status, ...detalhes });
   } catch (e) {
     const msg = (e as Error).message;
-    if (!dry_run) await log("erro", 0, 1, { agrupamento_id: agrupamentoId, erro: msg });
+    if (!dry_run) await log("erro", 0, 1, { agrupamento_id: agrupamentoId, erro: msg, colecoes_criadas: colecoesCriadas });
     return json(500, { ok: false, erro: msg });
   }
 });

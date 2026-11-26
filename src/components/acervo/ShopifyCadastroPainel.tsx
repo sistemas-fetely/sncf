@@ -54,6 +54,7 @@ interface LinhaFila {
 }
 
 interface ResultadoSku {
+  colecoes_a_criar?: string[];
   sku?: string;
   status?: string;
   erro?: string;
@@ -67,6 +68,7 @@ interface ResultadoSku {
 }
 
 const ROTULO_AVISO: Record<string, string> = {
+  aguardando_medicao: "Aguardando medição",
   sem_foto: "Falta foto",
   sem_descricao: "Falta descrição",
   sem_peso: "Falta peso",
@@ -267,6 +269,7 @@ export function ShopifyCadastroPainel() {
   }
 
   const previaVai = (previa ?? []).filter((r) => statusPrevia(r) === "vai" && r.sku && selecionadasVisiveis.includes(r.sku));
+  const colecoesNovas = [...new Set((previa ?? []).flatMap((r) => r.colecoes_a_criar ?? []))];
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
@@ -551,6 +554,7 @@ export function ShopifyCadastroPainel() {
               Simulação — nada foi gravado. {previaVai.length} vai(ão) criar · {(previa ?? []).filter((r) => statusPrevia(r) === "existe").length} já existe(m) · {(previa ?? []).filter((r) => statusPrevia(r) === "bloqueado").length} bloqueado(s).
             </DialogDescription>
           </DialogHeader>
+          {colecoesNovas.length > 0 && <p className="text-sm">{colecoesNovas.length} coleção(ões) nova(s) serão criadas: {colecoesNovas.join(", ")}</p>}
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
@@ -582,7 +586,7 @@ export function ShopifyCadastroPainel() {
                       <TableCell className="text-xs align-top">{(linha?.colecoes_shopify ?? []).join(" · ") || "—"}</TableCell>
                       <TableCell className="text-xs align-top">
                         {situacao === "vai" ? (
-                          <Badge variant="outline" className="border-success text-success text-[10px]">vai criar</Badge>
+                          <Badge variant="outline" className="border-success text-success text-[10px]">vai criar{item.colecoes_a_criar?.length ? ` · coleção nova: ${item.colecoes_a_criar.join(", ")}` : ""}</Badge>
                         ) : situacao === "existe" ? (
                           <Badge variant="outline" className="text-[10px]">já existe</Badge>
                         ) : (

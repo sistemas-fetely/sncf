@@ -5,6 +5,7 @@
 // FAIL-LOUD: cada SKU volta com status próprio e a rodada real grava integracoes_sync_log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
+import { colecoesFaltantes, garantirColecoesCadastro, lerColecoesCadastro, normColecao as norm, type ColecaoCriada } from "../_shared/shopify/colecoes-cadastro.ts";
 import { mapaCodigoExterno, exigirCodigoExterno, mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
 
 const cors = {
@@ -21,8 +22,6 @@ const ACAO = "acao.cadastrar_produto_shopify";
 const Q_SKU = `query($q: String!) {
   productVariants(first: 5, query: $q) { nodes { id sku barcode product { id title status handle } } }
 }`;
-
-const Q_COLECOES = `{ collections(first: 250) { nodes { id title } } }`;
 
 const M_SET = `mutation($input: ProductSetInput!) {
   productSet(synchronous: true, input: $input) {
@@ -121,6 +120,7 @@ Deno.serve(async (req) => {
   if (skus.length > TETO) return json(400, { ok: false, erro: `Máximo de ${TETO} SKUs por envio (recebidos ${skus.length}).` });
 
   const resultados: Record<string, unknown>[] = [];
+  const colecoesCriadas: ColecaoCriada[] = [];
   try {
     // Fonte do payload = vw_shopify_cadastro_fila (mesma regra da tela) + descricao_produto do cadastro.
     const { data: fila, error: fErr } = await supabase
@@ -163,14 +163,8 @@ Deno.serve(async (req) => {
     if (locais.length === 0) throw new Error("nenhum local Shopify amarrado a centro em shopify_location");
 
     // Coleções da loja, casadas por título normalizado (acento, espaço e pontuação não contam).
-    const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const qc = await shop.gql<Linha>(Q_COLECOES, {});
-    if (qc.status !== 200 || qc.errors) throw new Error(`leitura de coleções falhou: ${JSON.stringify(qc.errors ?? qc.body).slice(0, 300)}`);
-    const colecaoPorNome = new Map<string, string>();
-    for (const c of qc.data?.collections?.nodes ?? []) {
-      const k = norm(c.title);
-      if (k && !colecaoPorNome.has(k)) colecaoPorNome.set(k, c.id);
-    }
+    let colecaoPorNome = await lerColecoesCadastro(shop);
+    const preparados: { sku: string; linha: Linha; titulos: string[] }[] = [];
 
     const codigosPorSku = await mapaCodigoExterno(supabase, skus);
     for (const sku of skus) {
@@ -218,14 +212,27 @@ Deno.serve(async (req) => {
       }
 
       const titulos: string[] = Array.isArray(l.colecoes_shopify) ? l.colecoes_shopify : [];
-      const faltando = titulos.filter((t) => !colecaoPorNome.has(norm(t)));
-      if (faltando.length > 0) {
-        resultados.push({ sku, status: "bloqueado", erro: `Coleção não existe na loja: ${faltando.join(", ")}. Crie no Shopify Admin antes.` });
+      const faltando = colecoesFaltantes(titulos, colecaoPorNome);
+      const colecaoIds = titulos.flatMap((t) => { const id = colecaoPorNome.get(norm(t)); return id ? [id] : []; });
+      if (dry_run) {
+        resultados.push({ sku, status: "dry_run", colecoes_a_criar: faltando, avisos: l.avisos, payload: montarInput(l, colecaoIds, locais) });
         continue;
       }
-      const colecaoIds = titulos.map((t) => colecaoPorNome.get(norm(t))!) ;
+      preparados.push({ sku, linha: l, titulos });
+    }
+
+    if (!dry_run && preparados.length) {
+      const colecoes = await garantirColecoesCadastro(shop, preparados.flatMap((p) => p.titulos), colecoesCriadas);
+      colecaoPorNome = colecoes.mapa;
+      for (const { sku, linha: l, titulos } of preparados) {
+      const falhas = titulos.flatMap((t) => { const erro = colecoes.erros.get(norm(t)); return erro ? [`${t}: ${erro}`] : []; });
+      if (falhas.length) {
+        resultados.push({ sku, status: "erro", etapa: "criar_colecao", erro: falhas.join(" · ") });
+        continue;
+      }
+      const avisosColecao = titulos.flatMap((t) => { const aviso = colecoes.avisos.get(norm(t)); return aviso ? [aviso] : []; });
+      const colecaoIds = titulos.flatMap((t) => { const id = colecaoPorNome.get(norm(t)); return id ? [id] : []; });
       const input = montarInput(l, colecaoIds, locais);
-      if (dry_run) { resultados.push({ sku, status: "dry_run", avisos: l.avisos, payload: input }); continue; }
 
       const r = await shop.gql<Linha>(M_SET, { input });
       const ue = r.data?.productSet?.userErrors ?? [];
@@ -247,7 +254,8 @@ Deno.serve(async (req) => {
           continue;
         }
       }
-      resultados.push({ sku, status: "ok", shopify_product_id: p.id, handle: p.handle, shopify_status: p.status, variante: p.variants?.nodes?.[0] ?? null });
+      resultados.push({ sku, status: "ok", avisos: [...(l.avisos ?? []), ...avisosColecao], shopify_product_id: p.id, handle: p.handle, shopify_status: p.status, variante: p.variants?.nodes?.[0] ?? null });
+      }
     }
   } catch (e) {
     const msg = (e as Error).message;
@@ -256,7 +264,7 @@ Deno.serve(async (req) => {
         sistema: "shopify", tipo: "cadastrar_produto", status: "erro",
         registros_criados: resultados.filter((r) => r.status === "ok").length,
         registros_erro: skus.length, iniciado_por: userId, duracao_ms: Date.now() - t0,
-        detalhes: JSON.stringify({ erro: msg, resultados }),
+        detalhes: JSON.stringify({ erro: msg, resultados, colecoes_criadas: colecoesCriadas }),
       });
     }
     return json(500, { ok: false, erro: msg, resultados });
@@ -269,7 +277,7 @@ Deno.serve(async (req) => {
       sistema: "shopify", tipo: "cadastrar_produto",
       status: erro === 0 ? "sucesso" : ok > 0 ? "parcial" : "erro",
       registros_criados: ok, registros_erro: erro, iniciado_por: userId, duracao_ms: Date.now() - t0,
-      detalhes: JSON.stringify({ skus, resultados }),
+      detalhes: JSON.stringify({ skus, resultados, colecoes_criadas: colecoesCriadas }),
     });
     if (logErr) return json(500, { ok: false, erro: `Produtos processados, mas o log falhou: ${logErr.message}`, resultados });
   }
