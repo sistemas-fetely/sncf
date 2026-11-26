@@ -445,8 +445,8 @@ export function BlingCardPainel() {
       <CardHeader className="pb-3 space-y-1">
         <CardTitle className="text-base">Criar card no Bling</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Produtos ativos e de pré-venda que ainda não têm card no Bling. O card nasce com a situação da fase
-          (pré-venda = inativo). Sem NCM não cria.
+          Produtos em trânsito ou operacionais (Fase SNCF) que ainda não têm card no Bling. A situação do card segue a fase
+          comercial: ativo e pré-venda nascem Ativos; registrado e inativo nascem Inativos. Sem NCM não cria.
         </p>
         {!q.isLoading && !q.isError && linhas.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-2">
@@ -599,7 +599,7 @@ export function BlingCardPainel() {
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando a fila…
           </div>
         ) : linhas.length === 0 && !q.isError ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Todos os produtos ativos e de pré-venda têm card no Bling.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">Todos os produtos em trânsito ou operacionais têm card no Bling.</p>
         ) : (
           <>
             <div className="rounded-md border max-h-[calc(100vh-22rem)] overflow-auto">
