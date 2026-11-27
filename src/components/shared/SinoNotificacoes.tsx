@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, X } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -47,7 +47,9 @@ function useItensSino(userId: string | undefined) {
   return useQuery({
     queryKey: [...CHAVE, userId ?? "anon"],
     enabled: !!userId,
-    refetchInterval: 300_000,
+    refetchInterval: 60_000,
+    // Sem Realtime: o aviso chega pela rebusca periódica e pelo retorno à aba.
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<{ itens: ItemSino[]; total: number }> => {
       // A contagem NÃO pode sair da lista cortada — vem de count exact no banco.
       const [rh, geral, countRh, countGeral] = await Promise.all([
@@ -157,46 +159,10 @@ function useMarcarTodasLidas(userId: string | undefined) {
 export function SinoNotificacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const { data } = useItensSino(user?.id);
   const marcar = useMarcarLidas(user?.id);
   const marcarTodas = useMarcarTodasLidas(user?.id);
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel(`sino:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notificacoes_rh" },
-        () => {
-          qc.invalidateQueries({ queryKey: [...CHAVE, user.id] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notificacoes",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          qc.invalidateQueries({ queryKey: [...CHAVE, user.id] });
-        }
-      )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error("Erro no realtime do sino:", err);
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id]);
 
   const lista = useMemo(() => data?.itens ?? [], [data]);
   const total = data?.total ?? 0;
