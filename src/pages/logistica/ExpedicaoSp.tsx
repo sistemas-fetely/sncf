@@ -57,7 +57,7 @@ import {
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useAChegarMesaSp, useAvisoTransportadoraNf, useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
+  useAChegarMesaSp, useAvisoTransportadoraNf, useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useOrigemPedidoMesa, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega, useTrocarModal,
   useEntregarTransferenciaMesa, useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
@@ -239,6 +239,7 @@ export default function ExpedicaoSp() {
   const embalar = useEmbalar();
   const trocarModal = useTrocarModal();
   const despachar = useDespachar();
+  const origemQ = useOrigemPedidoMesa(selecionadoId ?? null);
   const despacharLote = useDespacharLote();
   const devolver = useDevolverFila();
   const encerrar = useEncerrarCancelado();
@@ -887,14 +888,16 @@ export default function ExpedicaoSp() {
                   modais={modaisQ.data ?? []}
                   modalEmbalado={modalSelecionado}
                   despachando={despachar.isPending}
-                  onDespachar={(modal, referencia, executor) =>
+                  onDespachar={(modal, referencia, executor, opcoes) =>
                     despachar.mutate({
                       p_pedido_id: selecionado.id,
                       p_modal: modal,
                       p_referencia: referencia,
                       p_executor: executor,
-                    })
+                    }, opcoes)
                   }
+                  ehVendaDireta={origemQ.data === "venda_direta"}
+                  origemCarregando={origemQ.isLoading}
                   avisoPostagem={avisoPostagem(selecionado)}
                   gruposColeta={selecionadoAguardandoRetirada ? [] : gruposColeta}
                   despachandoLote={despacharLote.isPending}

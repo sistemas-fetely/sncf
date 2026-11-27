@@ -19,6 +19,8 @@ import { useExecutoresMesa } from "./useMesaSp";
 import { requisitosDespachoModal } from "@/lib/logistica/despachoModal";
 import { formatError } from "@/lib/format-error";
 import { useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
 /**
@@ -60,7 +62,13 @@ interface Props {
   modalEmbalado: string | null;
   nfRotulo?: string | null;
   despachando: boolean;
-  onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
+  onDespachar: (
+    modal: string, referencia: string | null, executor: string | null,
+    opcoes?: { onSuccess?: () => void; onError?: (e: unknown) => void },
+  ) => void;
+  /** Pedido de Venda Direta (`origem = 'venda_direta'`): retirada pela porta da VD. */
+  ehVendaDireta?: boolean;
+  origemCarregando?: boolean;
   gruposColeta: GrupoColeta[];
   despachandoLote: boolean;
   /** `aoTerminar` recebe o resultado item a item: limpa só quem despachou, mostra o erro de quem falhou. */
@@ -111,6 +119,7 @@ export function EstacaoDespacho({
   pedidoId, modais, modalEmbalado, despachando, onDespachar,
   gruposColeta, despachandoLote, onDespacharLote, bloqueado = false, avisoPostagem,
   idExterno = null, clienteNome = null, onRetiradaRegistrada, erroDespacho = null, nfRotulo = null,
+  ehVendaDireta = false, origemCarregando = false,
 }: Props) {
   const qc = useQueryClient();
   const execQ = useExecutoresMesa();
@@ -119,6 +128,22 @@ export function EstacaoDespacho({
     (execQ.data ?? []).filter((e) => e.modal_codigo === codigo), "",
   ).permiteLote;
   const [retirada, setRetirada] = useState<LinhaVD | null>(null);
+  const [retiradaB2c, setRetiradaB2c] = useState(false);
+  const [quemRetirou, setQuemRetirou] = useState("");
+  const [docRetirada, setDocRetirada] = useState("");
+  const abrirRetiradaB2c = () => { setQuemRetirou(clienteNome ?? ""); setDocRetirada(""); setRetiradaB2c(true); };
+  const confirmarRetiradaB2c = () => {
+    const nome = quemRetirou.trim();
+    const doc = docRetirada.trim();
+    if (!nome || !modalEmbalado) return;
+    onDespachar(modalEmbalado, doc ? `${nome} (doc ${doc})` : nome, null, {
+      onSuccess: () => {
+        setRetiradaB2c(false);
+        void qc.invalidateQueries({ queryKey: ["mesa-sp"] });
+        onRetiradaRegistrada?.();
+      },
+    });
+  };
   const perm = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
   const semPerm = perm.carregando || !perm.permitido;
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.expedicao_sp_operar" : undefined;
@@ -145,30 +170,60 @@ export function EstacaoDespacho({
             <p className="text-sm font-medium">Aguardando retirada no balcão</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Entregar ao cliente e registrar em Pedidos Site SP.
+            {ehVendaDireta ? "Entregar ao cliente e registrar em Pedidos Site SP." : "Entregar ao cliente e registrar a retirada aqui."}
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              disabled={bloqueado || semPerm}
-              title={tituloPerm}
-              onClick={() => setRetirada({ id: pedidoId, id_externo: idExterno, cliente_nome: clienteNome, valor_liquido: null })}
-            >
-              Registrar retirada
-            </Button>
-            <Button asChild variant="outline">
-              <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoId)}`}>
-                Abrir pedido em Pedidos Site SP
-              </Link>
-            </Button>
-          </div>
-          <RegistrarRetiradaDialog
-            linha={retirada}
-            onClose={() => setRetirada(null)}
-            onRegistrada={() => {
-              void qc.invalidateQueries({ queryKey: ["mesa-sp"] });
-              onRetiradaRegistrada?.();
-            }}
-          />
+          {ehVendaDireta ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={bloqueado || semPerm}
+                  title={tituloPerm}
+                  onClick={() => setRetirada({ id: pedidoId, id_externo: idExterno, cliente_nome: clienteNome, valor_liquido: null })}
+                >
+                  Registrar retirada
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoId)}`}>
+                    Abrir pedido em Pedidos Site SP
+                  </Link>
+                </Button>
+              </div>
+              <RegistrarRetiradaDialog
+                linha={retirada}
+                onClose={() => setRetirada(null)}
+                onRegistrada={() => {
+                  void qc.invalidateQueries({ queryKey: ["mesa-sp"] });
+                  onRetiradaRegistrada?.();
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Button disabled={bloqueado || semPerm || origemCarregando} title={tituloPerm} onClick={abrirRetiradaB2c}>
+                  Registrar retirada
+                </Button>
+              </div>
+              <Dialog open={retiradaB2c} onOpenChange={(v) => !v && !despachando && setRetiradaB2c(false)}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Registrar retirada · {idExterno}</DialogTitle>
+                    <DialogDescription>{clienteNome}</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div className="space-y-1"><Label>Quem retirou *</Label><Input value={quemRetirou} onChange={(e) => setQuemRetirou(e.target.value)} autoFocus /></div>
+                    <div className="space-y-1"><Label>Documento</Label><Input value={docRetirada} onChange={(e) => setDocRetirada(e.target.value)} /></div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setRetiradaB2c(false)} disabled={despachando}>Cancelar</Button>
+                    <Button onClick={confirmarRetiradaB2c} disabled={!quemRetirou.trim() || despachando || bloqueado || semPerm}>
+                      {despachando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Registrar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </CardContent>
       </Card>
     );

@@ -857,6 +857,19 @@ export function useDespacharLote() {
 }
 
 /** Despacho unitário: mesma substituição por agência antes da RPC; erro fica até fechar. */
+/** Origem do pedido selecionado (`pedidos.origem`): decide a porta da retirada (VD × B2C). */
+export function useOrigemPedidoMesa(pedidoId: string | null) {
+  return useQuery({
+    queryKey: ["mesa-sp", "origem-pedido", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabaseMesa.from("pedidos").select("origem").eq("id", pedidoId!).maybeSingle();
+      if (error) throw new Error(`ler origem do pedido: ${mensagemErro(error)}`);
+      return (data as { origem: string | null } | null)?.origem ?? null;
+    },
+  });
+}
+
 export function useDespachar() {
   const qc = useQueryClient();
   return useMutation({
