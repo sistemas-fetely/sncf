@@ -211,6 +211,18 @@ export function AtualizacaoCatalogoDia() {
     setPrevia(null); setProgresso(null); setResultado(null); modalEmExecucao.current = false;
     setSelecionados(new Set()); setEscolhas({}); await qc.invalidateQueries();
   };
+  const [gerandoV2, setGerandoV2] = useState(false);
+  const gerarV2 = async () => {
+    setGerandoV2(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Entre de novo.');
+      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/catalogo-planilha-gerar-v2`, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } });
+      if (!r.ok) { const t = await r.text(); let m = t; try { const j = JSON.parse(t); m = j.erro ?? j.error ?? j.message ?? t; } catch { /* texto */ } throw new Error(m || `Erro ${r.status}`); }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'catalogo_fetely_completo_v2.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (e) { toast.error(formatError(e)); } finally { setGerandoV2(false); }
+  };
   const copiar = async () => {
     const path = ultima.data?.storage_path; if (!path) return;
     const r = await supabase.storage.from('catalogo-planilha').createSignedUrl(path, 300);
@@ -266,7 +278,7 @@ export function AtualizacaoCatalogoDia() {
         <p className="text-xs text-muted-foreground">{ultima.isLoading ? 'Lendo…' : ultima.data ? `${ultima.data.status.replace(/_/g, ' ')} · ${fmtDataHora(ultima.data.lida_em)}` : 'Nenhuma leitura.'}</p>
         {referencia.data && ultima.data?.id !== referencia.data.id && <p className="text-xs text-muted-foreground">Pendências da leitura de {fmtDataHora(referencia.data.lida_em)}</p>}
       </div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copiar()} disabled={!ultima.data?.storage_path}><Download className="mr-2 h-4 w-4" />Cópia da planilha</Button><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Ler catálogo" size="sm" disabled={ler.isPending} onClick={() => ler.mutate()}><RefreshCw className="mr-2 h-4 w-4" />Ler agora</BotaoGuardado></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copiar()} disabled={!ultima.data?.storage_path}><Download className="mr-2 h-4 w-4" />Cópia da planilha</Button><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Gerar planilha v2" size="sm" variant="outline" disabled={gerandoV2} onClick={() => void gerarV2()}><Download className="mr-2 h-4 w-4" />{gerandoV2 ? 'Gerando…' : 'Gerar planilha v2'}</BotaoGuardado><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Ler catálogo" size="sm" disabled={ler.isPending} onClick={() => ler.mutate()}><RefreshCw className="mr-2 h-4 w-4" />Ler agora</BotaoGuardado></div>
     </div>
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
     <ColecoesNovasCatalogo novas={novasColecoes} />
