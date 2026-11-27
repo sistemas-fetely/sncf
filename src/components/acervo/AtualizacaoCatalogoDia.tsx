@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast } from "sonner";
-import { RefreshCw, Download, Check, X, ChevronDown, ChevronRight, ChevronLeft, Search } from "lucide-react";
+import { RefreshCw, Loader2, Download, Check, X, ChevronDown, ChevronRight, ChevronLeft, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
@@ -28,6 +28,7 @@ import { legivel, posicaoBloco } from "@/lib/acervo/blocosFicha";
 import { detectarColecoesNovas, colecaoNaoCadastrada } from '@/lib/acervo/colecoesCatalogo';
 import { ColecoesNovasCatalogo } from './ColecoesNovasCatalogo';
 import { ProdutosNovosCatalogo } from './ProdutosNovosCatalogo';
+import { estadoLeituraCatalogo } from '@/lib/acervo/estadoLeituraCatalogo';
 import { agruparMensagens, ErroCatalogo, deveAtualizarLeitura } from '@/lib/acervo/mensagensCatalogo';
 import { executarLotesCatalogo, FalhaLoteCatalogo, motivosAgrupados, resultadoVazio, type ProgressoAplicacao, type ResultadoAplicacao, type RespostaLote } from '@/lib/acervo/aplicacaoCatalogo';
 
@@ -49,7 +50,10 @@ export function AtualizacaoCatalogoDia() {
   const responderPausa = useRef<((acao: 'tentar' | 'parar') => void) | null>(null);
   const [semCadastroAberto, setSemCadastroAberto] = useState(false);
   const [errosAberto, setErrosAberto] = useState(false);
-  const { ultima, referencia, lista } = useCatalogoLeitura();
+  const [inicioLeitura, setInicioLeitura] = useState<string | null>(null);
+  const { ultima, referencia, lista } = useCatalogoLeitura(!!inicioLeitura);
+  const estadoLeitura = estadoLeituraCatalogo(ultima.data, referencia.data);
+  const lendoPlanilha = !!inicioLeitura || estadoLeitura.lendo;
   const autoDimensoes = useQuery({ queryKey: ['catalogo-dimensoes-automaticas', referencia.data?.id], enabled: !!referencia.data?.id, queryFn: async () => {
     const r = await supabase.from('audit_log').select('id', { count: 'exact', head: true }).eq('acao', 'catalogo_dimensao_automatica').eq('justificativa', `Leitura ${referencia.data?.id}`);
     if (r.error) throw r.error;
@@ -115,11 +119,14 @@ export function AtualizacaoCatalogoDia() {
       toast.warning('A leitura mudou — a tela foi atualizada.');
     } else { toast.error(formatError(erro)); await qc.invalidateQueries(); }
   };
-  const ler = useMutation({ mutationFn: async () => {
+  const ler = useMutation({ onMutate: () => { setInicioLeitura(new Date().toISOString()); }, mutationFn: async () => {
     const r = await supabase.functions.invoke('catalogo-planilha-ler', { body: { acao: 'ler' } });
     if (r.error) throw await erroResposta(r.error);
     if (!r.data?.ok) throw new Error(r.data?.erro); return r.data;
-  }, onSuccess: async r => { toast.success(r.status === 'sem_mudanca' ? 'Planilha sem mudança.' : 'Leitura comparada.'); await qc.invalidateQueries({ queryKey: ['catalogo-planilha-ultima'] }); }, onError: tratarErro });
+  }, onSuccess: async r => { toast.success(r.status === 'sem_mudanca' ? 'Planilha sem mudança.' : 'Leitura comparada.'); }, onError: async erro => {
+    if (erro instanceof ErroCatalogo && erro.codigo === 'leitura_em_andamento') toast.info('Leitura em andamento — aguardando o resultado.');
+    else toast.error(formatError(erro));
+  }, onSettled: async () => { await qc.invalidateQueries({ queryKey: ['catalogo-planilha-ultima'] }); setInicioLeitura(null); } });
   const resolver = useMutation({ mutationFn: async (p: Previa) => {
     if (p.acao === 'aplicar') {
       const leituraId = p.leituraId;
@@ -258,7 +265,7 @@ export function AtualizacaoCatalogoDia() {
   const temPlano = (p: PlanoCatalogo) => p.sncf.length + p.fop.length > 0;
   const semCadastro = [...new Set((lista.data ?? []).filter(m => m.tipo === 'sem_cadastro').map(m => m.cod_cadastro))].sort();
   const erros = pendentesTodas.filter(m => m.tipo === 'erro' || !!m.erro);
-  const totais = (ultima.data?.totais ?? {}) as Record<string, unknown>;
+  const totais = estadoLeitura.totais;
   const paginas = Math.max(1, Math.ceil(produtos.length / TAMANHO_PAGINA));
   const pagina = Math.max(1, Math.min(filtro.pagina, paginas));
   const visiveis = produtos.slice((pagina - 1) * TAMANHO_PAGINA, pagina * TAMANHO_PAGINA);
@@ -267,20 +274,23 @@ export function AtualizacaoCatalogoDia() {
   const alguns = elegiveis.some(c => selecionados.has(c.id));
   const marcar = (cs: CelulaCatalogo[], v: boolean) => setSelecionados(old => { const n = new Set(old); for (const c of cs) { if (v) n.add(c.id); else n.delete(c.id); } return n; });
   const carregando = lista.isLoading || referencia.isLoading || matriz.isLoading || nomes.isLoading || colecoes.isLoading || fases.isLoading;
-  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, fases.error, autoDimensoes.error, ultima.data?.erro, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
+  const falhas = [ultima.error, referencia.error, lista.error, matriz.error, nomes.error, colecoes.error, fases.error, autoDimensoes.error, !matriz.isLoading && semRotulo.length ? `Campos sem rótulo na matriz: ${semRotulo.length}.` : null].filter(Boolean);
   const abrirPrevia = (acao: 'aplicar' | 'descartar', plano: PlanoCatalogo) => { setProgresso(null); setResultado(null); setPrevia({ acao, plano, celulas: selecionadas, leituraId: referencia.data?.id }); };
 
   return <section className="space-y-4 border-y py-4" id="atualizacao-do-dia">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="space-y-1"><h2 className="text-lg font-semibold">Atualização do dia</h2>
         {!!autoDimensoes.data && <p className="text-xs text-muted-foreground">{autoDimensoes.data} valores cadastrados automaticamente</p>}
-        {ultima.data && <p className="text-sm font-medium">{texto(totais.mudanca ?? 0)} mudanças (Operações {mudancasDono.operacoes} · Produto {mudancasDono.produto}) · <span className="text-warning">{texto(totais.conflito ?? 0)} conflitos</span> · <span className="text-destructive">{texto(totais.erro ?? 0)} erros</span> · {texto(totais.sem_cadastro ?? 0)} sem cadastro</p>}
+        {ultima.data && !lendoPlanilha && !estadoLeitura.erro && <p className="text-sm font-medium">{texto(totais.mudanca ?? 0)} mudanças (Operações {mudancasDono.operacoes} · Produto {mudancasDono.produto}) · <span className="text-warning">{texto(totais.conflito ?? 0)} conflitos</span> · <span className="text-destructive">{texto(totais.erro ?? 0)} erros</span> · {texto(totais.sem_cadastro ?? 0)} sem cadastro</p>}
         {!!blocos.length && <p className="text-xs text-muted-foreground">{blocos.map(b => `${legivel(b)}: ${porBloco[b]}`).join(' · ')}</p>}
         <p className="text-xs text-muted-foreground">{ultima.isLoading ? 'Lendo…' : ultima.data ? `${ultima.data.status.replace(/_/g, ' ')} · ${fmtDataHora(ultima.data.lida_em)}` : 'Nenhuma leitura.'}</p>
         {referencia.data && ultima.data?.id !== referencia.data.id && <p className="text-xs text-muted-foreground">Pendências da leitura de {fmtDataHora(referencia.data.lida_em)}</p>}
       </div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copiar()} disabled={!ultima.data?.storage_path}><Download className="mr-2 h-4 w-4" />Cópia da planilha</Button><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Gerar planilha v2" size="sm" variant="outline" disabled={gerandoV2} onClick={() => void gerarV2()}><Download className="mr-2 h-4 w-4" />{gerandoV2 ? 'Gerando…' : 'Gerar planilha v2'}</BotaoGuardado><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Ler catálogo" size="sm" disabled={ler.isPending} onClick={() => ler.mutate()}><RefreshCw className="mr-2 h-4 w-4" />Ler agora</BotaoGuardado></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copiar()} disabled={!ultima.data?.storage_path}><Download className="mr-2 h-4 w-4" />Cópia da planilha</Button><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Gerar planilha v2" size="sm" variant="outline" disabled={gerandoV2} onClick={() => void gerarV2()}><Download className="mr-2 h-4 w-4" />{gerandoV2 ? 'Gerando…' : 'Gerar planilha v2'}</BotaoGuardado><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Ler catálogo" size="sm" disabled={lendoPlanilha} onClick={() => ler.mutate()}>{lendoPlanilha ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" /> : <RefreshCw className="mr-2 h-4 w-4" />}{lendoPlanilha ? 'Lendo a planilha…' : 'Ler agora'}</BotaoGuardado></div>
     </div>
+    {lendoPlanilha && <div role="status" className="flex items-center gap-2 rounded-md bg-info/10 p-3 text-sm text-info"><Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />{ler.isPending ? 'Lendo a planilha…' : 'Leitura em andamento'} desde {fmtDataHora(estadoLeitura.inicio ?? inicioLeitura ?? ultima.data?.lida_em ?? '')}</div>}
+    {estadoLeitura.erro && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap break-words">{fmtDataHora(ultima.data?.lida_em ?? '')} · {estadoLeitura.erro}</AlertDescription></Alert>}
+    {estadoLeitura.avisos.map(aviso => <p key={aviso} className="text-xs text-muted-foreground">{aviso}</p>)}
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
     <ColecoesNovasCatalogo novas={novasColecoes} />
     {referencia.data && <ProdutosNovosCatalogo totais={referencia.data.totais} leituraId={referencia.data.id} />}
@@ -312,7 +322,7 @@ export function AtualizacaoCatalogoDia() {
       {(carregando || !visiveis.length || !!falhas.length) && <TableRow><TableCell colSpan={colunas.length + 2} className="py-8 text-center text-muted-foreground">{falhas.length ? 'Não foi possível carregar a revisão.' : carregando ? 'Carregando produtos…' : 'Nenhuma pendência neste filtro.'}</TableCell></TableRow>}
     </TableBody></Table></div>
     <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{produtos.length} produtos · {recorte.length} células no filtro · <strong className="text-foreground">{resumo.produtos} produtos · {resumo.celulas} células selecionadas (Operações {resumo.operacoes} · Produto {resumo.produto})</strong></span><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Página anterior do catálogo" disabled={pagina === 1} onClick={() => setFiltro({ pagina: pagina - 1 })}><ChevronLeft className="h-4 w-4" /></Button><span>Página {pagina} de {paginas}</span><Button variant="outline" size="icon" aria-label="Próxima página do catálogo" disabled={pagina === paginas} onClick={() => setFiltro({ pagina: pagina + 1 })}><ChevronRight className="h-4 w-4" /></Button></div></div>
-    {!!semCadastro.length && <div className="border-t pt-2"><div className="flex flex-wrap items-center gap-1"><Button variant="ghost" size="sm" aria-expanded={semCadastroAberto} onClick={() => setSemCadastroAberto(v => !v)}>{semCadastroAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{semCadastro.length} códigos sem cadastro ({semCadastro[0]}–{semCadastro[semCadastro.length - 1]})</Button><Link className="text-sm text-primary underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">→ Importação de PI</Link></div>{semCadastroAberto && <div className="max-h-48 overflow-auto p-3 font-mono text-sm text-muted-foreground">{semCadastro.join(' · ')}</div>}</div>}
+    {!estadoLeitura.v2 && !!semCadastro.length && <div className="border-t pt-2"><div className="flex flex-wrap items-center gap-1"><Button variant="ghost" size="sm" aria-expanded={semCadastroAberto} onClick={() => setSemCadastroAberto(v => !v)}>{semCadastroAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{semCadastro.length} códigos sem cadastro ({semCadastro[0]}–{semCadastro[semCadastro.length - 1]})</Button><Link className="text-sm text-primary underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">→ Importação de PI</Link></div>{semCadastroAberto && <div className="max-h-48 overflow-auto p-3 font-mono text-sm text-muted-foreground">{semCadastro.join(' · ')}</div>}</div>}
     {!!erros.length && <div className="border-t pt-2"><Button variant="ghost" size="sm" className="text-destructive" aria-expanded={errosAberto} onClick={() => setErrosAberto(v => !v)}>{errosAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{erros.length} erros</Button>{errosAberto && <div className="max-h-48 overflow-auto space-y-2 p-3 text-sm">{erros.map(c => <p key={c.id}><strong>{c.cod_cadastro}</strong> · {rotulos[c.campo] ?? 'Campo não identificado na matriz'} · <span className="text-destructive">{c.erro}</span></p>)}</div>}</div>}
     <Dialog open={!!previa} onOpenChange={o => { if (!o && !resolver.isPending) { if (resultado) void fecharResultado(); else setPrevia(null); } }}><DialogContent className={`max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto ${resolver.isPending ? '[&>button:last-child]:hidden' : ''}`} onEscapeKeyDown={e => { if (resolver.isPending) e.preventDefault(); }} onInteractOutside={e => { if (resolver.isPending) e.preventDefault(); }}><DialogHeader><DialogTitle>{resultado ? 'Resumo da aplicação' : `Confirmar ${previa?.acao === 'descartar' ? 'descarte' : 'aplicação'} · ${previa?.celulas.length} células`}</DialogTitle></DialogHeader>
       {progresso && !resultado ? <div className="space-y-4" aria-live="polite">

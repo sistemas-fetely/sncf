@@ -7,10 +7,11 @@ import { exigirAcao } from "../_shared/permissao-acao.ts";
 import { pegarTrava } from "../_shared/catalogo-planilha/trava.ts";
 import { ErroCatalogo } from "../_shared/catalogo-planilha/mensagens.ts";
 import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts";
+import { camposDaLeitura, mapearLotes } from "../_shared/catalogo-planilha/leitura-lotes.ts";
 import { ABA_CODIGOS, classificarPropostas, type Cartorio, type LinhaCatalogoNova, type LinhaCodigos } from "../_shared/catalogo-planilha/nascimento.ts";
 import { analisarCelula, colunasNaoComparadas, linhaSoNascimento, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
-const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
+const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), reprocessar: z.boolean().default(false), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
 const ERRO_INTERROMPIDA = "Leitura interrompida antes de concluir (limite do servidor). Rode de novo.";
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const erroTexto = (e: unknown) => e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
@@ -24,6 +25,23 @@ Deno.serve(async req => {
   let autorizado = false;
   let testarConexao = false;
   let trava: Awaited<ReturnType<typeof pegarTrava>> | null = null;
+  const inicio = performance.now();
+  let marco = inicio;
+  const medicao: Record<string, number> = {};
+  const medir = (etapa: string) => { const agora = performance.now(); medicao[etapa] = Math.round(agora - marco); marco = agora; console.log('[catalogo-medicao]', JSON.stringify({ id: leitura, etapa, ms: medicao[etapa] })); };
+  let concluida = false;
+  const interromper = () => {
+    const runtime = (globalThis as unknown as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    runtime?.waitUntil((async () => {
+      try {
+        if (leitura && !concluida) {
+          const r = await sb.from('catalogo_planilha_leitura').update({ status: 'erro', erro: ERRO_INTERROMPIDA, totais: { em_andamento: false, medicao } }).eq('id', leitura).eq('status', 'erro');
+          if (r.error) console.error('[catalogo-interrompida]', r.error.message);
+        }
+      } finally { await trava?.soltar(); }
+    })());
+  };
+  addEventListener('beforeunload', interromper);
   try {
     const body = Body.parse(await req.json().catch(() => ({})));
     testarConexao = body.acao === "testar";
@@ -43,7 +61,7 @@ Deno.serve(async req => {
       testando = true;
     }
     if (!testando && !testarConexao) {
-      try { trava = await pegarTrava((nome, args) => sb.rpc(nome, args), "leitura", ator, cron); }
+      try { trava = await pegarTrava((nome, args) => sb.rpc(nome, args), "leitura", ator, cron, 90); }
       catch (e) {
         if (cron && e instanceof ErroCatalogo && e.status === 409) return json({ ok: true, status: "aguardando", mensagem: e.message });
         throw e;
@@ -60,6 +78,7 @@ Deno.serve(async req => {
       if (log.error) throw log.error;
       return json({ ok: true, mensagem: `Conexão OK — ${arquivo.nome}`, bytes: arquivo.bytes.length });
     }
+    medir('download');
     const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", arquivo.bytes))].map(b => b.toString(16).padStart(2, "0")).join("");
     const ambiente = testando ? "teste" : "oficial";
     const anterior = await sb.from("catalogo_planilha_leitura").select("id,hash,status").eq("ambiente", ambiente).eq("origem_chave", arquivo.origemChave).in("status", ["comparada", "aplicada_parcial", "aplicada", "sem_mudanca"]).order("lida_em", { ascending: false }).limit(1).maybeSingle();
@@ -70,10 +89,12 @@ Deno.serve(async req => {
     const up = await sb.storage.from("catalogo-planilha").upload(path, arquivo.bytes, { contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     if (up.error) throw up.error;
     await trava?.verificar();
-    const ins = await sb.from("catalogo_planilha_leitura").insert({ id, origem: cron ? "cron" : "manual", hash, etag: arquivo.etag, storage_path: path, ambiente, origem_chave: arquivo.origemChave, criado_por: ator, erro: ERRO_INTERROMPIDA });
+    const ins = await sb.from("catalogo_planilha_leitura").insert({ id, origem: cron ? "cron" : "manual", hash, etag: arquivo.etag, storage_path: path, ambiente, origem_chave: arquivo.origemChave, criado_por: ator, erro: null, totais: { em_andamento: true } });
     if (ins.error) throw ins.error; leitura = id;
-    if (anterior.data?.hash === hash) {
+    medir('registro');
+    if (!body.reprocessar && anterior.data?.hash === hash) {
       const upd = await sb.from("catalogo_planilha_leitura").update({ status: "sem_mudanca", erro: null, totais: { leitura_referencia: anterior.data.id } }).eq("id", id); if (upd.error) throw upd.error;
+      concluida = true;
       return json({ ok: true, id, status: "sem_mudanca", testando });
     }
     const fichaQ = await sb.from("produto_ficha_nascimento").select("campo,importavel_planilha,onde_resolver,contexto_planilha");
@@ -86,6 +107,7 @@ Deno.serve(async req => {
     if (!esquemaResposta.ok) throw new Error(`Não foi possível consultar os tipos das colunas (${esquemaResposta.status}).`);
     const tiposProduto = tiposColunasProduto(await esquemaResposta.json());
     const colunasProduto = Object.keys(tiposProduto);
+    medir('metadados');
     statusErro = "layout_quebrado";
     // Parse only the catalog sheet, and only up to the last slug column / last used row (cost: WORKER_RESOURCE_LIMIT).
     const wb = XLSX.read(arquivo.bytes, { type: "array", sheets: [arquivo.aba, ABA_CODIGOS], cellStyles: false, cellHTML: false, cellFormula: false, cellText: false });
@@ -94,11 +116,11 @@ Deno.serve(async req => {
     const cabecalho = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null, range: { s: { r: 2, c: area.s.c }, e: { r: 2, c: area.e.c } } })[0] ?? [];
     let ultimaColuna = cabecalho.length - 1;
     while (ultimaColuna >= 0 && String(cabecalho[ultimaColuna] ?? "").trim() === "") ultimaColuna--;
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null, blankrows: true, range: { s: { r: 0, c: area.s.c }, e: { r: area.e.r, c: area.s.c + Math.max(ultimaColuna, 0) } } });
-    const slugs = (rows[2] ?? []).map(v => String(v ?? "").trim());
+    const slugs = cabecalho.slice(0, ultimaColuna + 1).map(v => String(v ?? "").trim());
+    const donos = slugs.map((_, c) => ws[XLSX.utils.encode_cell({r: 0, c: area.s.c + c})]?.v);
     // v2: the "Códigos e EAN" sheet owns the code↔EAN pair and the inner; without it the v1 behaviour stays intact.
     const wsCodigos = wb.Sheets[ABA_CODIGOS];
-    const naoComparadas = colunasNaoComparadas(slugs, rows[0] ?? [], !!wsCodigos);
+    const naoComparadas = colunasNaoComparadas(slugs, donos, !!wsCodigos);
     const layout = validarSlugs(slugs, ficha, colunasProduto, naoComparadas.ignorar);
     let linhasCodigos: LinhaCodigos[] | null = null;
     if (wsCodigos) {
@@ -110,21 +132,29 @@ Deno.serve(async req => {
     }
     statusErro = "erro";
     const codCol = slugs.indexOf("cod_cadastro");
-    const linhas = rows.slice(4).map((r, i) => ({ linha: i + 5, cod: normalizarCodigo(r[codCol]), valores: Object.fromEntries(slugs.map((s, j) => [s, r[j]]).filter(([s]) => !!s && !naoComparadas.ignorar.has(String(s)))) })).filter(r => r.cod || Object.values(r.valores).some(v => !vazio(v)));
+    const campos = camposDaLeitura(slugs, naoComparadas.ignorar, ficha, somenteLeitura);
+    const colunas = slugs.map((s, c) => ({s, c: area.s.c + c})).filter(({s}) => campos.some(f => f.campo === s));
+    const linhas = [];
+    for (let r = 4; r <= area.e.r; r++) {
+      const cod = normalizarCodigo(ws[XLSX.utils.encode_cell({r, c: area.s.c + codCol})]?.v);
+      const valores = Object.fromEntries(colunas.map(({s,c}) => [s, ws[XLSX.utils.encode_cell({r,c})]?.v]));
+      if (cod || Object.values(valores).some(v => !vazio(v))) linhas.push({ linha: r + 1, cod, valores });
+    }
     const cods = [...new Set(linhas.map(r => r.cod).filter(Boolean))];
+    medir('xlsx');
     const produtos = new Map<string, Record<string, unknown>>();
     const bases = new Map<string, unknown>();
-    for (let i = 0; i < cods.length; i += 150) {
+    await mapearLotes(cods, 150, 3, async bloco => {
       await trava?.verificar();
-      const bloco = cods.slice(i, i + 150);
-      const p = await sb.from("sncf_produtos").select("*").in("cod_cadastro", bloco); if (p.error) throw p.error;
+      const p = await sb.from("sncf_produtos").select(['cod_cadastro', ...campos.map(c => c.campo)].join(',')).in("cod_cadastro", bloco).returns<Record<string, unknown>[]>(); if (p.error) throw p.error;
       for (const x of p.data ?? []) produtos.set(String(x.cod_cadastro), x);
-      if (!testando) for (let de = 0; ; de += 1000) {
-        const b = await sb.from("catalogo_planilha_base").select("*").in("cod_cadastro", bloco).order("cod_cadastro").order("campo").range(de, de + 999); if (b.error) throw b.error;
+      if (!testando && campos.length) for (let de = 0; ; de += 1000) {
+        const b = await sb.from("catalogo_planilha_base").select("cod_cadastro,campo,valor").in("cod_cadastro", bloco).in('campo', campos.map(c => c.campo)).order("cod_cadastro").order("campo").range(de, de + 999); if (b.error) throw b.error;
         for (const x of b.data ?? []) bases.set(`${x.cod_cadastro}|${x.campo}`, x.valor);
         if (!b.data || b.data.length < 1000) break;
       }
-    }
+    });
+    medir('produtos_base');
     const mudancas: Record<string, unknown>[] = [], baseInicial: Record<string, unknown>[] = [];
     const vistos = new Set<string>();
     const catalogoSemCadastro: LinhaCatalogoNova[] = [];
@@ -137,7 +167,7 @@ Deno.serve(async req => {
       if (linhaSoNascimento(!!produto, !!linhasCodigos, linha.cod)) continue;
       if (!produto) { mudancas.push({ cod_cadastro: linha.cod || `(linha ${linha.linha})`, campo: "cod_cadastro", dono: "operacoes", tipo: "sem_cadastro", erro: "Código não existe no SNCF; encaminhar à Importação de PI." }); continue; }
       const fiscais: Record<string, unknown>[] = [];
-      for (const campo of ficha) {
+      for (const campo of campos) {
         if ((linhasCodigos && campo.campo === "inner_qtd") || somenteLeitura(campo.campo) || !campo.importavel_planilha || vazio(linha.valores[campo.campo])) continue;
         const key = `${linha.cod}|${campo.campo}`;
         const fake = body.cenario_teste?.[key];
@@ -169,6 +199,7 @@ Deno.serve(async req => {
         }
       }
     }
+    medir('comparacao_validacao');
     let propostas = null;
     if (linhasCodigos) {
       const cartorio = new Map<string, Cartorio>();
@@ -182,18 +213,24 @@ Deno.serve(async req => {
       propostas = classificarPropostas(linhasCodigos, cartorio, catalogoSemCadastro);
     }
     const totais = { v2: !!linhasCodigos, propostas, avisos: naoComparadas.avisos, colunas_ignoradas: layout.colunas_ignoradas, linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
+    medir('cartorio');
     await trava?.verificar();
     const done = await sb.rpc("fn_catalogo_leitura_concluir", { p_leitura_id: id, p_status: "comparada", p_totais: totais, p_mudancas: mudancas, p_base_inicial: baseInicial }); if (done.error) throw done.error;
-    const limpa = await sb.from("catalogo_planilha_leitura").update({ erro: null }).eq("id", id); if (limpa.error) throw limpa.error;
-    return json({ ok: true, id, status: "comparada", totais, testando });
+    medir('gravacao');
+    medicao.total_ms = Math.round(performance.now() - inicio);
+    console.log('[catalogo-medicao-total]', JSON.stringify(medicao));
+    concluida = true;
+    const limpa = await sb.from("catalogo_planilha_leitura").update({ erro: null, totais: { ...totais, medicao } }).eq("id", id); if (limpa.error) throw limpa.error;
+    return json({ ok: true, id, status: "comparada", totais, testando, medicao });
   } catch (e) {
     const erro = erroTexto(e);
     if (e instanceof ErroCatalogo) return json({ ok: false, erro, codigo: e.codigo }, e.status);
     if (autorizado && testarConexao) await sb.from("credenciais_integracao_log").insert({ nome: "m365_conexao", acao: "atualizado", descricao: `Teste de conexão falhou — ${erro}`, por: ator });
-    if (autorizado && leitura) await sb.from("catalogo_planilha_leitura").update({ status: statusErro, erro }).eq("id", leitura);
+    if (autorizado && leitura) await sb.from("catalogo_planilha_leitura").update({ status: statusErro, erro, totais: { em_andamento: false, medicao } }).eq("id", leitura);
     else if (autorizado && trava && !testando && !testarConexao) await sb.from("catalogo_planilha_leitura").insert({ origem: req.headers.get("x-cron-secret") ? "cron" : "manual", status: "erro", erro, criado_por: ator });
     return json({ ok: false, id: leitura, status: statusErro, erro }, e instanceof z.ZodError ? 400 : 500);
   } finally {
+    removeEventListener('beforeunload', interromper);
     await trava?.soltar().catch(e => console.error("[catalogo-trava-soltar]", erroTexto(e)));
   }
 });

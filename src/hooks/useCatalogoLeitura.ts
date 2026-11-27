@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { CelulaCatalogo } from '@/lib/acervo/revisaoCatalogo';
 
 /** Shared read-only source for the daily review and its tab badge. */
-export function useCatalogoLeitura() {
-  const ultima = useQuery({ queryKey: ['catalogo-planilha-ultima'], queryFn: async () => {
+export function useCatalogoLeitura(acompanhando = false) {
+  const ultima = useQuery({ queryKey: ['catalogo-planilha-ultima'], refetchInterval: acompanhando ? 3000 : 30_000, queryFn: async () => {
     const r = await supabase.from('catalogo_planilha_leitura').select('*').eq('ambiente', 'oficial').order('lida_em', { ascending: false }).limit(1).maybeSingle();
     if (r.error) throw r.error; return r.data;
   } });
