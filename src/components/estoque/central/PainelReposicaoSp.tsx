@@ -13,6 +13,7 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { FiltroMultiSelect } from "@/components/financeiro/FiltroMultiSelect";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { formatError } from "@/lib/format-error";
+import { BotaoRegua, CelulaMinTeto, DialogoMinTetoMassa, SeloMinTeto } from "./ReposicaoMinTeto";
 
 const colunas = [
   ["cod_cadastro", "Código"], ["nome_comercial", "Produto"], ["colecao", "Coleção"], ["classe", "Classe"],
@@ -25,6 +26,7 @@ export function PainelReposicaoSp({ aba, onAba, onUsar, rotulo = "Nova transfer�
   const q = useReposicaoSp();
   const [nav, setNav] = useEstadoTela({ busca: "", colecoes: "", familias: "", grupos: "", classes: "", situacoes: "", ordem: "nenhum", agrupar: false, mostrar: false }, { prefixo: "repor", replaceKeys: ["busca"] });
   const [selecao, setSelecao] = useState<SelecaoReposicao>({});
+  const [massa, setMassa] = useState(false);
   const linhas = linhasReposicao(q.data ?? [], aba) as LinhaReposicaoTabela[];
   const ordem = lerOrdemKD(nav.ordem);
   const filtradas = filtrarReposicao(linhas, { busca: nav.busca, colecoes: lerLista(nav.colecoes), familias: lerLista(nav.familias), grupos: lerLista(nav.grupos), classes: lerLista(nav.classes), situacoes: lerLista(nav.situacoes) });
@@ -45,7 +47,9 @@ export function PainelReposicaoSp({ aba, onAba, onUsar, rotulo = "Nova transfer�
       <td className="p-2"><CodProduto chave={l.sku} variant="compacto" /></td>
       <td className="p-2 min-w-40">{l.nome_comercial}</td><td className="p-2 whitespace-nowrap">{l.colecao || "Sem coleção"}</td>
       <td className="p-2 whitespace-nowrap">{l.classe_rotulo ?? l.classe}</td>
-      {[l.inner_kits, `${l.minimo ?? "—"}/${l.teto ?? "—"}`, l.disp_sp, l.em_transito].map((v, i) => <td key={i} className="p-2 text-right tabular-nums">{v ?? "—"}</td>)}
+      <td className="p-2 text-right tabular-nums">{l.inner_kits ?? "—"}</td>
+      <td className="p-2 text-right whitespace-nowrap"><CelulaMinTeto l={l} /><SeloMinTeto l={l} /></td>
+      {[l.disp_sp, l.em_transito].map((v, i) => <td key={i} className="p-2 text-right tabular-nums">{v ?? "—"}</td>)}
       <td className="p-2 text-right tabular-nums whitespace-nowrap">{l.disp_sr ?? "—"}{Number(l.sr_pedido) > 0 && <Badge variant="outline" className="ml-1">pede {l.sr_pedido}</Badge>}</td>
       <td className="p-2 text-right tabular-nums">{l.posicao}</td><td className="p-2 text-right tabular-nums">{l.disp_origem}</td>
       <td className="p-2"><Badge variant={l.situacao === "dispara" ? "destructive" : "secondary"}>{situacoes[l.situacao ?? ""] ?? l.situacao}</Badge></td>
@@ -60,6 +64,7 @@ export function PainelReposicaoSp({ aba, onAba, onUsar, rotulo = "Nova transfer�
       <Input className="h-9 w-full sm:w-64" placeholder="Buscar código ou nome" aria-label="Buscar produtos para repor SP" value={nav.busca} onChange={e => setNav({ busca: e.target.value, mostrar: false })} />
       {([ ["colecoes", "Coleção", "colecao"], ["familias", "Família", "familia"], ["grupos", "Grupo", "grupo"], ["classes", "Classe", "classe"], ["situacoes", "Situação", "situacao"] ] as const).map(([chave, label, campo]) => <FiltroMultiSelect key={chave} label={label} opcoes={[...new Set(linhas.map(l => l[campo] || semCategoria))].sort((a, b) => a.localeCompare(b, "pt-BR"))} selecionados={lerLista(nav[chave])} onChange={v => setNav({ [chave]: escreverLista(v), mostrar: false })} rotulo={v => v === semCategoria ? `Sem ${label.toLocaleLowerCase("pt-BR")}` : campo === "classe" ? linhas.find(l => l.classe === v)?.classe_rotulo ?? v : campo === "situacao" ? situacoes[v] ?? v : v} />)}
       <span className="text-xs text-muted-foreground tabular-nums">{visiveis.length} de {linhas.length} produtos</span>
+      <BotaoRegua linhas={(q.data ?? []) as LinhaReposicaoTabela[]} />
       <label className="flex items-center gap-2 text-sm sm:ml-auto"><Switch checked={nav.agrupar} onCheckedChange={v => setNav({ agrupar: v })} aria-label="Agrupar por coleção" />Agrupar por coleção</label>
     </div>
     {nav.mostrar && <div className="flex items-center gap-2 text-sm"><span>Todos os selecionados</span><Button variant="link" size="sm" onClick={() => setNav({ mostrar: false })}>Voltar ao filtro</Button></div>}
@@ -70,7 +75,9 @@ export function PainelReposicaoSp({ aba, onAba, onUsar, rotulo = "Nova transfer�
     </div>}
     <footer className="flex flex-wrap justify-between items-center gap-3 border-t bg-background py-3">
       <div className="text-sm tabular-nums"><span>{total.skus} selecionados · {total.kits} un</span>{escondidos.length > 0 && <span> ({escondidos.length} fora do filtro) <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setNav({ mostrar: true })}>mostrar</Button></span>}<div className="text-xs text-muted-foreground">{total.kits} kits · {total.pesoKg.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg estimados{total.semPeso > 0 && <span className="text-warning"> · {total.semPeso} sem peso</span>}</div></div>
-      <Button type="button" className="whitespace-normal h-auto min-h-10 text-center" disabled={!itens.length || !!q.error} onClick={() => onUsar({ itens, aba })}>{rotulo} — todos os {itens.length} selecionados</Button>
+      <div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" className="h-auto min-h-10" disabled={!itens.length} onClick={() => setMassa(true)}>Mín/Teto dos selecionados ({itens.length})</Button>
+      <Button type="button" className="whitespace-normal h-auto min-h-10 text-center" disabled={!itens.length || !!q.error} onClick={() => onUsar({ itens, aba })}>{rotulo} — todos os {itens.length} selecionados</Button></div>
+      <DialogoMinTetoMassa skus={itens.map(i => i.sku)} open={massa} onOpenChange={setMassa} />
     </footer>
   </section>;
 }

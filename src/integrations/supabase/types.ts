@@ -94411,6 +94411,48 @@ export type Database = {
         }
         Relationships: []
       }
+      reposicao_sku_excecao: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          centro_id: string
+          classe_ref: string
+          criado_em: string
+          criado_por: string | null
+          id: string
+          minimo: number
+          motivo: string | null
+          sku: string
+          teto: number
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          centro_id: string
+          classe_ref: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          minimo: number
+          motivo?: string | null
+          sku: string
+          teto: number
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          centro_id?: string
+          classe_ref?: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          minimo?: number
+          motivo?: string | null
+          sku?: string
+          teto?: number
+        }
+        Relationships: []
+      }
       responsabilidades_catalogo: {
         Row: {
           area: string
@@ -187435,12 +187477,18 @@ export type Database = {
           disp_sp: number | null
           disp_sr: number | null
           em_transito: number | null
+          excecao: boolean | null
+          excecao_em: string | null
+          excecao_motivo: string | null
+          excecao_vencida: boolean | null
           fase: string | null
           inner_kits: number | null
           minimo: number | null
           nome_comercial: string | null
           posicao: number | null
           qtd_sugerida: number | null
+          regua_minimo: number | null
+          regua_teto: number | null
           ritmo: string | null
           situacao: string | null
           sku: string | null
@@ -199687,6 +199735,15 @@ export type Database = {
       }
     }
     Functions: {
+      reposicao_excecao_definir: {
+        Args: { p_minimo: number | null; p_motivo: string | null; p_skus: string[]; p_teto: number | null }
+        Returns: number
+      }
+      reposicao_excecao_remover: { Args: { p_skus: string[] }; Returns: number }
+      reposicao_regua_atualizar: {
+        Args: { p_classe: string; p_minimo: number; p_teto: number; p_teto_mais_inner: boolean | null }
+        Returns: undefined
+      }
       _consignado_remessas_ref: {
         Args: { p_parceiro_id: string; p_stage_id: string }
         Returns: Json
