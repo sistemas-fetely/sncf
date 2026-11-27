@@ -68,17 +68,37 @@ export function donoCampo(campo: CampoCatalogo): "operacoes" | "produto" {
   // (identity, quantities etc.) must not silently become Operations' remit.
   return campo.onde_resolver === "SNCF" && ["ncm", "cest", "origem_fisc", "origem_prod"].includes(campo.campo) ? "operacoes" : "produto";
 }
-export function validarSlugs(slugs: string[], ficha: CampoCatalogo[], colunasProduto: string[] = []) {
+export const DONO_CONSULTA = "sistema · consulta";
+export const AVISO_LOJAS = "Colunas de loja ainda não são gravadas";
+export const AVISO_DESCRICAO = "Descrição e meta descrição ainda não são gravadas pela v2";
+// v2 sends plain text converted from Shopify HTML; comparing it with stored HTML would flood false changes.
+export const CAMPOS_TEXTO_V2 = ["descricao_produto", "meta_descricao"];
+const ehLoja = (s: string) => s.startsWith("loja_");
+/** Columns of the catalog sheet that are read but never compared nor written. */
+export function colunasNaoComparadas(slugs: string[], donos: unknown[], v2: boolean) {
+  const ignorar = new Set<string>(), avisos: string[] = [];
+  slugs.forEach((s, i) => {
+    if (!s) return;
+    if (String(donos[i] ?? "").trim().toLocaleLowerCase("pt-BR") === DONO_CONSULTA || ehLoja(s)) ignorar.add(s);
+    if (v2 && CAMPOS_TEXTO_V2.includes(s)) ignorar.add(s);
+  });
+  if (slugs.some(ehLoja)) avisos.push(AVISO_LOJAS);
+  if (v2 && slugs.some(s => CAMPOS_TEXTO_V2.includes(s))) avisos.push(AVISO_DESCRICAO);
+  return { ignorar, avisos };
+}
+export function validarSlugs(slugs: string[], ficha: CampoCatalogo[], colunasProduto: string[] = [], naoComparadas: Set<string> = new Set()) {
   const camposFicha = new Set(ficha.map(f => f.campo));
   const conhecidos = new Set([...camposFicha, ...SOMENTE_LEITURA, ...colunasProduto]);
   const colunasIgnoradas: string[] = [];
   if (!slugs.includes("cod_cadastro")) throw new Error("Layout quebrado: linha 3 sem cod_cadastro.");
   const vistos = new Set<string>();
   for (const s of slugs.filter(Boolean)) {
-    if (!s.startsWith("_") && !conhecidos.has(s)) throw new Error(`Layout quebrado: slug desconhecido ${s}.`);
+    if (!s.startsWith("_") && !naoComparadas.has(s) && !conhecidos.has(s)) throw new Error(`Layout quebrado: slug desconhecido ${s}.`);
     if (vistos.has(s)) throw new Error(`Layout quebrado: slug duplicado ${s}.`);
     vistos.add(s);
-    if (somenteLeitura(s) || !camposFicha.has(s)) colunasIgnoradas.push(s);
+    if (somenteLeitura(s) || naoComparadas.has(s) || !camposFicha.has(s)) colunasIgnoradas.push(s);
   }
   return { colunas_ignoradas: colunasIgnoradas };
 }
+/** v2 rows whose code has no product only feed birth proposals; v1 keeps the sem_cadastro cell. */
+export function linhaSoNascimento(temProduto: boolean, v2: boolean, cod: string) { return !temProduto && v2 && !!cod; }

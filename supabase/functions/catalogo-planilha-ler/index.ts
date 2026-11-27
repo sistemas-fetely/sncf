@@ -8,7 +8,7 @@ import { pegarTrava } from "../_shared/catalogo-planilha/trava.ts";
 import { ErroCatalogo } from "../_shared/catalogo-planilha/mensagens.ts";
 import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts";
 import { ABA_CODIGOS, classificarPropostas, type Cartorio, type LinhaCatalogoNova, type LinhaCodigos } from "../_shared/catalogo-planilha/nascimento.ts";
-import { analisarCelula, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
+import { analisarCelula, colunasNaoComparadas, linhaSoNascimento, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
 const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
 const ERRO_INTERROMPIDA = "Leitura interrompida antes de concluir (limite do servidor). Rode de novo.";
@@ -96,9 +96,10 @@ Deno.serve(async req => {
     while (ultimaColuna >= 0 && String(cabecalho[ultimaColuna] ?? "").trim() === "") ultimaColuna--;
     const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null, blankrows: true, range: { s: { r: 0, c: area.s.c }, e: { r: area.e.r, c: area.s.c + Math.max(ultimaColuna, 0) } } });
     const slugs = (rows[2] ?? []).map(v => String(v ?? "").trim());
-    const layout = validarSlugs(slugs, ficha, colunasProduto);
     // v2: the "Códigos e EAN" sheet owns the code↔EAN pair and the inner; without it the v1 behaviour stays intact.
     const wsCodigos = wb.Sheets[ABA_CODIGOS];
+    const naoComparadas = colunasNaoComparadas(slugs, rows[0] ?? [], !!wsCodigos);
+    const layout = validarSlugs(slugs, ficha, colunasProduto, naoComparadas.ignorar);
     let linhasCodigos: LinhaCodigos[] | null = null;
     if (wsCodigos) {
       const rc = XLSX.utils.sheet_to_json<unknown[]>(wsCodigos, { header: 1, raw: true, defval: null, blankrows: true });
@@ -109,7 +110,7 @@ Deno.serve(async req => {
     }
     statusErro = "erro";
     const codCol = slugs.indexOf("cod_cadastro");
-    const linhas = rows.slice(4).map((r, i) => ({ linha: i + 5, cod: normalizarCodigo(r[codCol]), valores: Object.fromEntries(slugs.map((s, j) => [s, r[j]]).filter(([s]) => !!s)) })).filter(r => r.cod || Object.values(r.valores).some(v => !vazio(v)));
+    const linhas = rows.slice(4).map((r, i) => ({ linha: i + 5, cod: normalizarCodigo(r[codCol]), valores: Object.fromEntries(slugs.map((s, j) => [s, r[j]]).filter(([s]) => !!s && !naoComparadas.ignorar.has(String(s)))) })).filter(r => r.cod || Object.values(r.valores).some(v => !vazio(v)));
     const cods = [...new Set(linhas.map(r => r.cod).filter(Boolean))];
     const produtos = new Map<string, Record<string, unknown>>();
     const bases = new Map<string, unknown>();
@@ -132,6 +133,8 @@ Deno.serve(async req => {
       vistos.add(linha.cod);
       const produto = produtos.get(linha.cod);
       if (!produto && linha.cod) catalogoSemCadastro.push({ linha: linha.linha, cod: linha.cod, nome: vazio(linha.valores.nome_comercial) ? null : String(linha.valores.nome_comercial).trim(), origem: vazio(linha.valores.origem_prod) ? null : String(linha.valores.origem_prod) });
+      // v2: codes without a product become birth proposals only, never cell rows.
+      if (linhaSoNascimento(!!produto, !!linhasCodigos, linha.cod)) continue;
       if (!produto) { mudancas.push({ cod_cadastro: linha.cod || `(linha ${linha.linha})`, campo: "cod_cadastro", dono: "operacoes", tipo: "sem_cadastro", erro: "Código não existe no SNCF; encaminhar à Importação de PI." }); continue; }
       const fiscais: Record<string, unknown>[] = [];
       for (const campo of ficha) {
@@ -178,7 +181,7 @@ Deno.serve(async req => {
       }
       propostas = classificarPropostas(linhasCodigos, cartorio, catalogoSemCadastro);
     }
-    const totais = { v2: !!linhasCodigos, propostas, colunas_ignoradas: layout.colunas_ignoradas, linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
+    const totais = { v2: !!linhasCodigos, propostas, avisos: naoComparadas.avisos, colunas_ignoradas: layout.colunas_ignoradas, linhas: linhas.length, primeira_base: baseInicial.length, testando, mudanca: mudancas.filter(m => m.tipo === "mudanca").length, conflito: mudancas.filter(m => m.tipo === "conflito").length, ja_igual: mudancas.filter(m => m.tipo === "ja_igual").length, sem_cadastro: mudancas.filter(m => m.tipo === "sem_cadastro").length, erro: mudancas.filter(m => m.tipo === "erro").length };
     await trava?.verificar();
     const done = await sb.rpc("fn_catalogo_leitura_concluir", { p_leitura_id: id, p_status: "comparada", p_totais: totais, p_mudancas: mudancas, p_base_inicial: baseInicial }); if (done.error) throw done.error;
     const limpa = await sb.from("catalogo_planilha_leitura").update({ erro: null }).eq("id", id); if (limpa.error) throw limpa.error;
