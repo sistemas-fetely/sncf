@@ -57,7 +57,7 @@ export function MarketplaceDrawer({ pedido: p, recebivel, onClose, onTransporte,
   const freteMkt = recebivel ? recebivel.mp_frete : p.frete_marketplace;
   const dataMp = recebivel ? (recebivel.mp_status === 'liberado' ? recebivel.mp_liberado_em : recebivel.mp_liberacao_prevista) : null;
   const naoZero = (v: number | null | undefined) => v != null && Number(v) !== 0;
-  const neg = (v: number | null | undefined) => v == null ? null : -Math.abs(Number(v));
+  const pos = (v: number | null | undefined) => v == null ? null : Math.abs(Number(v));
 
   const temRastreio = !!p.rastreio_codigo;
   const custoTransp = p.custo_transporte ?? (p.transportes ?? []).reduce((s, t) => s + Number(t.valor ?? 0), 0);
@@ -83,13 +83,13 @@ export function MarketplaceDrawer({ pedido: p, recebivel, onClose, onTransporte,
           <span className="shrink-0 text-sm font-medium">{dinheiro(i.subtotal)}</span></li>; })}</ul>}
     </Bloco>
 
-    <Bloco titulo={<span className="flex flex-wrap items-center gap-2">Resultado{recebivel && <><StatusRecebivelMarketplace status={recebivel.mp_status} />{dataMp && <span className="text-xs font-normal text-muted-foreground">{recebivel.mp_status === 'liberado' ? 'liberado' : 'a liberar'} em {formatDateBR(dataMp)}</span>}</>}</span> as any}>
+    <Bloco titulo={<span className="flex flex-wrap items-center gap-2">Resultado{recebivel && <><StatusRecebivelMarketplace status={recebivel.mp_status} />{dataMp && <span className="text-xs font-normal text-muted-foreground">{recebivel.mp_status === 'liberado' ? 'liberado' : 'a liberar'} em {formatDateBR(dataMp)}</span>}</>}</span>}>
       <Linha label="Cliente pagou" valor={p.valor_liquido == null ? null : <span className="text-right">{dinheiro(p.valor_liquido)}{(bruto != null || frete != null) && <span className="block text-xs text-muted-foreground">produtos {dinheiro(bruto)} + frete {dinheiro(frete)}</span>}</span>} />
       {recebivel && <Linha label="Venda (bruto MP)" valor={dinheiro(recebivel.mp_bruto)} />}
-      {comissao != null && <Linha label="− Comissão" valor={<Valor v={neg(comissao)} bling={recebivel ? neg(p.comissao_marketplace) : undefined} />} />}
-      {freteMkt != null && <Linha label="− Frete marketplace" valor={<Valor v={neg(freteMkt)} bling={recebivel ? neg(p.frete_marketplace) : undefined} />} />}
-      {recebivel && naoZero(recebivel.mp_parcelamento) && <Linha label="− Parcelamento" valor={dinheiro(neg(recebivel.mp_parcelamento))} />}
-      {recebivel && naoZero(recebivel.mp_impostos) && <Linha label="− Impostos" valor={dinheiro(neg(recebivel.mp_impostos))} />}
+      {comissao != null && <Linha label="− Comissão" valor={<Valor v={pos(comissao)} bling={recebivel ? pos(p.comissao_marketplace) : undefined} />} />}
+      {freteMkt != null && <Linha label="− Frete marketplace" valor={<Valor v={pos(freteMkt)} bling={recebivel ? pos(p.frete_marketplace) : undefined} />} />}
+      {recebivel && naoZero(recebivel.mp_parcelamento) && <Linha label="− Parcelamento" valor={dinheiro(pos(recebivel.mp_parcelamento))} />}
+      {recebivel && naoZero(recebivel.mp_impostos) && <Linha label="− Impostos" valor={dinheiro(pos(recebivel.mp_impostos))} />}
       <div className="font-semibold"><Linha label={recebivel ? 'Líquido a receber' : 'Líquido estimado'} valor={recebivel ? <Valor v={recebivel.mp_liquido} bling={p.liquido_estimado} /> : dinheiro(p.liquido_estimado)} /></div>
     </Bloco>
 

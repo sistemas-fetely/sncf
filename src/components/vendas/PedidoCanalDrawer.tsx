@@ -16,7 +16,7 @@ export function PedidoCanalDrawer({ open, onOpenChange, titulo, descricao, cabec
     </SheetContent>
   </Sheet>;
 }
-export function BlocoPedidoCanal({ titulo, children }: { titulo: string; children: ReactNode }) {
+export function BlocoPedidoCanal({ titulo, children }: { titulo: ReactNode; children: ReactNode }) {
   return <section className="space-y-2">
     <h3 className="text-[11px] font-medium uppercase tracking-[2px] text-muted-foreground">{titulo}</h3>
     {children}
