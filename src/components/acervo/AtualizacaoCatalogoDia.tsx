@@ -1,7 +1,7 @@
 import { MultiSelectFilter } from "@/components/shared/MultiSelectFilter";
 import { lerFiltroProduto } from "@/lib/produto/filtrosMultiplos";
 import { escreverLista } from "@/lib/navegacao/codecUrl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
@@ -36,7 +37,7 @@ const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.s
 const TAMANHO_PAGINA = 25;
 type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[]; leituraId?: string };
 
-export function AtualizacaoCatalogoDia() {
+export function AtualizacaoCatalogoDia({ seletor }: { seletor?: ReactNode }) {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useEstadoTela({ bloco: 'todos', dono: 'todos', natureza: 'todos', fase: 'todos', colecoes: '', linhas: '', campo: 'todos', tipo: 'todos', busca: '', pagina: 1 }, { prefixo: 'catalogo', replaceKeys: ['busca'] });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -292,8 +293,17 @@ export function AtualizacaoCatalogoDia() {
     {estadoLeitura.erro && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap break-words">{fmtDataHora(ultima.data?.lida_em ?? '')} · {estadoLeitura.erro}</AlertDescription></Alert>}
     {estadoLeitura.avisos.map(aviso => <p key={aviso} className="text-xs text-muted-foreground">{aviso}</p>)}
     {falhas.map((e, i) => <Alert key={i} variant="destructive"><AlertDescription>{formatError(e)}</AlertDescription></Alert>)}
+    {seletor}
+    <TabsContent value="novos" className="space-y-4">
+      <p className="text-sm text-muted-foreground">Produtos que estão na planilha e ainda não existem no sistema.</p>
+      {estadoLeitura.v2 ? referencia.data && <ProdutosNovosCatalogo totais={referencia.data.totais} leituraId={referencia.data.id} /> : <>
+        <p className="text-sm text-muted-foreground">A planilha atual não tem a aba Códigos e EAN</p>
+        {!!semCadastro.length && <div className="border-t pt-2"><div className="flex flex-wrap items-center gap-1"><Button variant="ghost" size="sm" aria-expanded={semCadastroAberto} onClick={() => setSemCadastroAberto(v => !v)}>{semCadastroAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{semCadastro.length} códigos sem cadastro ({semCadastro[0]}–{semCadastro[semCadastro.length - 1]})</Button><Link className="text-sm text-primary underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">→ Importação de PI</Link></div>{semCadastroAberto && <div className="max-h-48 overflow-auto p-3 font-mono text-sm text-muted-foreground">{semCadastro.join(' · ')}</div>}</div>}
+      </>}
+    </TabsContent>
+    <TabsContent value="ajustes" className="space-y-4">
+    <p className="text-sm text-muted-foreground">O que o time mudou na planilha em produtos que já existem.</p>
     <ColecoesNovasCatalogo novas={novasColecoes} />
-    {referencia.data && <ProdutosNovosCatalogo totais={referencia.data.totais} leituraId={referencia.data.id} />}
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
       <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />
@@ -322,7 +332,6 @@ export function AtualizacaoCatalogoDia() {
       {(carregando || !visiveis.length || !!falhas.length) && <TableRow><TableCell colSpan={colunas.length + 2} className="py-8 text-center text-muted-foreground">{falhas.length ? 'Não foi possível carregar a revisão.' : carregando ? 'Carregando produtos…' : 'Nenhuma pendência neste filtro.'}</TableCell></TableRow>}
     </TableBody></Table></div>
     <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>{produtos.length} produtos · {recorte.length} células no filtro · <strong className="text-foreground">{resumo.produtos} produtos · {resumo.celulas} células selecionadas (Operações {resumo.operacoes} · Produto {resumo.produto})</strong></span><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="Página anterior do catálogo" disabled={pagina === 1} onClick={() => setFiltro({ pagina: pagina - 1 })}><ChevronLeft className="h-4 w-4" /></Button><span>Página {pagina} de {paginas}</span><Button variant="outline" size="icon" aria-label="Próxima página do catálogo" disabled={pagina === paginas} onClick={() => setFiltro({ pagina: pagina + 1 })}><ChevronRight className="h-4 w-4" /></Button></div></div>
-    {!estadoLeitura.v2 && !!semCadastro.length && <div className="border-t pt-2"><div className="flex flex-wrap items-center gap-1"><Button variant="ghost" size="sm" aria-expanded={semCadastroAberto} onClick={() => setSemCadastroAberto(v => !v)}>{semCadastroAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{semCadastro.length} códigos sem cadastro ({semCadastro[0]}–{semCadastro[semCadastro.length - 1]})</Button><Link className="text-sm text-primary underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">→ Importação de PI</Link></div>{semCadastroAberto && <div className="max-h-48 overflow-auto p-3 font-mono text-sm text-muted-foreground">{semCadastro.join(' · ')}</div>}</div>}
     {!!erros.length && <div className="border-t pt-2"><Button variant="ghost" size="sm" className="text-destructive" aria-expanded={errosAberto} onClick={() => setErrosAberto(v => !v)}>{errosAberto ? <ChevronDown className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />}{erros.length} erros</Button>{errosAberto && <div className="max-h-48 overflow-auto space-y-2 p-3 text-sm">{erros.map(c => <p key={c.id}><strong>{c.cod_cadastro}</strong> · {rotulos[c.campo] ?? 'Campo não identificado na matriz'} · <span className="text-destructive">{c.erro}</span></p>)}</div>}</div>}
     <Dialog open={!!previa} onOpenChange={o => { if (!o && !resolver.isPending) { if (resultado) void fecharResultado(); else setPrevia(null); } }}><DialogContent className={`max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto ${resolver.isPending ? '[&>button:last-child]:hidden' : ''}`} onEscapeKeyDown={e => { if (resolver.isPending) e.preventDefault(); }} onInteractOutside={e => { if (resolver.isPending) e.preventDefault(); }}><DialogHeader><DialogTitle>{resultado ? 'Resumo da aplicação' : `Confirmar ${previa?.acao === 'descartar' ? 'descarte' : 'aplicação'} · ${previa?.celulas.length} células`}</DialogTitle></DialogHeader>
       {progresso && !resultado ? <div className="space-y-4" aria-live="polite">
@@ -345,5 +354,6 @@ export function AtualizacaoCatalogoDia() {
         <DialogFooter><Button variant="outline" disabled={resolver.isPending} onClick={() => setPrevia(null)}>Voltar</Button><Button disabled={resolver.isPending} onClick={() => { if (previa) confirmar(previa); }}>Confirmar</Button></DialogFooter>
       </>}
     </DialogContent></Dialog>
+    </TabsContent>
   </section>;
 }

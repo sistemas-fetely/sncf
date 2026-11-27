@@ -43,7 +43,8 @@ import { ImportarPlanilhaCadastroDialog } from "@/components/acervo/ImportarPlan
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
-import { resolverAbaConciliacao } from "@/lib/acervo/abasConciliacao";
+import { contadoresConciliacao, resolverAbaConciliacao } from "@/lib/acervo/abasConciliacao";
+import { estadoLeituraCatalogo } from "@/lib/acervo/estadoLeituraCatalogo";
 import { AtualizacaoCatalogoDia } from "@/components/acervo/AtualizacaoCatalogoDia";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
@@ -239,14 +240,15 @@ export default function ConciliacaoFila() {
 
   const linhas = useMemo(() => fila.data ?? [], [fila.data]);
   const aba = resolverAbaConciliacao(sp.get('aba'), location.hash, catalogo.pendencias, linhas.length);
+  const contadores = contadoresConciliacao(estadoLeituraCatalogo(catalogo.ultima.data, catalogo.referencia.data).totais, catalogo.pendencias, linhas.length);
   const setAba = (valor: string) => {
-    if (valor !== 'entrada' && valor !== 'saida') return;
+    if (valor !== 'novos' && valor !== 'ajustes' && valor !== 'saida') return;
     const novo = new URLSearchParams(sp);
     novo.set('aba', valor);
     setSp(novo);
   };
   useEffect(() => {
-    if (sp.get('aba') === 'entrada' || sp.get('aba') === 'saida') return;
+    if (sp.get('aba') === 'novos' || sp.get('aba') === 'ajustes' || sp.get('aba') === 'saida') return;
     if (location.hash !== '#atualizacao-do-dia' && (!catalogo.pronto || !fila.isSuccess)) return;
     const novo = new URLSearchParams(sp);
     novo.set('aba', aba);
@@ -459,6 +461,12 @@ export default function ConciliacaoFila() {
     return <Tooltip><TooltipTrigger asChild><span className="block truncate text-left">{txt}</span></TooltipTrigger><TooltipContent className="max-w-sm">{txt}</TooltipContent></Tooltip>;
   }
 
+  const seletorConciliacao = <TabsList className="h-auto max-w-full flex-wrap justify-start" aria-label="Fluxo da conciliação">
+    <TabsTrigger value="novos" className="gap-2">Novos ·<Badge variant="secondary">{catalogo.pronto ? contadores.novos : '…'}</Badge></TabsTrigger>
+    <TabsTrigger value="ajustes" className="gap-2">Ajustes ·<Badge variant="secondary">{catalogo.pronto ? contadores.ajustes : '…'}</Badge></TabsTrigger>
+    <TabsTrigger value="saida" className="gap-2">Saída · Destinos ·<Badge variant="secondary">{fila.isSuccess ? contadores.saida : '…'}</Badge></TabsTrigger>
+  </TabsList>;
+
   return <TooltipProvider delayDuration={200}><PageShell>
     <NascerProdutoNacionalDialog open={nascerAberto} onOpenChange={setNascerAberto} onNasceu={() => { void fila.refetch(); }} />
     <ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} />
@@ -467,7 +475,7 @@ export default function ConciliacaoFila() {
       titulo="Conciliação de Cadastro"
       icone={GitCompare}
       estado={aba === "saida" ? estado : undefined}
-      acoes={aba === "entrada" ? <>
+      acoes={aba !== "saida" ? <>
         <DropdownMenu open={menuPlanilha} onOpenChange={setMenuPlanilha}>
           <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="mr-2 h-4 w-4" />Planilha<ChevronDown className="ml-1 h-3.5 w-3.5 opacity-60" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="flex w-64 flex-col gap-1 p-1">
@@ -485,15 +493,8 @@ export default function ConciliacaoFila() {
     <ProdutoAbas />
 
     <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-      <TabsList className="h-auto max-w-full flex-wrap justify-start" aria-label="Fluxo da conciliação">
-        <TabsTrigger value="entrada" className="gap-2">Entrada · Planilha<Badge variant="secondary">{catalogo.pronto ? catalogo.pendencias : '…'}</Badge></TabsTrigger>
-        <TabsTrigger value="saida" className="gap-2">Saída · Destinos<Badge variant="secondary">{fila.isSuccess ? linhas.length : '…'}</Badge></TabsTrigger>
-      </TabsList>
+      {aba === 'saida' ? seletorConciliacao : <AtualizacaoCatalogoDia seletor={seletorConciliacao} />}
       {catalogo.erro && <Alert variant="destructive"><AlertDescription>Não foi possível consultar as pendências da planilha: {catalogo.erro.message}</AlertDescription></Alert>}
-      <TabsContent value="entrada" className="space-y-4">
-        <p className="text-sm text-muted-foreground">O que o time escreveu na planilha do catálogo e ainda não entrou no sistema.</p>
-        <AtualizacaoCatalogoDia />
-      </TabsContent>
       <TabsContent value="saida" className="space-y-4">
         <p className="text-sm text-muted-foreground">O que está diferente entre o sistema e os canais (Bling, XPM, Shopify).</p>
     {erro && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar a fila de conciliação. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
