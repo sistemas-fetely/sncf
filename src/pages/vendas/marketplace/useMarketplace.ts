@@ -10,7 +10,7 @@ export type Transporte = { id: string; transportadora: string; valor: number | n
 export type PedidoMarketplace = {
   pedido_id: string; id_externo: string; marketplace_codigo: string; marketplace_nome: string;
   numero_marketplace: string | null; cliente_nome: string | null; cidade: string | null; uf: string | null;
-  valor_liquido: number | null; estagio: string | null; cd_codigo: string | null; nf_numero: string | null;
+  valor_liquido: number | null; valor_frete: number | null; valor_bruto?: number | null; estagio: string | null; cd_codigo: string | null; nf_numero: string | null;
   rastreio_codigo: string | null; transportadora_id: string | null; transportadora_nome: string | null;
   custo_transporte: number | null; comissao_marketplace: number | null; frete_marketplace: number | null;
   transportes: Transporte[] | null;
@@ -90,4 +90,17 @@ export function usePortadorPadrao() {
     if (error) throw error;
     exigirSucesso(data);
   }, onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['marketplace'] }); } });
+}
+export type ItemPedidoMarketplace = { id: string; descricao: string; cod_cadastro: string | null; sku: string | null; quantidade: number; valor_unitario: number; subtotal: number | null };
+/** Itens + valor_bruto (a view não traz o bruto), carregados só quando a gaveta abre. */
+export function useDetalheMarketplace(pedidoId: string | null) {
+  return useQuery({ queryKey: ['marketplace', 'detalhe', pedidoId], enabled: !!pedidoId, queryFn: async () => {
+    const [itens, ped] = await Promise.all([
+      db.from('pedido_itens').select('id,descricao,cod_cadastro,sku,quantidade,valor_unitario,subtotal').eq('pedido_id', pedidoId).order('ordem'),
+      db.from('pedidos').select('valor_bruto,valor_frete').eq('id', pedidoId).maybeSingle(),
+    ]);
+    if (itens.error) throw itens.error;
+    if (ped.error) throw ped.error;
+    return { itens: (itens.data ?? []) as ItemPedidoMarketplace[], valor_bruto: ped.data?.valor_bruto as number | null ?? null, valor_frete: ped.data?.valor_frete as number | null ?? null };
+  } });
 }
