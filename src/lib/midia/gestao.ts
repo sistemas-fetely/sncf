@@ -2,15 +2,15 @@
 export type SituacaoMidia = "com_foto" | "so_cor_colecao" | "sem_foto";
 export type MidiaProduto = {
   cod_cadastro: string; sku: string | null; nome_comercial: string | null; colecao: string | null; cor_nome: string | null;
-  ativo: boolean | null; foto_principal_url: string | null; foto_origem: string | null; foto_do_produto: boolean | null;
+  ativo: boolean | null; foto_principal_url: string | null; foto_origem: string | null; foto_fonte: string | null; foto_do_produto: boolean | null;
   n_fotos: number | null; n_fotos_copiadas: number | null; n_fotos_falha: number | null; n_videos: number | null;
   n_videos_copiados: number | null; n_proprias: number | null; n_fotos_bling: number | null; bling_lido_em: string | null;
   espelhado_em: string | null; situacao: SituacaoMidia;
 };
 export type CartaoMidia = "" | "com_foto" | "so_cor_colecao" | "sem_foto" | "com_video" | "falha" | "sem_vinculo";
 
-const ROTULO_ORIGEM: Record<string, string> = { produto: "Shopify", shopify: "Shopify", fop: "FOP", propria: "Própria", cor: "Cor", colecao: "Coleção" };
-/** Rótulo da origem da foto principal; desconhecido aparece como veio, vazio vira "—". */
+const ROTULO_ORIGEM: Record<string, string> = { fop: "FOP", propria: "Própria", shopify: "Shopify", fop_cor: "FOP · cor", fop_colecao: "FOP · coleção" };
+/** Rótulo da fonte real da foto principal (vw_midia_produto_gestao.foto_fonte); desconhecido aparece como veio, vazio vira "—". */
 export function rotuloOrigemFoto(o: string | null | undefined): string {
   if (!o) return "—";
   return ROTULO_ORIGEM[o.toLowerCase()] ?? o;

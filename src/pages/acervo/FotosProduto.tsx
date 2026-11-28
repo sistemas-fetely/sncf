@@ -70,7 +70,7 @@ export default function FotosProduto() {
 
   function exportarCsv() {
     const cab = ["codigo", "sku", "nome", "colecao", "fotos", "videos", "origem_principal", "fotos_bling", "situacao"];
-    const linhas = filtradas.map((p) => [p.cod_cadastro, p.sku ?? "", p.nome_comercial ?? "", p.colecao ?? "", p.n_fotos ?? 0, p.n_videos ?? 0, rotuloOrigemFoto(p.foto_origem), p.n_fotos_bling ?? "", ROTULO_SITUACAO[p.situacao] ?? p.situacao]);
+    const linhas = filtradas.map((p) => [p.cod_cadastro, p.sku ?? "", p.nome_comercial ?? "", p.colecao ?? "", p.n_fotos ?? 0, p.n_videos ?? 0, rotuloOrigemFoto(p.foto_fonte), p.n_fotos_bling ?? "", ROTULO_SITUACAO[p.situacao] ?? p.situacao]);
     const csv = [cab, ...linhas].map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = `fotos-videos-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url);
@@ -153,7 +153,7 @@ export default function FotosProduto() {
                     <TableCell><div className="truncate text-sm" title={p.colecao ?? ""}>{p.colecao ?? "—"}</div></TableCell>
                     <TableCell className="text-right tabular-nums">{p.n_fotos ?? 0}{(p.n_fotos_falha ?? 0) > 0 && <span className="ml-1 text-xs text-destructive" title="Falhas de cópia">({p.n_fotos_falha}!)</span>}</TableCell>
                     <TableCell className="text-right tabular-nums">{(p.n_videos ?? 0) > 0 ? <span className="inline-flex items-center gap-1"><Video className="h-3.5 w-3.5" />{p.n_videos}</span> : "—"}</TableCell>
-                    <TableCell>{p.foto_origem ? <Badge variant="outline" className="font-normal">{rotuloOrigemFoto(p.foto_origem)}</Badge> : "—"}</TableCell>
+                    <TableCell>{p.foto_fonte ? <Badge variant="outline" className="font-normal">{rotuloOrigemFoto(p.foto_fonte)}</Badge> : "—"}</TableCell>
                     <TableCell className={cn("text-right tabular-nums", blingSemFoto(p) && "rounded bg-warning/10 text-warning")}>{p.n_fotos_bling ?? "—"}</TableCell>
                     <TableCell><Badge variant="outline" className={cn("font-normal", corSituacao[p.situacao])}>{ROTULO_SITUACAO[p.situacao] ?? p.situacao}</Badge></TableCell>
                   </TableRow>

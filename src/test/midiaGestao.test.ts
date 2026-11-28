@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { filtrarMidia, rotuloOrigemFoto, type FiltroMidia, type MidiaProduto } from "@/lib/midia/gestao";
 
 const base: Omit<MidiaProduto, "cod_cadastro" | "situacao"> = {
-  sku: null, nome_comercial: null, colecao: null, cor_nome: null, ativo: true, foto_principal_url: null, foto_origem: null, foto_do_produto: null,
+  sku: null, nome_comercial: null, colecao: null, cor_nome: null, ativo: true, foto_principal_url: null, foto_origem: null, foto_fonte: null, foto_do_produto: null,
   n_fotos: 0, n_fotos_copiadas: 0, n_fotos_falha: 0, n_videos: 0, n_videos_copiados: 0, n_proprias: 0, n_fotos_bling: null, bling_lido_em: null, espelhado_em: null,
 };
 const p = (cod: string, x: Partial<MidiaProduto>): MidiaProduto => ({ ...base, cod_cadastro: cod, situacao: "com_foto", ...x });
@@ -17,12 +17,11 @@ const cods = (f: Partial<FiltroMidia>) => filtrarMidia(lista, { ...f0, ...f }).m
 
 describe("rotuloOrigemFoto", () => {
   it("mapeia as origens", () => {
-    expect(rotuloOrigemFoto("produto")).toBe("Shopify");
-    expect(rotuloOrigemFoto("shopify")).toBe("Shopify");
     expect(rotuloOrigemFoto("fop")).toBe("FOP");
     expect(rotuloOrigemFoto("propria")).toBe("Própria");
-    expect(rotuloOrigemFoto("cor")).toBe("Cor");
-    expect(rotuloOrigemFoto("colecao")).toBe("Coleção");
+    expect(rotuloOrigemFoto("shopify")).toBe("Shopify");
+    expect(rotuloOrigemFoto("fop_cor")).toBe("FOP · cor");
+    expect(rotuloOrigemFoto("fop_colecao")).toBe("FOP · coleção");
     expect(rotuloOrigemFoto(null)).toBe("—");
   });
 });
