@@ -210,3 +210,17 @@ export async function enviarFoto(params: {
   });
   if (erroInsert) throw new Error(rawMessage(erroInsert));
 }
+
+/** Fotos da base própria de UM produto (gaveta da aba Fotos). Mesmo prefixo, então as mutações acima invalidam. */
+export function useFotosDoProduto(cod: string | null) {
+  return useQuery({
+    queryKey: ["produto-fotos", "cod", cod],
+    enabled: !!cod,
+    queryFn: async (): Promise<FotoProduto[]> => {
+      const { data, error } = await supabase.from("produto_foto").select("*").eq("cod_cadastro", cod!)
+        .order("principal", { ascending: false }).order("criado_em", { ascending: false });
+      if (error) throw new Error(rawMessage(error));
+      return (data ?? []) as FotoProduto[];
+    },
+  });
+}

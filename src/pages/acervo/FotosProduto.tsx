@@ -1,9 +1,10 @@
 // FOTOS E VÍDEOS — /vendas/produto/fotos · gestão do Repositório de Mídia (mapa-repositorio-midia-v1, 28/11/2026).
 // Só leitura: vw_midia_resumo, vw_midia_produto_gestao, produto_midia (galeria) e vw_midia_sem_vinculo.
-// A base própria (envio manual) segue intocada, numa seção recolhível no fim.
+// Uma tabela só na página. Envio manual pelo Dialog "Enviar fotos"; fotos manuais aparecem na gaveta do produto;
+// variantes sem SKU abrem gaveta própria (?variantes=1).
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDown, Download, ExternalLink, Image as ImageIcon, MoreHorizontal, Video } from "lucide-react";
+import { Download, Star, Trash2, Upload, ExternalLink, Image as ImageIcon, MoreHorizontal, Video } from "lucide-react";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom } from "@/lib/navegacao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
@@ -12,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +28,8 @@ import { rawMessage } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { useMidiaGaleria, useMidiaProdutos, useMidiaResumo, useVariantesSemVinculo, useContagemSemVinculo } from "@/hooks/useMidiaGestao";
 import { blingSemFoto, contarCartoes, filtrarMidia, rotuloOrigemFoto, ROTULO_SITUACAO, type CartaoMidia, type MidiaProduto } from "@/lib/midia/gestao";
-import { BaseFotosPropria } from "./fotos/BaseFotosPropria";
+import { EnviarFotosDialog } from "./fotos/EnviarFotosDialog";
+import { useExcluirFoto, useFotosDoProduto, useTornarPrincipal, type FotoProduto } from "@/hooks/useFotosProduto";
 
 const TODOS = "__todos";
 const corSituacao: Record<string, string> = { com_foto: "border-success/40 text-success", so_cor_colecao: "border-warning/40 text-warning", sem_foto: "border-destructive/40 text-destructive" };
@@ -34,17 +37,16 @@ const corSituacao: Record<string, string> = { com_foto: "border-success/40 text-
 export default function FotosProduto() {
   const location = useLocation();
   const [nav, setNav] = useEstadoTela(
-    { q: "", cartao: "", situacao: "", colecao: "", video: false, ativos: true, falha: false, pagina: 1, detalhe: "" },
+    { q: "", cartao: "", situacao: "", colecao: "", video: false, ativos: true, falha: false, pagina: 1, detalhe: "", variantes: false },
     { replaceKeys: ["q"] },
   );
   const [tamanhoPagina, setTamanhoPagina] = useState<number>(DEFAULT_PAGE_SIZE);
-  const [baseAberta, setBaseAberta] = useState(false);
-  const [variantesAberta, setVariantesAberta] = useState(false);
+  const [enviarAberto, setEnviarAberto] = useState(false);
   const resumoQ = useMidiaResumo();
   const produtosQ = useMidiaProdutos();
   const r = resumoQ.data;
   const cartao = nav.cartao as CartaoMidia;
-  const mostrarVariantes = variantesAberta || cartao === "sem_vinculo";
+  const mostrarVariantes = nav.variantes;
   const variantesQ = useVariantesSemVinculo(mostrarVariantes);
   const nSemVinculoQ = useContagemSemVinculo();
   const n = useMemo(() => contarCartoes(produtosQ.data ?? []), [produtosQ.data]);
@@ -65,7 +67,7 @@ export default function FotosProduto() {
     { id: "sem_foto", rotulo: "Sem foto", valor: n.sem_foto },
     { id: "com_video", rotulo: "Com vídeo", valor: n.com_video },
     { id: "falha", rotulo: "Falhas de cópia", valor: n.falha },
-    { id: "sem_vinculo", rotulo: "Variantes Shopify sem SKU no SNCF", valor: nSemVinculoQ.data },
+    { id: "sem_vinculo", rotulo: "Variantes sem SKU", valor: nSemVinculoQ.data },
   ];
 
   function exportarCsv() {
@@ -83,7 +85,7 @@ export default function FotosProduto() {
         titulo="Fotos e vídeos"
         icone={ImageIcon}
         estado={r ? `${arquivos} arquivos · ${(r.mb_bucket ?? 0).toLocaleString("pt-BR")} MB` : resumoQ.isLoading ? "Contando o repositório…" : `Resumo indisponível (${rawMessage(resumoQ.error)})`}
-        acoes={<Button variant="outline" onClick={exportarCsv} disabled={filtradas.length === 0}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>}
+        acoes={<div className="flex gap-2"><Button variant="outline" onClick={exportarCsv} disabled={filtradas.length === 0}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button><Button onClick={() => setEnviarAberto(true)}><Upload className="mr-2 h-4 w-4" />Enviar fotos</Button></div>}
       />
       <ProdutoAbas />
 
@@ -92,7 +94,7 @@ export default function FotosProduto() {
       <div className="space-y-1">
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {cartoes.map((c) => (
-            <button key={c.id} type="button" onClick={() => { const novo = cartao === c.id ? "" : c.id; setNav({ cartao: novo, pagina: 1 }); if (novo === "sem_vinculo") setVariantesAberta(true); }} className="text-left">
+            <button key={c.id} type="button" onClick={() => { if (c.id === "sem_vinculo") { setNav({ variantes: true }); return; } setNav({ cartao: cartao === c.id ? "" : c.id, pagina: 1 }); }} className="text-left">
               <Card className={cn("h-full transition-colors hover:border-primary/50", cartao === c.id && "border-primary ring-1 ring-primary")}>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">{c.rotulo}</p>
@@ -164,37 +166,26 @@ export default function FotosProduto() {
         </CardContent>
       </Card>
 
-      <Collapsible open={mostrarVariantes} onOpenChange={(o) => { setVariantesAberta(o); if (!o && cartao === "sem_vinculo") setNav({ cartao: "" }); }}>
-        <Card>
-          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left text-sm font-medium">
-            <span>Variantes da Shopify sem SKU no SNCF{nSemVinculoQ.data != null && <span className="ml-1 text-muted-foreground">({nSemVinculoQ.data})</span>}</span>
-            <ChevronDown className={cn("h-4 w-4 transition-transform", mostrarVariantes && "rotate-180")} />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="space-y-2 pt-0">
-              <p className="text-sm text-muted-foreground">As fotos dessas variantes não entram no repositório até o SKU existir no SNCF.</p>
-              {variantesQ.error ? <p role="alert" className="text-sm text-destructive">{rawMessage(variantesQ.error)}</p> : variantesQ.isLoading ? <Skeleton className="h-24 w-full" /> : (
-                <Table className="table-fixed">
-                  <TableHeader><TableRow><TableHead>Título</TableHead><TableHead className="w-48">SKU</TableHead><TableHead className="w-28">Status</TableHead><TableHead className="w-24 text-right">Imagens</TableHead></TableRow></TableHeader>
-                  <TableBody>{(variantesQ.data ?? []).map((v) => (
-                    <TableRow key={v.variant_id}><TableCell><div className="truncate" title={v.title ?? ""}>{v.title ?? "—"}</div></TableCell><TableCell className="font-mono text-xs">{v.sku || "—"}</TableCell><TableCell>{v.status ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{v.n_imagens ?? 0}</TableCell></TableRow>
-                  ))}</TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+      <Sheet open={mostrarVariantes} onOpenChange={(o) => { if (!o) setNav({ variantes: false }); }}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Variantes da Shopify sem SKU no SNCF{nSemVinculoQ.data != null && <span className="ml-1 text-muted-foreground">({nSemVinculoQ.data})</span>}</SheetTitle>
+            <SheetDescription>As fotos dessas variantes não entram no repositório até o SKU existir no SNCF.</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            {variantesQ.error ? <p role="alert" className="text-sm text-destructive">{rawMessage(variantesQ.error)}</p> : variantesQ.isLoading ? <Skeleton className="h-24 w-full" /> : (
+              <Table className="table-fixed">
+                <TableHeader><TableRow><TableHead>Título</TableHead><TableHead className="w-40">SKU</TableHead><TableHead className="w-24">Status</TableHead><TableHead className="w-20 text-right">Imagens</TableHead></TableRow></TableHeader>
+                <TableBody>{(variantesQ.data ?? []).map((v) => (
+                  <TableRow key={v.variant_id}><TableCell><div className="truncate" title={v.title ?? ""}>{v.title ?? "—"}</div></TableCell><TableCell className="font-mono text-xs">{v.sku || "—"}</TableCell><TableCell>{v.status ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{v.n_imagens ?? 0}</TableCell></TableRow>
+                ))}</TableBody>
+              </Table>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
-      <Collapsible open={baseAberta} onOpenChange={setBaseAberta}>
-        <Card>
-          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left text-sm font-medium">
-            Base própria (envio manual)
-            <ChevronDown className={cn("h-4 w-4 transition-transform", baseAberta && "rotate-180")} />
-          </CollapsibleTrigger>
-          <CollapsibleContent><CardContent className="pt-0"><BaseFotosPropria /></CardContent></CollapsibleContent>
-        </Card>
-      </Collapsible>
+      <EnviarFotosDialog aberto={enviarAberto} onAberto={setEnviarAberto} />
 
       <GaleriaProduto produto={detalhe} cod={nav.detalhe} onFechar={() => setNav({ detalhe: "" })} />
     </PageShell>
@@ -240,11 +231,61 @@ function GaleriaProduto({ produto, cod, onFechar }: { produto: MidiaProduto | nu
               })}
             </div>}
         </div>
+        <FotosManuais cod={cod} nome={produto?.nome_comercial ?? null} />
         <div className="mt-4 space-y-1 border-t pt-3 text-sm text-muted-foreground">
           <div>Última cópia: {produto?.espelhado_em ? fmtDataHora(produto.espelhado_em) : "—"}</div>
           <div>Fotos no Bling: {produto?.n_fotos_bling ?? "—"}{produto?.bling_lido_em && <> · lido em {fmtDataHora(produto.bling_lido_em)}</>}</div>
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function FotosManuais({ cod, nome }: { cod: string; nome: string | null }) {
+  const q = useFotosDoProduto(cod || null);
+  const tornarPrincipal = useTornarPrincipal();
+  const excluir = useExcluirFoto();
+  const [aExcluir, setAExcluir] = useState<FotoProduto | null>(null);
+  const fotos = q.data ?? [];
+  return (
+    <div className="mt-4 space-y-2 border-t pt-3">
+      <p className="text-sm font-medium">Enviadas manualmente</p>
+      <p className="text-xs text-muted-foreground">A principal enviada manualmente tem prioridade sobre a da Shopify.</p>
+      {q.error ? <p role="alert" className="text-sm text-destructive">{rawMessage(q.error)}</p>
+        : q.isLoading ? <Skeleton className="h-24 w-full" />
+        : fotos.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma foto enviada manualmente.</p>
+        : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {fotos.map((f) => (
+            <div key={f.id} className="space-y-1">
+              <div className="relative overflow-hidden rounded border">
+                {f.url ? <img src={f.url} alt="" loading="lazy" className="aspect-square w-full object-cover" /> : <div className="flex aspect-square items-center justify-center bg-muted"><ImageIcon className="h-6 w-6 text-muted-foreground" /></div>}
+                {f.principal && <Badge className="absolute left-1 top-1 text-[10px]">principal</Badge>}
+              </div>
+              <p className="truncate text-[11px] text-muted-foreground" title={[f.origem, f.catalogo].filter(Boolean).join(" · ")}>{[f.origem, f.catalogo].filter(Boolean).join(" · ") || "—"} · {fmtDataHora(f.criado_em)}</p>
+              <div className="flex gap-1">
+                {!f.principal && (
+                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={tornarPrincipal.isPending}
+                    onClick={() => tornarPrincipal.mutate({ id: f.id, cod_cadastro: f.cod_cadastro }, { onSuccess: () => toast.success(`Foto principal do ${f.cod_cadastro} trocada.`), onError: (e) => toast.error(rawMessage(e)) })}>
+                    <Star className="mr-1 h-3 w-3" />Tornar principal
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => setAExcluir(f)}><Trash2 className="mr-1 h-3 w-3" />Excluir</Button>
+              </div>
+            </div>
+          ))}
+        </div>}
+      <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir a foto do {aExcluir?.cod_cadastro}?</AlertDialogTitle>
+            <AlertDialogDescription>{nome ?? "Produto sem nome comercial"} — o arquivo sai do armazenamento e o registro sai da base. Não tem volta.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (!aExcluir) return; const alvo = aExcluir; excluir.mutate(alvo, { onSuccess: () => { toast.success(`Foto do ${alvo.cod_cadastro} excluída.`); setAExcluir(null); }, onError: (e) => toast.error(rawMessage(e)) }); }}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
