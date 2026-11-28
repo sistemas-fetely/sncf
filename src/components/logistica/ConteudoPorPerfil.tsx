@@ -6,6 +6,7 @@ import { FaturasConciliacao } from "./FaturasConciliacao";
 import { DocumentosFrete } from "./DocumentosFrete";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OcorrenciasDepara } from "./OcorrenciasDepara";
+import { VisaoCustoFrete } from "./VisaoCustoFrete";
 import { CotacaoApiCorreios } from "./CotacaoApiCorreios";
 import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
@@ -19,14 +20,16 @@ export function CustosFaturasTransportadora({ id, nome }: { id: string; nome: st
   if (!perfil) return null;
   const comOcorrencias = perfil.modo_rastreio !== "correios_api";
   return (
-    <Tabs defaultValue="documentos">
+    <Tabs defaultValue="visao">
       <div className="min-w-0 overflow-x-auto">
       <TabsList className="w-max">
+        <TabsTrigger value="visao">Visão de custo</TabsTrigger>
         <TabsTrigger value="documentos">Documentos</TabsTrigger>
         <TabsTrigger value="faturas">Faturas & conciliação</TabsTrigger>
         {comOcorrencias && <TabsTrigger value="ocorrencias">Ocorrências (de-para)</TabsTrigger>}
       </TabsList>
       </div>
+      <TabsContent value="visao" className="mt-4"><VisaoCustoFrete transportadoraId={id} /></TabsContent>
       <TabsContent value="documentos" className="mt-4"><DocumentosFrete transportadoraId={id} /></TabsContent>
       <TabsContent value="faturas" className="mt-4">
         <FaturasConciliacao

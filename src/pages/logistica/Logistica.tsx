@@ -14,6 +14,7 @@ import { useLogisticaPainel, type CanalPainel } from "@/hooks/logistica/useLogis
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { VisaoCustoFrete } from "@/components/logistica/VisaoCustoFrete";
 import { EscopoLogistica } from "@/components/logistica/EscopoLogistica";
 import { parametrosEscopo } from "@/lib/logistica/escopo";
 import { nomeExibicao } from "@/lib/parceiros/nome";
@@ -146,6 +147,7 @@ function EscopoGeral({
 
   return (
     <div className="space-y-4">
+      {aba === "custos" && <VisaoCustoFrete transportadoraId={null} />}
       <p className="text-xs text-muted-foreground">Faturas e tabelas são por transportadora — escolha uma</p>
       <SeletorTransportadora
         transportadoras={transportadoras}
