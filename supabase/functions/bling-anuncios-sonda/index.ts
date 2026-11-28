@@ -1,4 +1,4 @@
-// SONDA SOMENTE LEITURA (28/11/2026): só GETs na API v3 do Bling para avaliar anúncios do
+// SONDA (28/11/2026): só GETs, exceto acao=teste_escrita (um PUT com os mesmos valores) na API v3 do Bling para avaliar anúncios do
 // Mercado Livre via Bling. Nada é gravado no SNCF nem no Bling (exceto renovação de token).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
@@ -35,6 +35,35 @@ Deno.serve(async (req) => {
       if (guardar) sondas.push(s);
       await new Promise((x) => setTimeout(x, 350)); // limite de 3 req/s
       return { s, arr };
+    }
+
+    const corpoReq: any = await req.json().catch(() => ({}));
+    if (corpoReq?.acao === "teste_escrita") {
+      // ÚNICA escrita permitida: PUT idempotente com os mesmos valores lidos, para provar o escopo.
+      const id = 70189833; const q = `?tipoIntegracao=MercadoLivre&idLoja=${idLoja}`;
+      const ler = async () => {
+        let r = await fetch(`${BLING_BASE}/anuncios/${id}${q}`, { headers: blingHeaders(token) });
+        if (r.status === 401) { token = await refreshAccessToken(sb, { ...(cfg as any), access_token: token }); r = await fetch(`${BLING_BASE}/anuncios/${id}${q}`, { headers: blingHeaders(token) }); }
+        const b = await r.json().catch(() => null); return { status: r.status, data: b?.data ?? null, erro: r.ok ? null : b };
+      };
+      const antes = await ler();
+      if (antes.status !== 200 || !antes.data) return json({ ok: false, erro: "GET antes falhou", antes }, 502);
+      const a = antes.data;
+      const enviado: any = {
+        produto: { id: a.produto?.id }, integracao: { tipo: "MercadoLivre" }, loja: { id: idLoja },
+        nome: a.titulo ?? a.nome, descricao: a.descricao ?? "",
+        preco: { valor: a.preco?.valor, promocional: a.preco?.promocional },
+        anuncioLoja: { id: a.anuncioLoja?.id },
+      };
+      await new Promise((x) => setTimeout(x, 400));
+      const rp = await fetch(`${BLING_BASE}/anuncios/${id}${q}`, { method: "PUT", headers: { ...blingHeaders(token), "Content-Type": "application/json" }, body: JSON.stringify(enviado) });
+      const txt = await rp.text(); let corpo: any; try { corpo = JSON.parse(txt); } catch { corpo = txt.slice(0, 2000); }
+      await new Promise((x) => setTimeout(x, 1500));
+      const depois = await ler();
+      const resumo = (d: any) => ({ titulo: d?.titulo, preco_valor: d?.preco?.valor, preco_promocional: d?.preco?.promocional, status: d?.status, situacao: d?.situacao, imagens: (d?.imagens ?? []).length, atributos: (d?.atributos ?? []).length });
+      const ra = resumo(a), rd = resumo(depois.data);
+      const diferencas = Object.keys(ra).filter((k) => JSON.stringify((ra as any)[k]) !== JSON.stringify((rd as any)[k])).map((k) => ({ campo: k, antes: (ra as any)[k], depois: (rd as any)[k] }));
+      return json({ ok: rp.ok, antes: a, enviado, resposta_put: { status: rp.status, corpo }, depois: depois.data, resumo_antes: ra, resumo_depois: rd, diferencas });
     }
 
     // 1) listagem com variações
