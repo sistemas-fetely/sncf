@@ -201,3 +201,6 @@ verify_jwt = false
 
 [functions.meli-webhook]
 verify_jwt = false
+
+[functions.midia-espelhar]
+verify_jwt = false
