@@ -54,6 +54,7 @@ import { RessarcimentoExtrato } from "@/components/devolucao/RessarcimentoExtrat
 import { mostrarRessarcimentoExtrato } from "@/lib/devolucao/ressarcimentoExtrato";
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
+import { EnviarNfXpm } from "@/components/devolucao/EnviarNfXpm";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ItensGavetaDevolucao } from "@/components/devolucao/ItensGavetaDevolucao";
@@ -535,6 +536,7 @@ export default function RetornoDevolucao() {
                                 <div className="min-w-0 space-y-2 border-t pt-4">
                                   <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
                                   <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} vinculoSugeridoId={d.nf_vinculo_sugerido_id} nfRetornoSugerida={d.nf_retorno_sugerida} grauSugerido={d.grau_sugerido ?? null} onMudou={invalidar} />
+                                  {(d.destino_codigo ?? "").startsWith("XPM") && nfDevQ.data?.get(d.id) === "autorizada" && ehAberta(d) && <EnviarNfXpm devolucaoId={d.id} onMudou={invalidar} />}
                                 </div>
                               )}
                           {(procPorCaso.get(`devolucao:${d.id}`) ?? []).length > 0 && (
