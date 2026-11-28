@@ -827,6 +827,13 @@
       "when": 1795874205779,
       "tag": "0117_produtos_itens_fop",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1795877437535,
+      "tag": "0118_ml_anuncios_espelho_b1",
+      "breakpoints": true
     }
   ]
 }

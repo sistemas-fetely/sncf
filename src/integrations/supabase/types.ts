@@ -2225,6 +2225,13 @@ export type Database = {
             foreignKeyName: "adiantamento_cliente_movimentacao_origem_id_fkey"
             columns: ["movimentacao_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_movimentacao_origem_id_fkey"
+            columns: ["movimentacao_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -10952,6 +10959,13 @@ export type Database = {
             foreignKeyName: "baixa_automatica_log_movimentacao_bancaria_id_fkey"
             columns: ["movimentacao_bancaria_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "baixa_automatica_log_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -12680,6 +12694,150 @@ export type Database = {
           id?: string
           tipo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bling_anuncio: {
+        Row: {
+          anuncio_loja_id: string | null
+          atributos: Json | null
+          atualizado_em: string
+          cod_cadastro: string | null
+          criado_em: string
+          descricao: string | null
+          id: number
+          imagens: Json | null
+          loja_bling_id: number
+          marketplace_codigo: string
+          payload: Json | null
+          preco: number | null
+          preco_promocional: number | null
+          produto_bling_id: number | null
+          qtd_atributos: number | null
+          qtd_imagens: number | null
+          qtd_variacoes: number | null
+          situacao: number | null
+          sku: string | null
+          status: number | null
+          sumiu_em: string | null
+          titulo: string | null
+          variacoes: Json | null
+          visto_em: string
+        }
+        Insert: {
+          anuncio_loja_id?: string | null
+          atributos?: Json | null
+          atualizado_em?: string
+          cod_cadastro?: string | null
+          criado_em?: string
+          descricao?: string | null
+          id: number
+          imagens?: Json | null
+          loja_bling_id: number
+          marketplace_codigo?: string
+          payload?: Json | null
+          preco?: number | null
+          preco_promocional?: number | null
+          produto_bling_id?: number | null
+          qtd_atributos?: number | null
+          qtd_imagens?: number | null
+          qtd_variacoes?: number | null
+          situacao?: number | null
+          sku?: string | null
+          status?: number | null
+          sumiu_em?: string | null
+          titulo?: string | null
+          variacoes?: Json | null
+          visto_em?: string
+        }
+        Update: {
+          anuncio_loja_id?: string | null
+          atributos?: Json | null
+          atualizado_em?: string
+          cod_cadastro?: string | null
+          criado_em?: string
+          descricao?: string | null
+          id?: number
+          imagens?: Json | null
+          loja_bling_id?: number
+          marketplace_codigo?: string
+          payload?: Json | null
+          preco?: number | null
+          preco_promocional?: number | null
+          produto_bling_id?: number | null
+          qtd_atributos?: number | null
+          qtd_imagens?: number | null
+          qtd_variacoes?: number | null
+          situacao?: number | null
+          sku?: string | null
+          status?: number | null
+          sumiu_em?: string | null
+          titulo?: string | null
+          variacoes?: Json | null
+          visto_em?: string
+        }
+        Relationships: []
+      }
+      bling_anuncio_situacao_dim: {
+        Row: {
+          ativo: boolean
+          codigo: number
+          cor: string
+          observacao: string | null
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: number
+          cor?: string
+          observacao?: string | null
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: number
+          cor?: string
+          observacao?: string | null
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      bling_anuncio_sync_execucao: {
+        Row: {
+          detalhes: Json | null
+          erro: string | null
+          id: string
+          iniciado_em: string
+          loja_bling_id: number | null
+          terminado_em: string | null
+          total_alterados: number
+          total_lidos: number
+          total_novos: number
+          total_sumidos: number
+        }
+        Insert: {
+          detalhes?: Json | null
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          loja_bling_id?: number | null
+          terminado_em?: string | null
+          total_alterados?: number
+          total_lidos?: number
+          total_novos?: number
+          total_sumidos?: number
+        }
+        Update: {
+          detalhes?: Json | null
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          loja_bling_id?: number | null
+          terminado_em?: string | null
+          total_alterados?: number
+          total_lidos?: number
+          total_novos?: number
+          total_sumidos?: number
         }
         Relationships: []
       }
@@ -15261,6 +15419,20 @@ export type Database = {
             foreignKeyName: "bling_produto_sync_fila_sku_fkey"
             columns: ["sku"]
             isOneToOne: true
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -15269,6 +15441,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: true
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_produto_sync_fila_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: true
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -24919,6 +25105,13 @@ export type Database = {
             foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
             columns: ["movimentacao_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -30519,6 +30712,13 @@ export type Database = {
             foreignKeyName: "conta_cliente_lancamento_movimentacao_id_fkey"
             columns: ["movimentacao_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_lancamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -31299,6 +31499,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "contabil_nfse_pagamento_movimentacao_id_fkey"
@@ -32536,6 +32743,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
@@ -35936,6 +36150,13 @@ export type Database = {
             foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
             columns: ["movimentacao_bancaria_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -37904,6 +38125,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_ressarcimento_mov_id_fkey"
+            columns: ["ressarcimento_mov_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "devolucao_ressarcimento_mov_id_fkey"
@@ -41206,6 +41434,13 @@ export type Database = {
             foreignKeyName: "extrato_duplicada_consolidada_log_movimentacao_id_fkey"
             columns: ["movimentacao_id"]
             isOneToOne: true
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "extrato_duplicada_consolidada_log_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: true
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -41645,6 +41880,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "extrato_pagamento_item_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "extrato_pagamento_item_movimentacao_id_fkey"
@@ -42602,6 +42844,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_correios_fatura_ciclo"
             referencedColumns: ["fatura_frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["fatura_id"]
           },
           {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
@@ -44363,6 +44612,20 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -44371,6 +44634,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -48867,6 +49144,13 @@ export type Database = {
             foreignKeyName: "haver_mov_origem_fkey"
             columns: ["movimentacao_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "haver_mov_origem_fkey"
+            columns: ["movimentacao_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -50017,6 +50301,20 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -50025,6 +50323,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -50553,6 +50865,20 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -50561,6 +50887,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -51771,6 +52111,20 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -51779,6 +52133,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -52686,6 +53054,20 @@ export type Database = {
             foreignKeyName: "importacao_romaneio_stage_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -52694,6 +53076,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -53436,6 +53832,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "itau_pagamentos_stage_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "itau_pagamentos_stage_movimentacao_id_fkey"
@@ -57139,6 +57542,13 @@ export type Database = {
             foreignKeyName: "mov_duplicada_de_fkey"
             columns: ["duplicada_de"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "mov_duplicada_de_fkey"
+            columns: ["duplicada_de"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -57302,6 +57712,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_casada_com_id_fkey"
+            columns: ["casada_com_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_casada_com_id_fkey"
@@ -57519,6 +57936,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_par_transferencia_id_fkey"
+            columns: ["par_transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_par_transferencia_id_fkey"
@@ -65420,6 +65844,13 @@ export type Database = {
             foreignKeyName: "ofx_transacoes_stage_duplicada_de_fkey"
             columns: ["duplicada_de"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "ofx_transacoes_stage_duplicada_de_fkey"
+            columns: ["duplicada_de"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -65989,6 +66420,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "pagamento_alocacao_movimentacao_bancaria_id_fkey"
@@ -86684,6 +87122,20 @@ export type Database = {
             foreignKeyName: "produto_agrupamento_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_agrupamento_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_agrupamento_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -86692,6 +87144,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_agrupamento_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_agrupamento_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -87855,6 +88321,20 @@ export type Database = {
             foreignKeyName: "produto_kit_componente_componente_sku_fkey"
             columns: ["componente_sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -87863,6 +88343,20 @@ export type Database = {
             columns: ["componente_sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -92114,6 +92608,20 @@ export type Database = {
             foreignKeyName: "regularizacao_item_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -92122,6 +92630,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -93401,6 +93923,20 @@ export type Database = {
             foreignKeyName: "regularizacao_retorno_item_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -93409,6 +93945,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_item_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -97191,6 +97741,13 @@ export type Database = {
             foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
             columns: ["movimentacao_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -98861,6 +99418,20 @@ export type Database = {
             foreignKeyName: "sku_depara_sku_canonico_fkey"
             columns: ["sku_canonico"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -98869,6 +99440,20 @@ export type Database = {
             columns: ["sku_canonico"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -101402,6 +101987,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "solicitacoes_documento_movimentacao_id_fkey"
@@ -105810,6 +106402,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_movimentacao_baixa_id_fkey"
             columns: ["movimentacao_baixa_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_movimentacao_baixa_id_fkey"
+            columns: ["movimentacao_baixa_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -108312,6 +108911,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
@@ -116523,6 +117129,13 @@ export type Database = {
             foreignKeyName: "venda_fora_liquidacao_mov_movimentacao_id_fkey"
             columns: ["movimentacao_id"]
             isOneToOne: true
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "venda_fora_liquidacao_mov_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: true
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -124128,6 +124741,20 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -124136,6 +124763,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -124589,6 +125230,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
@@ -131096,6 +131744,13 @@ export type Database = {
             foreignKeyName: "mov_duplicada_de_fkey"
             columns: ["duplicada_de"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "mov_duplicada_de_fkey"
+            columns: ["duplicada_de"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -136683,6 +137338,20 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -136691,6 +137360,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -137780,6 +138463,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_correios_fatura_ciclo"
             referencedColumns: ["fatura_frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["fatura_id"]
           },
           {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
@@ -139386,6 +140076,13 @@ export type Database = {
             foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
             columns: ["movimentacao_bancaria_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -140344,6 +141041,13 @@ export type Database = {
             foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
             columns: ["movimentacao_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -140749,6 +141453,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
@@ -141801,6 +142512,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_ressarcimento_mov_id_fkey"
+            columns: ["ressarcimento_mov_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "devolucao_ressarcimento_mov_id_fkey"
@@ -145725,6 +146443,13 @@ export type Database = {
             foreignKeyName: "mov_duplicada_de_fkey"
             columns: ["duplicada_de"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "mov_duplicada_de_fkey"
+            columns: ["duplicada_de"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -145881,6 +146606,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_casada_com_id_fkey"
+            columns: ["casada_com_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_casada_com_id_fkey"
@@ -146084,6 +146816,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_creditos_nao_conciliados"
             referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_par_transferencia_id_fkey"
+            columns: ["par_transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_par_transferencia_id_fkey"
@@ -151399,6 +152138,67 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_fila_ml_preco_diferente: {
+        Row: {
+          anuncio_loja_id: string | null
+          cod_cadastro: string | null
+          diferenca_preco: number | null
+          exige_acao_nossa: boolean | null
+          id: number | null
+          nome_comercial: string | null
+          preco: number | null
+          preco_varejo: number | null
+          sku: string | null
+          titulo: string | null
+          url_ml: string | null
+          visto_em: string | null
+        }
+        Relationships: []
+      }
+      vw_fila_ml_sem_anuncio: {
+        Row: {
+          cod_cadastro: string | null
+          desde: string | null
+          exige_acao_nossa: boolean | null
+          id: string | null
+          nome_comercial: string | null
+          preco_varejo: number | null
+          sku: string | null
+        }
+        Insert: {
+          cod_cadastro?: string | null
+          desde?: string | null
+          exige_acao_nossa?: never
+          id?: string | null
+          nome_comercial?: string | null
+          preco_varejo?: number | null
+          sku?: string | null
+        }
+        Update: {
+          cod_cadastro?: string | null
+          desde?: string | null
+          exige_acao_nossa?: never
+          id?: string | null
+          nome_comercial?: string | null
+          preco_varejo?: number | null
+          sku?: string | null
+        }
+        Relationships: []
+      }
+      vw_fila_ml_vinculo_quebrado: {
+        Row: {
+          anuncio_loja_id: string | null
+          exige_acao_nossa: boolean | null
+          id: number | null
+          preco: number | null
+          produto_bling_id: number | null
+          situacao_rotulo: string | null
+          titulo: string | null
+          url_ml: string | null
+          visto_em: string | null
+        }
+        Relationships: []
+      }
       vw_fila_nf_fora_do_cd: {
         Row: {
           cd_cnpj: string | null
@@ -154525,6 +155325,20 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -154533,6 +155347,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -157993,6 +158821,20 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -158001,6 +158843,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -158441,6 +159297,20 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -158449,6 +159319,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -158769,6 +159653,20 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -158777,6 +159675,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -159996,6 +160908,129 @@ export type Database = {
           valor_pedidos_vivos: number | null
         }
         Relationships: []
+      }
+      vw_logistica_custo_fatura: {
+        Row: {
+          canal: string | null
+          conta_pagar_id: string | null
+          data_caixa: string | null
+          data_competencia: string | null
+          data_emissao: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          estado_pagamento: string | null
+          fatura_id: string | null
+          numero_fatura: string | null
+          saldo: number | null
+          sugestao_mov_data: string | null
+          sugestao_mov_descricao: string | null
+          sugestao_mov_id: string | null
+          titulo_status: string | null
+          transportadora: string | null
+          transportadora_id: string | null
+          valor_pago: number | null
+          valor_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_socio_conta_corrente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "faturas_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
       }
       vw_logistica_custo_transportadora: {
         Row: {
@@ -161774,6 +162809,63 @@ export type Database = {
           severidade: string | null
           tem_relogio: boolean | null
           vencimento_mais_antigo: string | null
+        }
+        Relationships: []
+      }
+      vw_ml_anuncio_gestao: {
+        Row: {
+          anuncio_loja_id: string | null
+          cod_cadastro: string | null
+          diferenca_preco: number | null
+          id: number | null
+          loja_bling_id: number | null
+          nome_comercial: string | null
+          preco: number | null
+          preco_diferente: boolean | null
+          preco_promocional: number | null
+          preco_varejo: number | null
+          produto_bling_id: number | null
+          qtd_atributos: number | null
+          qtd_imagens: number | null
+          qtd_variacoes: number | null
+          recorte: string | null
+          situacao: number | null
+          situacao_cor: string | null
+          situacao_rotulo: string | null
+          sku: string | null
+          titulo: string | null
+          url_ml: string | null
+          visto_em: string | null
+        }
+        Relationships: []
+      }
+      vw_ml_sem_anuncio: {
+        Row: {
+          cod_cadastro: string | null
+          desde: string | null
+          exige_acao_nossa: boolean | null
+          id: string | null
+          nome_comercial: string | null
+          preco_varejo: number | null
+          sku: string | null
+        }
+        Insert: {
+          cod_cadastro?: string | null
+          desde?: string | null
+          exige_acao_nossa?: never
+          id?: string | null
+          nome_comercial?: string | null
+          preco_varejo?: number | null
+          sku?: string | null
+        }
+        Update: {
+          cod_cadastro?: string | null
+          desde?: string | null
+          exige_acao_nossa?: never
+          id?: string | null
+          nome_comercial?: string | null
+          preco_varejo?: number | null
+          sku?: string | null
         }
         Relationships: []
       }
@@ -169354,14 +170446,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -179146,6 +180238,20 @@ export type Database = {
             foreignKeyName: "produto_kit_componente_componente_sku_fkey"
             columns: ["componente_sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -179154,6 +180260,20 @@ export type Database = {
             columns: ["componente_sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_kit_componente_componente_sku_fkey"
+            columns: ["componente_sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -192511,6 +193631,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_movimentacao_baixa_id_fkey"
             columns: ["movimentacao_baixa_id"]
             isOneToOne: false
+            referencedRelation: "vw_logistica_custo_fatura"
+            referencedColumns: ["sugestao_mov_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_movimentacao_baixa_id_fkey"
+            columns: ["movimentacao_baixa_id"]
+            isOneToOne: false
             referencedRelation: "vw_movimentacao_destino"
             referencedColumns: ["movimentacao_id"]
           },
@@ -198646,6 +199773,20 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -198654,6 +199795,20 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
@@ -199711,6 +200866,20 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_fop_status_estoque"
             referencedColumns: ["sku"]
           },
@@ -199719,6 +200888,20 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
             referencedColumns: ["sku"]
           },
           {
