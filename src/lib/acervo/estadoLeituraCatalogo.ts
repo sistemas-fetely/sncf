@@ -2,7 +2,8 @@ type Leitura = { id: string; status: string; erro?: string | null; lida_em: stri
 const objeto = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
 export function estadoLeituraCatalogo(ultima?: Leitura | null, referencia?: Leitura | null) {
   const totais = objeto(ultima?.totais);
-  const vigente = totais.leitura_referencia === referencia?.id ? objeto(referencia?.totais) : totais;
+  const vigente = referencia && (typeof totais.leitura_referencia === 'string' || ultima?.id === referencia.id)
+    ? objeto(referencia.totais) : totais;
   const lendo = totais.em_andamento === true;
   return {
     totais: vigente,

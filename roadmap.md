@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Conciliação Novos: cadeia resolvida até conteúdo e propostas confirmadas filtradas na fonte compartilhada; leitor implantado; 28 testes; sessão real confirmou 207 nascimentos + 1 reserva, Ajustes 1 e ambos avisos v2, sem aplicar propostas/publicar.
 - [x] PRODUTO-REORGANIZACAO planilha v2: aba Códigos e EAN no gerador; leitura propõe cartório/nascimento (12 testes Deno + 3 Vitest); porta atômica fn_catalogo_nascer_da_planilha (0113/0114) com prévia conferida sem gravar; edges gerar-v2 e ler implantadas; front só em preview.
 - [ ] PRODUTO-REORGANIZACAO: primeiro nascimento real pela tela (aguarda Flavio trocar o arquivo configurado para a v2); depois a limpeza da Chegada e da Mesa.
 - [x] SHOPIFY-SUGERIR-ATRIBUTOS: mapas por opção/atributo sem conflitos, valores novos pelo cadastro e fallback sinalizado; 12 testes e Deno check aprovados. Somente shopify-adicionar-variante publicada; sugerir autenticado HTTP200 para VNRFM.SC.5.0–9 confirmou 5CM / Rose Ouro Metálico / 0–9, origens tamanho_numero/cor/sufixo e irma_sku preservado. Sem modo adicionar, banco/view/front ou escrita real no Shopify.

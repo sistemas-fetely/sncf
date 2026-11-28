@@ -15,6 +15,21 @@ export function lerPropostas(totais: unknown): PropostasCatalogo | null {
   return p && Array.isArray(p.cartorio) && Array.isArray(p.nascimentos) ? p : null;
 }
 
+/** Live catalog/cartório facts remove confirmed proposals without rewriting the read. */
+export function propostasPendentes(p: PropostasCatalogo, existentes: ReadonlySet<string>, cartorio: readonly { ean: string; cod_cadastro: string | null; inner_qtd: number | null }[]): PropostasCatalogo {
+  const pares = new Map(cartorio.map(c => [c.ean, c]));
+  return {
+    ...p,
+    nascimentos: p.nascimentos.filter(n => !existentes.has(n.cod_cadastro)),
+    cartorio: p.cartorio.filter(c => {
+      const atual = pares.get(c.ean);
+      return c.tipo === 'reservar'
+        ? atual?.cod_cadastro !== c.cod_cadastro
+        : atual?.cod_cadastro !== c.cod_cadastro || atual?.inner_qtd !== c.inner_qtd;
+    }),
+  };
+}
+
 /** Um nascimento selecionado arrasta as propostas de cartório do mesmo código (o par vem da aba 2, nunca do Catálogo). */
 export function montarLoteNascimento(p: PropostasCatalogo, cartorioSel: Set<string>, nascSel: Set<string>) {
   const produtos = p.nascimentos.filter(n => nascSel.has(n.cod_cadastro));

@@ -1,5 +1,6 @@
 # Decisões técnicas
 <!-- LOVABLE:BEGIN -->
+- Unchanged catalog reads resolve the full reference chain through the shared tested resolver; review badges and tables share live-filtered content proposals so applied cells never hide births or revive confirmed reservations.
 - Catalog review shares one reading header across URL-backed new/adjustment views; the pure view/count selector maps legacy input links to adjustments and keeps births/cartório in one table, while older comparable pending cells stay separate from latest read status.
 - Shopify variant suggestions learn normalized conflict-free attribute-to-option maps from registered siblings in a tested local helper; similarity identifies the response sibling only and is a flagged fallback, so store wording is preserved without copying another color.
 - Gate statement stamping is owned by the advance bank-link trigger; conflicts keep bank facts intact and create a durable order alert with divergent proof. Payment-date guards live on proof/plan writes, so every caller shares them.

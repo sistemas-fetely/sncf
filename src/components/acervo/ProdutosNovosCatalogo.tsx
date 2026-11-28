@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,23 +18,13 @@ const t = (v: unknown) => v == null || v === '' ? '—' : String(v);
 export function ProdutosNovosCatalogo({ totais, leituraId }: { totais: unknown; leituraId?: string }) {
   const qc = useQueryClient();
   const propostas = lerPropostas(totais);
-  const cods = useMemo(() => propostas?.nascimentos.map(n => n.cod_cadastro) ?? [], [propostas]);
-  const jaNasceram = useQuery({ queryKey: ['catalogo-v2-ja-nasceram', leituraId, cods.join(',')], enabled: cods.length > 0, queryFn: async () => {
-    const out = new Set<string>();
-    for (let de = 0; de < cods.length; de += 200) {
-      const r = await supabase.from('sncf_produtos').select('cod_cadastro').in('cod_cadastro', cods.slice(de, de + 200));
-      if (r.error) throw r.error;
-      for (const p of r.data ?? []) if (p.cod_cadastro) out.add(p.cod_cadastro);
-    }
-    return out;
-  } });
   const [selCart, setSelCart] = useState<Set<string>>(new Set());
   const [selNasc, setSelNasc] = useState<Set<string>>(new Set());
   const [previa, setPrevia] = useState<{ resposta: RespostaNascer; lote: ReturnType<typeof montarLoteNascimento> } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, setRodando] = useState(false);
   if (!propostas) return null;
-  const nascimentos = propostas.nascimentos.filter(n => !jaNasceram.data?.has(n.cod_cadastro));
+  const nascimentos = propostas.nascimentos;
   const lote = montarLoteNascimento({ ...propostas, nascimentos }, selCart, selNasc);
   const vazio = !lote.p_cartorio.length && !lote.p_produtos.length;
   const alternar = (set: Set<string>, setter: (s: Set<string>) => void, k: string, v: boolean) => { const n = new Set(set); if (v) n.add(k); else n.delete(k); setter(n); };
@@ -64,7 +54,6 @@ export function ProdutosNovosCatalogo({ totais, leituraId }: { totais: unknown; 
       <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Conferir produtos novos" size="sm" disabled={vazio || rodando} onClick={() => void conferir()}><Sparkles className="mr-2 h-4 w-4" />{rodando && !previa ? 'Conferindo…' : `Conferir (${lote.p_produtos.length} nasc. · ${lote.p_cartorio.length} cartório)`}</BotaoGuardado>
     </div>
     {erro && !previa && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap break-words">{erro}</AlertDescription></Alert>}
-    {jaNasceram.error && <Alert variant="destructive"><AlertDescription>{formatError(jaNasceram.error)}</AlertDescription></Alert>}
     <Table containerClassName="max-h-[calc(100vh-22rem)] min-h-64"><TableHeader><TableRow>
       <TableHead className="w-10"><Checkbox aria-label="Selecionar todos os produtos novos" checked={nascimentos.length > 0 && nascimentos.every(n => selNasc.has(n.cod_cadastro))} disabled={!nascimentos.length} onCheckedChange={v => setSelNasc(v === true ? new Set(nascimentos.map(n => n.cod_cadastro)) : new Set())} /></TableHead>
       <TableHead>Proposta</TableHead><TableHead>Código</TableHead><TableHead>EAN</TableHead><TableHead>DUN</TableHead><TableHead>Inner</TableHead><TableHead>Nome</TableHead><TableHead>Origem</TableHead>

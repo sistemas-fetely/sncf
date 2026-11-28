@@ -8,6 +8,7 @@ import { pegarTrava } from "../_shared/catalogo-planilha/trava.ts";
 import { ErroCatalogo } from "../_shared/catalogo-planilha/mensagens.ts";
 import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts";
 import { camposDaLeitura, mapearLotes } from "../_shared/catalogo-planilha/leitura-lotes.ts";
+import { resolverLeituraConteudo } from "../_shared/catalogo-planilha/referencia.ts";
 import { ABA_CODIGOS, classificarPropostas, type Cartorio, type LinhaCatalogoNova, type LinhaCodigos } from "../_shared/catalogo-planilha/nascimento.ts";
 import { analisarCelula, colunasNaoComparadas, linhaSoNascimento, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
@@ -81,7 +82,7 @@ Deno.serve(async req => {
     medir('download');
     const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", arquivo.bytes))].map(b => b.toString(16).padStart(2, "0")).join("");
     const ambiente = testando ? "teste" : "oficial";
-    const anterior = await sb.from("catalogo_planilha_leitura").select("id,hash,status").eq("ambiente", ambiente).eq("origem_chave", arquivo.origemChave).in("status", ["comparada", "aplicada_parcial", "aplicada", "sem_mudanca"]).order("lida_em", { ascending: false }).limit(1).maybeSingle();
+    const anterior = await sb.from("catalogo_planilha_leitura").select("id,hash,status,totais").eq("ambiente", ambiente).eq("origem_chave", arquivo.origemChave).in("status", ["comparada", "aplicada_parcial", "aplicada", "sem_mudanca"]).order("lida_em", { ascending: false }).limit(1).maybeSingle();
     if (anterior.error) throw anterior.error;
     const id = crypto.randomUUID();
     const dia = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
@@ -93,7 +94,12 @@ Deno.serve(async req => {
     if (ins.error) throw ins.error; leitura = id;
     medir('registro');
     if (!body.reprocessar && anterior.data?.hash === hash) {
-      const upd = await sb.from("catalogo_planilha_leitura").update({ status: "sem_mudanca", erro: null, totais: { leitura_referencia: anterior.data.id } }).eq("id", id); if (upd.error) throw upd.error;
+      const conteudo = await resolverLeituraConteudo(anterior.data, async referenciaId => {
+        const r = await sb.from('catalogo_planilha_leitura').select('id,hash,status,totais').eq('id', referenciaId).eq('ambiente', ambiente).eq('origem_chave', arquivo.origemChave).maybeSingle();
+        if (r.error) throw r.error;
+        return r.data;
+      });
+      const upd = await sb.from("catalogo_planilha_leitura").update({ status: "sem_mudanca", erro: null, totais: { leitura_referencia: conteudo.id } }).eq("id", id); if (upd.error) throw upd.error;
       concluida = true;
       return json({ ok: true, id, status: "sem_mudanca", testando });
     }
