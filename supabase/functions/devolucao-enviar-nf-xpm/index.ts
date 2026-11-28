@@ -31,7 +31,10 @@ async function enviarUma(db: any, devId: string, autor: { id: string; nome: stri
   if (!dev) return r({ ok: false, erro: "Devolução não encontrada." }, 404);
   const { data: fun, error: ef } = await db.from("vw_devolucao_funil").select("destino_codigo,pedido_ref,cliente,rastreio_efetivo").eq("id", devId).maybeSingle();
   if (ef) return r({ ok: false, erro: `ler funil: ${ef.message}` }, 500);
-  if (!String(fun?.destino_codigo ?? "").startsWith("XPM")) return r({ ok: false, erro: `O destino desta devolução não é a XPM (${fun?.destino_codigo ?? "sem destino"}).` }, 400);
+  // Destino do retorno vem da RPC única: destino de recebimento XPM, ou — sem recebimento — a NF de venda ter saído da XPM (não entregue).
+  const { data: vaiXpm, error: evx } = await db.rpc("fn_devolucao_retorno_xpm", { p_devolucao_id: devId });
+  if (evx) return r({ ok: false, erro: `ler destino do retorno: ${evx.message}` }, 500);
+  if (!vaiXpm) return r({ ok: false, erro: "O retorno desta devolução não vai para a XPM." }, 400);
   if (dev.nf_dev_status !== "autorizada" || !dev.nf_dev_bling_id) return r({ ok: false, erro: "A NF de devolução ainda não está autorizada no Bling." }, 400);
 
   const { data: dests, error: edst } = await db.from("devolucao_email_xpm_destinatario").select("email,papel").eq("ativo", true).order("ordem");

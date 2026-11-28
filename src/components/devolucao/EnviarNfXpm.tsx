@@ -1,4 +1,5 @@
 // Envio da NF de devolução à XPM (a XPM só emite o termo depois de receber a NF). Edge devolucao-enviar-nf-xpm.
+// A tela mostra o bloco quando a NF está autorizada e o caso está aberto; se o retorno vai ou não para a XPM decide a RPC fn_devolucao_retorno_xpm.
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -24,6 +25,14 @@ export function EnviarNfXpm({ devolucaoId, onMudou }: { devolucaoId: string; onM
       const { data, error } = await sb.from("devolucao_nf_email_xpm").select("status,erro,criado_em,enviado_por_nome").eq("devolucao_id", devolucaoId).order("criado_em", { ascending: false }).limit(20);
       if (error) throw error;
       return (data ?? []) as Envio[];
+    },
+  });
+  const retornoQ = useQuery({
+    queryKey: ["devolucao", "retorno-xpm", devolucaoId],
+    queryFn: async () => {
+      const { data, error } = await sb.rpc("fn_devolucao_retorno_xpm", { p_devolucao_id: devolucaoId });
+      if (error) throw error;
+      return data === true;
     },
   });
   const destQ = useQuery({
@@ -65,6 +74,10 @@ export function EnviarNfXpm({ devolucaoId, onMudou }: { devolucaoId: string; onM
     }
   }
 
+  // Só aparece quando o retorno vai para a XPM (RPC única: destino de recebimento ou NF de venda saída da XPM).
+  if (retornoQ.isLoading) return null;
+  if (retornoQ.isError) return <div className="text-sm text-destructive">Erro ao ler o destino do retorno: {String((retornoQ.error as Error).message)}</div>;
+  if (!retornoQ.data) return null;
   if (enviosQ.isLoading) return <div className="text-sm text-muted-foreground">Carregando envio à XPM…</div>;
   if (enviosQ.isError) return <div className="text-sm text-destructive">Erro ao ler envios à XPM: {String((enviosQ.error as Error).message)}</div>;
   const para = (destQ.data ?? []).filter((d) => d.papel === "para").map((d) => d.email);
