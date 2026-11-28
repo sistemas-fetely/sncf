@@ -34,8 +34,7 @@ import { MarketplaceDrawer } from './MarketplaceDrawer';
 import { TransporteDialog } from './TransporteDialog';
 import { DevolucaoMarketplaceDialog } from './DevolucaoMarketplaceDialog';
 import { PortadoresDialog } from './PortadoresDialog';
-import { useSearchParams } from 'react-router-dom';
-import { AnunciosMl } from './AnunciosMl';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useRecebiveisMarketplacePedidos } from '@/hooks/financeiro/useRecebivelMarketplace';
 
 type Coluna = 'id_externo' | 'bling_numero' | 'data_pedido' | 'cliente_nome' | 'cd_nome' | 'valor_liquido' | 'estagio_ordem' | 'area_responsavel' | 'proxima_acao' | 'rastreio_codigo';
@@ -45,7 +44,7 @@ const colunas: [Coluna, string][] = [
   ['proxima_acao', 'Próxima ação'], ['rastreio_codigo', 'Rastreio'],
 ];
 const descendentes: Coluna[] = ['id_externo', 'bling_numero', 'data_pedido', 'valor_liquido'];
-function PedidosLista({ abas }: { abas: React.ReactNode }) {
+function PedidosLista() {
   const pedidos = useMarketplace(); const cadastro = useCadastroMarketplace();
   const agendamentoMutation = useAgendarMarketplace();
   const removerAgendamento = async (pedidoId: string) => {
@@ -107,7 +106,6 @@ function PedidosLista({ abas }: { abas: React.ReactNode }) {
     <CasaPageHeader breadcrumb={[{ label: 'Vendas' }, { label: 'Pedidos Marketplace' }]} title="Pedidos Marketplace"
       subtitle="Pedidos TikTok Shop, Mercado Livre e Shopee vindos do Bling — o funil aqui é faturar, expedir, rastrear e entregar."
       actions={<Button variant="outline" size="sm" onClick={() => setConfig(true)}><Settings2 className="h-4 w-4" />Portadores</Button>} />
-    {abas}
     <div className="space-y-4" style={{ '--fila-topo-colado': `${64 + alturaPipeline}px` } as CSSProperties}>
       <div ref={pipelineRef} className="sticky top-16 z-20 -mx-6 overflow-x-auto border-b bg-background px-6 py-2 [&>div]:min-w-[960px] lg:[&>div]:min-w-0">
         <PipelineFases fases={fases} estagioAtivo={estagioAtivo === 'todos' ? null : estagioAtivo}
@@ -158,20 +156,15 @@ function PedidosLista({ abas }: { abas: React.ReactNode }) {
   </PageShell>;
 }
 
-const ABAS = [{ codigo: 'pedidos', rotulo: 'Pedidos' }, { codigo: 'anuncios', rotulo: 'Anúncios ML' }] as const;
+// Anúncios ML moraram aqui (B1); agora são cadastro de produto em canal: Central do Produto › Destinos › Mercado Livre.
 export default function PedidosMarketplace() {
-  const [params, setParams] = useSearchParams();
-  const aba = params.get('aba') === 'anuncios' ? 'anuncios' : 'pedidos';
-  const abas = <div role="tablist" className="mb-4 flex gap-1 border-b">
-    {ABAS.map(a => <button key={a.codigo} role="tab" aria-selected={aba === a.codigo}
-      className={`-mb-px border-b-2 px-3 py-2 text-sm ${aba === a.codigo ? 'border-primary font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-      onClick={() => setParams(a.codigo === 'pedidos' ? {} : { aba: a.codigo })}>{a.rotulo}</button>)}
-  </div>;
-  if (aba === 'pedidos') return <PedidosLista abas={abas} />;
-  return <PageShell>
-    <CasaPageHeader breadcrumb={[{ label: 'Vendas' }, { label: 'Pedidos Marketplace' }]} title="Pedidos Marketplace"
-      subtitle="Anúncios do Mercado Livre lidos do Bling, comparados com o cadastro e o preço de varejo do SNCF." />
-    {abas}
-    <AnunciosMl />
-  </PageShell>;
+  const [params] = useSearchParams();
+  if (params.get('aba') === 'anuncios') {
+    const conserto = params.get('recorte');
+    if (conserto === 'preco_diferente' || conserto === 'vinculo_quebrado')
+      return <Navigate to={`/vendas/produto/conciliacao?aba=saida&regra=ml_${conserto}`} replace />;
+    const novo = new URLSearchParams(params); novo.set('aba', 'ml'); if (novo.get('busca')) { novo.set('q', novo.get('busca')!); novo.delete('busca'); }
+    return <Navigate to={`/vendas/produto/estoque/destinos?${novo}`} replace />;
+  }
+  return <PedidosLista />;
 }

@@ -6,6 +6,7 @@ import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { XpmCadastroPainel } from "@/components/acervo/XpmCadastroPainel";
 import { ShopifyCadastroPainel } from "@/components/acervo/ShopifyCadastroPainel";
 import { ShopifyAgrupamentos } from "@/components/acervo/ShopifyAgrupamentos";
+import { AnunciosMl } from "./AnunciosMl";
 import { BlingCardPainel } from "@/components/acervo/BlingCardPainel";
 import { BlocoSincronizacao, ROTINAS_CADASTRO_SHOPIFY } from "@/components/acervo/PainelSyncEstoque";
 
@@ -17,7 +18,7 @@ export default function DestinosCadastro() {
     <PageShell>
       <PageHeader
         titulo="Destinos de Cadastro"
-        estado="Cadastra os produtos nos sistemas de destino (Bling, XPM e Shopify), a partir da matriz do SNCF."
+        estado="Cadastra os produtos nos sistemas de destino (Bling, XPM, Shopify e Mercado Livre), a partir da matriz do SNCF."
       />
 
       <ProdutoAbas />
@@ -27,6 +28,7 @@ export default function DestinosCadastro() {
           <TabsTrigger value="bling">Bling</TabsTrigger>
           <TabsTrigger value="xpm">XPM</TabsTrigger>
           <TabsTrigger value="shopify">Shopify</TabsTrigger>
+          <TabsTrigger value="ml">Mercado Livre</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bling" className="mt-4 space-y-6">
@@ -49,6 +51,10 @@ export default function DestinosCadastro() {
             </TabsContent>
             <TabsContent value="agrupamentos"><ShopifyAgrupamentos /></TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="ml" className="mt-4">
+          <AnunciosMl />
         </TabsContent>
       </Tabs>
     </PageShell>

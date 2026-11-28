@@ -7,6 +7,8 @@ export const RECORTES_ML: { codigo: RecorteMl; rotulo: string }[] = [
   { codigo: 'vinculo_quebrado', rotulo: 'Vínculo quebrado' }, { codigo: 'revisao', rotulo: 'Em revisão' },
   { codigo: 'encerrado', rotulo: 'Encerrados' },
 ];
+/** Destinos › Mercado Livre mostra só o cadastro; preço diferente e vínculo quebrado são conserto (Conciliação). */
+export const RECORTES_DESTINOS_ML: RecorteMl[] = ['anunciado', 'pausado', 'revisao', 'encerrado', 'sem_anuncio'];
 export interface AnuncioMl {
   id: number; titulo: string | null; anuncio_loja_id: string | null; situacao: number | null;
   situacao_rotulo: string | null; situacao_cor: string | null; preco: number | null; preco_varejo: number | null;

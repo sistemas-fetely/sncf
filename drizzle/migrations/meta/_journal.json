@@ -834,6 +834,13 @@
       "when": 1795877437535,
       "tag": "0118_ml_anuncios_espelho_b1",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1795879837643,
+      "tag": "0119_ml_anuncios_central_produto_b1b",
+      "breakpoints": true
     }
   ]
 }

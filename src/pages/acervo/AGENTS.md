@@ -1,0 +1,1 @@
+- ML listings are product-in-channel registration: Destinos › Mercado Livre (`aba=ml`) shows only registration slices; price mismatch and broken link are Conciliação rules (`ml_preco_diferente`, `ml_vinculo_quebrado` in `divergencia_regra` + `vw_conciliacao_fila`), mirroring Shopify's cadastro × conserto split.

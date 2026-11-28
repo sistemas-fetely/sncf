@@ -20,7 +20,7 @@ import { fmtDataHora } from '@/lib/data';
 import { formatError } from '@/lib/format-error';
 import { cn } from '@/lib/utils';
 import { ProdutoMiniatura, useImagensProduto } from '@/components/venda-direta/ProdutoMiniatura';
-import { RECORTES_ML, bateBusca, contarRecortes, noRecorte, type AnuncioMl, type RecorteMl } from '@/lib/marketplace/anunciosMl';
+import { RECORTES_ML, RECORTES_DESTINOS_ML, bateBusca, contarRecortes, noRecorte, type AnuncioMl, type RecorteMl } from '@/lib/marketplace/anunciosMl';
 
 interface SemAnuncio { sku: string; cod_cadastro: string | null; nome_comercial: string | null; preco_varejo: number | null }
 const COR_PILULA: Record<RecorteMl, 'emerald' | 'amber' | 'blue' | 'gray' | 'violet' | 'admin'> = {
@@ -48,8 +48,8 @@ export function AnunciosMl() {
   const q = useAnunciosMl();
   const qc = useQueryClient();
   const sincronizar = usePermissaoAcaoOuSuperAdmin('acao.marketplace.sincronizar');
-  const [estado, setEstado] = useEstadoTela({ recorte: 'anunciado', busca: '', ordemAn: '' }, { replaceKeys: ['busca'] });
-  const recorte = (RECORTES_ML.some(r => r.codigo === estado.recorte) ? estado.recorte : 'anunciado') as RecorteMl;
+  const [estado, setEstado] = useEstadoTela({ recorte: 'anunciado', q: '', ordemAn: '' }, { replaceKeys: ['q'] });
+  const recorte = (RECORTES_DESTINOS_ML.includes(estado.recorte as RecorteMl) ? estado.recorte : 'anunciado') as RecorteMl;
   const ler = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('bling-anuncios-sync', { body: {} });
@@ -72,14 +72,14 @@ export function AnunciosMl() {
   const sort: SortState<Col> | null = bruto ? { column: bruto.key as Col, direction: bruto.dir } : null;
   const contagem = useMemo(() => contarRecortes(q.data?.anuncios ?? [], q.data?.semAnuncio.length ?? 0), [q.data]);
   const linhas = useMemo(() => {
-    const lista = (q.data?.anuncios ?? []).filter(a => noRecorte(a, recorte) && bateBusca(estado.busca, a.sku, a.titulo, a.anuncio_loja_id, a.cod_cadastro));
+    const lista = (q.data?.anuncios ?? []).filter(a => noRecorte(a, recorte) && bateBusca(estado.q, a.sku, a.titulo, a.anuncio_loja_id, a.cod_cadastro));
     return ordenarPor(lista, sort, {
       sku: a => a.sku, nome_comercial: a => a.nome_comercial, titulo: a => a.titulo, anuncio_loja_id: a => a.anuncio_loja_id,
       situacao_rotulo: a => a.situacao_rotulo, preco: a => a.preco, preco_varejo: a => a.preco_varejo,
       diferenca_preco: a => a.diferenca_preco, qtd_imagens: a => a.qtd_imagens, visto_em: a => a.visto_em,
     });
-  }, [q.data, recorte, estado.busca, sort?.column, sort?.direction]);
-  const semAnuncio = useMemo(() => (q.data?.semAnuncio ?? []).filter(s => bateBusca(estado.busca, s.sku, s.nome_comercial, s.cod_cadastro)), [q.data, estado.busca]);
+  }, [q.data, recorte, estado.q, sort?.column, sort?.direction]);
+  const semAnuncio = useMemo(() => (q.data?.semAnuncio ?? []).filter(s => bateBusca(estado.q, s.sku, s.nome_comercial, s.cod_cadastro)), [q.data, estado.q]);
   const visiveisSku = recorte === 'sem_anuncio' ? semAnuncio.slice(0, 300).map(s => s.sku) : linhas.slice(0, 300).map(a => a.sku).filter(Boolean) as string[];
   const imagens = useImagensProduto(visiveisSku);
   const ultima = q.data?.ultima;
@@ -99,10 +99,10 @@ export function AnunciosMl() {
     </div>
     {q.error && <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{formatError(q.error)}</div>}
     <div className="flex flex-wrap gap-2">
-      {RECORTES_ML.map(r => <KpiPill key={r.codigo} label={r.rotulo} count={contagem[r.codigo]} color={COR_PILULA[r.codigo]}
+      {RECORTES_ML.filter(r => RECORTES_DESTINOS_ML.includes(r.codigo)).map(r => <KpiPill key={r.codigo} label={r.rotulo} count={contagem[r.codigo]} color={COR_PILULA[r.codigo]}
         active={recorte === r.codigo} onClick={() => setEstado({ recorte: r.codigo })} />)}
     </div>
-    <Input className="w-[280px]" aria-label="Buscar anúncios" placeholder="Buscar por SKU, título ou MLB…" value={estado.busca} onChange={e => setEstado({ busca: e.target.value })} />
+    <Input className="w-[280px]" aria-label="Buscar anúncios" placeholder="Buscar por SKU, título ou MLB…" value={estado.q} onChange={e => setEstado({ q: e.target.value })} />
     <Card><CardContent className="p-0 overflow-x-auto">
       {q.isPending ? <div className="space-y-2 p-4">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
       : recorte === 'sem_anuncio' ? <Table className="text-xs">

@@ -6,7 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight,
   Download, FileSpreadsheet, GitCompare, Plus, RefreshCw, Search, Upload, X,
+  ExternalLink,
 } from "lucide-react";
+import { formatBRL } from "@/lib/format-currency";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -106,6 +108,31 @@ function DeParaBling({ sku }: { sku: string }) {
       <TableBody>{ls.map((l, i) => <TableRow key={`${l.campo}-${i}`}><TableCell>{l.rotulo ?? l.campo}</TableCell><TableCell className="break-all">{l.valor_bling ?? <span className="text-muted-foreground">vazio</span>}</TableCell><TableCell className="break-all">{l.valor_sncf ?? "—"}</TableCell></TableRow>)}</TableBody></Table></div>
     {lido && <p className="text-[11px] text-muted-foreground">Lido do Bling em {fmtDataHora(lido)}</p>}
   </div>;
+}
+
+/** Mercado Livre — anúncio a anúncio (vw_ml_anuncio_gestao), carregado só ao expandir; MLB vem de valor_destino. */
+function DeParaMl({ mlbs }: { mlbs: string[] }) {
+  const q = useQuery({
+    queryKey: ["ml-anuncio-depara", mlbs.join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vw_ml_anuncio_gestao" as never).select("anuncio_loja_id, titulo, preco, preco_promocional, preco_varejo, url_ml, produto_bling_id, recorte, situacao_rotulo").in("anuncio_loja_id", mlbs);
+      if (error) throw error;
+      return (data ?? []) as { anuncio_loja_id: string; titulo: string | null; preco: number | null; preco_promocional: number | null; preco_varejo: number | null; url_ml: string | null; produto_bling_id: number | null; recorte: string; situacao_rotulo: string | null }[];
+    },
+  });
+  if (q.isLoading) return <Skeleton className="h-16 w-full" />;
+  if (q.error) return <Alert variant="destructive"><AlertDescription>Não foi possível ler os anúncios do Mercado Livre: {(q.error as Error).message}</AlertDescription></Alert>;
+  const ls = q.data ?? [];
+  if (!ls.length) return <p className="text-xs text-muted-foreground">Anúncio não encontrado no último espelho do Bling.</p>;
+  const brl = (v: number | null) => v == null ? <span className="text-muted-foreground">vazio</span> : formatBRL(v);
+  return <div className="overflow-hidden rounded-md border bg-card"><Table className="text-xs"><TableHeader><TableRow><TableHead>MLB</TableHead><TableHead>Título</TableHead><TableHead>Situação</TableHead><TableHead className="text-right">Varejo (SNCF)</TableHead><TableHead className="text-right">Anúncio (Bling/ML)</TableHead><TableHead className="text-right">Promocional</TableHead><TableHead>Produto Bling</TableHead></TableRow></TableHeader>
+    <TableBody>{ls.map(a => <TableRow key={a.anuncio_loja_id}>
+      <TableCell>{a.url_ml ? <a href={a.url_ml} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">{a.anuncio_loja_id}<ExternalLink className="h-3 w-3" /></a> : a.anuncio_loja_id}</TableCell>
+      <TableCell className="max-w-[260px]">{a.titulo}</TableCell><TableCell>{a.situacao_rotulo}</TableCell>
+      <TableCell className="text-right">{brl(a.preco_varejo)}</TableCell><TableCell className="text-right">{brl(a.preco)}</TableCell>
+      <TableCell className="text-right">{a.preco_promocional ? formatBRL(a.preco_promocional) : ""}</TableCell>
+      <TableCell>{a.produto_bling_id ?? <span className="text-muted-foreground">null — vincular o produto no Bling</span>}</TableCell>
+    </TableRow>)}</TableBody></Table></div>;
 }
 
 function csvCelula(v: unknown): string {
@@ -586,6 +613,7 @@ export default function ConciliacaoFila() {
             <div className="space-y-4">
               <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">O que fazer</p>{linhas.filter(x => x.sku === p.sku).map(x => <BlocoProblema key={x.linha_id} l={x} />)}</div>
               {linhas.some(x => x.sku === p.sku && x.onde_resolver === "Bling") && <div className="space-y-2"><p className="text-xs font-medium text-muted-foreground">Bling — campo a campo</p><DeParaBling sku={p.sku} /></div>}
+              {(() => { const mlbs = [...new Set(linhas.filter(x => x.sku === p.sku && x.onde_resolver === "Mercado Livre" && temValor(x.valor_destino)).map(x => String(x.valor_destino)))]; return mlbs.length > 0 && <div className="space-y-2"><p className="text-xs font-medium text-muted-foreground">Mercado Livre — anúncio a anúncio</p><DeParaMl mlbs={mlbs} /></div>; })()}
             </div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
