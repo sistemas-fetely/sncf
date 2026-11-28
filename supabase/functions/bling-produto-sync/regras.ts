@@ -1,4 +1,4 @@
-// Motor de cadastro Bling. Repositório de Mídia · F3 (mapa-repositorio-midia-v1): campo fotos (escrita em midia.imagens.imagensURL, leitura em externas) vindo de produto_midia.
+// Motor de cadastro Bling. Repositório de Mídia · F3 (mapa-repositorio-midia-v1): campo fotos (escrita em midia.imagens.imagensURL, leitura externas ∪ internas ∪ imagensURL, comparação por quantidade) vindo de produto_midia.
 import { grupoIdDoCard, situacaoPelaFase, grupoTributarioDaFicha, FaseSemRegra, type MapaFaseDestino } from "../_shared/bling/montar-valores-produto.ts";
 import { alinharOrigemCard } from "../_shared/bling/origem-card.ts";
 export type Campo = { campo: string; origem: string; destino: string; tipo: "numero" | "texto" | "digitos" | "grupo" | "origem" | "fotos"; divisor?: number; tolerancia?: number; sobrescreve?: boolean };
@@ -74,10 +74,11 @@ const linksFotos = (v: unknown): string[] => Array.isArray(v) ? v.map(String).fi
 export function fotosDoBling(bling: Record<string, any>): string[] {
   // Leitura: o Bling devolve link externo em externas[]; imagensURL[] é fallback.
   const ler = (v: unknown) => Array.isArray(v) ? v.map((e: any) => String(e?.link ?? "")).filter(Boolean) : [];
-  const ext = ler(bling?.midia?.imagens?.externas);
-  return ext.length ? ext : ler(bling?.midia?.imagens?.imagensURL);
+  // O Bling baixa as imagens enviadas e as guarda em internas[] com link da CDN dele: une externas ∪ internas ∪ imagensURL.
+  const im = bling?.midia?.imagens;
+  return [...new Set([...ler(im?.externas), ...ler(im?.internas), ...ler(im?.imagensURL)])];
 }
-export const mesmasFotos = (a: string[], b: string[]) => a.length === b.length && a.every((l, i) => l === b[i]);
+export const contagemFotosBling = (bling: Record<string, any>) => fotosDoBling(bling).length;
 export const resumoFotos = (l: string[]) => l.length ? `${l.length} foto${l.length > 1 ? "s" : ""} · ${l[0]}` : "sem fotos";
 export function comparar(fonte: Record<string, any>, bling: Record<string, any>, campos: Campo[], ctx: Contexto = {}): Diferenca[] {
   const diferencas = campos.flatMap((c): Diferenca[] => {
@@ -90,7 +91,8 @@ export function comparar(fonte: Record<string, any>, bling: Record<string, any>,
       const sncf = linksFotos(fonte.fotos);
       if (!sncf.length) return []; // SNCF sem foto: nunca apaga foto do Bling.
       const atual = fotosDoBling(bling);
-      return mesmasFotos(sncf, atual) ? [] : [{ campo: c.campo, destino: c.destino, valor_sncf: resumoFotos(sncf), valor_bling: resumoFotos(atual) }];
+      // Por quantidade: o Bling reescreve os links, então links diferentes com a mesma quantidade não são diferença.
+      return sncf.length === atual.length ? [] : [{ campo: c.campo, destino: c.destino, valor_sncf: resumoFotos(sncf), valor_bling: resumoFotos(atual) }];
     }
     if (c.tipo === "grupo") {
       const esperado = fonte.grupo_esperado == null || String(fonte.grupo_esperado).trim() === "" ? null : String(fonte.grupo_esperado).trim();
@@ -155,15 +157,25 @@ export function montarPatch(itens: Diferenca[], fonte: Record<string, any> = {},
   if (patch.tributacao && atual?.tributacao) patch.tributacao = { ...atual.tributacao, ...patch.tributacao };
   return patch;
 }
-/** Confirmação pós-PATCH: se o Bling reescreveu os links das fotos (CDN própria), aceita pela quantidade (a ordem é a
- *  da lista enviada) e registra aviso; demais campos seguem a comparação normal. */
-export function restantesAposPatch(fonte: Record<string, any>, depois: Record<string, any>, campos: Campo[], ctx: Contexto, pedidos: string[], avisos: string[]): Diferenca[] {
-  return comparar(fonte, depois, campos, ctx).filter((d) => pedidos.includes(d.campo)).filter((d) => {
-    if (d.campo !== "fotos") return true;
-    const n = linksFotos(fonte.fotos).length, m = fotosDoBling(depois).length;
-    if (n === m) { avisos.push(`Fotos: o Bling reescreveu os links (${m} fotos); conferido pela quantidade e ordem.`); return false; }
-    return true;
-  });
+/** Confirmação pós-PATCH (comparação por quantidade nas fotos). */
+export function restantesAposPatch(fonte: Record<string, any>, depois: Record<string, any>, campos: Campo[], ctx: Contexto, pedidos: string[]): Diferenca[] {
+  return comparar(fonte, depois, campos, ctx).filter((d) => pedidos.includes(d.campo));
+}
+export const AVISO_FOTOS_PROCESSANDO = "Bling ainda processando as imagens; confirmar na próxima comparação";
+/** Releitura pós-PATCH: com fotos enviadas, espera 4 s; se a quantidade não bater, espera mais 6 s e relê.
+ *  Persistindo só nas fotos, não é erro: fotos ficam aplicadas com aviso (a próxima comparação fecha o ciclo). */
+export async function confirmarAposPatch(reler: () => Promise<Record<string, any> | null>, fonte: Record<string, any>, campos: Campo[], ctx: Contexto, pedidos: string[], avisos: string[], esperar: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))): Promise<{ depois: Record<string, any> | null; restantes: Diferenca[] }> {
+  const comFotos = pedidos.includes("fotos");
+  if (comFotos) await esperar(4000);
+  let depois = await reler();
+  let restantes = depois?.id ? restantesAposPatch(fonte, depois, campos, ctx, pedidos) : [];
+  if (comFotos && depois?.id && restantes.some((d) => d.campo === "fotos")) {
+    await esperar(6000);
+    const nova = await reler();
+    if (nova?.id) { depois = nova; restantes = restantesAposPatch(fonte, depois, campos, ctx, pedidos); }
+  }
+  if (restantes.some((d) => d.campo === "fotos")) { avisos.push(`Fotos: ${AVISO_FOTOS_PROCESSANDO}.`); restantes = restantes.filter((d) => d.campo !== "fotos"); }
+  return { depois, restantes };
 }
 /** Após o PATCH: ncm, cest, origem e grupo não podem mudar sem terem sido pedidos. */
 export function fiscaisPreservados(antes: Record<string, any>, depois: Record<string, any>, pedidos: string[]): void {

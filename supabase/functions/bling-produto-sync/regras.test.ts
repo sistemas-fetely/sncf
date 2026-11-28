@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { comparar, montarPatch, fotosDoBling, exigirEscrita, dentroDoFiltro, confirmarCodigo, restantesAposPatch, type Campo } from "./regras.ts";
+import { comparar, montarPatch, fotosDoBling, exigirEscrita, dentroDoFiltro, confirmarCodigo, confirmarAposPatch, type Campo } from "./regras.ts";
 import { innerConfirmado } from "./inner.ts";
 const campos: Campo[] = [
   { campo: "pesoBruto", origem: "peso_g", destino: "pesoBruto", tipo: "numero", divisor: 1000 },
@@ -64,20 +64,32 @@ describe("Cadastro SNCF → Bling F1", () => {
   test("leitura cai em imagensURL quando externas vem vazio", () => {
     expect(fotosDoBling({ midia: { imagens: { externas: [], imagensURL: [{ link: "u" }] } } })).toEqual(["u"]);
   });
-  test("ordem ou links diferentes: diferença e patch com imagensURL", () => {
+  test("leitura une externas, internas e imagensURL sem duplicar", () => {
+    expect(fotosDoBling({ midia: { imagens: { externas: [{ link: "e" }], internas: [{ link: "i" }, { link: "e" }], imagensURL: [{ link: "u" }] } } })).toEqual(["e", "i", "u"]);
+  });
+  test("mesma quantidade com links diferentes: sem diferença", () => {
+    expect(comparar({ fotos: ["a", "b"] }, { midia: { imagens: { internas: [{ link: "cdn1" }, { link: "cdn2" }] } } }, cFotos)).toEqual([]);
+  });
+  test("quantidade diferente: diferença e patch com imagensURL", () => {
     const fonte = { fotos: ["a", "b"] };
-    const d = comparar(fonte, bling(["b", "a"]), cFotos);
+    const d = comparar(fonte, bling(["a"]), cFotos);
     expect(d.map((x) => x.campo)).toEqual(["fotos"]);
     expect(d[0].valor_sncf).toBe("2 fotos · a");
+    expect(d[0].valor_bling).toBe("1 foto · a");
     expect(montarPatch(d, fonte)).toEqual({ midia: { imagens: { imagensURL: [{ link: "a" }, { link: "b" }] } } });
   });
   test("SNCF sem foto: nunca diferença nem patch", () => {
     expect(comparar({ fotos: [] }, bling(["x"]), cFotos)).toEqual([]);
     expect(montarPatch([{ campo: "fotos", destino: "midia.imagens.externas", valor_sncf: "x", valor_bling: null }], { fotos: [] })).toEqual({});
   });
-  test("links reescritos pelo Bling com mesma quantidade: aceita com aviso", () => {
-    const avisos: string[] = [];
-    expect(restantesAposPatch({ fotos: ["a", "b"] }, bling(["cdn1", "cdn2"]), cFotos, {}, ["fotos"], avisos)).toEqual([]);
-    expect(avisos.length).toBe(1);
+  test("Bling ainda processando após duas releituras: sem erro, com aviso", async () => {
+    const avisos: string[] = []; const esperas: number[] = []; let leituras = 0;
+    const r = await confirmarAposPatch(async () => { leituras++; return { id: 1, midia: { imagens: {} } }; }, { fotos: ["a"] }, cFotos, {}, ["fotos"], avisos, async (ms) => { esperas.push(ms); });
+    expect(r.restantes).toEqual([]); expect(leituras).toBe(2); expect(esperas).toEqual([4000, 6000]); expect(avisos.length).toBe(1);
+  });
+  test("fotos aparecem na segunda releitura: sem aviso", async () => {
+    const avisos: string[] = []; let leituras = 0;
+    const r = await confirmarAposPatch(async () => ({ id: 1, midia: { imagens: { internas: ++leituras > 1 ? [{ link: "cdn" }] : [] } } }), { fotos: ["a"] }, cFotos, {}, ["fotos"], avisos, async () => {});
+    expect(r.restantes).toEqual([]); expect(avisos).toEqual([]);
   });
 });
