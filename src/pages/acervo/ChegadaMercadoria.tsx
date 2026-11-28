@@ -9,8 +9,7 @@ import PendenciasTab from "@/components/compras/PendenciasTab";
 import PainelTab from "@/components/compras/PainelTab";
 import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
 import NfsSemPedidoTab from "@/components/compras/NfsSemPedidoTab";
-import ImportarPI from "@/pages/acervo/ImportarPI";
-import { selecaoChegada } from "@/lib/compras/abas-chegada";
+import { redirecionamentoChegada, selecaoChegada } from "@/lib/compras/abas-chegada";
 import RecebimentoTab from "./chegada/RecebimentoTab";
 
 
@@ -23,26 +22,23 @@ interface AbaMercadoria {
   render: () => JSX.Element;
 }
 
-function AbasInternas({ grupo }: { grupo: "pi" | "ferramenta" }) {
+function AbasInternas({ grupo }: { grupo: "ferramenta" }) {
   const [params, setParams] = useSearchParams();
   const selecao = selecaoChegada(params);
-  const abas = grupo === "pi" ? [
-    { value: "importar-pi", label: "Importar linhas da PI", render: () => <ImportarPiPedidoTab /> },
-    { value: "cadastro-pi", label: "Efetivar lote (nascimento)", render: () => <ImportarPI embutido /> },
-  ] : [
+  const abas = [
     { value: "de-para", label: "De-para de fornecedor", render: () => <DeParaFornecedor /> },
     { value: "rateio-nf", label: "Rateio de NF", render: () => <RateioNfTab /> },
   ];
-  const escolhida = grupo === "pi" ? selecao.pi : selecao.ferramenta;
+  const escolhida = selecao.ferramenta;
   const atual = abas.some((a) => a.value === escolhida) ? escolhida : abas[0].value;
   const mudar = (valor: string) => {
     const next = new URLSearchParams(params);
-    next.set("aba", grupo === "pi" ? "importacao-pi" : "ferramentas");
-    next.set(grupo === "pi" ? "aba_pi" : "aba_ferramentas", valor);
+    next.set("aba", "ferramentas");
+    next.set("aba_ferramentas", valor);
     setParams(next, { replace: true });
   };
   return <Tabs value={atual} onValueChange={mudar}>
-    <TabsList className="max-w-full overflow-x-auto" aria-label={grupo === "pi" ? "Importação (PI)" : "Ferramentas"}>
+    <TabsList className="max-w-full overflow-x-auto" aria-label="Ferramentas">
       {abas.map((a) => <TabsTrigger key={a.value} value={a.value}>{a.label}</TabsTrigger>)}
     </TabsList>
     {abas.map((a) => <TabsContent key={a.value} value={a.value} className="mt-4">{atual === a.value ? a.render() : null}</TabsContent>)}
@@ -57,7 +53,7 @@ const ABAS: AbaMercadoria[] = [
   { value: "nfs-sem-pedido", label: "Documentos de entrada", grupo: "gestao", render: () => <NfsSemPedidoTab /> },
   { value: "recebimento", label: "Recebimento", grupo: "gestao", render: () => <RecebimentoTab /> },
   { value: "novo", label: "Novo pedido", grupo: "ferramenta", render: () => <CadastroPedidoCompra vista="novo" /> },
-  { value: "importacao-pi", label: "Importação (PI)", grupo: "ferramenta", render: () => <AbasInternas grupo="pi" /> },
+  { value: "importacao-pi", label: "Importação (PI)", grupo: "ferramenta", render: () => <ImportarPiPedidoTab /> },
   { value: "ferramentas", label: "Ferramentas", grupo: "ferramenta", render: () => <AbasInternas grupo="ferramenta" /> },
 ];
 
@@ -71,6 +67,11 @@ export default function ChegadaMercadoria() {
   // do Painel; recebimento-loja mora agora em Transferências Internas.
   useEffect(() => {
     const v = params.get("aba");
+    const destino = redirecionamentoChegada(params);
+    if (destino) {
+      navigate(destino, { replace: true });
+      return;
+    }
     if (v === "recebimento-loja") {
       navigate("/pedidos/transferencias?aba=receber", { replace: true });
       return;

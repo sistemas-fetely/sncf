@@ -1052,7 +1052,7 @@ const App = () => (
             <Route path="/compras/de-para-fornecedor" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=de-para" replace />} />
             <Route path="/compras/cadastro-pedido" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=pedidos" replace />} />
             {/* IMPORTAR-PI-MORA-NA-CHEGADA (04/10/2026): cadastro de produto por PI é aba da Chegada de Mercadoria */}
-            <Route path="/vendas/produto/importar-pi" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi" replace />} />
+            <Route path="/vendas/produto/importar-pi" element={<Navigate to="/vendas/produto/conciliacao?aba=novos" replace />} />
             <Route path="/compras/mercadoria" element={<ChegadaMercadoriaRedirect />} />
             <Route path="/compras/mercadoria/:id" element={<ChegadaMercadoriaIdRedirect />} />
             <Route path="/ti/documentacao" element={<Navigate to="/documentacao" replace />} />

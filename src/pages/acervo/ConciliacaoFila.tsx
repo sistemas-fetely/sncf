@@ -5,7 +5,7 @@ import type { SetStateAction } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight,
-  Download, FileSpreadsheet, GitCompare, Plus, RefreshCw, Search, Upload, X,
+  Download, FileSpreadsheet, GitCompare, RefreshCw, Search, X,
   ExternalLink,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
@@ -39,9 +39,7 @@ import { agruparPorProduto, ordenarProdutos, regrasDoProduto, resumoCampos, cont
 import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
 // 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { NascerProdutoNacionalDialog } from "@/components/acervo/NascerProdutoNacionalDialog";
 import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
-import { ImportarPlanilhaCadastroDialog } from "@/components/acervo/ImportarPlanilhaCadastroDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useCatalogoLeitura } from "@/hooks/useCatalogoLeitura";
@@ -171,10 +169,8 @@ function BlocoProblema({ l }: { l: FilaLinha }) {
 }
 
 export default function ConciliacaoFila() {
-  const [nascerAberto, setNascerAberto] = useState(false);
   const [menuPlanilha, setMenuPlanilha] = useState(false);
   const [exportCad, setExportCad] = useState(false);
-  const [importCad, setImportCad] = useState(false);
   const [sp, setSp] = useSearchParams();
   const location = useLocation();
   const catalogo = useCatalogoLeitura();
@@ -495,9 +491,7 @@ export default function ConciliacaoFila() {
   </TabsList>;
 
   return <TooltipProvider delayDuration={200}><PageShell>
-    <NascerProdutoNacionalDialog open={nascerAberto} onOpenChange={setNascerAberto} onNasceu={() => { void fila.refetch(); }} />
     <ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} />
-    <ImportarPlanilhaCadastroDialog open={importCad} onOpenChange={setImportCad} onConcluido={() => { void fila.refetch(); }} />
     <PageHeader
       titulo="Conciliação de Cadastro"
       icone={GitCompare}
@@ -506,9 +500,7 @@ export default function ConciliacaoFila() {
         <DropdownMenu open={menuPlanilha} onOpenChange={setMenuPlanilha}>
           <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="mr-2 h-4 w-4" />Planilha<ChevronDown className="ml-1 h-3.5 w-3.5 opacity-60" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="flex w-64 flex-col gap-1 p-1">
-            <BotaoGuardado slug="acao.produto_nascer_nacional" rotuloAcao="Nascer produto" variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setNascerAberto(true); }}><Plus className="mr-2 h-4 w-4" />Nascer produto</BotaoGuardado>
             <Button variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setExportCad(true); }}><Download className="mr-2 h-4 w-4" />Exportar planilha de cadastro</Button>
-            <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Importar planilha de cadastro" variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setImportCad(true); }}><Upload className="mr-2 h-4 w-4" />Importar planilha de cadastro</BotaoGuardado>
           </DropdownMenuContent>
         </DropdownMenu>
       </> : <>

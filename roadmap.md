@@ -258,3 +258,4 @@
 - [x] CATÁLOGO-V2 leitura: execução original concluiu em 132,8s; instrumentada 31,4s → 17,9s (produtos/base 16,6s → 4,6s), 207 nascimentos/1 reserva/0 recusas/44 mudanças/1 erro fiscal. Campos enxutos, três lotes paralelos, andamento/erro/avisos na tela e liberação beforeunload com lease 90s. Sessão real conferiu Ler agora/resultado/avisos/PI oculto/trava livre; nada aplicado, edge implantada, front não publicado. CPU e encerramento forçado não medidos.
 
 - [x] CONCILIAÇÃO-CADASTRO: três vistas URL Novos/Ajustes/Saída, cabeçalho compartilhado e uma tabela por vista; v1 sem aba e códigos antigos em Novos. 17 testes aprovados; sessão real confirmou 208 novos, 45 ajustes, 1799 divergências, entrada→ajustes, URLs e zero erros. Só front, sem publicar nem confirmar/aplicar propostas.
+- Regra: produto nasce só pela planilha do catálogo (Conciliação › Novos); caminhos de tela antigos removidos em 28/11/2026.

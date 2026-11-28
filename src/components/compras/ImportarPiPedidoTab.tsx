@@ -1,6 +1,6 @@
 // Aba "Importar PI" da Chegada de Mercadoria.
 // DESTINO: LINHA DE PEDIDO de importacao (importacao_linha), nunca produto.
-// Mesmo ritual do importador de produto (/vendas/produto/importar-pi):
+// Ritual de importação de PI (produto novo nasce só pela planilha do catálogo):
 // upload -> stage -> conferir -> efetivar. Quem julga bloqueio e' o banco:
 // fn_linha_conferir_lote / fn_linha_efetivar_lote. O front so apresenta.
 import { useMemo, useState } from "react";
@@ -655,10 +655,9 @@ export default function ImportarPiPedidoTab() {
     <div className="space-y-4">
       <ParaQueServe>
         Sobe a proforma (PI) do fornecedor e cria as linhas de um pedido já existente — lê o
-        arquivo, você confirma as colunas e confere antes de gravar. Não cria produto: produto novo
-        nasce na{" "}
-        <Link to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi" className="underline">
-          Importação de PI do cadastro de produto
+        arquivo, você confirma as colunas e confere antes de gravar. Não cria produto:{" "}
+        <Link to="/vendas/produto/conciliacao?aba=novos" className="underline">
+          Produto novo nasce pela planilha do catálogo (Central do Produto › Conciliação › Novos)
         </Link>
         .
       </ParaQueServe>
@@ -1052,9 +1051,8 @@ export default function ImportarPiPedidoTab() {
                   )}
                   {b.bloqueio === "produto_nao_cadastrado" && (
                     <div>
-                      Produto novo nasce em{" "}
-                      <Link className="underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">
-                        /vendas/produto/chegada-mercadoria?aba=cadastro-pi
+                      <Link className="underline" to="/vendas/produto/conciliacao?aba=novos">
+                        Produto novo nasce pela planilha do catálogo (Central do Produto › Conciliação › Novos)
                       </Link>
                       .
                     </div>
