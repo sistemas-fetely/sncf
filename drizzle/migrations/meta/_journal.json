@@ -813,6 +813,13 @@
       "when": 1795860335622,
       "tag": "0115_meli_f0_acesso_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1795862581442,
+      "tag": "0116_catalogo_origem_mensagem_orientada",
+      "breakpoints": true
     }
   ]
 }
