@@ -96,15 +96,15 @@ export function BlingSyncControle() {
       <div className="flex flex-wrap gap-2">
         <BotaoGuardado slug="acao.varrer_bling" rotuloAcao="Comparar com o Bling" size="sm" disabled={ocupado} onClick={() => void executar("diff")}><RefreshCw className={ocupado ? "animate-spin" : ""} />Comparar com o Bling</BotaoGuardado>
         {execucao?.status === "comparando" && <BotaoGuardado slug="acao.varrer_bling" rotuloAcao="Comparar com o Bling" size="sm" variant="outline" disabled={ocupado} onClick={() => void executar("diff", true)}>Continuar comparação</BotaoGuardado>}
-        <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Enviar ao Bling" size="sm" variant="outline" disabled={ocupado || !configQ.data?.escrita_habilitada || !resumo?.pendentes || execucao?.status === "comparando"} onClick={() => setConfirmar(true)}><Send />Enviar ao Bling</BotaoGuardado>
+        <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Enviar ao Bling (em massa)" title="Envia ao Bling os campos marcados para envio em massa de todos os produtos pendentes da última comparação." size="sm" variant="outline" disabled={ocupado || !configQ.data?.escrita_habilitada || !resumo?.pendentes || execucao?.status === "comparando"} onClick={() => setConfirmar(true)}><Send />Enviar ao Bling (em massa)</BotaoGuardado>
       </div>
     </div>
     {falha && <p role="alert" className="whitespace-pre-wrap break-words text-sm text-destructive">{falha}</p>}
-    <AlertDialog open={confirmar} onOpenChange={setConfirmar}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Enviar cadastro ao Bling?</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-2">
+    <AlertDialog open={confirmar} onOpenChange={setConfirmar}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Enviar em massa ao Bling?</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-2">
       <p>{resumo?.produtos_divergentes} produtos · {resumo?.pendentes} campos pendentes.</p>
       <p>Vão só os campos marcados para envio em massa{emMassaQ.data ? <>: <span className="text-foreground">{[...emMassaQ.data.map((c) => c.rotulo_tela || c.campo), "Origem fiscal (regra fiscal fixa)"].join(", ")}</span></> : "…"}. Os demais ficam para correção produto a produto.</p>
       {emMassaQ.error && <p role="alert" className="text-destructive">{formatError(emMassaQ.error)}</p>}
-    </div></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><Button disabled={!emMassaQ.data} onClick={() => void executar("aplicar")}>Enviar ao Bling</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    </div></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><Button disabled={!emMassaQ.data} onClick={() => void executar("aplicar")}>Enviar em massa</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <Dialog open={verErros} onOpenChange={setVerErros}><DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader><DialogTitle>Erros da última leitura do Bling</DialogTitle></DialogHeader>
       {errosQ.error ? <p role="alert" className="text-sm text-destructive">{formatError(errosQ.error)}</p>

@@ -143,14 +143,14 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, ro
   );
 
   return <>
-    <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Corrigir no Bling" contexto={{ skus: produtos.map((p) => p.sku) }} variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no Bling" : undefined}>
-      <RefreshCw className="mr-2 h-4 w-4" />{rotuloBotao ?? `Corrigir no Bling (${produtos.length})`}
+    <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Corrigir selecionados no Bling" contexto={{ skus: produtos.map((p) => p.sku) }} variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no Bling" : "Compara só os produtos selecionados com o Bling, mostra o de-para e envia todos os campos com diferença."}>
+      <RefreshCw className="mr-2 h-4 w-4" />{rotuloBotao ?? `Corrigir selecionados no Bling (${produtos.length})`}
     </BotaoGuardado>
     <Dialog open={aberto} onOpenChange={o => { if (carregando || aplicando) return; if (!o) { setAberto(false); zerar(); } }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Corrigir no Bling pela matriz</DialogTitle>
-          <DialogDescription>Nada é enviado antes de você clicar em Aplicar. O sistema só mostra o que mudaria.</DialogDescription>
+          <DialogTitle>Corrigir selecionados no Bling</DialogTitle>
+          <DialogDescription>Só os produtos selecionados. Compara campo a campo e nada é enviado antes do Aplicar.</DialogDescription>
         </DialogHeader>
 
 

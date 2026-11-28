@@ -64,13 +64,13 @@ export default function NomesBling() {
     <PageShell>
       <PageHeader
         titulo="Histórico de renomeações no Bling"
-        estado="Registro das renomeações de nome de produto aplicadas no Bling. A correção de nomes agora acontece pela Conciliação de Cadastro → Corrigir no Bling."
+        estado="Registro das renomeações de nome de produto aplicadas no Bling. A correção de nomes agora acontece pela Conciliação de Cadastro → Corrigir selecionados no Bling."
       />
 
       <p className="text-sm text-muted-foreground">
         Tela de consulta. Nomes agora se corrigem pela{" "}
         <Link to="/vendas/produto/conciliacao" className="underline underline-offset-2 hover:text-foreground">
-          Conciliação de Cadastro → Corrigir no Bling
+          Conciliação de Cadastro → Corrigir selecionados no Bling
         </Link>
         .
       </p>
