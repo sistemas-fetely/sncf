@@ -28,6 +28,7 @@ async function chamar(body: Record<string, unknown>) {
 export function BlingSyncControle() {
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState(false), [erro, setErro] = useState<string | null>(null), [confirmar, setConfirmar] = useState(false);
+  const [fase, setFase] = useState<null | "comparando" | "enviando">(null), [pendentesInicio, setPendentesInicio] = useState<number | null>(null);
   const [progresso, setProgresso] = useState<Resumo | null>(null);
   const [verErros, setVerErros] = useState(false);
   const configQ = useQuery({ queryKey: ["bling-sync", "config"], queryFn: async () => { const r = await sb.from("bling_produto_sync_config").select("*").eq("id", true).single(); if (r.error) throw r.error; return r.data; } });
@@ -38,6 +39,8 @@ export function BlingSyncControle() {
   const resumoQ = useQuery({ queryKey: ["bling-sync", "resumo", id], enabled: !!id, refetchInterval: ocupado ? 3000 : false, queryFn: async (): Promise<Resumo> => { const r = await sb.rpc("fn_bling_produto_sync_resumo", { p_execucao: id }); if (r.error) throw r.error; return r.data; } });
   const errosQ = useQuery({ queryKey: ["bling-sync", "erros", id], enabled: verErros && !!id, queryFn: async () => { const r = await sb.from("bling_produto_sync_produto").select("sku,erro").eq("execucao_id", id).eq("status", "erro").order("sku"); if (r.error) throw r.error; return (r.data ?? []) as { sku: string; erro: string | null }[]; } });
   async function executar(acao: "diff" | "aplicar", continuar = false) {
+    if (acao === "aplicar") { setPendentesInicio(resumo?.pendentes ?? null); toast.info("Envio ao Bling iniciado — acompanhe o progresso na tela."); }
+    setFase(acao === "diff" ? "comparando" : "enviando");
     setOcupado(true); setErro(null); setProgresso(null); setConfirmar(false);
     let atual: string | undefined = continuar || acao === "aplicar" ? id : undefined;
     try {
@@ -78,9 +81,9 @@ export function BlingSyncControle() {
         atual = r.execucao_id; setProgresso(r.resumo); concluido = r.concluido;
         await qc.invalidateQueries({ queryKey: ["bling-sync"] });
       }
-      toast.success("Envio concluído.");
+      toast.success("Envio ao Bling concluído.");
     } catch (e) { const mensagem = formatError(e); setErro(mensagem); toast.error(mensagem); }
-    finally { setOcupado(false); await Promise.all([qc.invalidateQueries({ queryKey: ["bling-sync"] }), qc.invalidateQueries({ queryKey: ["conciliacao-fila"] })]); }
+    finally { setOcupado(false); setFase(null); setPendentesInicio(null); await Promise.all([qc.invalidateQueries({ queryKey: ["bling-sync"] }), qc.invalidateQueries({ queryKey: ["conciliacao-fila"] })]); }
   }
   const resumo = progresso ?? resumoQ.data;
   const falha = erro ?? [configQ.error, execQ.error, resumoQ.error].filter(Boolean).map(formatError).join(" · ");
@@ -99,6 +102,16 @@ export function BlingSyncControle() {
         <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Enviar ao Bling (em massa)" title="Envia ao Bling os campos marcados para envio em massa de todos os produtos pendentes da última comparação." size="sm" variant="outline" disabled={ocupado || !configQ.data?.escrita_habilitada || !resumo?.pendentes || execucao?.status === "comparando"} onClick={() => setConfirmar(true)}><Send />Enviar ao Bling (em massa)</BotaoGuardado>
       </div>
     </div>
+    {fase && (() => {
+      const comparando = fase === "comparando";
+      const total = comparando ? (resumo?.total ?? 0) : (pendentesInicio ?? 0);
+      const feito = comparando ? (resumo?.lidos ?? 0) : Math.max(0, total - (resumo?.pendentes ?? total));
+      const pct = total > 0 ? Math.min(100, Math.round((feito / total) * 100)) : null;
+      return <div className="space-y-1">
+        <p className="flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" />{comparando ? `Comparando com o Bling… ${feito}/${total || "—"} produtos` : pct === null ? "Enviando ao Bling…" : `Enviando ao Bling… ${feito}/${total}`}</p>
+        <div className="h-1.5 overflow-hidden rounded bg-muted">{pct === null ? <div className="h-full w-full animate-pulse bg-primary/60" /> : <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />}</div>
+      </div>;
+    })()}
     {falha && <p role="alert" className="whitespace-pre-wrap break-words text-sm text-destructive">{falha}</p>}
     <AlertDialog open={confirmar} onOpenChange={setConfirmar}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Enviar em massa ao Bling?</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-2">
       <p>{resumo?.produtos_divergentes} produtos · {resumo?.pendentes} campos pendentes.</p>
