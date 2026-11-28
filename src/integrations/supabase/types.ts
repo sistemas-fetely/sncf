@@ -8627,6 +8627,24 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_fn_trg_transicao_direta_20261128: {
+        Row: {
+          funcao: string | null
+          gatilho: string | null
+          salvo_em: string | null
+        }
+        Insert: {
+          funcao?: string | null
+          gatilho?: string | null
+          salvo_em?: string | null
+        }
+        Update: {
+          funcao?: string | null
+          gatilho?: string | null
+          salvo_em?: string | null
+        }
+        Relationships: []
+      }
       backup_fn_xpm_nf_represa_20261125: {
         Row: {
           def: string | null
@@ -54311,6 +54329,183 @@ export type Database = {
         }
         Relationships: []
       }
+      meli_conta: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          conectado_em: string | null
+          conectado_por: string | null
+          created_at: string
+          login_email: string | null
+          mp_conta_codigo: string | null
+          nickname: string | null
+          ordem: number
+          refresh_reservado_ate: string | null
+          rotulo: string
+          segredo_access_token: string
+          segredo_client_id: string
+          segredo_client_secret: string
+          segredo_refresh_token: string
+          seller_id: number | null
+          site_id: string | null
+          token_expira_em: string | null
+          ultimo_erro: string | null
+          ultimo_refresh_em: string | null
+          ultimo_refresh_ok: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          conectado_em?: string | null
+          conectado_por?: string | null
+          created_at?: string
+          login_email?: string | null
+          mp_conta_codigo?: string | null
+          nickname?: string | null
+          ordem?: number
+          refresh_reservado_ate?: string | null
+          rotulo: string
+          segredo_access_token: string
+          segredo_client_id: string
+          segredo_client_secret: string
+          segredo_refresh_token: string
+          seller_id?: number | null
+          site_id?: string | null
+          token_expira_em?: string | null
+          ultimo_erro?: string | null
+          ultimo_refresh_em?: string | null
+          ultimo_refresh_ok?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          conectado_em?: string | null
+          conectado_por?: string | null
+          created_at?: string
+          login_email?: string | null
+          mp_conta_codigo?: string | null
+          nickname?: string | null
+          ordem?: number
+          refresh_reservado_ate?: string | null
+          rotulo?: string
+          segredo_access_token?: string
+          segredo_client_id?: string
+          segredo_client_secret?: string
+          segredo_refresh_token?: string
+          seller_id?: number | null
+          site_id?: string | null
+          token_expira_em?: string | null
+          ultimo_erro?: string | null
+          ultimo_refresh_em?: string | null
+          ultimo_refresh_ok?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_conta_mp_conta_codigo_fkey"
+            columns: ["mp_conta_codigo"]
+            isOneToOne: false
+            referencedRelation: "mp_conta_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "meli_conta_mp_conta_codigo_fkey"
+            columns: ["mp_conta_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_mp_relatorio_atrasado"
+            referencedColumns: ["conta_codigo"]
+          },
+        ]
+      }
+      meli_eventos_raw: {
+        Row: {
+          application_id: number | null
+          attempts: number | null
+          erro: string | null
+          id: number
+          payload: Json | null
+          processado_em: string | null
+          recebido_em: string
+          resource: string | null
+          sent: string | null
+          topic: string | null
+          user_id: number | null
+        }
+        Insert: {
+          application_id?: number | null
+          attempts?: number | null
+          erro?: string | null
+          id?: number
+          payload?: Json | null
+          processado_em?: string | null
+          recebido_em?: string
+          resource?: string | null
+          sent?: string | null
+          topic?: string | null
+          user_id?: number | null
+        }
+        Update: {
+          application_id?: number | null
+          attempts?: number | null
+          erro?: string | null
+          id?: number
+          payload?: Json | null
+          processado_em?: string | null
+          recebido_em?: string
+          resource?: string | null
+          sent?: string | null
+          topic?: string | null
+          user_id?: number | null
+        }
+        Relationships: []
+      }
+      meli_oauth_state: {
+        Row: {
+          code_verifier: string
+          conta_codigo: string
+          criado_em: string
+          criado_por: string | null
+          expira_em: string
+          state: string
+          usado_em: string | null
+        }
+        Insert: {
+          code_verifier: string
+          conta_codigo: string
+          criado_em?: string
+          criado_por?: string | null
+          expira_em?: string
+          state: string
+          usado_em?: string | null
+        }
+        Update: {
+          code_verifier?: string
+          conta_codigo?: string
+          criado_em?: string
+          criado_por?: string | null
+          expira_em?: string
+          state?: string
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meli_oauth_state_conta_codigo_fkey"
+            columns: ["conta_codigo"]
+            isOneToOne: false
+            referencedRelation: "meli_conta"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "meli_oauth_state_conta_codigo_fkey"
+            columns: ["conta_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_meli_token_falha"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mesa_sp_documento: {
         Row: {
           ativo: boolean
@@ -55349,6 +55544,30 @@ export type Database = {
           temp_files?: number | null
           xact_commit?: number | null
           xact_rollback?: number | null
+        }
+        Relationships: []
+      }
+      monitor_chamada_funcao: {
+        Row: {
+          contexto: Json | null
+          em: string
+          funcao: string
+          id: number
+          ms: number
+        }
+        Insert: {
+          contexto?: Json | null
+          em?: string
+          funcao: string
+          id?: number
+          ms: number
+        }
+        Update: {
+          contexto?: Json | null
+          em?: string
+          funcao?: string
+          id?: number
+          ms?: number
         }
         Relationships: []
       }
@@ -94451,7 +94670,43 @@ export type Database = {
           sku?: string
           teto?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reposicao_sku_excecao_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicao_sku_excecao_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "reposicao_sku_excecao_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fato_devolucao"
+            referencedColumns: ["estabelecimento_id"]
+          },
+          {
+            foreignKeyName: "reposicao_sku_excecao_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fato_faturamento"
+            referencedColumns: ["estabelecimento_id"]
+          },
+          {
+            foreignKeyName: "reposicao_sku_excecao_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+        ]
       }
       responsabilidades_catalogo: {
         Row: {
@@ -151099,6 +151354,33 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_fila_meli_token_falha: {
+        Row: {
+          desde: string | null
+          exige_acao_nossa: boolean | null
+          id: string | null
+          rotulo: string | null
+          token_expira_em: string | null
+          ultimo_erro: string | null
+        }
+        Insert: {
+          desde?: string | null
+          exige_acao_nossa?: never
+          id?: string | null
+          rotulo?: string | null
+          token_expira_em?: string | null
+          ultimo_erro?: string | null
+        }
+        Update: {
+          desde?: string | null
+          exige_acao_nossa?: never
+          id?: string | null
+          rotulo?: string | null
+          token_expira_em?: string | null
+          ultimo_erro?: string | null
+        }
+        Relationships: []
+      }
       vw_fila_mesa_sp_aguardando_nf: {
         Row: {
           embalado_em: string | null
@@ -164316,14 +164598,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -169072,14 +169354,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -190081,14 +190363,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -199735,15 +200017,6 @@ export type Database = {
       }
     }
     Functions: {
-      reposicao_excecao_definir: {
-        Args: { p_minimo: number | null; p_motivo: string | null; p_skus: string[]; p_teto: number | null }
-        Returns: number
-      }
-      reposicao_excecao_remover: { Args: { p_skus: string[] }; Returns: number }
-      reposicao_regua_atualizar: {
-        Args: { p_classe: string; p_minimo: number; p_teto: number; p_teto_mais_inner: boolean | null }
-        Returns: undefined
-      }
       _consignado_remessas_ref: {
         Args: { p_parceiro_id: string; p_stage_id: string }
         Returns: Json
@@ -199767,6 +200040,10 @@ export type Database = {
         Returns: Json
       }
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
+      _meli_gravar_segredo: {
+        Args: { p_desc: string; p_nome: string; p_por: string; p_valor: string }
+        Returns: undefined
+      }
       _nf_fetely_exigir_permissao: { Args: never; Returns: undefined }
       _nf_fetely_parceiro: { Args: { p: string }; Returns: boolean }
       _tabela_preco_amostra: {
@@ -203349,6 +203626,7 @@ export type Database = {
           cond: string
         }[]
       }
+      fn_lista_nucleo: { Args: { p: Json }; Returns: Json }
       fn_log_evento_pedido: {
         Args: {
           p_payload?: Json
@@ -203408,6 +203686,28 @@ export type Database = {
       fn_materializar_itens_pedido: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      fn_meli_gravar_tokens: {
+        Args: {
+          p_access: string
+          p_conta: string
+          p_expira_em: string
+          p_nickname?: string
+          p_por?: string
+          p_refresh: string
+          p_seller_id?: number
+          p_site_id?: string
+        }
+        Returns: Json
+      }
+      fn_meli_liberar_refresh: { Args: { p_conta: string }; Returns: undefined }
+      fn_meli_registrar_erro_token: {
+        Args: { p_conta: string; p_erro: string }
+        Returns: undefined
+      }
+      fn_meli_reservar_refresh: {
+        Args: { p_conta: string; p_segundos?: number }
+        Returns: boolean
       }
       fn_mesa_boletos_pedido: {
         Args: { p_pedido_id: string }
@@ -203696,6 +203996,10 @@ export type Database = {
       fn_meu_vinculo: { Args: never; Returns: string }
       fn_migra_lote: { Args: { p_limite?: number }; Returns: number }
       fn_monitor_banco_snapshot: { Args: never; Returns: undefined }
+      fn_monitor_chamada_registrar: {
+        Args: { p_ctx: Json; p_funcao: string; p_t0: string }
+        Returns: undefined
+      }
       fn_montar_condicao: {
         Args: { p_dias: number[]; p_forma: string }
         Returns: Json
@@ -205113,6 +205417,10 @@ export type Database = {
         }[]
       }
       fn_vd_calcular: {
+        Args: { p_cliente: Json; p_entrega: Json; p_itens: Json }
+        Returns: Json
+      }
+      fn_vd_calcular_nucleo: {
         Args: { p_cliente: Json; p_entrega: Json; p_itens: Json }
         Returns: Json
       }
@@ -206729,6 +207037,25 @@ export type Database = {
           p_valor: number
         }
         Returns: Json
+      }
+      reposicao_excecao_definir: {
+        Args: {
+          p_minimo?: number
+          p_motivo?: string
+          p_skus: string[]
+          p_teto?: number
+        }
+        Returns: number
+      }
+      reposicao_excecao_remover: { Args: { p_skus: string[] }; Returns: number }
+      reposicao_regua_atualizar: {
+        Args: {
+          p_classe: string
+          p_minimo: number
+          p_teto: number
+          p_teto_mais_inner?: boolean
+        }
+        Returns: undefined
       }
       resolver_chamado: {
         Args: { p_chamado_id: string; p_solucao?: string }

@@ -806,6 +806,13 @@
       "when": 1795808358219,
       "tag": "0114_catalogo_planilha_nascer_ajuste",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1795860335622,
+      "tag": "0115_meli_f0_acesso_oauth",
+      "breakpoints": true
     }
   ]
 }

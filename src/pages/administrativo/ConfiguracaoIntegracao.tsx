@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Settings2, ExternalLink, Mail, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AbaMercadoPago } from "@/components/ti/AbaMercadoPago";
+import { AbaMercadoLivre } from "@/components/ti/AbaMercadoLivre";
 import { AbaMicrosoft365 } from "@/components/ti/AbaMicrosoft365";
 import { ImpressaoZebraQz } from "@/components/ti/ImpressaoZebraQz";
 import { PUBLIC_APP_URL } from "@/lib/urls";
@@ -489,6 +490,7 @@ export default function ConfiguracaoIntegracao() {
           <TabsTrigger value="email">Email Externo</TabsTrigger>
           <TabsTrigger value="xpm">XPM / ZenLOG</TabsTrigger>
           <TabsTrigger value="mercado_pago">Mercado Pago</TabsTrigger>
+          <TabsTrigger value="mercado-livre">Mercado Livre</TabsTrigger>
           <TabsTrigger value="microsoft_365">Microsoft 365</TabsTrigger>
           <TabsTrigger value="impressao_zebra">Impressão Zebra</TabsTrigger>
         </TabsList>
@@ -1102,6 +1104,9 @@ export default function ConfiguracaoIntegracao() {
         </TabsContent>
         <TabsContent value="mercado_pago" className="space-y-6">
           <AbaMercadoPago />
+        </TabsContent>
+        <TabsContent value="mercado-livre" className="space-y-6">
+          <AbaMercadoLivre />
         </TabsContent>
       </Tabs>
 
