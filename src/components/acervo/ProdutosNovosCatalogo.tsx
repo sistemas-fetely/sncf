@@ -10,6 +10,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatError } from '@/lib/format-error';
+import { PendentesFopCatalogo, ResultadoRegistroFop, registrarEAvisar } from './RegistroFopCatalogo';
+import { itensFop } from '@/hooks/useRegistroFop';
+import type { ResultadoFopItem } from '@/lib/acervo/registroFop';
 import { lerPropostas, montarLoteNascimento, problemasDaPrevia, type RespostaNascer } from '@/lib/acervo/nascimentoCatalogo';
 
 const t = (v: unknown) => v == null || v === '' ? '—' : String(v);
@@ -23,7 +26,9 @@ export function ProdutosNovosCatalogo({ totais, leituraId }: { totais: unknown; 
   const [previa, setPrevia] = useState<{ resposta: RespostaNascer; lote: ReturnType<typeof montarLoteNascimento> } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, setRodando] = useState(false);
-  if (!propostas) return null;
+  const [resultadoFop, setResultadoFop] = useState<ResultadoFopItem[]>([]);
+  const [erroFop, setErroFop] = useState<string | null>(null);
+  if (!propostas) return <PendentesFopCatalogo />;
   const nascimentos = propostas.nascimentos;
   const lote = montarLoteNascimento({ ...propostas, nascimentos }, selCart, selNasc);
   const vazio = !lote.p_cartorio.length && !lote.p_produtos.length;
@@ -43,12 +48,22 @@ export function ProdutosNovosCatalogo({ totais, leituraId }: { totais: unknown; 
     try {
       const r = await chamar(false, previa.lote);
       toast.success(`${previa.lote.p_cartorio.length} códigos atualizados no cartório · ${r.nascimento?.nasceram ?? 0} produtos nasceram.`);
+      const cods = previa.lote.p_produtos.map((p) => p.cod_cadastro);
       setPrevia(null); setSelCart(new Set()); setSelNasc(new Set());
+      // Passo 6: o nascimento no SNCF já está gravado; falha no FOP só deixa o produto pendente de FOP.
+      setResultadoFop([]); setErroFop(null);
+      if (cods.length) {
+        try { await registrarEAvisar(await itensFop(cods), qc, setResultadoFop); }
+        catch (e) { setErroFop(formatError(e)); toast.error(`Produtos nasceram no SNCF, mas o registro no FOP falhou: ${formatError(e)}`); }
+      }
       await qc.invalidateQueries();
     } catch (e) { setErro(formatError(e)); } finally { setRodando(false); }
   };
   const problemas = previa ? problemasDaPrevia(previa.resposta, previa.lote) : [];
   return <div className="space-y-4">
+    <PendentesFopCatalogo />
+    {erroFop && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap break-words">Os produtos nasceram no SNCF, mas o registro no FOP falhou e eles ficaram pendentes de FOP: {erroFop}</AlertDescription></Alert>}
+    {resultadoFop.length > 0 && <div className="rounded-md border bg-card p-3 card-shadow"><ResultadoRegistroFop resultado={resultadoFop} /></div>}
     <div className="max-w-full overflow-hidden rounded-md border bg-card card-shadow"><div className="flex flex-wrap items-center justify-between gap-2 border-b p-3">
       <div><h3 className="font-semibold">Produtos novos · Códigos e EAN</h3><p className="text-xs text-muted-foreground">Vindos da planilha v2. O par código↔EAN e o inner vêm da aba Códigos e EAN; nada é gravado até você confirmar.</p></div>
       <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Conferir produtos novos" size="sm" disabled={vazio || rodando} onClick={() => void conferir()}><Sparkles className="mr-2 h-4 w-4" />{rodando && !previa ? 'Conferindo…' : `Conferir (${lote.p_produtos.length} nasc. · ${lote.p_cartorio.length} cartório)`}</BotaoGuardado>
@@ -64,7 +79,7 @@ export function ProdutosNovosCatalogo({ totais, leituraId }: { totais: unknown; 
     </TableBody></Table></div>
     {!!propostas.recusas.length && <div className="space-y-1"><p className="text-sm font-medium text-destructive">Recusas ({propostas.recusas.length})</p><div className="max-h-48 overflow-auto text-sm">{propostas.recusas.map((r, i) => <p key={i} className="border-b py-1"><span className="text-muted-foreground">{r.aba === 'codigos' ? 'Códigos e EAN' : 'Catálogo'} · linha {r.linha}</span> · <strong>{t(r.cod_cadastro)}</strong>{r.ean && <span className="font-mono"> · {r.ean}</span>} · <span className="text-destructive">{r.motivo}</span></p>)}</div></div>}
     <Dialog open={!!previa} onOpenChange={o => { if (!o && !rodando) { setPrevia(null); setErro(null); } }}><DialogContent className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>Prévia · {previa?.lote.p_produtos.length} nascimentos · {previa?.lote.p_cartorio.length} no cartório</DialogTitle></DialogHeader>
-      {previa?.resposta.pode_confirmar ? <p className="text-sm text-success">Prévia sem recusas. Ao confirmar, o cartório é atualizado e os produtos nascem num bloco só (se algo falhar, nada é gravado).</p> : <p className="text-sm text-destructive">A prévia recusou o lote. Corrija na planilha e leia de novo.</p>}
+      {previa?.resposta.pode_confirmar ? <p className="text-sm text-success">Prévia sem recusas. Ao confirmar, o cartório é atualizado e os produtos nascem num bloco só (se algo falhar, nada é gravado); em seguida eles são registrados no FOP.</p> : <p className="text-sm text-destructive">A prévia recusou o lote. Corrija na planilha e leia de novo.</p>}
       {!!problemas.length && <div className="max-h-60 space-y-1 overflow-auto text-sm">{problemas.map((p, i) => <p key={i} className={p.nivel === 'erro' ? 'text-destructive' : 'text-warning'}>{p.texto}</p>)}</div>}
       {erro && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap break-words">{erro}</AlertDescription></Alert>}
       <DialogFooter><Button variant="outline" disabled={rodando} onClick={() => { setPrevia(null); setErro(null); }}>Voltar</Button><Button disabled={rodando || !previa?.resposta.pode_confirmar} onClick={() => void confirmar()}>{rodando ? 'Gravando…' : 'Confirmar'}</Button></DialogFooter>

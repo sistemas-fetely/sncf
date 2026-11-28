@@ -820,6 +820,13 @@
       "when": 1795862581442,
       "tag": "0116_catalogo_origem_mensagem_orientada",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1795874205779,
+      "tag": "0117_produtos_itens_fop",
+      "breakpoints": true
     }
   ]
 }

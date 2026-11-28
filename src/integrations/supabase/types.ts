@@ -204704,6 +204704,7 @@ export type Database = {
       }
       fn_produto_sku_por_codigo: { Args: { p_codigo: string }; Returns: string }
       fn_produto_sku_troca_fop_processar: { Args: never; Returns: Json }
+      fn_produtos_itens_fop: { Args: { p_cods?: string[] }; Returns: Json }
       fn_prorrogacao_aplicar_antecipado: {
         Args: { p_titulo_id: string }
         Returns: Json
