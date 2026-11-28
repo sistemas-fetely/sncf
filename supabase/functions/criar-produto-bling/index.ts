@@ -5,7 +5,10 @@
 // cadastro por destino (vw_produto_destino_pendencia, regras em produto_campo_destino.exigencia —
 // nada de regra de campo escrita no código).
 // Nunca assume origem fiscal: é decisão humana/contador.
+// Repositório de Mídia · F3 (mapa-repositorio-midia-v1, 28/11/2026): com o campo fotos ativo e na_criacao em
+// produto_campo_destino (Bling), as fotos de produto_midia vão em midia.imagens.externas; sem foto, o campo é omitido.
 
+import { fotosEmLote } from "../_shared/bling/fotos-produto.ts";
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { carregarFaseDestino, situacaoPelaFase, FaseSemRegra, grupoTributarioDaFicha, carregarGruposBling } from "../_shared/bling/montar-valores-produto.ts";
@@ -202,6 +205,12 @@ serve(async (req) => {
 
 
     const faseDestino = await carregarFaseDestino(supabase, "Bling");
+    const { data: campoFotos, error: campoFotosErr } = await supabase.from("produto_campo_destino")
+      .select("campo").eq("sistema", "Bling").eq("campo", "fotos").eq("ativo", true).eq("na_criacao", true).maybeSingle();
+    if (campoFotosErr) return json({ ok: false, erro: `Falha ao ler produto_campo_destino (fotos): ${campoFotosErr.message}` }, 500);
+    const fotosPorCod = campoFotos
+      ? await fotosEmLote(supabase as any, skus.map((s) => porSku.get(s)?.cod_cadastro).filter(Boolean))
+      : new Map<string, string[]>();
     for (const sku of skus) {
       const f = porSku.get(sku);
       if (!f) {
@@ -274,6 +283,8 @@ serve(async (req) => {
           cest: texto(f.cest),
         },
       };
+      const fotos = fotosPorCod.get(f.cod_cadastro) ?? [];
+      if (fotos.length) payload.midia = { imagens: { externas: fotos.map((link) => ({ link })) } };
       criar.push({ sku, payload, grupo });
     }
 

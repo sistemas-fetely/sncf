@@ -1,3 +1,4 @@
+// Repositório de Mídia · F3 (mapa-repositorio-midia-v1, 28/11/2026): fotos de produto_midia entram como campo fotos.
 // BLING-MOTOR-UNICO-2 (26/11/2026): único motor que lê e escreve cadastro de produto no Bling.
 // Ações: diff (segundo plano encadeado) · incremental (diff só do que mudou) · aplicar (envio em massa só de sobrescreve=true)
 // · previa/corrigir (até 20 skus, ao vivo) · consultar · automatico (fila).
@@ -8,9 +9,10 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.25.76";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { carregarFaseDestino, carregarGruposBling } from "../_shared/bling/montar-valores-produto.ts";
-import { comparar, montarPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, camposDoBanco, camposEmMassa, enriquecerFonte, fiscaisPreservados, ROTULOS, type Contexto, type Diferenca } from "./regras.ts";
+import { comparar, montarPatch, restantesAposPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, camposDoBanco, camposEmMassa, enriquecerFonte, fiscaisPreservados, ROTULOS, type Contexto, type Diferenca } from "./regras.ts";
 import { resolverProduto, codigoBling } from "./resolver.ts";
 import { fonteComInner, innersEmLote } from "./inner.ts";
+import { fotosEmLote, fotosParaBling } from "../_shared/bling/fotos-produto.ts";
 import { portaCronPermite } from "./porta.ts";
 import { criarRitmo, emParalelo } from "./ritmo.ts";
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
@@ -95,12 +97,13 @@ Deno.serve(async (req) => {
       const xw = new Map((xwR.data ?? []).map((x: any) => [x.sku, x.bling_id_canonico]));
       const cache = new Map((cacheR.data ?? []).map((c: any) => [c.sku, c.bling_produto_id]));
       const inners = await innersEmLote(sb, [...fichas.values()]);
+      const fotos = await fotosEmLote(sb, [...fichas.values()].map((f: any) => f.cod_cadastro));
       await garantirGrupos();
       const escrever = body.acao === "corrigir";
       const resultados = await emParalelo(skus, PARALELO, async (sku) => {
         const ficha = fichas.get(sku);
         if (!ficha) return { sku, status: "erro", erro: "SKU não encontrado no SNCF." };
-        const fonte = enriquecerFonte({ ...ficha, ...inners.get(sku) }, faseDestino);
+        const fonte = enriquecerFonte({ ...ficha, ...inners.get(sku), fotos: fotos.get(ficha.cod_cadastro) ?? [] }, faseDestino);
         const avisos = [...fonte.avisos];
         try {
           const codigo = codigoBling(ficha);
@@ -122,7 +125,7 @@ Deno.serve(async (req) => {
           if (!depois?.id) throw new Error("PATCH concluído, mas leitura de confirmação vazia.");
           confirmarCodigo(depois, codigo, r.bling_id);
           const e2 = await espelho(r.bling_id, depois, true); if (e2) avisos.push(e2);
-          const restantes = comparar(fonte, depois, campos, ctx).filter((d) => pedidos.includes(d.campo));
+          const restantes = restantesAposPatch(fonte, depois, campos, ctx, pedidos, avisos);
           if (restantes.length) throw new Error(`Bling não confirmou os campos: ${restantes.map((d) => d.campo).join(", ")}`);
           fiscaisPreservados(r.detalhe, depois, pedidos);
           return { sku, bling_id: r.bling_id, status: "ok", aplicados: pedidos, avisos };
@@ -185,13 +188,14 @@ Deno.serve(async (req) => {
       const cacheR = await sb.from("bling_produtos_cache").select("sku,bling_produto_id").in("sku", linhas.map((p) => p.sku)); check(cacheR);
       const cache = new Map((cacheR.data ?? []).map((p: any) => [p.sku, p.bling_produto_id]));
       const inners = await innersEmLote(sb, linhas.map((p) => ({ ...p.fonte, sku: p.sku })));
+      const fotosLote = await fotosEmLote(sb, linhas.map((p) => p.fonte?.cod_cadastro));
       if (linhas.length) await garantirGrupos();
       const t0 = Date.now();
       const feitos = (await emParalelo(linhas, PARALELO, async (p) => {
         if (Date.now() - inicioMs > ORCAMENTO_MS) return null;
         try {
           const resolvido = await resolverProduto(codigoBling({ ...p.fonte, sku: p.sku }), cache.get(p.sku), p.bling_id, bl.get);
-          const fonte = { ...enriquecerFonte({ ...p.fonte, ...inners.get(p.sku) }, faseDestino), resolucao_bling: { ...resolvido.resolucao, unidade_medida: resolvido.detalhe?.dimensoes?.unidadeMedida ?? null } };
+          const fonte = { ...enriquecerFonte({ ...p.fonte, ...inners.get(p.sku), fotos: fotosLote.get(p.fonte?.cod_cadastro) ?? [] }, faseDestino), resolucao_bling: { ...resolvido.resolucao, unidade_medida: resolvido.detalhe?.dimensoes?.unidadeMedida ?? null } };
           const itens = resolvido.detalhe ? comparar(fonte, resolvido.detalhe, campos, ctx) : [];
           return { p, resolvido, fonte, itens, erro: null as string | null };
         } catch (e) { return { p, resolvido: null, fonte: p.fonte, itens: [], erro: msg(e) }; }
@@ -258,7 +262,7 @@ Deno.serve(async (req) => {
       try {
         const fonteR = await sb.from("sncf_produtos").select("*").eq("sku", sku).single(); check(fonteR);
         if (!fonteR.data?.ativo) throw new Error("Produto inativo no SNCF; refaça a comparação.");
-        const fonte = enriquecerFonte(await fonteComInner(sb, fonteR.data), faseDestino);
+        const fonte = enriquecerFonte({ ...(await fonteComInner(sb, fonteR.data)), fotos: fonteR.data.cod_cadastro ? await fotosParaBling(sb, fonteR.data.cod_cadastro) : [] }, faseDestino);
         if (!fonte.inner_confirmado && camposSelecionados.includes("itensPorCaixa")) {
           check(await sb.from("bling_produto_sync_item").update({ status: "ignorado", erro: "Inner não confirmado; nenhum envio deste campo.", atualizado_em: agora() }).eq("execucao_id", execucaoId).eq("sku", sku).eq("campo", "itensPorCaixa").eq("status", "pendente"));
           camposSelecionados = camposSelecionados.filter((c: string) => c !== "itensPorCaixa");
@@ -280,7 +284,9 @@ Deno.serve(async (req) => {
         }
         if (!detalhe?.id) throw new Error("PATCH concluído, mas leitura de confirmação vazia.");
         confirmarCodigo(detalhe, codigo, blingId);
-        const restantesBling = comparar(fonte, detalhe, campos, ctx).filter((i) => camposSelecionados.includes(i.campo));
+        const avisosFotos: string[] = [];
+        const restantesBling = restantesAposPatch(fonte, detalhe, campos, ctx, camposSelecionados, avisosFotos);
+        for (const a of avisosFotos) console.warn("Confirmação Bling:", sku, a);
         if (restantesBling.length) throw new Error(`Bling não confirmou os campos: ${restantesBling.map((i) => i.campo).join(", ")}`);
         fiscaisPreservados(atual, detalhe, camposSelecionados);
         const espelhoAviso = await espelho(blingId, detalhe, true);

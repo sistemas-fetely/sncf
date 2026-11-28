@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { comparar, montarPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, type Campo } from "./regras.ts";
+import { comparar, montarPatch, exigirEscrita, dentroDoFiltro, confirmarCodigo, restantesAposPatch, type Campo } from "./regras.ts";
 import { innerConfirmado } from "./inner.ts";
 const campos: Campo[] = [
   { campo: "pesoBruto", origem: "peso_g", destino: "pesoBruto", tipo: "numero", divisor: 1000 },
@@ -56,5 +56,25 @@ describe("Cadastro SNCF → Bling F1", () => {
     expect(() => confirmarCodigo({ id: 16668802225, codigo: "01886" }, "01886", "16668802225")).not.toThrow();
     expect(() => confirmarCodigo({ id: 16668802225, codigo: "OUTRO" }, "01886", "16668802225")).toThrow("Vínculo Bling mudou");
     expect(() => confirmarCodigo({ id: 1, codigo: "01886" }, "01886", "16668802225")).toThrow("Vínculo Bling mudou");
+  });
+});describe("Repositório de Mídia F3 — fotos no Bling", () => {
+  const cFotos: Campo[] = [{ campo: "fotos", origem: "fotos", destino: "midia.imagens.externas", tipo: "fotos" }];
+  const bling = (links: string[]) => ({ midia: { imagens: { externas: links.map((link) => ({ link })) } } });
+  test("mesmas fotos na mesma ordem: sem diferença", () => { expect(comparar({ fotos: ["a", "b"] }, bling(["a", "b"]), cFotos)).toEqual([]); });
+  test("ordem ou links diferentes: diferença e patch com externas", () => {
+    const fonte = { fotos: ["a", "b"] };
+    const d = comparar(fonte, bling(["b", "a"]), cFotos);
+    expect(d.map((x) => x.campo)).toEqual(["fotos"]);
+    expect(d[0].valor_sncf).toBe("2 fotos · a");
+    expect(montarPatch(d, fonte)).toEqual({ midia: { imagens: { externas: [{ link: "a" }, { link: "b" }] } } });
+  });
+  test("SNCF sem foto: nunca diferença nem patch", () => {
+    expect(comparar({ fotos: [] }, bling(["x"]), cFotos)).toEqual([]);
+    expect(montarPatch([{ campo: "fotos", destino: "midia.imagens.externas", valor_sncf: "x", valor_bling: null }], { fotos: [] })).toEqual({});
+  });
+  test("links reescritos pelo Bling com mesma quantidade: aceita com aviso", () => {
+    const avisos: string[] = [];
+    expect(restantesAposPatch({ fotos: ["a", "b"] }, bling(["cdn1", "cdn2"]), cFotos, {}, ["fotos"], avisos)).toEqual([]);
+    expect(avisos.length).toBe(1);
   });
 });

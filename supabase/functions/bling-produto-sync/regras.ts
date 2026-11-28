@@ -1,10 +1,11 @@
+// Motor de cadastro Bling. Repositório de Mídia · F3 (mapa-repositorio-midia-v1): campo fotos (midia.imagens.externas) vindo de produto_midia.
 import { grupoIdDoCard, situacaoPelaFase, grupoTributarioDaFicha, FaseSemRegra, type MapaFaseDestino } from "../_shared/bling/montar-valores-produto.ts";
 import { alinharOrigemCard } from "../_shared/bling/origem-card.ts";
-export type Campo = { campo: string; origem: string; destino: string; tipo: "numero" | "texto" | "digitos" | "grupo" | "origem"; divisor?: number; tolerancia?: number; sobrescreve?: boolean };
+export type Campo = { campo: string; origem: string; destino: string; tipo: "numero" | "texto" | "digitos" | "grupo" | "origem" | "fotos"; divisor?: number; tolerancia?: number; sobrescreve?: boolean };
 export type Diferenca = { campo: string; destino: string; valor_sncf: unknown; valor_bling: unknown };
 export type Grupos = { nomePorId: Map<number, string>; idPorNome: Map<string, number> };
 export type Contexto = { grupos?: Grupos };
-const DESTINOS = new Set(["nome", "preco", "situacao", "pesoBruto", "pesoLiquido", "dimensoes.altura", "dimensoes.largura", "dimensoes.profundidade", "dimensoes.unidadeMedida", "gtin", "gtinEmbalagem", "tributacao.ncm", "tributacao.cest", "tributacao.grupoProduto", "tributacao.origem", "marca", "itensPorCaixa"]);
+const DESTINOS = new Set(["nome", "preco", "situacao", "pesoBruto", "pesoLiquido", "dimensoes.altura", "dimensoes.largura", "dimensoes.profundidade", "dimensoes.unidadeMedida", "gtin", "gtinEmbalagem", "tributacao.ncm", "tributacao.cest", "tributacao.grupoProduto", "tributacao.origem", "marca", "itensPorCaixa", "midia.imagens.externas"]);
 
 // produto_campo_destino.campo (sistema Bling) → campo(s) do motor. O BANCO decide quais entram (ativo + na_correcao)
 // e quais vão no envio em massa (sobrescreve). Exceções fixas documentadas:
@@ -25,11 +26,12 @@ export const MOTOR_POR_CAMPO: Record<string, Campo[]> = {
   nome_operacional: [{ campo: "nome", origem: "nome_operacional", destino: "nome", tipo: "texto" }],
   preco_varejo: [{ campo: "preco", origem: "preco_varejo", destino: "preco", tipo: "numero", tolerancia: 0.005 }],
   fase: [{ campo: "situacao", origem: "situacao_esperada", destino: "situacao", tipo: "texto" }],
+  fotos: [{ campo: "fotos", origem: "fotos", destino: "midia.imagens.externas", tipo: "fotos" }],
   grupo_tributario: [{ campo: "grupoTributario", origem: "grupo_esperado", destino: "tributacao.grupoProduto", tipo: "grupo" }],
 };
 export const ORIGEM_FISCAL: Campo = { campo: "origem", origem: "origem_fisc", destino: "tributacao.origem", tipo: "origem", sobrescreve: true };
 const FORA_DO_MOTOR = new Set(["sku", "origem_fisc"]);
-export const ROTULOS: Record<string, string> = { nome: "Nome", preco: "Preço", situacao: "Situação do card", grupoTributario: "Grupo tributário", origem: "Origem fiscal", pesoBruto: "Peso bruto (kg)", pesoLiquido: "Peso líquido (kg)", altura: "Altura", largura: "Largura", profundidade: "Profundidade", unidadeMedida: "Unidade das medidas", gtin: "GTIN", gtinEmbalagem: "DUN (GTIN da caixa)", ncm: "NCM", cest: "CEST", marca: "Marca", itensPorCaixa: "Itens por caixa" };
+export const ROTULOS: Record<string, string> = { nome: "Nome", preco: "Preço", situacao: "Situação do card", grupoTributario: "Grupo tributário", origem: "Origem fiscal", pesoBruto: "Peso bruto (kg)", pesoLiquido: "Peso líquido (kg)", altura: "Altura", largura: "Largura", profundidade: "Profundidade", unidadeMedida: "Unidade das medidas", gtin: "GTIN", gtinEmbalagem: "DUN (GTIN da caixa)", ncm: "NCM", cest: "CEST", marca: "Marca", itensPorCaixa: "Itens por caixa", fotos: "Fotos" };
 
 export type LinhaCampoDestino = { campo: string; sobrescreve: boolean | null };
 export function camposDoBanco(linhas: LinhaCampoDestino[]): { campos: Campo[]; avisos: string[] } {
@@ -68,12 +70,25 @@ const nomeGrupo = (bling: Record<string, any>, ctx: Contexto) => {
   if (!ctx.grupos) throw new Error("Grupos tributários do Bling não carregados.");
   const id = grupoIdDoCard(bling); return id == null ? null : ctx.grupos.nomePorId.get(id) ?? `#${id}`;
 };
+const linksFotos = (v: unknown): string[] => Array.isArray(v) ? v.map(String).filter((l) => l.trim() !== "") : [];
+export function fotosDoBling(bling: Record<string, any>): string[] {
+  const ext = bling?.midia?.imagens?.externas;
+  return Array.isArray(ext) ? ext.map((e: any) => String(e?.link ?? "")).filter(Boolean) : [];
+}
+export const mesmasFotos = (a: string[], b: string[]) => a.length === b.length && a.every((l, i) => l === b[i]);
+export const resumoFotos = (l: string[]) => l.length ? `${l.length} foto${l.length > 1 ? "s" : ""} · ${l[0]}` : "sem fotos";
 export function comparar(fonte: Record<string, any>, bling: Record<string, any>, campos: Campo[], ctx: Contexto = {}): Diferenca[] {
   const diferencas = campos.flatMap((c): Diferenca[] => {
     if (!DESTINOS.has(c.destino)) throw new Error(`Campo fora do motor: ${c.destino}`);
     if (c.tipo === "origem") {
       const r = alinharOrigemCard(fonte.origem_fisc, bling);
       return r.tipo === "divergencia" ? [{ campo: c.campo, destino: c.destino, valor_sncf: Number(r.para), valor_bling: r.de }] : [];
+    }
+    if (c.tipo === "fotos") {
+      const sncf = linksFotos(fonte.fotos);
+      if (!sncf.length) return []; // SNCF sem foto: nunca apaga foto do Bling.
+      const atual = fotosDoBling(bling);
+      return mesmasFotos(sncf, atual) ? [] : [{ campo: c.campo, destino: c.destino, valor_sncf: resumoFotos(sncf), valor_bling: resumoFotos(atual) }];
     }
     if (c.tipo === "grupo") {
       const esperado = fonte.grupo_esperado == null || String(fonte.grupo_esperado).trim() === "" ? null : String(fonte.grupo_esperado).trim();
@@ -115,6 +130,11 @@ export function montarPatch(itens: Diferenca[], fonte: Record<string, any> = {},
       if (!id) throw new Error(`Grupo tributário "${i.valor_sncf}" não existe no Bling.`);
       patch.tributacao ??= {}; patch.tributacao.grupoProduto = { id }; continue;
     }
+    if (i.destino === "midia.imagens.externas") {
+      const fotos = linksFotos(fonte.fotos);
+      if (fotos.length) patch.midia = { imagens: { externas: fotos.map((link) => ({ link })) } };
+      continue;
+    }
     if (i.destino === "tributacao.origem") { patch.tributacao ??= {}; patch.tributacao.origem = Number(i.valor_sncf); continue; }
     if (i.valor_sncf == null || String(i.valor_sncf).trim() === "" || Number(i.valor_sncf) === 0) continue;
     const [grupo, campo] = i.destino.split(".");
@@ -132,6 +152,16 @@ export function montarPatch(itens: Diferenca[], fonte: Record<string, any> = {},
   }
   if (patch.tributacao && atual?.tributacao) patch.tributacao = { ...atual.tributacao, ...patch.tributacao };
   return patch;
+}
+/** Confirmação pós-PATCH: se o Bling reescreveu os links das fotos (CDN própria), aceita pela quantidade (a ordem é a
+ *  da lista enviada) e registra aviso; demais campos seguem a comparação normal. */
+export function restantesAposPatch(fonte: Record<string, any>, depois: Record<string, any>, campos: Campo[], ctx: Contexto, pedidos: string[], avisos: string[]): Diferenca[] {
+  return comparar(fonte, depois, campos, ctx).filter((d) => pedidos.includes(d.campo)).filter((d) => {
+    if (d.campo !== "fotos") return true;
+    const n = linksFotos(fonte.fotos).length, m = fotosDoBling(depois).length;
+    if (n === m) { avisos.push(`Fotos: o Bling reescreveu os links (${m} fotos); conferido pela quantidade e ordem.`); return false; }
+    return true;
+  });
 }
 /** Após o PATCH: ncm, cest, origem e grupo não podem mudar sem terem sido pedidos. */
 export function fiscaisPreservados(antes: Record<string, any>, depois: Record<string, any>, pedidos: string[]): void {
