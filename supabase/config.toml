@@ -204,3 +204,6 @@ verify_jwt = false
 
 [functions.midia-espelhar]
 verify_jwt = false
+
+[functions.midia-video-espelhar]
+verify_jwt = false
