@@ -1,11 +1,11 @@
-// Motor de cadastro Bling. Repositório de Mídia · F3 (mapa-repositorio-midia-v1): campo fotos (midia.imagens.externas) vindo de produto_midia.
+// Motor de cadastro Bling. Repositório de Mídia · F3 (mapa-repositorio-midia-v1): campo fotos (escrita em midia.imagens.imagensURL, leitura em externas) vindo de produto_midia.
 import { grupoIdDoCard, situacaoPelaFase, grupoTributarioDaFicha, FaseSemRegra, type MapaFaseDestino } from "../_shared/bling/montar-valores-produto.ts";
 import { alinharOrigemCard } from "../_shared/bling/origem-card.ts";
 export type Campo = { campo: string; origem: string; destino: string; tipo: "numero" | "texto" | "digitos" | "grupo" | "origem" | "fotos"; divisor?: number; tolerancia?: number; sobrescreve?: boolean };
 export type Diferenca = { campo: string; destino: string; valor_sncf: unknown; valor_bling: unknown };
 export type Grupos = { nomePorId: Map<number, string>; idPorNome: Map<string, number> };
 export type Contexto = { grupos?: Grupos };
-const DESTINOS = new Set(["nome", "preco", "situacao", "pesoBruto", "pesoLiquido", "dimensoes.altura", "dimensoes.largura", "dimensoes.profundidade", "dimensoes.unidadeMedida", "gtin", "gtinEmbalagem", "tributacao.ncm", "tributacao.cest", "tributacao.grupoProduto", "tributacao.origem", "marca", "itensPorCaixa", "midia.imagens.externas"]);
+const DESTINOS = new Set(["nome", "preco", "situacao", "pesoBruto", "pesoLiquido", "dimensoes.altura", "dimensoes.largura", "dimensoes.profundidade", "dimensoes.unidadeMedida", "gtin", "gtinEmbalagem", "tributacao.ncm", "tributacao.cest", "tributacao.grupoProduto", "tributacao.origem", "marca", "itensPorCaixa", "midia.imagens.externas", "midia.imagens.imagensURL"]);
 
 // produto_campo_destino.campo (sistema Bling) → campo(s) do motor. O BANCO decide quais entram (ativo + na_correcao)
 // e quais vão no envio em massa (sobrescreve). Exceções fixas documentadas:
@@ -72,8 +72,10 @@ const nomeGrupo = (bling: Record<string, any>, ctx: Contexto) => {
 };
 const linksFotos = (v: unknown): string[] => Array.isArray(v) ? v.map(String).filter((l) => l.trim() !== "") : [];
 export function fotosDoBling(bling: Record<string, any>): string[] {
-  const ext = bling?.midia?.imagens?.externas;
-  return Array.isArray(ext) ? ext.map((e: any) => String(e?.link ?? "")).filter(Boolean) : [];
+  // Leitura: o Bling devolve link externo em externas[]; imagensURL[] é fallback.
+  const ler = (v: unknown) => Array.isArray(v) ? v.map((e: any) => String(e?.link ?? "")).filter(Boolean) : [];
+  const ext = ler(bling?.midia?.imagens?.externas);
+  return ext.length ? ext : ler(bling?.midia?.imagens?.imagensURL);
 }
 export const mesmasFotos = (a: string[], b: string[]) => a.length === b.length && a.every((l, i) => l === b[i]);
 export const resumoFotos = (l: string[]) => l.length ? `${l.length} foto${l.length > 1 ? "s" : ""} · ${l[0]}` : "sem fotos";
@@ -130,9 +132,9 @@ export function montarPatch(itens: Diferenca[], fonte: Record<string, any> = {},
       if (!id) throw new Error(`Grupo tributário "${i.valor_sncf}" não existe no Bling.`);
       patch.tributacao ??= {}; patch.tributacao.grupoProduto = { id }; continue;
     }
-    if (i.destino === "midia.imagens.externas") {
+    if (i.destino === "midia.imagens.externas" || i.destino === "midia.imagens.imagensURL") {
       const fotos = linksFotos(fonte.fotos);
-      if (fotos.length) patch.midia = { imagens: { externas: fotos.map((link) => ({ link })) } };
+      if (fotos.length) patch.midia = { imagens: { imagensURL: fotos.map((link) => ({ link })) } };
       continue;
     }
     if (i.destino === "tributacao.origem") { patch.tributacao ??= {}; patch.tributacao.origem = Number(i.valor_sncf); continue; }

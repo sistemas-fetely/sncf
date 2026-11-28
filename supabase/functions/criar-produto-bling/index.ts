@@ -6,7 +6,7 @@
 // nada de regra de campo escrita no código).
 // Nunca assume origem fiscal: é decisão humana/contador.
 // Repositório de Mídia · F3 (mapa-repositorio-midia-v1, 28/11/2026): com o campo fotos ativo e na_criacao em
-// produto_campo_destino (Bling), as fotos de produto_midia vão em midia.imagens.externas; sem foto, o campo é omitido.
+// produto_campo_destino (Bling), as fotos de produto_midia vão em midia.imagens.imagensURL (campo de escrita da API v3); sem foto, o campo é omitido.
 
 import { fotosEmLote } from "../_shared/bling/fotos-produto.ts";
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
@@ -284,7 +284,7 @@ serve(async (req) => {
         },
       };
       const fotos = fotosPorCod.get(f.cod_cadastro) ?? [];
-      if (fotos.length) payload.midia = { imagens: { externas: fotos.map((link) => ({ link })) } };
+      if (fotos.length) payload.midia = { imagens: { imagensURL: fotos.map((link) => ({ link })) } };
       criar.push({ sku, payload, grupo });
     }
 
