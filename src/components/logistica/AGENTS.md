@@ -1,0 +1,1 @@
+- Freight cost view math lives only in tested `src/lib/logistica/visaoCusto.ts`; conciliation is per invoice via `confirmar_match_despesa`, never batch.
