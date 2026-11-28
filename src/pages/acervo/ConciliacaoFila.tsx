@@ -464,7 +464,7 @@ export default function ConciliacaoFila() {
   const seletorConciliacao = <TabsList className="h-auto max-w-full flex-wrap justify-start" aria-label="Fluxo da conciliação">
     <TabsTrigger value="novos" className="gap-2">Novos ·<Badge variant="secondary">{catalogo.pronto ? contadores.novos : '…'}</Badge></TabsTrigger>
     <TabsTrigger value="ajustes" className="gap-2">Ajustes ·<Badge variant="secondary">{catalogo.pronto ? contadores.ajustes : '…'}</Badge></TabsTrigger>
-    <TabsTrigger value="saida" className="gap-2">Saída · Destinos ·<Badge variant="secondary">{fila.isSuccess ? contadores.saida : '…'}</Badge></TabsTrigger>
+    <TabsTrigger value="saida" className="gap-2">Divergências ·<Badge variant="secondary">{fila.isSuccess ? contadores.saida : '…'}</Badge></TabsTrigger>
   </TabsList>;
 
   return <TooltipProvider delayDuration={200}><PageShell>
@@ -496,7 +496,7 @@ export default function ConciliacaoFila() {
       {aba === 'saida' ? seletorConciliacao : <AtualizacaoCatalogoDia seletor={seletorConciliacao} />}
       {catalogo.erro && <Alert variant="destructive"><AlertDescription>Não foi possível consultar as pendências da planilha: {catalogo.erro.message}</AlertDescription></Alert>}
       <TabsContent value="saida" className="space-y-4">
-        <p className="text-sm text-muted-foreground">O que está diferente entre o sistema e os canais (Bling, XPM, Shopify).</p>
+        <p className="text-sm text-muted-foreground">O que já está cadastrado no Bling, na XPM e no Shopify e ficou diferente do SNCF.</p>
     {erro && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar a fila de conciliação. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
 
     <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores por onde resolver">
