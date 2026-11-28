@@ -41,7 +41,7 @@ const propostas: PropostasCatalogo = {
 describe('propostas ainda não confirmadas', () => {
   it('conta 207 nascimentos mais 1 reserva e mantém 1 ajuste', () => {
     const p = propostasPendentes(propostas, new Set(), []);
-    expect(contadoresConciliacao({ propostas: p }, 1, 0)).toEqual({ novos: 208, ajustes: 1, saida: 0 });
+    expect(contadoresConciliacao({ propostas: p }, 1, 0)).toMatchObject({ novos: 208, ajustes: 1, saida: 0 });
   });
   it('não conta nascimento cujo código já existe', () => {
     expect(propostasPendentes(propostas, new Set(['0']), []).nascimentos).toHaveLength(206);

@@ -35,6 +35,8 @@ import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
 // 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro
 import { VarreduraSistemaCard } from "@/components/acervo/ConsistenciaBlingCard";
 import { BlingSyncControle } from "@/components/acervo/CadastroBlingSync";
+import { canaisDaSuperficie, type LinhaPendencia } from "@/lib/acervo/conciliacaoSuperficie";
+import { PendenciasCadastroConciliacao } from "@/components/acervo/PendenciasCadastroConciliacao";
 import { agruparPorProduto, ordenarProdutos, regrasDoProduto, resumoCampos, contarPorCanal, type ProdutoFila } from "@/lib/acervo/conciliacaoProdutos";
 import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
 // 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
@@ -257,13 +259,32 @@ export default function ConciliacaoFila() {
     },
   });
 
-  const carregando = fila.isLoading || sistemasDim.isLoading;
+  // UMA-PERGUNTA-POR-VISTA (28/11/2026): a superfície de cada regra vem de
+  // divergencia_regra.superficie; canal só vira card se tem regra em Divergências.
+  const regrasSup = useQuery({
+    queryKey: ["divergencia-regra-superficie"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("divergencia_regra" as never).select("slug, onde_resolver, superficie");
+      if (error) throw error;
+      return (data ?? []) as { slug: string; onde_resolver: string | null; superficie: string | null }[];
+    },
+  });
+  const pendCad = useQuery({
+    queryKey: ["conciliacao-pendencias-cadastro"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_conciliacao_pendencias_cadastro" as never);
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error("fn_conciliacao_pendencias_cadastro não devolveu uma lista.");
+      return data as unknown as LinhaPendencia[];
+    },
+  });
+  const carregando = fila.isLoading || sistemasDim.isLoading || regrasSup.isLoading;
   const erro = fila.error;
   const atualizando = fila.isFetching;
 
   const linhas = useMemo(() => fila.data ?? [], [fila.data]);
   const aba = resolverAbaConciliacao(sp.get('aba'), location.hash, catalogo.pendencias, linhas.length);
-  const contadores = contadoresConciliacao(estadoLeituraCatalogo(catalogo.ultima.data, catalogo.referencia.data).totais, catalogo.pendencias, linhas.length);
+  const contadores = contadoresConciliacao(estadoLeituraCatalogo(catalogo.ultima.data, catalogo.referencia.data).totais, catalogo.pendencias, linhas.length, pendCad.data?.length ?? 0);
   const setAba = (valor: string) => {
     if (valor !== 'novos' && valor !== 'ajustes' && valor !== 'saida') return;
     const novo = new URLSearchParams(sp);
@@ -329,7 +350,7 @@ export default function ConciliacaoFila() {
       const c = contagem.get(onde);
       return { n: c?.produtos ?? 0, divergencias: c?.divergencias ?? 0, quebra };
     };
-    const dim = (sistemasDim.data ?? []).slice().sort((a, b) => (a.ordem ?? 9999) - (b.ordem ?? 9999));
+    const dim = canaisDaSuperficie(sistemasDim.data ?? [], regrasSup.data ?? []).sort((a, b) => (a.ordem ?? 9999) - (b.ordem ?? 9999));
     const dimSlugs = new Set(dim.map(d => d.slug));
     const principais = dim.map(d => ({ onde: d.slug, label: d.nome, cor: d.cor ?? null, ...medir(d.slug) }));
     const vistos = new Set(linhas.map(l => l.onde_resolver ?? "__sem__"));
@@ -338,7 +359,7 @@ export default function ConciliacaoFila() {
       .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "pt-BR"));
     return [...principais, ...fallback];
   // aplica depende dos parâmetros da URL
-  }, [linhas, sp, sistemasDim.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [linhas, sp, sistemasDim.data, regrasSup.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const facet = (g: Grupo, ops: { valor: string; rotulo: string }[], chave: (l: FilaLinha) => string) =>
     ops.map(o => ({ ...o, contagem: linhas.filter(l => aplica(l, g) && chave(l) === o.valor).length }));
@@ -486,7 +507,8 @@ export default function ConciliacaoFila() {
 
   const seletorConciliacao = <TabsList className="h-auto max-w-full flex-wrap justify-start" aria-label="Fluxo da conciliação">
     <TabsTrigger value="novos" className="gap-2">Novos ·<Badge variant="secondary">{catalogo.pronto ? contadores.novos : '…'}</Badge></TabsTrigger>
-    <TabsTrigger value="ajustes" className="gap-2">Ajustes ·<Badge variant="secondary">{catalogo.pronto ? contadores.ajustes : '…'}</Badge></TabsTrigger>
+    <Tooltip><TooltipTrigger asChild><TabsTrigger value="ajustes" className="gap-2">Ajustes ·<Badge variant="secondary">{catalogo.pronto && pendCad.isSuccess ? contadores.ajustes : '…'}</Badge></TabsTrigger></TooltipTrigger>
+      <TooltipContent>{contadores.ajustesMudancas} mudança(s) da planilha · {contadores.ajustesPendencias} pendência(s) de cadastro</TooltipContent></Tooltip>
     <TabsTrigger value="saida" className="gap-2">Divergências ·<Badge variant="secondary">{fila.isSuccess ? contadores.saida : '…'}</Badge></TabsTrigger>
   </TabsList>;
 
@@ -512,10 +534,10 @@ export default function ConciliacaoFila() {
     <ProdutoAbas />
 
     <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-      {aba === 'saida' ? seletorConciliacao : <AtualizacaoCatalogoDia seletor={seletorConciliacao} />}
+      {aba === 'saida' ? seletorConciliacao : <AtualizacaoCatalogoDia seletor={seletorConciliacao} pendenciasCadastro={<PendenciasCadastroConciliacao linhas={pendCad.data ?? []} carregando={pendCad.isLoading} erro={pendCad.error as Error | null} />} />}
       {catalogo.erro && <Alert variant="destructive"><AlertDescription>Não foi possível consultar as pendências da planilha: {catalogo.erro.message}</AlertDescription></Alert>}
       <TabsContent value="saida" className="space-y-4">
-        <p className="text-sm text-muted-foreground">O que já está cadastrado no Bling, na XPM e no Shopify e ficou diferente do SNCF.</p>
+        <p className="text-sm text-muted-foreground">O que já está cadastrado no Bling, na XPM, no Shopify e no Mercado Livre e ficou diferente do SNCF.</p>
     {erro && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar a fila de conciliação. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
 
     <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores por onde resolver">

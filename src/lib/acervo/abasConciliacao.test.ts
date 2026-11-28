@@ -10,9 +10,9 @@ describe('abas da conciliação', () => {
   it('respeita URL de novos mesmo com pendências e hash legado', () => expect(resolverAbaConciliacao('novos', '#atualizacao-do-dia', 45, 20)).toBe('novos'));
   it('respeita URL de ajustes', () => expect(resolverAbaConciliacao('ajustes', '', 0, 20)).toBe('ajustes'));
   it('conta 207 nascimentos mais uma reserva sem somar recusas', () => {
-    expect(contadoresConciliacao({ propostas: { nascimentos: Array(207).fill({}), cartorio: [{}], recusas: [{}, {}] } }, 45, 20)).toEqual({ novos: 208, ajustes: 45, saida: 20 });
+    expect(contadoresConciliacao({ propostas: { nascimentos: Array(207).fill({}), cartorio: [{}], recusas: [{}, {}] } }, 45, 20)).toMatchObject({ novos: 208, ajustes: 45, saida: 20 });
   });
   it('v1 não tem propostas novas e preserva contadores de ajustes e saída', () => {
-    expect(contadoresConciliacao({}, 37, 0)).toEqual({ novos: 0, ajustes: 37, saida: 0 });
+    expect(contadoresConciliacao({}, 37, 0)).toMatchObject({ novos: 0, ajustes: 37, saida: 0 });
   });
 });

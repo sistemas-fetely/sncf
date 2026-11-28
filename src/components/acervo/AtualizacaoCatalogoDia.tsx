@@ -37,7 +37,7 @@ const texto = (v: unknown) => v == null ? '—' : v === 'true' || v === true ? '
 const TAMANHO_PAGINA = 25;
 type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[]; leituraId?: string };
 
-export function AtualizacaoCatalogoDia({ seletor }: { seletor?: ReactNode }) {
+export function AtualizacaoCatalogoDia({ seletor, pendenciasCadastro }: { seletor?: ReactNode; pendenciasCadastro?: ReactNode }) {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useEstadoTela({ bloco: 'todos', dono: 'todos', natureza: 'todos', fase: 'todos', colecoes: '', linhas: '', campo: 'todos', tipo: 'todos', busca: '', pagina: 1 }, { prefixo: 'catalogo', replaceKeys: ['busca'] });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -310,6 +310,7 @@ export function AtualizacaoCatalogoDia({ seletor }: { seletor?: ReactNode }) {
     <TabsContent value="ajustes" className="space-y-4">
     <p className="text-sm text-muted-foreground">O que o time mudou na planilha em produtos que já existem.</p>
     <ColecoesNovasCatalogo novas={novasColecoes} />
+    {pendenciasCadastro}
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar código ou nome" placeholder="Código ou nome comercial" className="pl-9" value={filtro.busca} onChange={e => setFiltro({ busca: e.target.value, pagina: 1 })} /></div>
       <FiltroMultiSelect label="Coleção" opcoes={ordenar(oColecao, listaFiltro(filtro.colecoes))} selecionados={listaFiltro(filtro.colecoes)} rotulo={v => v + cont(oColecao, v)} onChange={v => setFiltro({ colecoes: juntarFiltro(v), pagina: 1 })} className="h-10" />

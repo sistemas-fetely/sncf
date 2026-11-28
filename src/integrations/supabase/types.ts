@@ -39280,6 +39280,7 @@ export type Database = {
           rota_resolver: string | null
           sistema: string
           slug: string
+          superficie: string
         }
         Insert: {
           ativo?: boolean
@@ -39294,6 +39295,7 @@ export type Database = {
           rota_resolver?: string | null
           sistema: string
           slug: string
+          superficie?: string
         }
         Update: {
           ativo?: boolean
@@ -39308,6 +39310,7 @@ export type Database = {
           rota_resolver?: string | null
           sistema?: string
           slug?: string
+          superficie?: string
         }
         Relationships: [
           {
@@ -39315,6 +39318,13 @@ export type Database = {
             columns: ["camada"]
             isOneToOne: false
             referencedRelation: "divergencia_camada_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "divergencia_regra_superficie_fkey"
+            columns: ["superficie"]
+            isOneToOne: false
+            referencedRelation: "divergencia_superficie_dim"
             referencedColumns: ["slug"]
           },
         ]
@@ -39385,6 +39395,30 @@ export type Database = {
         Update: {
           ativo?: boolean
           cor?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      divergencia_superficie_dim: {
+        Row: {
+          ativo: boolean
+          descricao: string | null
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao?: string | null
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string | null
           nome?: string
           ordem?: number
           slug?: string
@@ -139201,6 +139235,44 @@ export type Database = {
           },
         ]
       }
+      vw_conciliacao_fila_todas: {
+        Row: {
+          bling_codigo: string | null
+          camada: string | null
+          camada_nome: string | null
+          camada_ordem: number | null
+          campo_destino: string | null
+          campo_matriz: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          consequencia: string | null
+          fase: string | null
+          grupo: string | null
+          handle: string | null
+          linha_id: string | null
+          nome_comercial: string | null
+          o_que_fazer: string | null
+          onde_resolver: string | null
+          qtd_divergencias: number | null
+          regra: string | null
+          regra_nome: string | null
+          rota_resolver: string | null
+          sistema: string | null
+          sku: string | null
+          valor_destino: string | null
+          valor_matriz: string | null
+          xpm_codigo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divergencia_regra_camada_fkey"
+            columns: ["camada"]
+            isOneToOne: false
+            referencedRelation: "divergencia_camada_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       vw_conciliacao_furos: {
         Row: {
           banco: string | null
@@ -139307,6 +139379,44 @@ export type Database = {
           valor: number | null
         }
         Relationships: []
+      }
+      vw_conciliacao_pendencia_cadastro: {
+        Row: {
+          bling_codigo: string | null
+          camada: string | null
+          camada_nome: string | null
+          camada_ordem: number | null
+          campo_destino: string | null
+          campo_matriz: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          consequencia: string | null
+          fase: string | null
+          grupo: string | null
+          handle: string | null
+          linha_id: string | null
+          nome_comercial: string | null
+          o_que_fazer: string | null
+          onde_resolver: string | null
+          qtd_divergencias: number | null
+          regra: string | null
+          regra_nome: string | null
+          rota_resolver: string | null
+          sistema: string | null
+          sku: string | null
+          valor_destino: string | null
+          valor_matriz: string | null
+          xpm_codigo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divergencia_regra_camada_fkey"
+            columns: ["camada"]
+            isOneToOne: false
+            referencedRelation: "divergencia_camada_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       vw_conciliacao_resumo: {
         Row: {
@@ -167960,13 +168070,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
@@ -167975,13 +168078,20 @@ export type Database = {
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_origem_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
@@ -170986,14 +171096,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -192038,14 +192148,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -204096,6 +204206,7 @@ export type Database = {
         Returns: Json
       }
       fn_conciliacao_fila: { Args: never; Returns: Json }
+      fn_conciliacao_pendencias_cadastro: { Args: never; Returns: Json }
       fn_conciliar_cartao_lote_auto: {
         Args: { p_dry_run?: boolean }
         Returns: Json

@@ -7,7 +7,11 @@ export function resolverAbaConciliacao(aba: string | null, hash: string, pendenc
   return divergencias > 0 && pendencias === 0 ? 'saida' : 'ajustes';
 }
 
-export function contadoresConciliacao(totais: unknown, pendencias: number, divergencias: number) {
+export function contadoresConciliacao(totais: unknown, pendencias: number, divergencias: number, pendenciasCadastro = 0) {
   const propostas = lerPropostas(totais);
-  return { novos: (propostas?.nascimentos.length ?? 0) + (propostas?.cartorio.length ?? 0), ajustes: pendencias, saida: divergencias };
+  return {
+    novos: (propostas?.nascimentos.length ?? 0) + (propostas?.cartorio.length ?? 0),
+    ajustes: pendencias + pendenciasCadastro, ajustesMudancas: pendencias, ajustesPendencias: pendenciasCadastro,
+    saida: divergencias,
+  };
 }
