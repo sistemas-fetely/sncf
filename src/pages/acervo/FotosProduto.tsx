@@ -1,694 +1,250 @@
-// FOTOS DO PRODUTO — /vendas/produto/fotos (22/09/2026)
-// Base PRÓPRIA de fotos do SNCF, por cod_cadastro. Antes a foto vinha emprestada
-// do Shopify (só B2C) ou do FOP (coleção+cor). Nada aqui grava no FOP.
-// O nome do arquivo é a chave: sequência de 5 dígitos começando em 0.
-// Conferência antes de gravar; produto que não existe em sncf_produtos não sobe;
-// troca de principal nunca apaga a foto anterior — ela fica no histórico.
-import { useMemo, useRef, useState } from "react";
+// FOTOS E VÍDEOS — /vendas/produto/fotos · gestão do Repositório de Mídia (mapa-repositorio-midia-v1, 28/11/2026).
+// Só leitura: vw_midia_resumo, vw_midia_produto_gestao, produto_midia (galeria) e vw_midia_sem_vinculo.
+// A base própria (envio manual) segue intocada, numa seção recolhível no fim.
+import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { ChevronDown, Download, ExternalLink, Image as ImageIcon, MoreHorizontal, Video } from "lucide-react";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom } from "@/lib/navegacao";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Download, Image as ImageIcon, Star, Trash2, Upload, X } from "lucide-react";
-
-import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { PageShell } from "@/components/layout/PageShell";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ProdutoAbas } from "@/components/produto/ProdutoAbas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtDataHora } from "@/lib/data";
 import { rawMessage } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
-import {
-  EXTENSOES_ACEITAS, LIMITE_BYTES, ORIGENS_SUGERIDAS,
-  enviarFoto, extensaoValida, extrairCodCadastro,
-  useExcluirFoto, useFotosProduto, useResumoFotos, useTornarPrincipal,
-  type FotoLinha,
-} from "@/hooks/useFotosProduto";
+import { useMidiaGaleria, useMidiaProdutos, useMidiaResumo, useVariantesSemVinculo, useContagemSemVinculo } from "@/hooks/useMidiaGestao";
+import { blingSemFoto, contarCartoes, filtrarMidia, rotuloOrigemFoto, ROTULO_SITUACAO, type CartaoMidia, type MidiaProduto } from "@/lib/midia/gestao";
+import { BaseFotosPropria } from "./fotos/BaseFotosPropria";
 
-type Candidato = {
-  file: File;
-  cod_cadastro: string;
-  existe: boolean;
-  substitui: boolean;
-  preview: string;
-};
-type Recusado = { nome: string; motivo: string };
-type Progresso = { nome: string; cod: string; estado: "fila" | "enviando" | "ok" | "erro"; motivo?: string };
-
-function mb(bytes: number | null | undefined) {
-  if (!bytes) return "—";
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
+const TODOS = "__todos";
+const corSituacao: Record<string, string> = { com_foto: "border-success/40 text-success", so_cor_colecao: "border-warning/40 text-warning", sem_foto: "border-destructive/40 text-destructive" };
 
 export default function FotosProduto() {
-  const qc = useQueryClient();
-  const { data: resumo, isLoading: carregandoResumo } = useResumoFotos();
-  const { data: fotos, isLoading, error } = useFotosProduto();
-  const tornarPrincipal = useTornarPrincipal();
-  const excluir = useExcluirFoto();
-
-  // ---------- envio em lote ----------
-  const inputRef = useRef<HTMLInputElement>(null);
-  const inputPastaRef = useRef<HTMLInputElement>(null);
-  const [arrastando, setArrastando] = useState(false);
-  const [conferindo, setConferindo] = useState(false);
-  const [candidatos, setCandidatos] = useState<Candidato[]>([]);
-  const [recusados, setRecusados] = useState<Recusado[]>([]);
-  const [confirmarAberto, setConfirmarAberto] = useState(false);
-  const [origem, setOrigem] = useState("");
-  const [catalogo, setCatalogo] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [progresso, setProgresso] = useState<Progresso[]>([]);
-
-  async function conferir(lista: File[]) {
-    setConferindo(true);
-    setCandidatos([]);
-    setRecusados([]);
-    setProgresso([]);
-    try {
-      const recusa: Recusado[] = [];
-      const validos: { file: File; cod: string }[] = [];
-      for (const file of lista) {
-        if (!extensaoValida(file.name)) {
-          recusa.push({ nome: file.name, motivo: `Extensão não aceita (aceita ${EXTENSOES_ACEITAS.join(", ")})` });
-          continue;
-        }
-        if (file.size > LIMITE_BYTES) {
-          recusa.push({ nome: file.name, motivo: `Passa de 10 MB (${mb(file.size)})` });
-          continue;
-        }
-        const cod = extrairCodCadastro(file.name);
-        if (!cod) {
-          recusa.push({ nome: file.name, motivo: "Sem código no nome do arquivo" });
-          continue;
-        }
-        validos.push({ file, cod });
-      }
-
-      const codigos = Array.from(new Set(validos.map((v) => v.cod)));
-      const existentes = new Set<string>();
-      const comPrincipal = new Set<string>();
-      for (let i = 0; i < codigos.length; i += 300) {
-        const fatia = codigos.slice(i, i + 300);
-        const { data: prods, error: erroProd } = await supabase
-          .from("sncf_produtos")
-          .select("cod_cadastro")
-          .in("cod_cadastro", fatia);
-        if (erroProd) throw new Error(rawMessage(erroProd));
-        (prods ?? []).forEach((p) => p.cod_cadastro && existentes.add(p.cod_cadastro));
-
-        const { data: pr, error: erroPr } = await supabase
-          .from("produto_foto")
-          .select("cod_cadastro")
-          .in("cod_cadastro", fatia)
-          .eq("principal", true);
-        if (erroPr) throw new Error(rawMessage(erroPr));
-        (pr ?? []).forEach((p) => comPrincipal.add(p.cod_cadastro));
-      }
-
-      validos.forEach((v) => {
-        if (!existentes.has(v.cod)) {
-          recusa.push({ nome: v.file.name, motivo: `Código ${v.cod} não existe no cadastro de produtos` });
-        }
-      });
-
-      setCandidatos(
-        validos
-          .filter((v) => existentes.has(v.cod))
-          .map((v) => ({
-            file: v.file,
-            cod_cadastro: v.cod,
-            existe: true,
-            substitui: comPrincipal.has(v.cod),
-            preview: URL.createObjectURL(v.file),
-          })),
-      );
-      setRecusados(recusa);
-    } catch (e) {
-      toast.error(rawMessage(e));
-    } finally {
-      setConferindo(false);
-    }
-  }
-
-  function limparConferencia() {
-    candidatos.forEach((c) => URL.revokeObjectURL(c.preview));
-    setCandidatos([]);
-    setRecusados([]);
-    setProgresso([]);
-  }
-
-  async function subir() {
-    if (!origem.trim()) {
-      toast.error("Informe a origem das fotos.");
-      return;
-    }
-    setEnviando(true);
-    setConfirmarAberto(false);
-    const { data: sessao } = await supabase.auth.getUser();
-    const autor = sessao.user?.email ?? sessao.user?.id ?? null;
-
-    const inicial: Progresso[] = candidatos.map((c) => ({ nome: c.file.name, cod: c.cod_cadastro, estado: "fila" }));
-    setProgresso(inicial);
-
-    let subiram = 0;
-    const falhas: Recusado[] = [];
-    for (let i = 0; i < candidatos.length; i++) {
-      const c = candidatos[i];
-      setProgresso((p) => p.map((l, idx) => (idx === i ? { ...l, estado: "enviando" } : l)));
-      try {
-        await enviarFoto({
-          file: c.file,
-          cod_cadastro: c.cod_cadastro,
-          origem: origem.trim(),
-          catalogo: catalogo.trim() || null,
-          criado_por: autor,
-          tinhaPrincipal: true,
-        });
-        subiram++;
-        setProgresso((p) => p.map((l, idx) => (idx === i ? { ...l, estado: "ok" } : l)));
-      } catch (e) {
-        const motivo = rawMessage(e);
-        falhas.push({ nome: c.file.name, motivo });
-        setProgresso((p) => p.map((l, idx) => (idx === i ? { ...l, estado: "erro", motivo } : l)));
-      }
-    }
-
-    setEnviando(false);
-    qc.invalidateQueries({ queryKey: ["produto-fotos"] });
-    candidatos.forEach((c) => URL.revokeObjectURL(c.preview));
-    setCandidatos([]);
-    if (subiram > 0) toast.success(`${subiram} foto(s) na base própria.`);
-    if (falhas.length > 0) {
-      setRecusados((r) => [...r, ...falhas]);
-      toast.error(`${falhas.length} arquivo(s) falharam. Veja o relatório abaixo.`);
-    }
-  }
-
-  const substituicoes = candidatos.filter((c) => c.substitui).length;
-
-  // ---------- lista ----------
   const location = useLocation();
-  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros e página na URL.
   const [nav, setNav] = useEstadoTela(
-    { busca: "", semfoto: false, multiplas: false, catalogo: "todos", origem: "todas", pagina: 1 },
-    { replaceKeys: ["busca"] },
+    { q: "", cartao: "", situacao: "", colecao: "", video: false, ativos: true, falha: false, pagina: 1, detalhe: "" },
+    { replaceKeys: ["q"] },
   );
-  const busca = nav.busca;
-  const setBusca = (v: string) => setNav({ busca: v });
-  const soSemFoto = nav.semfoto;
-  const setSoSemFoto = (v: boolean) => setNav({ semfoto: v });
-  const soMultiplas = nav.multiplas;
-  const setSoMultiplas = (v: boolean) => setNav({ multiplas: v });
-  const filtroCatalogo = nav.catalogo;
-  const setFiltroCatalogo = (v: string) => setNav({ catalogo: v });
-  const filtroOrigem = nav.origem;
-  const setFiltroOrigem = (v: string) => setNav({ origem: v });
-  const pagina = nav.pagina;
-  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanhoPagina, setTamanhoPagina] = useState<number>(DEFAULT_PAGE_SIZE);
-  const [aExcluir, setAExcluir] = useState<FotoLinha | null>(null);
+  const [baseAberta, setBaseAberta] = useState(false);
+  const [variantesAberta, setVariantesAberta] = useState(false);
+  const resumoQ = useMidiaResumo();
+  const produtosQ = useMidiaProdutos();
+  const r = resumoQ.data;
+  const cartao = nav.cartao as CartaoMidia;
+  const mostrarVariantes = variantesAberta || cartao === "sem_vinculo";
+  const variantesQ = useVariantesSemVinculo(mostrarVariantes);
+  const nSemVinculoQ = useContagemSemVinculo();
+  const n = useMemo(() => contarCartoes(produtosQ.data ?? []), [produtosQ.data]);
 
-  const catalogos = useMemo(
-    () => Array.from(new Set((fotos ?? []).map((f) => f.catalogo).filter((c): c is string => !!c))).sort(),
-    [fotos],
-  );
-  const origens = useMemo(
-    () => Array.from(new Set((fotos ?? []).map((f) => f.origem).filter((o): o is string => !!o))).sort(),
-    [fotos],
-  );
+  const colecoes = useMemo(() => Array.from(new Set((produtosQ.data ?? []).map((p) => p.colecao).filter((c): c is string => !!c))).sort(), [produtosQ.data]);
+  const filtradas = useMemo(() => filtrarMidia(produtosQ.data ?? [], {
+    cartao, busca: nav.q, situacao: nav.situacao, colecao: nav.colecao, soVideo: nav.video, soAtivos: nav.ativos, soFalha: nav.falha,
+  }), [produtosQ.data, cartao, nav.q, nav.situacao, nav.colecao, nav.video, nav.ativos, nav.falha]);
+  const fim = nav.pagina * tamanhoPagina;
+  const visiveis = filtradas.slice(fim - tamanhoPagina, fim);
+  useFocoAoVoltar({ pronto: !produtosQ.isLoading, idsVisiveis: visiveis.map((p) => p.cod_cadastro) });
+  useRestaurarScroll(null, !produtosQ.isLoading);
+  const detalhe = (produtosQ.data ?? []).find((p) => p.cod_cadastro === nav.detalhe) ?? null;
 
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return (fotos ?? []).filter((f) => {
-      if (soMultiplas && f.fotos_do_produto < 2) return false;
-      if (filtroCatalogo !== "todos" && (f.catalogo ?? "") !== filtroCatalogo) return false;
-      if (filtroOrigem !== "todas" && (f.origem ?? "") !== filtroOrigem) return false;
-      if (termo) {
-        const alvo = `${f.cod_cadastro} ${f.nome_comercial ?? ""}`.toLowerCase();
-        if (!alvo.includes(termo)) return false;
-      }
-      return true;
-    });
-  }, [fotos, soMultiplas, filtroCatalogo, filtroOrigem, busca]);
-
-  const pagefim = pagina * tamanhoPagina;
-  const visiveis = filtradas.slice(pagefim - tamanhoPagina, pagefim);
-  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: visiveis.map((f) => String(f.cod_cadastro)) });
-  useRestaurarScroll(null, !isLoading);
+  const cartoes: { id: CartaoMidia; rotulo: string; valor: number | undefined }[] = [
+    { id: "com_foto", rotulo: "Com foto do produto", valor: n.com_foto },
+    { id: "so_cor_colecao", rotulo: "Só foto de cor/coleção", valor: n.so_cor_colecao },
+    { id: "sem_foto", rotulo: "Sem foto", valor: n.sem_foto },
+    { id: "com_video", rotulo: "Com vídeo", valor: n.com_video },
+    { id: "falha", rotulo: "Falhas de cópia", valor: n.falha },
+    { id: "sem_vinculo", rotulo: "Variantes Shopify sem SKU no SNCF", valor: nSemVinculoQ.data },
+  ];
 
   function exportarCsv() {
-    const cab = ["codigo", "nome", "arquivo", "url", "origem", "catalogo", "resolucao", "principal"];
-    const linhas = filtradas.map((f) => [
-      f.cod_cadastro,
-      f.nome_comercial ?? "",
-      f.arquivo,
-      f.url ?? "",
-      f.origem ?? "",
-      f.catalogo ?? "",
-      f.largura_px && f.altura_px ? `${f.largura_px}x${f.altura_px}` : "",
-      f.principal ? "sim" : "nao",
-    ]);
-    const csv = [cab, ...linhas]
-      .map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
-      .join("\n");
+    const cab = ["codigo", "sku", "nome", "colecao", "fotos", "videos", "origem_principal", "fotos_bling", "situacao"];
+    const linhas = filtradas.map((p) => [p.cod_cadastro, p.sku ?? "", p.nome_comercial ?? "", p.colecao ?? "", p.n_fotos ?? 0, p.n_videos ?? 0, rotuloOrigemFoto(p.foto_origem), p.n_fotos_bling ?? "", ROTULO_SITUACAO[p.situacao] ?? p.situacao]);
+    const csv = [cab, ...linhas].map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `fotos-produto-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = `fotos-videos-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url);
   }
 
+  const arquivos = (r?.arquivos_foto ?? 0) + (r?.arquivos_video ?? 0);
   return (
     <PageShell>
       <PageHeader
-        titulo="Fotos do Produto"
+        titulo="Fotos e vídeos"
         icone={ImageIcon}
-        estado={
-          carregandoResumo
-            ? "Contando a base…"
-            : `${resumo?.arquivos ?? 0} arquivo(s) · ${(resumo?.mb ?? 0).toFixed(1)} MB`
-        }
-        acoes={
-          <Button variant="outline" onClick={exportarCsv} disabled={filtradas.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
-        }
+        estado={r ? `${arquivos} arquivos · ${(r.mb_bucket ?? 0).toLocaleString("pt-BR")} MB` : resumoQ.isLoading ? "Contando o repositório…" : `Resumo indisponível (${rawMessage(resumoQ.error)})`}
+        acoes={<Button variant="outline" onClick={exportarCsv} disabled={filtradas.length === 0}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>}
       />
-
       <ProdutoAbas />
 
-      {/* faixa de números */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { rotulo: "Produtos com foto própria", valor: resumo?.com_foto },
-          { rotulo: "Produtos sem foto própria", valor: resumo?.sem_foto },
-          { rotulo: "Arquivos na base", valor: resumo?.arquivos },
-          { rotulo: "Ocupação", valor: resumo ? `${resumo.mb.toFixed(1)} MB` : undefined },
-        ].map((n) => (
-          <Card key={n.rotulo}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{n.rotulo}</p>
-              {carregandoResumo ? (
-                <Skeleton className="mt-2 h-7 w-16" />
-              ) : (
-                <p className="mt-1 text-2xl tabular-nums">{n.valor ?? 0}</p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+      {produtosQ.error && <p role="alert" className="text-sm text-destructive">{rawMessage(produtosQ.error)}</p>}
+
+      <div className="space-y-1">
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {cartoes.map((c) => (
+            <button key={c.id} type="button" onClick={() => { const novo = cartao === c.id ? "" : c.id; setNav({ cartao: novo, pagina: 1 }); if (novo === "sem_vinculo") setVariantesAberta(true); }} className="text-left">
+              <Card className={cn("h-full transition-colors hover:border-primary/50", cartao === c.id && "border-primary ring-1 ring-primary")}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">{c.rotulo}</p>
+                  {(c.id === "sem_vinculo" ? nSemVinculoQ.isLoading : produtosQ.isLoading) ? <Skeleton className="mt-2 h-7 w-16" /> : <p className="mt-1 text-2xl tabular-nums">{c.valor ?? 0}</p>}
+                </CardContent>
+              </Card>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">Entrada: Shopify (automático a cada 5 min). Fotos e vídeos ficam guardados no SNCF.</p>
       </div>
 
-      {/* envio em lote */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Envio em lote</CardTitle>
-          <CardDescription>
-            O nome do arquivo é a chave: o código de cadastro é lido de uma sequência de cinco dígitos
-            começando em zero. Aceita {EXTENSOES_ACEITAS.join(", ")}, até 10 MB cada. A imagem sobe como veio.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setArrastando(true);
-            }}
-            onDragLeave={() => setArrastando(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setArrastando(false);
-              const lista = Array.from(e.dataTransfer.files ?? []);
-              if (lista.length > 0) void conferir(lista);
-            }}
-            className={cn(
-              "flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed p-8 text-center",
-              arrastando ? "border-primary bg-primary/5" : "border-border",
-            )}
-          >
-            <Upload className="h-6 w-6 text-muted-foreground" />
-            <p className="text-sm">Arraste os arquivos aqui — vários de uma vez, ou uma pasta inteira.</p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-                Escolher arquivos
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => inputPastaRef.current?.click()}>
-                Escolher pasta
-              </Button>
+        <CardContent className="space-y-3 p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-64 space-y-1"><Label htmlFor="busca-midia">Busca</Label><Input id="busca-midia" placeholder="Código, nome ou SKU" value={nav.q} onChange={(e) => setNav({ q: e.target.value, pagina: 1 })} /></div>
+            <div className="w-44 space-y-1"><Label>Situação</Label>
+              <Select value={nav.situacao || TODOS} onValueChange={(v) => setNav({ situacao: v === TODOS ? "" : v, pagina: 1 })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value={TODOS}>Todas</SelectItem>{Object.entries(ROTULO_SITUACAO).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              accept={EXTENSOES_ACEITAS.join(",")}
-              className="hidden"
-              onChange={(e) => {
-                const lista = Array.from(e.target.files ?? []);
-                if (lista.length > 0) void conferir(lista);
-                e.target.value = "";
-              }}
-            />
-            <input
-              ref={inputPastaRef}
-              type="file"
-              multiple
-              // pasta inteira quando o navegador permite
-              {...({ webkitdirectory: "true", directory: "true" } as Record<string, string>)}
-              className="hidden"
-              onChange={(e) => {
-                const lista = Array.from(e.target.files ?? []);
-                if (lista.length > 0) void conferir(lista);
-                e.target.value = "";
-              }}
-            />
+            <div className="w-52 space-y-1"><Label>Coleção</Label>
+              <Select value={nav.colecao || TODOS} onValueChange={(v) => setNav({ colecao: v === TODOS ? "" : v, pagina: 1 })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value={TODOS}>Todas</SelectItem>{colecoes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            {([["video", "Só com vídeo"], ["ativos", "Só ativos"], ["falha", "Só com falha"]] as const).map(([k, rot]) => (
+              <label key={k} className="flex items-center gap-2 pb-2 text-sm"><Checkbox checked={nav[k]} onCheckedChange={(v) => setNav({ [k]: v === true, pagina: 1 })} />{rot}</label>
+            ))}
           </div>
 
-          {conferindo && <p className="text-sm text-muted-foreground">Conferindo os arquivos…</p>}
-
-          {(candidatos.length > 0 || recusados.length > 0) && !conferindo && (
-            <div className="space-y-3 rounded-md border p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="default">{candidatos.length} pronto(s) para subir</Badge>
-                {substituicoes > 0 && (
-                  <Badge variant="secondary">{substituicoes} substitui a foto principal atual</Badge>
-                )}
-                {recusados.length > 0 && <Badge variant="outline">{recusados.length} recusado(s)</Badge>}
-                <div className="ml-auto flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={limparConferencia} disabled={enviando}>
-                    <X className="mr-2 h-4 w-4" />
-                    Descartar
-                  </Button>
-                  <Button size="sm" onClick={() => setConfirmarAberto(true)} disabled={enviando || candidatos.length === 0}>
-                    Confirmar envio
-                  </Button>
-                </div>
-              </div>
-
-              {candidatos.length > 0 && (
-                <div className="flex flex-wrap gap-3">
-                  {candidatos.slice(0, 12).map((c) => (
-                    <div key={c.preview} className="w-24 space-y-1 text-center">
-                      <img src={c.preview} alt={c.file.name} className="h-24 w-24 rounded-md border object-cover" />
-                      <p className="truncate text-xs tabular-nums">{c.cod_cadastro}</p>
-                      {c.substitui && <p className="text-xs text-muted-foreground">substitui</p>}
-                    </div>
-                  ))}
-                  {candidatos.length > 12 && (
-                    <p className="self-center text-xs text-muted-foreground">
-                      + {candidatos.length - 12} arquivo(s)
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {recusados.length > 0 && (
-                <Alert>
-                  <AlertDescription className="space-y-1">
-                    <p className="text-sm">Recusados (não sobem):</p>
-                    {recusados.map((r) => (
-                      <p key={`${r.nome}-${r.motivo}`} className="text-xs text-muted-foreground">
-                        {r.nome} — {r.motivo}
-                      </p>
-                    ))}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {progresso.length > 0 && (
-            <div className="space-y-2 rounded-md border p-4">
-              <div className="flex items-center gap-3">
-                <Progress
-                  value={(progresso.filter((p) => p.estado !== "fila" && p.estado !== "enviando").length / progresso.length) * 100}
-                  className="h-2"
-                />
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {progresso.filter((p) => p.estado === "ok").length}/{progresso.length}
-                </span>
-              </div>
-              <div className="max-h-48 space-y-1 overflow-auto">
-                {progresso.map((p) => (
-                  <p key={p.nome} className="text-xs">
-                    <span className="tabular-nums">{p.cod}</span> · {p.nome} ·{" "}
-                    {p.estado === "ok"
-                      ? "subiu"
-                      : p.estado === "erro"
-                        ? `falhou — ${p.motivo}`
-                        : p.estado === "enviando"
-                          ? "enviando…"
-                          : "na fila"}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* lista */}
-      <Card>
-        <CardHeader className="space-y-3">
-          <CardTitle className="text-base">Base de fotos</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="Buscar por código ou nome"
-              value={busca}
-              onChange={(e) => {
-                setBusca(e.target.value);
-                setPagina(1);
-              }}
-              className="w-64"
-            />
-            <Select value={filtroCatalogo} onValueChange={(v) => { setFiltroCatalogo(v); setPagina(1); }}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Catálogo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os catálogos</SelectItem>
-                {catalogos.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filtroOrigem} onValueChange={(v) => { setFiltroOrigem(v); setPagina(1); }}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Origem" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as origens</SelectItem>
-                {origens.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={soMultiplas} onCheckedChange={(v) => { setSoMultiplas(!!v); setPagina(1); }} />
-              Só com mais de uma foto
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={soSemFoto} onCheckedChange={(v) => setSoSemFoto(!!v)} />
-              Só sem foto própria
-            </label>
-          </div>
-          {soSemFoto && (
-            <Alert>
-              <AlertDescription className="text-sm">
-                Produtos sem foto própria não aparecem nesta lista — ela só mostra arquivos que existem.
-                Hoje são {resumo?.sem_foto ?? 0} produto(s) sem nenhuma foto na base.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardHeader>
-        <CardContent className="p-0">
-          {error && (
-            <Alert variant="destructive" className="m-4">
-              <AlertDescription>{rawMessage(error)}</AlertDescription>
-            </Alert>
-          )}
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">Foto</TableHead>
-                <TableHead>Código</TableHead>
-                <TableHead>Nome comercial</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Catálogo</TableHead>
-                <TableHead>Resolução</TableHead>
-                <TableHead className="text-right">Tamanho</TableHead>
-                <TableHead>Principal</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-14">Foto</TableHead>
+                <TableHead className="w-24">Código</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead className="w-36">Coleção</TableHead>
+                <TableHead className="w-16 text-right">Fotos</TableHead>
+                <TableHead className="w-16 text-right">Vídeos</TableHead>
+                <TableHead className="w-28">Origem</TableHead>
+                <TableHead className="w-20 text-right">No Bling</TableHead>
+                <TableHead className="w-32">Situação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && (
-                <TableRow><TableCell colSpan={10}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
-              )}
-              {!isLoading && visiveis.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={10} className="py-8 text-center text-sm text-muted-foreground">
-                    Nenhuma foto na base própria com esse recorte.
-                  </TableCell>
-                </TableRow>
-              )}
-              {visiveis.map((f) => (
-                <TableRow key={f.id} data-foco-id={String(f.cod_cadastro)}>
-                  <TableCell>
-                    {f.url ? (
-                      <a href={f.url} target="_blank" rel="noreferrer">
-                        <img src={f.url} alt={f.cod_cadastro} className="h-12 w-12 rounded border object-cover" />
-                      </a>
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded border">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    <Link className="underline underline-offset-4" to={`/vendas/produto/ficha/${f.cod_cadastro}`} state={{ from: montarFrom(location.pathname, location.search, String(f.cod_cadastro)), fromLabel: "Fotos do produto" }}>
-                      {f.cod_cadastro}
-                    </Link>
-                    {f.fotos_do_produto > 1 && (
-                      <Badge variant="outline" className="ml-2">{f.fotos_do_produto} fotos</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="max-w-[260px] truncate">{f.nome_comercial ?? "—"}</TableCell>
-                  <TableCell>{f.origem ?? "—"}</TableCell>
-                  <TableCell>{f.catalogo ?? "—"}</TableCell>
-                  <TableCell className="tabular-nums">
-                    {f.largura_px && f.altura_px ? `${f.largura_px}×${f.altura_px}` : "—"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{mb(f.bytes)}</TableCell>
-                  <TableCell>
-                    {f.principal ? <Badge variant="default">principal</Badge> : <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDataHora(f.criado_em)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={!!f.principal || tornarPrincipal.isPending}
-                        onClick={() =>
-                          tornarPrincipal.mutate(
-                            { id: f.id, cod_cadastro: f.cod_cadastro },
-                            {
-                              onSuccess: () => toast.success(`Foto principal do ${f.cod_cadastro} trocada.`),
-                              onError: (e) => toast.error(rawMessage(e)),
-                            },
-                          )
-                        }
-                      >
-                        <Star className="mr-1 h-4 w-4" />
-                        Tornar principal
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setAExcluir(f)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {produtosQ.isLoading ? Array.from({ length: 6 }).map((_, i) => <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
+                : visiveis.length === 0 ? <TableRow><TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">Nenhum produto com esses filtros.</TableCell></TableRow>
+                : visiveis.map((p) => (
+                  <TableRow key={p.cod_cadastro} data-foco-id={p.cod_cadastro} className="cursor-pointer" onClick={() => setNav({ detalhe: p.cod_cadastro })}>
+                    <TableCell>{p.foto_principal_url ? <img src={p.foto_principal_url} alt="" loading="lazy" className="h-10 w-10 rounded object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded bg-muted"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>}</TableCell>
+                    <TableCell className="font-mono text-xs" onClick={(e) => e.stopPropagation()}>
+                      <Link className="underline underline-offset-4" to={`/vendas/produto/ficha/${p.cod_cadastro}`} state={{ from: montarFrom(location.pathname, location.search, p.cod_cadastro), fromLabel: "Fotos e vídeos" }}>{p.cod_cadastro}</Link>
+                    </TableCell>
+                    <TableCell><div className="truncate text-sm" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>{p.sku && <div className="truncate text-xs text-muted-foreground" title={p.sku}>{p.sku}</div>}</TableCell>
+                    <TableCell><div className="truncate text-sm" title={p.colecao ?? ""}>{p.colecao ?? "—"}</div></TableCell>
+                    <TableCell className="text-right tabular-nums">{p.n_fotos ?? 0}{(p.n_fotos_falha ?? 0) > 0 && <span className="ml-1 text-xs text-destructive" title="Falhas de cópia">({p.n_fotos_falha}!)</span>}</TableCell>
+                    <TableCell className="text-right tabular-nums">{(p.n_videos ?? 0) > 0 ? <span className="inline-flex items-center gap-1"><Video className="h-3.5 w-3.5" />{p.n_videos}</span> : "—"}</TableCell>
+                    <TableCell>{p.foto_origem ? <Badge variant="outline" className="font-normal">{rotuloOrigemFoto(p.foto_origem)}</Badge> : "—"}</TableCell>
+                    <TableCell className={cn("text-right tabular-nums", blingSemFoto(p) && "rounded bg-warning/10 text-warning")}>{p.n_fotos_bling ?? "—"}</TableCell>
+                    <TableCell><Badge variant="outline" className={cn("font-normal", corSituacao[p.situacao])}>{ROTULO_SITUACAO[p.situacao] ?? p.situacao}</Badge></TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
-          <RodapePaginacao
-            total={filtradas.length}
-            pagina={pagina}
-            tamanhoPagina={tamanhoPagina}
-            tela="fotos_produto"
-            onPagina={setPagina}
-            onTamanhoPagina={(t) => { setTamanhoPagina(t); setPagina(1); }}
-          />
+          <RodapePaginacao total={filtradas.length} pagina={nav.pagina} tamanhoPagina={tamanhoPagina} tela="fotos_produto" onPagina={(v) => setNav({ pagina: v })} onTamanhoPagina={(t) => { setTamanhoPagina(t); setNav({ pagina: 1 }); }} />
         </CardContent>
       </Card>
 
-      {/* confirmação do envio */}
-      <Dialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar envio de {candidatos.length} foto(s)</DialogTitle>
-            <DialogDescription>
-              {substituicoes > 0
-                ? `${substituicoes} produto(s) já têm foto principal — a nova assume e a anterior fica no histórico.`
-                : "Nenhuma foto principal será substituída."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="origem-fotos">Origem</Label>
-              <Input
-                id="origem-fotos"
-                value={origem}
-                onChange={(e) => setOrigem(e.target.value)}
-                placeholder={ORIGENS_SUGERIDAS.join(" · ")}
-              />
-              <div className="flex gap-2 pt-1">
-                {ORIGENS_SUGERIDAS.map((o) => (
-                  <Button key={o} type="button" variant="outline" size="sm" onClick={() => setOrigem(o)}>
-                    {o}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="catalogo-fotos">Catálogo (opcional)</Label>
-              <Input id="catalogo-fotos" value={catalogo} onChange={(e) => setCatalogo(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmarAberto(false)}>Voltar</Button>
-            <Button onClick={() => void subir()} disabled={!origem.trim() || enviando}>
-              Subir fotos
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Collapsible open={mostrarVariantes} onOpenChange={(o) => { setVariantesAberta(o); if (!o && cartao === "sem_vinculo") setNav({ cartao: "" }); }}>
+        <Card>
+          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left text-sm font-medium">
+            <span>Variantes da Shopify sem SKU no SNCF{nSemVinculoQ.data != null && <span className="ml-1 text-muted-foreground">({nSemVinculoQ.data})</span>}</span>
+            <ChevronDown className={cn("h-4 w-4 transition-transform", mostrarVariantes && "rotate-180")} />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-2 pt-0">
+              <p className="text-sm text-muted-foreground">As fotos dessas variantes não entram no repositório até o SKU existir no SNCF.</p>
+              {variantesQ.error ? <p role="alert" className="text-sm text-destructive">{rawMessage(variantesQ.error)}</p> : variantesQ.isLoading ? <Skeleton className="h-24 w-full" /> : (
+                <Table className="table-fixed">
+                  <TableHeader><TableRow><TableHead>Título</TableHead><TableHead className="w-48">SKU</TableHead><TableHead className="w-28">Status</TableHead><TableHead className="w-24 text-right">Imagens</TableHead></TableRow></TableHeader>
+                  <TableBody>{(variantesQ.data ?? []).map((v) => (
+                    <TableRow key={v.variant_id}><TableCell><div className="truncate" title={v.title ?? ""}>{v.title ?? "—"}</div></TableCell><TableCell className="font-mono text-xs">{v.sku || "—"}</TableCell><TableCell>{v.status ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{v.n_imagens ?? 0}</TableCell></TableRow>
+                  ))}</TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* exclusão */}
-      <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir a foto do {aExcluir?.cod_cadastro}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {aExcluir?.nome_comercial ?? "Produto sem nome comercial"} — o arquivo sai do armazenamento e o
-              registro sai da base. Não tem volta.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (!aExcluir) return;
-                excluir.mutate(aExcluir, {
-                  onSuccess: () => {
-                    toast.success(`Foto do ${aExcluir.cod_cadastro} excluída.`);
-                    setAExcluir(null);
-                  },
-                  onError: (e) => toast.error(rawMessage(e)),
-                });
-              }}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Collapsible open={baseAberta} onOpenChange={setBaseAberta}>
+        <Card>
+          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left text-sm font-medium">
+            Base própria (envio manual)
+            <ChevronDown className={cn("h-4 w-4 transition-transform", baseAberta && "rotate-180")} />
+          </CollapsibleTrigger>
+          <CollapsibleContent><CardContent className="pt-0"><BaseFotosPropria /></CardContent></CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      <GaleriaProduto produto={detalhe} cod={nav.detalhe} onFechar={() => setNav({ detalhe: "" })} />
     </PageShell>
+  );
+}
+
+function GaleriaProduto({ produto, cod, onFechar }: { produto: MidiaProduto | null; cod: string; onFechar: () => void }) {
+  const galQ = useMidiaGaleria(cod || null);
+  return (
+    <Sheet open={!!cod} onOpenChange={(o) => { if (!o) onFechar(); }}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetHeader>
+          <SheetTitle>{cod} · {produto?.nome_comercial ?? "—"}</SheetTitle>
+          <SheetDescription>{[produto?.colecao, produto?.cor_nome].filter(Boolean).join(" · ") || "Galeria do produto"}</SheetDescription>
+        </SheetHeader>
+        <div className="mt-4">
+          {galQ.error ? <p role="alert" className="text-sm text-destructive">{rawMessage(galQ.error)}</p>
+            : galQ.isLoading ? <Skeleton className="h-48 w-full" />
+            : (galQ.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma foto ou vídeo no repositório para este produto.</p>
+            : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {(galQ.data ?? []).map((m) => {
+                const img = m.url_800 ?? m.url_fonte;
+                return (
+                  <div key={m.id} className="relative overflow-hidden rounded border">
+                    {m.tipo === "video" && m.video_status === "copiado" && m.video_url
+                      ? <video controls src={m.video_url} poster={img ?? undefined} className="aspect-square w-full bg-black object-contain" />
+                      : img ? <img src={img} alt="" loading="lazy" className="aspect-square w-full object-cover" /> : <div className="flex aspect-square items-center justify-center bg-muted"><ImageIcon className="h-6 w-6 text-muted-foreground" /></div>}
+                    <div className="absolute left-1 top-1 flex flex-wrap gap-1">
+                      {m.principal && <Badge className="text-[10px]">principal</Badge>}
+                      <Badge variant="secondary" className="text-[10px]">{m.vinculo === "variante" ? "variante" : "galeria"}</Badge>
+                      {m.tipo === "video" && <Badge variant="secondary" className="text-[10px]"><Video className="mr-1 h-3 w-3" />{m.video_status === "copiado" ? "vídeo" : m.video_status ?? "vídeo"}</Badge>}
+                    </div>
+                    {m.url_original && (
+                      <div className="absolute right-1 top-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button size="icon" variant="secondary" className="h-7 w-7" aria-label="Ações da foto"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end"><DropdownMenuItem asChild><a href={m.url_original} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Abrir original</a></DropdownMenuItem></DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>}
+        </div>
+        <div className="mt-4 space-y-1 border-t pt-3 text-sm text-muted-foreground">
+          <div>Última cópia: {produto?.espelhado_em ? fmtDataHora(produto.espelhado_em) : "—"}</div>
+          <div>Fotos no Bling: {produto?.n_fotos_bling ?? "—"}{produto?.bling_lido_em && <> · lido em {fmtDataHora(produto.bling_lido_em)}</>}</div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
