@@ -13,6 +13,10 @@ const C = "Sistema · consulta";
 const v = (k: string) => (r: Row) => r[k];
 const simNao = (k: string) => (r: Row) => r[k] === true ? "Sim" : r[k] === false ? "Não" : null;
 const desc = (r: Row) => { const t = r.descricao_fonte; if (t == null) return null; return r.descricao_origem === "shopify_html" ? htmlParaTexto(String(t)) : t; };
+// Colunas de loja: uma por loja ativa de loja_dim (slug_planilha), valor Sim/Não de produto_loja; editáveis pelo Produto.
+const LOJAS = "__lojas__" as unknown as Col;
+const colsCatalogo = (lojas: { slug: string; nome: string; slug_planilha: string }[]): Col[] =>
+  COLS.flatMap(c => c === LOJAS ? lojas.map(l => [l.slug_planilha, l.nome, "Lojas", "Produto", (r: Row) => (r._lojas as Record<string, string> | undefined)?.[l.slug] ?? null] as Col) : [c]);
 const COLS: Col[] = [
   ["cod_cadastro", "Código", "Identidade", "Operações", v("cod_cadastro"), "t"],
   ["_codigo_externo", "Código nos canais", "Identidade", C, v("codigo_externo"), "t"],
@@ -26,11 +30,7 @@ const COLS: Col[] = [
   ["origem_prod", "Origem produto", "Fiscal e físico", "Operações", v("origem_prod")],
   ["grupo_tributario_bling", "Grupo tributário Bling", "Fiscal e físico", C, v("grupo_tributario_bling")],
   ["_fase_sncf", "Fase SNCF", "Situação", C, v("fase_sncf")],
-  ["loja_b2b", "B2B", "Lojas", "Produto", r => r.em_cadastro === true ? "Sim" : null],
-  ["loja_site", "Site", "Lojas", "Produto", r => r.no_shopify === true ? "Sim" : r.em_cadastro === true ? "Não" : null],
-  ["loja_ml", "Mercado Livre", "Lojas", "Produto", () => null],
-  ["loja_shopee", "Shopee", "Lojas", "Produto", () => null],
-  ["loja_tiktok", "TikTok", "Lojas", "Produto", () => null],
+  LOJAS,
   ...([["departamento", "Departamento"], ["categoria", "Categoria"], ["linha", "Linha"], ["familia", "Família"], ["grupo", "Grupo"], ["tipo", "Tipo"], ["colecao", "Coleção"], ["sub_colecao", "Subcoleção"], ["sub_colecao2", "Subcoleção 2"], ["cor_nome", "Nome da cor"], ["cor", "Cor"], ["estampa", "Estampa"], ["tamanho_numero", "Tamanho"], ["tamanho_ref", "Tamanho ref."]] as const).map(([s, l]) => [s, l, "Classificação", "Produto", v(s)] as Col),
   ["is_vela_numerica", "Vela numérica?", "Classificação", "Produto", simNao("is_vela_numerica")],
   ["numero_vela", "Nº da vela", "Classificação", "Produto", v("numero_vela"), "n"],
@@ -101,6 +101,16 @@ Deno.serve(async req => {
       linhas.push(...(q.data as Row[]));
       if (q.data.length < 1000) break;
     }
+    const lojasQ = await sb.from("loja_dim").select("slug,nome,slug_planilha").eq("ativo", true).order("ordem");
+    if (lojasQ.error) throw lojasQ.error;
+    const porCod = new Map<string, Record<string, string>>();
+    for (let de = 0; ; de += 1000) {
+      const q = await sb.from("produto_loja").select("cod_cadastro,loja,vende").order("cod_cadastro").order("loja").range(de, de + 999);
+      if (q.error) throw q.error;
+      for (const x of q.data ?? []) { const m = porCod.get(x.cod_cadastro) ?? {}; m[x.loja] = x.vende ? "Sim" : "Não"; porCod.set(x.cod_cadastro, m); }
+      if (q.data.length < 1000) break;
+    }
+    for (const l of linhas) l._lojas = porCod.get(String(l.cod_cadastro)) ?? {};
     const codigos: Row[] = [];
     for (let de = 0; ; de += 1000) {
       const q = await sb.from("vw_catalogo_planilha_v2_codigos").select("*").order("banco_ean", { nullsFirst: false }).order("ean").range(de, de + 999);
@@ -109,7 +119,7 @@ Deno.serve(async req => {
       if (q.data.length < 1000) break;
     }
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, montarAba(COLS, linhas), "Catálogo");
+    XLSX.utils.book_append_sheet(wb, montarAba(colsCatalogo(lojasQ.data ?? []), linhas), "Catálogo");
     XLSX.utils.book_append_sheet(wb, montarAba(COLS_CODIGOS, codigos), ABA_CODIGOS);
     const bytes = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
     return new Response(bytes, { headers: { ...corsHeaders, "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": 'attachment; filename="catalogo_fetely_completo_v2.xlsx"' } });

@@ -69,9 +69,9 @@ describe("catálogo diário — comparação de três vias", () => {
   it("código numérico mantém cinco casas", () => expect(normalizarCodigo(123)).toBe("00123"));
   it("layout exige cod_cadastro na linha 3", () => expect(() => validarSlugs(["ncm"], [{ campo: "ncm" }])).toThrow("sem cod_cadastro"));
   it("layout rejeita slug desconhecido", () => expect(() => validarSlugs(["cod_cadastro", "nao_existe"], [])).toThrow("desconhecido"));
-  it("aceita o cabeçalho oficial e registra grupo_tributario_bling como ignorado", () => {
+  it("aceita o cabeçalho oficial e registra grupo_tributario_bling e canal_venda (derivado das lojas) como ignorados", () => {
     const layout = validarSlugs(cabecalhoOficial, fichaOficial, ["grupo_tributario_bling"]);
-    expect(layout.colunas_ignoradas).toEqual(["cod_cadastro", "sku", "ean", "dun", "fase", "_fase_sncf", "_ativo", "_tem_descricao", "_tem_meta_descricao", "grupo_tributario_bling"]);
+    expect(layout.colunas_ignoradas).toEqual(["cod_cadastro", "sku", "ean", "dun", "fase", "_fase_sncf", "_ativo", "canal_venda", "_tem_descricao", "_tem_meta_descricao", "grupo_tributario_bling"]);
   });
   it("rejeita slug inventado no cabeçalho oficial", () => expect(() => validarSlugs([...cabecalhoOficial, "campo_inventado"], fichaOficial, ["grupo_tributario_bling"])).toThrow("slug desconhecido campo_inventado"));
   it("qualquer prefixo _ é somente leitura mesmo se importável na ficha", () => {

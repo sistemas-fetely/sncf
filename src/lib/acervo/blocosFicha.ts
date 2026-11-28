@@ -1,5 +1,5 @@
 // Block order/labels of the product field matrix, shared by the spreadsheet export and the daily review.
-export const ORDEM_BLOCO = ["identidade", "fiscal_fisico", "classificacao", "comercial"];
+export const ORDEM_BLOCO = ["identidade", "fiscal_fisico", "classificacao", "comercial", "lojas"];
 
 export const legivel = (s: string | null | undefined) => {
   if (!s) return "";

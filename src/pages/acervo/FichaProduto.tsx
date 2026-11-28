@@ -41,6 +41,7 @@ import { formatError } from "@/lib/format-error";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { CadastrarProdutoXpmDialog } from "@/components/acervo/CadastrarProdutoXpmDialog";
+import { ChipsLojas, useLojasProdutos } from "@/components/acervo/LojasProduto";
 
 type LinhaMatriz = {
   campo: string;
@@ -166,6 +167,7 @@ function textoValor(v: unknown): string {
 export default function FichaProduto() {
   const { cod_cadastro: codParam } = useParams<{ cod_cadastro: string }>();
   const cod = (codParam ?? "").trim();
+  const lojasProduto = useLojasProdutos(cod ? [cod] : []);
   const navigate = useNavigate();
 
   const [rascunho, setRascunho] = useState<Record<string, string>>({});
@@ -564,6 +566,7 @@ export default function FichaProduto() {
                 <span className="font-mono text-lg font-medium">{cod}</span>
                 <span className="text-sm">{produto.nome_comercial || "—"}</span>
                 {produto.fase_nome && <Badge variant="secondary">{produto.fase_nome}</Badge>}
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">Lojas: <ChipsLojas lojas={lojasProduto.data?.get(cod)} todas /></span>
                 <span className="ml-auto flex flex-wrap items-center gap-3">
                   <Identidade campo="sku" />
                   <Identidade campo="ean" />

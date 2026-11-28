@@ -10,6 +10,7 @@ import { obterArquivoMicrosoft } from "../_shared/catalogo-planilha/microsoft.ts
 import { camposDaLeitura, mapearLotes } from "../_shared/catalogo-planilha/leitura-lotes.ts";
 import { resolverLeituraConteudo } from "../_shared/catalogo-planilha/referencia.ts";
 import { ABA_CODIGOS, classificarPropostas, type Cartorio, type LinhaCatalogoNova, type LinhaCodigos } from "../_shared/catalogo-planilha/nascimento.ts";
+import { analisarCelulaLoja, type LojaDim } from "../_shared/catalogo-planilha/lojas.ts";
 import { analisarCelula, colunasNaoComparadas, linhaSoNascimento, donoCampo, normalizarCodigo, somenteLeitura, tiposColunasProduto, validarSlugs, vazio, type CampoCatalogo } from "../_shared/catalogo-planilha/comparacao.ts";
 
 const Body = z.object({ acao: z.enum(["ler", "testar"]).default("ler"), reprocessar: z.boolean().default(false), arquivo_teste: z.string().regex(/^testes\/[\w./-]+\.xlsx$/).optional(), aba: z.string().min(1).max(100).optional(), cenario_teste: z.record(z.record(z.unknown())).optional() }).strict();
@@ -113,6 +114,11 @@ Deno.serve(async req => {
     if (!esquemaResposta.ok) throw new Error(`Não foi possível consultar os tipos das colunas (${esquemaResposta.status}).`);
     const tiposProduto = tiposColunasProduto(await esquemaResposta.json());
     const colunasProduto = Object.keys(tiposProduto);
+    // Lojas do produto: coluna da planilha → loja vem de loja_dim.slug_planilha (nunca de código).
+    const lojasQ = await sb.from("loja_dim").select("slug,nome,ordem,slug_planilha,ativo").order("ordem");
+    if (lojasQ.error) throw lojasQ.error;
+    const lojaPorColuna = new Map((lojasQ.data ?? []).filter(l => l.ativo).map(l => [l.slug_planilha, l as LojaDim]));
+    const colunasLoja = new Set((lojasQ.data ?? []).map(l => l.slug_planilha as string));
     medir('metadados');
     statusErro = "layout_quebrado";
     // Parse only the catalog sheet, and only up to the last slug column / last used row (cost: WORKER_RESOURCE_LIMIT).
@@ -127,7 +133,7 @@ Deno.serve(async req => {
     // v2: the "Códigos e EAN" sheet owns the code↔EAN pair and the inner; without it the v1 behaviour stays intact.
     const wsCodigos = wb.Sheets[ABA_CODIGOS];
     const naoComparadas = colunasNaoComparadas(slugs, donos, !!wsCodigos);
-    const layout = validarSlugs(slugs, ficha, colunasProduto, naoComparadas.ignorar);
+    const layout = validarSlugs(slugs, ficha, colunasProduto, naoComparadas.ignorar, colunasLoja);
     let linhasCodigos: LinhaCodigos[] | null = null;
     if (wsCodigos) {
       const rc = XLSX.utils.sheet_to_json<unknown[]>(wsCodigos, { header: 1, raw: true, defval: null, blankrows: true });
@@ -139,7 +145,9 @@ Deno.serve(async req => {
     statusErro = "erro";
     const codCol = slugs.indexOf("cod_cadastro");
     const campos = camposDaLeitura(slugs, naoComparadas.ignorar, ficha, somenteLeitura);
-    const colunas = slugs.map((s, c) => ({s, c: area.s.c + c})).filter(({s}) => campos.some(f => f.campo === s));
+    const lojasPresentes = slugs.filter(s => lojaPorColuna.has(s));
+    const colunas = slugs.map((s, c) => ({s, c: area.s.c + c})).filter(({s}) => campos.some(f => f.campo === s) || lojaPorColuna.has(s));
+    const camposBase = [...campos.map(c => c.campo), ...lojasPresentes];
     const linhas = [];
     for (let r = 4; r <= area.e.r; r++) {
       const cod = normalizarCodigo(ws[XLSX.utils.encode_cell({r, c: area.s.c + codCol})]?.v);
@@ -150,12 +158,17 @@ Deno.serve(async req => {
     medir('xlsx');
     const produtos = new Map<string, Record<string, unknown>>();
     const bases = new Map<string, unknown>();
+    const vendeLoja = new Map<string, boolean>();
     await mapearLotes(cods, 150, 3, async bloco => {
       await trava?.verificar();
       const p = await sb.from("sncf_produtos").select(['cod_cadastro', ...campos.map(c => c.campo)].join(',')).in("cod_cadastro", bloco).returns<Record<string, unknown>[]>(); if (p.error) throw p.error;
       for (const x of p.data ?? []) produtos.set(String(x.cod_cadastro), x);
-      if (!testando && campos.length) for (let de = 0; ; de += 1000) {
-        const b = await sb.from("catalogo_planilha_base").select("cod_cadastro,campo,valor").in("cod_cadastro", bloco).in('campo', campos.map(c => c.campo)).order("cod_cadastro").order("campo").range(de, de + 999); if (b.error) throw b.error;
+      if (lojasPresentes.length) {
+        const pl = await sb.from("produto_loja").select("cod_cadastro,loja,vende").in("cod_cadastro", bloco).range(0, 9999); if (pl.error) throw pl.error;
+        for (const x of pl.data ?? []) vendeLoja.set(`${x.cod_cadastro}|${x.loja}`, x.vende);
+      }
+      if (!testando && camposBase.length) for (let de = 0; ; de += 1000) {
+        const b = await sb.from("catalogo_planilha_base").select("cod_cadastro,campo,valor").in("cod_cadastro", bloco).in('campo', camposBase).order("cod_cadastro").order("campo").range(de, de + 999); if (b.error) throw b.error;
         for (const x of b.data ?? []) bases.set(`${x.cod_cadastro}|${x.campo}`, x.valor);
         if (!b.data || b.data.length < 1000) break;
       }
@@ -192,6 +205,17 @@ Deno.serve(async req => {
           const m = { cod_cadastro: linha.cod, campo: campo.campo, dono: donoCampo(campo), ...celula, tipo, erro: null as string | null, _planilha: planilha };
           (m.dono === "operacoes" ? fiscais : mudancas).push(m);
         }
+      }
+      for (const coluna of lojasPresentes) {
+        if (vazio(linha.valores[coluna])) continue;
+        const loja = lojaPorColuna.get(coluna)!;
+        const key = `${linha.cod}|${coluna}`;
+        const fake = body.cenario_teste?.[key];
+        const sistema = fake && "sistema" in fake ? fake.sistema : vendeLoja.get(`${linha.cod}|${loja.slug}`) ?? null;
+        const base = fake && "base" in fake ? fake.base : bases.has(key) ? bases.get(key) : undefined;
+        const celula = analisarCelulaLoja(base, linha.valores[coluna], sistema);
+        if (celula.tipo !== "erro" && !bases.has(key) && celula.valor_sistema != null) baseInicial.push({ cod_cadastro: linha.cod, campo: coluna, valor: celula.valor_sistema });
+        if (celula.tipo) mudancas.push({ cod_cadastro: linha.cod, campo: coluna, dono: "produto", ...celula });
       }
       // One format check per product with all its fiscal fields (was one RPC per cell).
       if (fiscais.length) {

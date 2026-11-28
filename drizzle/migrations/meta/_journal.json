@@ -841,6 +841,13 @@
       "when": 1795879837643,
       "tag": "0119_ml_anuncios_central_produto_b1b",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1795883975808,
+      "tag": "0120_produto_loja",
+      "breakpoints": true
     }
   ]
 }

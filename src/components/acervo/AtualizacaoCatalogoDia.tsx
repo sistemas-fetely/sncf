@@ -33,7 +33,7 @@ import { estadoLeituraCatalogo } from '@/lib/acervo/estadoLeituraCatalogo';
 import { agruparMensagens, ErroCatalogo, deveAtualizarLeitura } from '@/lib/acervo/mensagensCatalogo';
 import { executarLotesCatalogo, FalhaLoteCatalogo, motivosAgrupados, resultadoVazio, type ProgressoAplicacao, type ResultadoAplicacao, type RespostaLote } from '@/lib/acervo/aplicacaoCatalogo';
 
-const texto = (v: unknown) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+const texto = (v: unknown) => v == null ? '—' : v === 'true' || v === true ? 'Sim' : v === 'false' || v === false ? 'Não' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 const TAMANHO_PAGINA = 25;
 type Previa = { acao: 'aplicar' | 'descartar'; plano: PlanoCatalogo; celulas: CelulaCatalogo[]; leituraId?: string };
 
@@ -76,9 +76,14 @@ export function AtualizacaoCatalogoDia({ seletor }: { seletor?: ReactNode }) {
     return r.data ?? [];
   } });
   const matriz = useQuery({ queryKey: ['catalogo-planilha-rotulos'], queryFn: async () => {
-    const r = await supabase.from('produto_ficha_nascimento').select('campo,rotulo,ordem,bloco').eq('importavel_planilha', true).order('ordem');
+    const [r, l] = await Promise.all([
+      supabase.from('produto_ficha_nascimento').select('campo,rotulo,ordem,bloco').eq('importavel_planilha', true).order('ordem'),
+      // Lojas do produto: colunas loja_* vêm de loja_dim (bloco "lojas", dono Produto).
+      supabase.from('loja_dim').select('slug_planilha,nome,ordem').eq('ativo', true).order('ordem'),
+    ]);
     if (r.error) throw r.error;
-    return [...(r.data ?? [])].sort((a, b) => posicaoBloco(a.bloco) - posicaoBloco(b.bloco) || a.bloco.localeCompare(b.bloco) || a.ordem - b.ordem);
+    if (l.error) throw l.error;
+    return [...(r.data ?? []), ...(l.data ?? []).map(x => ({ campo: x.slug_planilha, rotulo: x.nome, ordem: x.ordem, bloco: 'lojas' }))].sort((a, b) => posicaoBloco(a.bloco) - posicaoBloco(b.bloco) || a.bloco.localeCompare(b.bloco) || a.ordem - b.ordem);
   } });
   const nomes = useQuery({ queryKey: ['catalogo-planilha-nomes', referencia.data?.id], enabled: !!lista.data, queryFn: async () => {
     const codigos = [...new Set((lista.data ?? []).filter(m => m.tipo !== 'sem_cadastro').map(m => m.cod_cadastro))];

@@ -54212,6 +54212,36 @@ export type Database = {
         }
         Relationships: []
       }
+      loja_dim: {
+        Row: {
+          ativo: boolean
+          nome: string
+          ordem: number
+          papel_canal: string | null
+          sistema: string | null
+          slug: string
+          slug_planilha: string
+        }
+        Insert: {
+          ativo?: boolean
+          nome: string
+          ordem: number
+          papel_canal?: string | null
+          sistema?: string | null
+          slug: string
+          slug_planilha: string
+        }
+        Update: {
+          ativo?: boolean
+          nome?: string
+          ordem?: number
+          papel_canal?: string | null
+          sistema?: string | null
+          slug?: string
+          slug_planilha?: string
+        }
+        Relationships: []
+      }
       macro_processo: {
         Row: {
           ativo: boolean
@@ -88668,6 +88698,370 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_loja: {
+        Row: {
+          atualizado_em: string
+          cod_cadastro: string
+          loja: string
+          origem: string
+          sku: string
+          vende: boolean
+        }
+        Insert: {
+          atualizado_em?: string
+          cod_cadastro: string
+          loja: string
+          origem: string
+          sku: string
+          vende: boolean
+        }
+        Update: {
+          atualizado_em?: string
+          cod_cadastro?: string
+          loja?: string
+          origem?: string
+          sku?: string
+          vende?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_loja_loja_fkey"
+            columns: ["loja"]
+            isOneToOne: false
+            referencedRelation: "loja_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "ic_vw_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_depara"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_central_estoque_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_alerta_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_bloqueio_venda"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_ml_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao_360"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_export_sncf_fop"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_formato_alerta"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_imagem_final"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_v2"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_classe_sku"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_reposicao_sp"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_sem_anuncio"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "produto_loja_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
       produto_marca_dim: {
         Row: {
           ativo: boolean
@@ -88746,6 +89140,90 @@ export type Database = {
           rotulo?: string
           slug?: string
           tom?: string
+        }
+        Relationships: []
+      }
+      produto_midia: {
+        Row: {
+          alt: string | null
+          altura_px: number | null
+          ativo: boolean
+          bytes: number | null
+          canais: string[]
+          cod_cadastro: string
+          created_at: string
+          erro: string | null
+          espelhado_em: string | null
+          hash_sha256: string | null
+          id: string
+          largura_px: number | null
+          ordem: number
+          origem: string
+          origem_ref: string
+          principal: boolean
+          shopify_product_id: string | null
+          shopify_variant_id: string | null
+          tentativas: number
+          tipo: string
+          updated_at: string
+          url_800: string | null
+          url_fonte: string | null
+          url_original: string | null
+          vinculo: string
+        }
+        Insert: {
+          alt?: string | null
+          altura_px?: number | null
+          ativo?: boolean
+          bytes?: number | null
+          canais?: string[]
+          cod_cadastro: string
+          created_at?: string
+          erro?: string | null
+          espelhado_em?: string | null
+          hash_sha256?: string | null
+          id?: string
+          largura_px?: number | null
+          ordem?: number
+          origem: string
+          origem_ref: string
+          principal?: boolean
+          shopify_product_id?: string | null
+          shopify_variant_id?: string | null
+          tentativas?: number
+          tipo: string
+          updated_at?: string
+          url_800?: string | null
+          url_fonte?: string | null
+          url_original?: string | null
+          vinculo: string
+        }
+        Update: {
+          alt?: string | null
+          altura_px?: number | null
+          ativo?: boolean
+          bytes?: number | null
+          canais?: string[]
+          cod_cadastro?: string
+          created_at?: string
+          erro?: string | null
+          espelhado_em?: string | null
+          hash_sha256?: string | null
+          id?: string
+          largura_px?: number | null
+          ordem?: number
+          origem?: string
+          origem_ref?: string
+          principal?: boolean
+          shopify_product_id?: string | null
+          shopify_variant_id?: string | null
+          tentativas?: number
+          tipo?: string
+          updated_at?: string
+          url_800?: string | null
+          url_fonte?: string | null
+          url_original?: string | null
+          vinculo?: string
         }
         Relationships: []
       }
@@ -90555,6 +91033,57 @@ export type Database = {
           codigo?: string
           ordem?: number
           rotulo?: string
+        }
+        Relationships: []
+      }
+      recebivel_variacao_log: {
+        Row: {
+          acordo_id: string | null
+          ator: string | null
+          criado_em: string
+          delta: number
+          id: number
+          operacao: string
+          origem: string | null
+          pedido_id: string | null
+          status_antes: string | null
+          status_depois: string | null
+          titulo_id: string
+          txid: number
+          valor_antes: number | null
+          valor_depois: number | null
+        }
+        Insert: {
+          acordo_id?: string | null
+          ator?: string | null
+          criado_em?: string
+          delta: number
+          id?: number
+          operacao: string
+          origem?: string | null
+          pedido_id?: string | null
+          status_antes?: string | null
+          status_depois?: string | null
+          titulo_id: string
+          txid?: number
+          valor_antes?: number | null
+          valor_depois?: number | null
+        }
+        Update: {
+          acordo_id?: string | null
+          ator?: string | null
+          criado_em?: string
+          delta?: number
+          id?: number
+          operacao?: string
+          origem?: string | null
+          pedido_id?: string | null
+          status_antes?: string | null
+          status_depois?: string | null
+          titulo_id?: string
+          txid?: number
+          valor_antes?: number | null
+          valor_depois?: number | null
         }
         Relationships: []
       }
@@ -162777,6 +163306,17 @@ export type Database = {
           },
         ]
       }
+      vw_midia_sem_vinculo: {
+        Row: {
+          n_imagens: number | null
+          shopify_id: string | null
+          sku: string | null
+          status: string | null
+          title: string | null
+          variant_id: string | null
+        }
+        Relationships: []
+      }
       vw_minhas_filas: {
         Row: {
           cadeira: string | null
@@ -167420,13 +167960,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
@@ -167435,13 +167968,20 @@ export type Database = {
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
             columns: ["conta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_conta_saldo_vigente"
             referencedColumns: ["conta_bancaria_id"]
@@ -170446,14 +170986,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -187808,6 +188348,21 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_recebivel_variacao_tx: {
+        Row: {
+          ator: string | null
+          delta_liquido: number | null
+          em: string | null
+          movimentos: string | null
+          origem: string | null
+          pedido: string | null
+          pedido_id: string | null
+          titulos_mexidos: number | null
+          txid: number | null
+          via_acordo: boolean | null
+        }
+        Relationships: []
+      }
       vw_reembolso_despesa: {
         Row: {
           categoria: string | null
@@ -191483,14 +192038,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -202974,6 +203529,7 @@ export type Database = {
           pedido_loja: string
         }[]
       }
+      fn_b96_instalar_gatilho_observacao: { Args: never; Returns: undefined }
       fn_badges: {
         Args: never
         Returns: {
@@ -203241,6 +203797,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      fn_canal_de_papeis: {
+        Args: { p_b2b: boolean; p_b2c: boolean }
+        Returns: string
+      }
       fn_capacidade_definir: {
         Args: { _horas_semana: number; _pessoa_id: string }
         Returns: Json
@@ -203297,6 +203857,10 @@ export type Database = {
         }[]
       }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
+      fn_catalogo_aplicar_lojas: {
+        Args: { p_ator: string; p_ids: string[] }
+        Returns: Json
+      }
       fn_catalogo_dim_inativar_se_vazio_sncf: {
         Args: { p_quem: Json; p_rotulo: string; p_tabela: string }
         Returns: Json
@@ -205177,6 +205741,10 @@ export type Database = {
       }
       fn_meu_cadastro_autodeclarar: { Args: { p_dados: Json }; Returns: Json }
       fn_meu_vinculo: { Args: never; Returns: string }
+      fn_midia_indexar_shopify: {
+        Args: { p_shopify_id: string }
+        Returns: number
+      }
       fn_migra_lote: { Args: { p_limite?: number }; Returns: number }
       fn_monitor_banco_snapshot: { Args: never; Returns: undefined }
       fn_monitor_chamada_registrar: {
@@ -205857,6 +206425,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_produto_canal_derivado: { Args: { p_cod: string }; Returns: string }
       fn_produto_cockpit_resumo: { Args: { p_skus?: string[] }; Returns: Json }
       fn_produto_codigo_externo: { Args: { p_sku: string }; Returns: string }
       fn_produto_formato_validar_patch: {

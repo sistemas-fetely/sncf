@@ -2,7 +2,8 @@ export type CampoCatalogo = { campo: string; importavel_planilha?: boolean | nul
 export type TipoComparacao = "mudanca" | "conflito" | "ja_igual" | "sem_cadastro" | "erro";
 export type LinhaCatalogo = { linha: number; cod_cadastro: string; celulas: Record<string, unknown> };
 // Identity/status columns may be present in the layout, but never become writable cells.
-export const SOMENTE_LEITURA = new Set(["cod_cadastro", "sku", "ean", "dun", "fase", "ativo"]);
+// canal_venda is derived from produto_loja (fn_produto_canal_derivado) and never written from the sheet.
+export const SOMENTE_LEITURA = new Set(["cod_cadastro", "sku", "ean", "dun", "fase", "ativo", "canal_venda"]);
 export function somenteLeitura(campo: string) {
   return campo.startsWith("_") || SOMENTE_LEITURA.has(campo);
 }
@@ -69,26 +70,23 @@ export function donoCampo(campo: CampoCatalogo): "operacoes" | "produto" {
   return campo.onde_resolver === "SNCF" && ["ncm", "cest", "origem_fisc", "origem_prod"].includes(campo.campo) ? "operacoes" : "produto";
 }
 export const DONO_CONSULTA = "sistema · consulta";
-export const AVISO_LOJAS = "Colunas de loja ainda não são gravadas";
 export const AVISO_DESCRICAO = "Descrição e meta descrição ainda não são gravadas pela v2";
 // v2 sends plain text converted from Shopify HTML; comparing it with stored HTML would flood false changes.
 export const CAMPOS_TEXTO_V2 = ["descricao_produto", "meta_descricao"];
-const ehLoja = (s: string) => s.startsWith("loja_");
-/** Columns of the catalog sheet that are read but never compared nor written. */
+/** Columns of the catalog sheet that are read but never compared nor written. Loja columns are compared separately (lojas.ts). */
 export function colunasNaoComparadas(slugs: string[], donos: unknown[], v2: boolean) {
   const ignorar = new Set<string>(), avisos: string[] = [];
   slugs.forEach((s, i) => {
     if (!s) return;
-    if (String(donos[i] ?? "").trim().toLocaleLowerCase("pt-BR") === DONO_CONSULTA || ehLoja(s)) ignorar.add(s);
+    if (String(donos[i] ?? "").trim().toLocaleLowerCase("pt-BR") === DONO_CONSULTA) ignorar.add(s);
     if (v2 && CAMPOS_TEXTO_V2.includes(s)) ignorar.add(s);
   });
-  if (slugs.some(ehLoja)) avisos.push(AVISO_LOJAS);
   if (v2 && slugs.some(s => CAMPOS_TEXTO_V2.includes(s))) avisos.push(AVISO_DESCRICAO);
   return { ignorar, avisos };
 }
-export function validarSlugs(slugs: string[], ficha: CampoCatalogo[], colunasProduto: string[] = [], naoComparadas: Set<string> = new Set()) {
+export function validarSlugs(slugs: string[], ficha: CampoCatalogo[], colunasProduto: string[] = [], naoComparadas: Set<string> = new Set(), colunasLoja: Set<string> = new Set()) {
   const camposFicha = new Set(ficha.map(f => f.campo));
-  const conhecidos = new Set([...camposFicha, ...SOMENTE_LEITURA, ...colunasProduto]);
+  const conhecidos = new Set([...camposFicha, ...SOMENTE_LEITURA, ...colunasProduto, ...colunasLoja]);
   const colunasIgnoradas: string[] = [];
   if (!slugs.includes("cod_cadastro")) throw new Error("Layout quebrado: linha 3 sem cod_cadastro.");
   const vistos = new Set<string>();
@@ -96,7 +94,7 @@ export function validarSlugs(slugs: string[], ficha: CampoCatalogo[], colunasPro
     if (!s.startsWith("_") && !naoComparadas.has(s) && !conhecidos.has(s)) throw new Error(`Layout quebrado: slug desconhecido ${s}.`);
     if (vistos.has(s)) throw new Error(`Layout quebrado: slug duplicado ${s}.`);
     vistos.add(s);
-    if (somenteLeitura(s) || naoComparadas.has(s) || !camposFicha.has(s)) colunasIgnoradas.push(s);
+    if (!colunasLoja.has(s) && (somenteLeitura(s) || naoComparadas.has(s) || !camposFicha.has(s))) colunasIgnoradas.push(s);
   }
   return { colunas_ignoradas: colunasIgnoradas };
 }

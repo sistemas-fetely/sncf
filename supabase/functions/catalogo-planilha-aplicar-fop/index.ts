@@ -87,6 +87,27 @@ Deno.serve(async req => {
       celulas.push(...(r.data ?? []) as CelulaFop[]);
     }
 
+    // Lojas do produto (produto_loja) não vão ao FOP: gravadas no SNCF por fn_catalogo_aplicar_lojas.
+    const lojasQ = await sb.from("loja_dim").select("slug_planilha");
+    if (lojasQ.error) throw lojasQ.error;
+    const colunasLoja = new Set((lojasQ.data ?? []).map(l => l.slug_planilha as string));
+    const idsLoja = celulas.filter(c => colunasLoja.has(c.campo)).map(c => c.id);
+    const resumoLoja = { aplicadas: 0, conflitos: 0, erros: 0, lotes: 0, motivos: [] as string[] };
+    if (idsLoja.length) {
+      await trava?.verificar();
+      const r = await sb.rpc("fn_catalogo_aplicar_lojas", { p_ids: idsLoja, p_ator: quem.id });
+      if (r.error) throw new Error(`Lojas do produto: ${r.error.message}`);
+      const d = r.data as { feitas: number; resultados: { ok: boolean; erro?: string }[] };
+      resumoLoja.aplicadas = d.feitas; resumoLoja.lotes = 1;
+      const falhas = d.resultados.filter(x => !x.ok);
+      resumoLoja.erros = falhas.length;
+      if (falhas.length) resumoLoja.motivos.push(`Lojas do produto: ${agruparMensagens(falhas.map(x => x.erro))}`);
+      const fora = new Set(idsLoja);
+      ids = ids.filter(id => !fora.has(id));
+      celulas.splice(0, celulas.length, ...celulas.filter(c => !fora.has(c.id)));
+      if (!ids.length) return json({ ok: true, ...(cron ? { automatico: true } : {}), ...resumoLoja });
+    }
+
     const cfg = await sb.from("integracoes_config").select("config").eq("sistema", "fop").maybeSingle();
     if (cfg.error) throw cfg.error;
     const base = String((cfg.data?.config as Record<string, unknown> | null)?.fop_base_url ?? "").replace(/\/+$/, "");
@@ -219,7 +240,8 @@ Deno.serve(async req => {
         if (r.data?.registradas !== pendentes.length) throw new Error(`FOP respondeu, mas o SNCF registrou só ${r.data?.registradas ?? 0} de ${pendentes.length} células.`);
       },
     });
-    return json({ ok: true, ...(cron ? { automatico: true } : {}), ...resumo });
+    const juntos = { ...resumo, aplicadas: resumo.aplicadas + resumoLoja.aplicadas, erros: resumo.erros + resumoLoja.erros, lotes: resumo.lotes + resumoLoja.lotes, motivos: [...(resumo.motivos ?? []), ...resumoLoja.motivos] };
+    return json({ ok: true, ...(cron ? { automatico: true } : {}), ...juntos });
   } catch (e) {
     console.error("[catalogo-planilha-aplicar-fop]", msg(e));
     return json({ ok: false, erro: msg(e), codigo: e instanceof ErroCatalogo ? e.codigo : undefined }, e instanceof ErroCatalogo ? e.status : 502);
