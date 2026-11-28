@@ -1,5 +1,6 @@
 // DEVOLUÇÃO → NF À XPM (28/11/2026). A XPM só emite o termo de devolução depois de receber a NF de devolução.
-// POST {devolucao_id}: usuário com tela.devolucoes. Busca XML + PDF da NF de devolução no Bling, valida,
+// Modo máquina (service role ou x-cron-secret): lote de fn_devolucao_nf_email_xpm_fila, um por vez, autor "SNCF (automático)".
+// Modo usuário — POST {devolucao_id}: usuário com tela.devolucoes. Busca XML + PDF da NF de devolução no Bling, valida,
 // envia pelo trilho único do Resend aos destinatários de devolucao_email_xpm_destinatario e registra
 // o envio em devolucao_nf_email_xpm + andamento do caso (F-POP-006). Reenvio é permitido (log novo).
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -8,6 +9,7 @@ import { z } from "npm:zod@3";
 import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import { baixarPdfValidado, validarXmlNf } from "../_shared/bling/nf-anexo.ts";
+import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 import { sendResendEmail } from "../_shared/resend-send.ts";
 
 // deno-lint-ignore-file no-explicit-any
@@ -16,48 +18,32 @@ const msg = (e: unknown) => e instanceof Error ? e.message : (e && typeof e === 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const Corpo = z.object({ devolucao_id: z.string().uuid() });
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ ok: false, erro: "Use POST" }, 405);
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return json({ ok: false, erro: "Não autorizado" }, 401);
-  const url = Deno.env.get("SUPABASE_URL")!, anon = Deno.env.get("SUPABASE_ANON_KEY")!, service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const jwt = createClient(url, anon, { global: { headers: { Authorization: auth } } });
-  const { data: claims, error: ea } = await jwt.auth.getClaims(auth.slice(7));
-  const userId = claims?.claims?.sub as string | undefined;
-  if (ea || !userId) return json({ ok: false, erro: "Não autorizado" }, 401);
-  const { data: permitido, error: ep } = await jwt.rpc("tem_permissao", { p_slug: "tela.devolucoes", p_user: userId });
-  if (ep) return json({ ok: false, erro: ep.message }, 500);
-  if (!permitido) return json({ ok: false, erro: "Sem permissão para devoluções" }, 403);
+type Res = { s: number; b: any };
+const r = (b: any, s = 200): Res => ({ s, b });
+const SISTEMA = { id: "e09f2bfc-2a2d-48e8-a165-6fd4aa24ee20", nome: "SNCF (automático)" };
 
-  const p = Corpo.safeParse(await req.json().catch(() => ({})));
-  if (!p.success) return json({ ok: false, erro: "devolucao_id inválido" }, 400);
-  const devId = p.data.devolucao_id;
-  const db = createClient(url, service);
-
-  const { data: perfil } = await db.from("profiles").select("full_name").eq("user_id", userId).maybeSingle();
-  const nomeUsuario = (perfil as any)?.full_name || (claims?.claims?.email as string) || null;
-
+// Envio único de uma devolução (usado pelos dois modos): validações fail-loud, e-mail, log e andamento.
+async function enviarUma(db: any, devId: string, autor: { id: string; nome: string | null }): Promise<Res> {
   // Validações — nada sai sem caso XPM com NF autorizada.
   const { data: dev, error: ed } = await db.from("devolucao")
     .select("id,numero,pedido_id,nf_dev_status,nf_dev_bling_id,nf_dev_numero,nf_devolucao,nf_original_id,rastreio_reverso").eq("id", devId).maybeSingle();
-  if (ed) return json({ ok: false, erro: `ler devolução: ${ed.message}` }, 500);
-  if (!dev) return json({ ok: false, erro: "Devolução não encontrada." }, 404);
+  if (ed) return r({ ok: false, erro: `ler devolução: ${ed.message}` }, 500);
+  if (!dev) return r({ ok: false, erro: "Devolução não encontrada." }, 404);
   const { data: fun, error: ef } = await db.from("vw_devolucao_funil").select("destino_codigo,pedido_ref,cliente,rastreio_efetivo").eq("id", devId).maybeSingle();
-  if (ef) return json({ ok: false, erro: `ler funil: ${ef.message}` }, 500);
-  if (!String(fun?.destino_codigo ?? "").startsWith("XPM")) return json({ ok: false, erro: `O destino desta devolução não é a XPM (${fun?.destino_codigo ?? "sem destino"}).` }, 400);
-  if (dev.nf_dev_status !== "autorizada" || !dev.nf_dev_bling_id) return json({ ok: false, erro: "A NF de devolução ainda não está autorizada no Bling." }, 400);
+  if (ef) return r({ ok: false, erro: `ler funil: ${ef.message}` }, 500);
+  if (!String(fun?.destino_codigo ?? "").startsWith("XPM")) return r({ ok: false, erro: `O destino desta devolução não é a XPM (${fun?.destino_codigo ?? "sem destino"}).` }, 400);
+  if (dev.nf_dev_status !== "autorizada" || !dev.nf_dev_bling_id) return r({ ok: false, erro: "A NF de devolução ainda não está autorizada no Bling." }, 400);
 
   const { data: dests, error: edst } = await db.from("devolucao_email_xpm_destinatario").select("email,papel").eq("ativo", true).order("ordem");
-  if (edst) return json({ ok: false, erro: `ler destinatários: ${edst.message}` }, 500);
+  if (edst) return r({ ok: false, erro: `ler destinatários: ${edst.message}` }, 500);
   const para = (dests ?? []).filter((d: any) => d.papel === "para").map((d: any) => d.email as string);
   const copia = (dests ?? []).filter((d: any) => d.papel === "copia").map((d: any) => d.email as string);
-  if (!para.length) return json({ ok: false, erro: "Nenhum destinatário 'para' ativo da XPM cadastrado." }, 400);
+  if (!para.length) return r({ ok: false, erro: "Nenhum destinatário 'para' ativo da XPM cadastrado." }, 400);
 
   let nfOriginal: string | null = null;
   if (dev.nf_original_id) {
     const { data: nfo, error: eo } = await db.from("nfs_emitidas").select("numero").eq("id", dev.nf_original_id).maybeSingle();
-    if (eo) return json({ ok: false, erro: `ler NF de venda: ${eo.message}` }, 500);
+    if (eo) return r({ ok: false, erro: `ler NF de venda: ${eo.message}` }, 500);
     nfOriginal = nfo?.numero ?? null;
   }
   const nfNum = String(dev.nf_dev_numero ?? "");
@@ -68,9 +54,9 @@ Deno.serve(async (req) => {
   // Log primeiro: o id dele é a chave de idempotência (reenvio consciente = log novo).
   const { data: log, error: el } = await db.from("devolucao_nf_email_xpm").insert({
     devolucao_id: devId, nf_numero: nfNum || null, nf_chave: dev.nf_devolucao ?? null, assunto, para, copia,
-    status: "erro", erro: "envio em andamento", enviado_por: userId, enviado_por_nome: nomeUsuario,
+    status: "erro", erro: "envio em andamento", enviado_por: autor.id, enviado_por_nome: autor.nome,
   }).select("id").single();
-  if (el) return json({ ok: false, erro: `registrar envio: ${el.message}` }, 500);
+  if (el) return r({ ok: false, erro: `registrar envio: ${el.message}` }, 500);
 
   try {
     const { data: cfg, error: ec } = await db.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
@@ -112,18 +98,62 @@ Deno.serve(async (req) => {
     if (proc?.id) {
       const { error: ean } = await db.from("processo_caso_andamento").insert({
         processo_id: proc.id, caso_tipo: "devolucao", caso_id: devId, caso_ref: dev.numero, pedido_id: dev.pedido_id, devolucao_id: devId,
-        autor_user_id: userId, autor_nome: nomeUsuario,
+        autor_user_id: autor.id, autor_nome: autor.nome,
         texto: `NF de devolução ${nfNum} enviada à XPM (${para.join(", ")}${copia.length ? `; cópia ${copia.join(", ")}` : ""}) — aguardando o termo.`,
         retomar_em: retomar ?? null,
       });
       if (ean) console.error(`[devolucao-enviar-nf-xpm] andamento: ${ean.message}`);
     } else console.error("[devolucao-enviar-nf-xpm] processo F-POP-006 não encontrado; andamento não registrado");
     console.log(`[devolucao-enviar-nf-xpm] ${dev.numero} NF ${nfNum} enviada para ${para.join(",")}`);
-    return json({ ok: true, enviado_em: agora, para, copia });
+    return r({ ok: true, enviado_em: agora, para, copia });
   } catch (e) {
     const m = msg(e).slice(0, 500);
     await db.from("devolucao_nf_email_xpm").update({ status: "erro", erro: m }).eq("id", log.id);
     console.error(`[devolucao-enviar-nf-xpm] ${dev.numero}: ${m}`);
-    return json({ ok: false, erro: m }, 502);
+    return r({ ok: false, erro: m }, 502);
   }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ ok: false, erro: "Use POST" }, 405);
+  const auth = req.headers.get("Authorization");
+  const url = Deno.env.get("SUPABASE_URL")!, anon = Deno.env.get("SUPABASE_ANON_KEY")!, service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const db = createClient(url, service);
+
+  // Modo máquina: lote da fila.
+  if (auth === `Bearer ${service}` || req.headers.get("x-cron-secret")) {
+    if (req.headers.get("x-cron-secret")) { const negado = await gateCronOuSessao(req, db, corsHeaders); if (negado) return negado; }
+    const { data: fila, error: eq } = await db.rpc("fn_devolucao_nf_email_xpm_fila");
+    if (eq) return json({ ok: false, erro: `ler fila: ${eq.message}` }, 500);
+    const itens: { numero: string; ok: boolean; erro?: string }[] = [];
+    for (const f of (fila ?? []) as any[]) {
+      let res: Res;
+      try { res = await enviarUma(db, f.devolucao_id, SISTEMA); } catch (e) { res = r({ ok: false, erro: msg(e) }, 500); }
+      itens.push({ numero: f.numero, ok: !!res.b.ok, ...(res.b.ok ? {} : { erro: res.b.erro }) });
+    }
+    const enviados = itens.filter((i) => i.ok).length;
+    console.log(`[devolucao-enviar-nf-xpm] lote: ${itens.length} processados, ${enviados} enviados`);
+    return json({ ok: true, processados: itens.length, enviados, falhas: itens.length - enviados, itens });
+  }
+
+  // Modo usuário (Enviar agora / Reenviar / Tentar de novo).
+  if (!auth?.startsWith("Bearer ")) return json({ ok: false, erro: "Não autorizado" }, 401);
+  const jwt = createClient(url, anon, { global: { headers: { Authorization: auth } } });
+  const { data: claims, error: ea } = await jwt.auth.getClaims(auth.slice(7));
+  const userId = claims?.claims?.sub as string | undefined;
+  if (ea || !userId) return json({ ok: false, erro: "Não autorizado" }, 401);
+  const { data: permitido, error: ep } = await jwt.rpc("tem_permissao", { p_slug: "tela.devolucoes", p_user: userId });
+  if (ep) return json({ ok: false, erro: ep.message }, 500);
+  if (!permitido) return json({ ok: false, erro: "Sem permissão para devoluções" }, 403);
+
+  const p = Corpo.safeParse(await req.json().catch(() => ({})));
+  if (!p.success) return json({ ok: false, erro: "devolucao_id inválido" }, 400);
+  const devId = p.data.devolucao_id;
+
+  const { data: perfil } = await db.from("profiles").select("full_name").eq("user_id", userId).maybeSingle();
+  const nomeUsuario = (perfil as any)?.full_name || (claims?.claims?.email as string) || null;
+
+  const res = await enviarUma(db, devId, { id: userId, nome: nomeUsuario });
+  return json(res.b, res.s);
 });

@@ -75,7 +75,10 @@ export function EnviarNfXpm({ devolucaoId, onMudou }: { devolucaoId: string; onM
       {ultimoOk && <div className="text-muted-foreground">Enviada à XPM em {fmt(ultimoOk.criado_em)} por {ultimoOk.enviado_por_nome ?? "—"}</div>}
       {ultimoErro && <div className="text-destructive">Falha no último envio: {ultimoErro.erro}</div>}
       {!ultimoOk && !ultimoErro && (
-        <Button size="sm" variant="outline" onClick={() => setConfirmar(true)}><Mail className="mr-2 h-4 w-4" />Enviar NF à XPM</Button>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Envio automático à XPM em até 5 min</span>
+          <Button size="sm" variant="outline" onClick={() => setConfirmar(true)}><Mail className="mr-2 h-4 w-4" />Enviar agora</Button>
+        </div>
       )}
       {ultimoErro && <Button size="sm" variant="outline" onClick={() => setConfirmar(true)}><Mail className="mr-2 h-4 w-4" />Tentar de novo</Button>}
       {ultimoOk && !ultimoErro && <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setConfirmar(true)}>Reenviar</Button>}
